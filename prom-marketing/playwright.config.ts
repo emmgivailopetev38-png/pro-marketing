@@ -14,7 +14,7 @@ export default defineConfig({
     command: "npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
+    timeout: 180_000,
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
