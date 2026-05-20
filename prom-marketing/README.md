@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ProMarketing LTD
 
-## Getting Started
+Marketing site + admin dashboard for an AI automation agency.
 
-First, run the development server:
+## Stack
+Next.js 16, React 19, TypeScript, Tailwind 4, shadcn/ui, Supabase, Cal.com, Motion, Three.js.
+
+## Local development
 
 ```bash
+npm install
+cp .env.example .env.local   # fill in values
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+See `.env.example`. All variables are required for full functionality:
+- Supabase project URL + anon + service-role keys.
+- Cal.com username + event slug + webhook secret.
+- `ALLOWED_ADMIN_EMAILS` — comma-separated list of emails permitted to access `/admin`.
 
-## Learn More
+## Database
 
-To learn more about Next.js, take a look at the following resources:
+Migrations live in `supabase/migrations/`. Apply via Supabase Dashboard SQL editor or CLI:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+supabase db push   # if using Supabase CLI linked to your project
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+After migrations, set the Postgres custom config:
 
-## Deploy on Vercel
+```sql
+alter database postgres set app.allowed_admin_emails = 'owner@promarketing.bg,other@promarketing.bg';
+select pg_reload_conf();
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Cal.com setup
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Sign up at cal.com.
+2. Create event "Безплатна консултация" — 30 min.
+3. Webhooks → Add → URL `https://<your-domain>/api/webhooks/cal`, secret → copy into `CAL_WEBHOOK_SECRET`.
+4. Subscribe to events: `BOOKING_CREATED`, `BOOKING_RESCHEDULED`, `BOOKING_CANCELLED`.
+
+## Scripts
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Dev server with Turbopack |
+| `npm run build` | Production build |
+| `npm run typecheck` | TS check, no emit |
+| `npm test` | Vitest unit + integration |
+| `npm run test:e2e` | Playwright smoke tests |
+
+## Deployment
+
+Hosted on Vercel. `main` auto-deploys to production. PRs get preview URLs.
