@@ -14,6 +14,7 @@ export function LiveChatFeed() {
 
   useEffect(() => {
     const msg = MESSAGES[idx].body;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional reset between messages
     setTyped("");
     let i = 0;
     const interval = setInterval(() => {

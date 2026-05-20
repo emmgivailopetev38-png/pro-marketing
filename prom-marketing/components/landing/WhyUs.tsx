@@ -26,7 +26,7 @@ export function WhyUs() {
         <SectionReveal>
           <div className="mb-16 max-w-2xl">
             <p className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-[var(--color-accent-cyan)]">
-              // защо нас
+              {"// защо нас"}
             </p>
             <h2 className="font-display text-5xl font-bold leading-tight tracking-tight md:text-6xl">
               Не само агенция. Технологичен партньор.

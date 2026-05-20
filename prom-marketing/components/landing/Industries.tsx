@@ -19,7 +19,7 @@ export function Industries() {
         <SectionReveal>
           <div className="mb-16 max-w-2xl">
             <p className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-[var(--color-accent-cyan)]">
-              // за кого
+              {"// за кого"}
             </p>
             <h2 className="font-display text-5xl font-bold leading-tight tracking-tight md:text-6xl">
               Подходящо за всеки бизнес, който иска повече
