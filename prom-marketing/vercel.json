@@ -3,6 +3,12 @@
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "installCommand": "npm install",
+  "crons": [
+    {
+      "path": "/api/cron/daily-lead-summary",
+      "schedule": "0 5 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/api/webhooks/(.*)",
