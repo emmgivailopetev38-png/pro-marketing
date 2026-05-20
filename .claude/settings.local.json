@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__cec720c4-7187-499c-aed8-69b4e6fb74ad__ads_get_ad_accounts",
+      "mcp__cec720c4-7187-499c-aed8-69b4e6fb74ad__ads_get_ad_entities",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__browser_batch",
+      "mcp__Claude_in_Chrome__computer",
+      "mcp__3cc23882-7c4e-4dda-9a12-691e2c56718c__list_workspaces",
+      "mcp__3cc23882-7c4e-4dda-9a12-691e2c56718c__show_characters",
+      "mcp__3cc23882-7c4e-4dda-9a12-691e2c56718c__balance",
+      "mcp__3cc23882-7c4e-4dda-9a12-691e2c56718c__generate_image",
+      "mcp__3cc23882-7c4e-4dda-9a12-691e2c56718c__job_display",
+      "Bash(npx create-next-app@latest prom-marketing --typescript --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --yes)"
+    ]
+  }
+}
