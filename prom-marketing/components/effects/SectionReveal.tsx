@@ -8,7 +8,7 @@ interface Props {
   children: ReactNode;
   className?: string;
   delay?: number;
-  as?: "div" | "section" | "article" | "header" | "footer";
+  as?: "div" | "section" | "article" | "header" | "footer" | "li" | "ul" | "ol";
 }
 
 export function SectionReveal({ children, className, delay = 0, as: Tag = "div" }: Props) {

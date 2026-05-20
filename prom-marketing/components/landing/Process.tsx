@@ -67,16 +67,19 @@ export function Process() {
 
           <ol className="space-y-14 md:space-y-20">
             {STEPS.map((step, i) => (
-              <SectionReveal key={step.num} delay={i * 120} as="article">
-                <li className="grid grid-cols-[56px_1fr] items-start gap-6 md:gap-10">
-                  <div className="relative flex h-14 w-14 items-center justify-center rounded-full glass">
-                    <span className="font-mono text-sm text-[var(--color-accent-cyan)]">{step.num}</span>
-                  </div>
-                  <div>
-                    <h3 className="font-display text-2xl font-bold md:text-3xl">{step.title}</h3>
-                    <p className="mt-3 max-w-lg text-[var(--color-text-secondary)]">{step.body}</p>
-                  </div>
-                </li>
+              <SectionReveal
+                key={step.num}
+                delay={i * 120}
+                as="li"
+                className="grid grid-cols-[56px_1fr] items-start gap-6 md:gap-10"
+              >
+                <div className="relative flex h-14 w-14 items-center justify-center rounded-full glass">
+                  <span className="font-mono text-sm text-[var(--color-accent-cyan)]">{step.num}</span>
+                </div>
+                <div>
+                  <h3 className="font-display text-2xl font-bold md:text-3xl">{step.title}</h3>
+                  <p className="mt-3 max-w-lg text-[var(--color-text-secondary)]">{step.body}</p>
+                </div>
               </SectionReveal>
             ))}
           </ol>
