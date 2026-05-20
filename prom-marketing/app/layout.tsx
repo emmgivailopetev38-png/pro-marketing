@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
-import { Syne, Inter_Tight, JetBrains_Mono } from "next/font/google";
+import { Unbounded, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const syne = Syne({
-  subsets: ["latin", "latin-ext"],
+const unbounded = Unbounded({
+  subsets: ["latin", "latin-ext", "cyrillic", "cyrillic-ext"],
   display: "swap",
   variable: "--font-display",
   weight: ["500", "700", "800"],
 });
 
 const interTight = Inter_Tight({
-  subsets: ["latin", "latin-ext"],
+  subsets: ["latin", "latin-ext", "cyrillic", "cyrillic-ext"],
   display: "swap",
   variable: "--font-body",
   weight: ["400", "500", "600", "700"],
@@ -40,7 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="bg"
-      className={`${syne.variable} ${interTight.variable} ${jetbrains.variable}`}
+      className={`${unbounded.variable} ${interTight.variable} ${jetbrains.variable}`}
     >
       <body>{children}</body>
     </html>
