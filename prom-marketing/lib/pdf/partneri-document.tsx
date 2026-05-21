@@ -27,12 +27,12 @@ const COLORS = {
 };
 
 const SERVICES = [
-  { title: "AI чат ботове", body: "24/7 отговори: Instagram DM, Messenger, Viber, WhatsApp, сайт. Booking за хотели, qualified leads за имотни." },
+  { title: "AI чат ботове", body: "24/7 отговори: Instagram DM, Messenger, Viber, WhatsApp, сайт. Booking за хотели, качествени leads за имотни." },
   { title: "AI генератор на съдържание", body: "30+ публикации/месец в брандовия глас. Одобрение преди публикуване." },
   { title: "Lead capture + CRM", body: "Свързване с Salesforce, HubSpot, Pipedrive или custom CRM." },
   { title: "Мулти-езикова комуникация", body: "BG · EN · DE · RU. Един агент работи на всички езици." },
   { title: "Отговори на ревюта", body: "TripAdvisor, Booking.com, Google Maps. AI пише, ти одобряваш." },
-  { title: "Финансова автоматизация", body: "Фактуриране, разпознаване на разходи, седмични cash flow отчети." },
+  { title: "Финансова автоматизация", body: "Фактуриране, разпознаване на разходи, седмични финансови отчети." },
 ];
 
 const STEPS = [
