@@ -49,11 +49,20 @@ export async function POST(request: NextRequest) {
     apiKey: process.env.HERMES_API_KEY!,
   });
 
-  const stream = await openai.chat.completions.create({
-    model: "hermes",
-    stream: true,
-    messages: contextMessages,
-  });
+  let stream;
+  try {
+    stream = await openai.chat.completions.create({
+      model: "hermes",
+      stream: true,
+      messages: contextMessages,
+    });
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : "Hermes call failed";
+    return NextResponse.json(
+      { error: "Hermes unavailable", detail },
+      { status: 502 }
+    );
+  }
 
   const encoder = new TextEncoder();
   let fullContent = "";
