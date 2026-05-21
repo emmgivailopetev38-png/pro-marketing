@@ -1,11 +1,18 @@
 import { Document, Page, Text, View, StyleSheet, Font } from "@react-pdf/renderer";
 
-// Register a Cyrillic-capable font. NotoSans has full Cyrillic coverage.
+// Register a Cyrillic-capable font served from /public. We use absolute URLs
+// because @react-pdf/renderer's font loader expects URLs, not fs paths.
+const FONT_HOST =
+  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "https://promarketing.pw");
+
 Font.register({
   family: "NotoSans",
   fonts: [
-    { src: "https://fonts.gstatic.com/s/notosans/v36/o-0NIpQlx3QUlC5A4PNB6Ryti20_6n1iPHjcz6L1SoM-jCpoiyD9A99d.ttf", fontWeight: 400 },
-    { src: "https://fonts.gstatic.com/s/notosans/v36/o-0NIpQlx3QUlC5A4PNB6Ryti20_6n1iPHjcz6L1SoM-jCpoiyc-A99d.ttf", fontWeight: 700 },
+    { src: `${FONT_HOST}/fonts/NotoSans-Regular.ttf`, fontWeight: 400 },
+    { src: `${FONT_HOST}/fonts/NotoSans-Bold.ttf`, fontWeight: 700 },
   ],
 });
 
