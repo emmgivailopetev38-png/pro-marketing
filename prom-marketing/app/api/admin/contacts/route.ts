@@ -22,20 +22,18 @@ export async function GET(request: Request) {
       .eq("activity_type", "email_sent");
     const emailedIds = Array.from(new Set((emailed ?? []).map((r) => r.contact_id)));
 
-    let query = supabase
+    // Fetch all then filter in JS — keeps the type-level depth manageable
+    // for the supabase-js builder when emailedIds is large.
+    const { data: all, error } = await supabase
       .from("contacts")
       .select("id, full_name, email, phone, stage, source, source_ref, created_at")
       .not("email", "is", null)
       .neq("email", "")
       .order("created_at", { ascending: false });
-
-    if (emailedIds.length > 0) {
-      query = query.not("id", "in", `(${emailedIds.join(",")})`);
-    }
-
-    const { data, error } = await query;
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ filter, count: data?.length ?? 0, contacts: data ?? [] });
+    const set = new Set(emailedIds);
+    const filtered = (all ?? []).filter((c) => !set.has(c.id));
+    return NextResponse.json({ filter, count: filtered.length, contacts: filtered });
   }
 
   const { data, error } = await supabase
