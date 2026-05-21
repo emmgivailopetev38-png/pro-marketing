@@ -6,7 +6,7 @@ function expectedToken(): string {
   return Buffer.from(`${pw}:${secret}`).toString("base64url");
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isPublic =
