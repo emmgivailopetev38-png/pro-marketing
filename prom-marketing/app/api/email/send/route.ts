@@ -3,6 +3,7 @@ import { z } from "zod";
 import { timingSafeEqual } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email/resend";
+import { upsertContactAndLog } from "@/lib/contacts/repository";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -88,6 +89,33 @@ export async function POST(request: Request) {
     replyTo,
     attachments: parsed.data.attachments,
   });
+
+  // Log activity per recipient so the contacts dashboard reflects every send.
+  if (!result.error) {
+    const recipients = Array.isArray(parsed.data.to) ? parsed.data.to : [parsed.data.to];
+    const dedupeKey = result.id ?? `${Date.now()}`;
+    await Promise.all(
+      recipients.map((to) =>
+        upsertContactAndLog({
+          email: to,
+          source: "email",
+          source_ref: result.id,
+          bump_stage_to: "contacted",
+          activity: {
+            type: "email_sent",
+            title: `Изпратен имейл: ${parsed.data.subject}`,
+            created_by: user.email,
+            metadata: {
+              resend_id: result.id,
+              subject: parsed.data.subject,
+              has_attachments: (parsed.data.attachments?.length ?? 0) > 0,
+            },
+            dedupe_key: `${dedupeKey}:${to}`,
+          },
+        }).catch(() => null)
+      )
+    );
+  }
 
   return NextResponse.json({
     ok: !result.error,

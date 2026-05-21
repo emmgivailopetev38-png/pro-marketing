@@ -11,6 +11,7 @@ import {
 import { verifyCalSignature } from "@/lib/cal/verify-webhook";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendCapiEvent, isCapiConfigured } from "@/lib/meta/conversions-api";
+import { upsertContactAndLog } from "@/lib/contacts/repository";
 
 export const dynamic = "force-dynamic";
 
@@ -102,6 +103,33 @@ export async function POST(request: Request) {
     payload: parsed.data,
     signature_valid: true,
   });
+
+  // Mirror into contacts dashboard — upsert by email, log a booking activity.
+  await upsertContactAndLog({
+    full_name: row.attendee_name,
+    email: row.attendee_email,
+    phone: row.attendee_phone,
+    source: "cal_booking",
+    source_ref: row.cal_booking_id,
+    initial_stage: "discovery",
+    bump_stage_to: "discovery",
+    activity: {
+      type: "booking",
+      title: `Cal.com среща — ${new Date(row.scheduled_at).toLocaleString("bg-BG", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}`,
+      occurred_at: row.scheduled_at,
+      body: [row.business && `Бизнес: ${row.business}`, row.automation_goal && `Цел: ${row.automation_goal}`]
+        .filter(Boolean)
+        .join("\n") || null,
+      metadata: {
+        cal_booking_id: row.cal_booking_id,
+        status: row.status,
+        duration_minutes: row.duration_minutes,
+        scheduled_at: row.scheduled_at,
+        trigger: triggerEvent,
+      },
+      dedupe_key: `cal:${row.cal_booking_id}:${triggerEvent}`,
+    },
+  }).catch(() => null);
 
   // Mirror the conversion to Meta's Conversions API for accurate ad attribution.
   // Only fire on the first creation, not on reschedules/cancellations.
