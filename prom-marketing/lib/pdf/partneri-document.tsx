@@ -1,6 +1,5 @@
 import { Document, Page, Text, View, StyleSheet, Font } from "@react-pdf/renderer";
 
-// Cyrillic-capable font from /public/fonts.
 const FONT_HOST =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
   (process.env.VERCEL_PROJECT_PRODUCTION_URL
@@ -15,187 +14,275 @@ Font.register({
   ],
 });
 
-const COLORS = {
+const C = {
   bg: "#07080f",
-  panel: "#0d1221",
+  bgDeep: "#0d1221",
   cyan: "#00d4ff",
+  cyanDim: "rgba(0, 212, 255, 0.18)",
   violet: "#818cf8",
-  textPrimary: "#e8f4ff",
-  textSecondary: "#7da8cc",
-  textTertiary: "#3d6080",
-  border: "rgba(0, 212, 255, 0.18)",
+  white: "#e8f4ff",
+  gray: "#7da8cc",
+  dim: "#3d6080",
 };
 
 const SERVICES = [
-  { title: "AI чат ботове", body: "24/7 отговори: Instagram DM, Messenger, Viber, WhatsApp, сайт. Booking за хотели, качествени leads за имотни." },
-  { title: "AI генератор на съдържание", body: "30+ публикации/месец в брандовия глас. Одобрение преди публикуване." },
-  { title: "Lead capture + CRM", body: "Свързване с Salesforce, HubSpot, Pipedrive или custom CRM." },
-  { title: "Мулти-езикова комуникация", body: "BG · EN · DE · RU. Един агент работи на всички езици." },
-  { title: "Отговори на ревюта", body: "TripAdvisor, Booking.com, Google Maps. AI пише, ти одобряваш." },
-  { title: "Финансова автоматизация", body: "Фактуриране, разпознаване на разходи, седмични финансови отчети." },
+  { n: "01", title: "AI чат ботове", body: "24/7 отговори в Instagram, Messenger, Viber, WhatsApp и сайт. Booking за хотели · качествени leads за имотни." },
+  { n: "02", title: "Генератор на съдържание", body: "30+ публикации/месец в брандовия глас на клиента. Одобрение преди публикуване." },
+  { n: "03", title: "Lead capture + CRM", body: "Свързване с Salesforce, HubSpot, Pipedrive или custom CRM." },
+  { n: "04", title: "Мулти-езикова комуникация", body: "BG · EN · DE · RU — един агент работи на всички езици." },
+  { n: "05", title: "Отговори на ревюта", body: "TripAdvisor, Booking.com, Google Maps. AI пише, ти одобряваш." },
+  { n: "06", title: "Финансова автоматизация", body: "Фактуриране, разходи, седмични финансови отчети." },
 ];
 
 const STEPS = [
-  { n: "01", title: "Discovery call", body: "30 мин. Обсъждаме клиента и обхвата. White-label или явно — ти избираш.", tag: "Безплатно" },
-  { n: "02", title: "Оферта по scope", body: "Фиксирана цена за проекта в рамките на 2 работни дни. Без скрити такси.", tag: "2 раб. дни" },
-  { n: "03", title: "Изпълнение + handover", body: "Изграждаме, тестваме, пускаме. Playbook + видео обучение + достъп.", tag: "30–60 дни" },
+  { n: "01", tag: "Безплатно", title: "Discovery call", body: "30 мин. Обсъждаме клиента и обхвата. White-label или явно — ти избираш." },
+  { n: "02", tag: "2 раб. дни", title: "Оферта по scope", body: "Фиксирана цена за проекта в рамките на 2 работни дни. Без скрити такси." },
+  { n: "03", tag: "30–60 дни", title: "Изпълнение + handover", body: "Изграждаме, тестваме, пускаме. Playbook + видео обучение + достъп." },
 ];
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   page: {
-    backgroundColor: COLORS.bg,
-    color: COLORS.textPrimary,
+    backgroundColor: C.bg,
+    color: C.white,
     fontFamily: "NotoSans",
-    paddingTop: 32,
-    paddingHorizontal: 32,
-    paddingBottom: 24,
+    paddingTop: 0,
+    paddingHorizontal: 0,
+    paddingBottom: 0,
     fontSize: 9,
   },
-  // Header
-  headerRow: {
+  // Top accent bar
+  topBar: {
+    height: 6,
+    backgroundColor: C.cyan,
+  },
+  // Brand row
+  brandRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 24,
+    paddingHorizontal: 36,
+    paddingTop: 22,
+    paddingBottom: 8,
   },
   brand: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: 700,
-    color: COLORS.textPrimary,
-    letterSpacing: 1,
+    color: C.white,
+    letterSpacing: 1.5,
   },
-  brandAccent: { color: COLORS.cyan },
-  headerMeta: {
+  brandAccent: { color: C.cyan },
+  brandMeta: {
     fontSize: 6.5,
-    color: COLORS.textTertiary,
+    color: C.dim,
     letterSpacing: 2,
     textTransform: "uppercase",
   },
-  // Section eyebrow / titles
-  eyebrow: {
-    fontSize: 6.5,
-    color: COLORS.violet,
-    letterSpacing: 2,
-    textTransform: "uppercase",
-    marginBottom: 6,
+  // Content padding
+  body: {
+    paddingHorizontal: 36,
   },
-  hero: {
-    fontSize: 22,
-    fontWeight: 700,
-    color: COLORS.textPrimary,
-    lineHeight: 1.15,
+  // Hero
+  heroEyebrowRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 16,
     marginBottom: 10,
   },
-  heroAccent: { color: COLORS.cyan },
+  heroEyebrowBar: {
+    width: 20,
+    height: 1,
+    backgroundColor: C.cyan,
+    marginRight: 10,
+  },
+  heroEyebrow: {
+    fontSize: 7,
+    color: C.violet,
+    letterSpacing: 2.5,
+    textTransform: "uppercase",
+  },
+  hero: {
+    fontSize: 28,
+    fontWeight: 700,
+    color: C.white,
+    lineHeight: 1.1,
+    marginBottom: 14,
+    letterSpacing: -0.4,
+  },
+  heroAccent: { color: C.cyan },
   lead: {
-    fontSize: 9.5,
-    color: COLORS.textSecondary,
-    lineHeight: 1.5,
-    marginBottom: 18,
+    fontSize: 10,
+    color: C.gray,
+    lineHeight: 1.55,
+    maxWidth: 460,
+    marginBottom: 6,
+  },
+  // Pill row under hero
+  pillRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  pill: {
+    borderWidth: 1,
+    borderColor: C.cyanDim,
+    backgroundColor: "rgba(0,212,255,0.06)",
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    fontSize: 8,
+    color: C.cyan,
+    fontWeight: 700,
+    marginRight: 6,
+  },
+  // Section heading
+  sectionLead: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    marginTop: 22,
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: 700,
+    color: C.white,
+  },
+  sectionEyebrow: {
+    fontSize: 7,
+    color: C.violet,
+    letterSpacing: 2,
+    textTransform: "uppercase",
   },
   divider: {
     height: 1,
-    backgroundColor: COLORS.border,
-    marginVertical: 16,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: 700,
-    color: COLORS.textPrimary,
+    backgroundColor: C.cyanDim,
     marginBottom: 12,
   },
-  // Service grid (2 columns x 3 rows)
+  // Service cards
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
   },
   cardWrap: {
-    width: "50%",
+    width: "33.33%",
     padding: 3,
   },
   card: {
-    backgroundColor: COLORS.panel,
-    borderRadius: 3,
-    padding: 10,
-    borderLeftWidth: 2,
-    borderLeftColor: COLORS.cyan,
+    backgroundColor: C.bgDeep,
+    borderRadius: 4,
+    padding: 11,
+    minHeight: 80,
+  },
+  cardNum: {
+    fontSize: 8.5,
+    fontWeight: 700,
+    color: C.cyan,
+    letterSpacing: 1,
+    marginBottom: 5,
   },
   cardTitle: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: 700,
-    color: COLORS.textPrimary,
-    marginBottom: 3,
+    color: C.white,
+    marginBottom: 4,
   },
   cardBody: {
     fontSize: 7.5,
-    color: COLORS.textSecondary,
-    lineHeight: 1.4,
+    color: C.gray,
+    lineHeight: 1.45,
   },
-  // Process row (3 columns)
+  // Process — bigger
   processRow: {
     flexDirection: "row",
+    marginBottom: 4,
   },
   processCol: {
     flex: 1,
     padding: 3,
   },
   processInner: {
-    backgroundColor: COLORS.panel,
-    borderRadius: 3,
-    padding: 10,
+    backgroundColor: C.bgDeep,
+    borderRadius: 4,
+    padding: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: C.cyan,
   },
   processNum: {
-    fontSize: 16,
+    fontSize: 28,
     fontWeight: 700,
-    color: COLORS.cyan,
-    marginBottom: 4,
-  },
-  processTag: {
-    fontSize: 6,
-    color: COLORS.violet,
-    letterSpacing: 1.5,
-    textTransform: "uppercase",
+    color: C.cyan,
+    lineHeight: 1,
     marginBottom: 6,
   },
+  processTag: {
+    fontSize: 6.5,
+    color: C.violet,
+    letterSpacing: 2,
+    textTransform: "uppercase",
+    marginBottom: 5,
+  },
   processTitle: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: 700,
-    color: COLORS.textPrimary,
+    color: C.white,
     marginBottom: 3,
   },
   processBody: {
-    fontSize: 7,
-    color: COLORS.textSecondary,
-    lineHeight: 1.4,
+    fontSize: 7.5,
+    color: C.gray,
+    lineHeight: 1.45,
   },
-  // Footer
-  footer: {
-    marginTop: 18,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+  // CTA bar bottom
+  ctaBar: {
+    marginTop: "auto",
+    backgroundColor: C.cyan,
+    paddingVertical: 14,
+    paddingHorizontal: 36,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  footerName: {
-    fontSize: 8,
+  ctaLeft: {},
+  ctaHeadline: {
+    fontSize: 12,
     fontWeight: 700,
-    color: COLORS.textPrimary,
+    color: C.bg,
     marginBottom: 2,
   },
-  footerContact: {
-    fontSize: 7.5,
-    color: COLORS.textSecondary,
-  },
-  footerCta: {
-    backgroundColor: COLORS.cyan,
-    color: COLORS.bg,
+  ctaSub: {
     fontSize: 8.5,
+    color: C.bg,
+    opacity: 0.85,
+  },
+  ctaRight: {
+    alignItems: "flex-end",
+  },
+  ctaPhone: {
+    fontSize: 11,
     fontWeight: 700,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 999,
+    color: C.bg,
+    marginBottom: 1,
+  },
+  ctaUrl: {
+    fontSize: 8.5,
+    color: C.bg,
+    opacity: 0.85,
+  },
+  // Bottom signature
+  sig: {
+    paddingVertical: 10,
+    paddingHorizontal: 36,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: C.bg,
+  },
+  sigText: {
+    fontSize: 7,
+    color: C.dim,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
   },
 });
 
@@ -206,66 +293,91 @@ export function PartneriDocument() {
       author="ProMarketing LTD"
       subject="White-label AI автоматизация за маркетинг агенции"
     >
-      <Page size="A4" style={styles.page}>
-        {/* HEADER */}
-        <View style={styles.headerRow}>
-          <Text style={styles.brand}>
-            Pro<Text style={styles.brandAccent}>Marketing</Text> LTD
+      <Page size="A4" style={s.page}>
+        <View style={s.topBar} />
+
+        {/* BRAND ROW */}
+        <View style={s.brandRow}>
+          <Text style={s.brand}>
+            Pro<Text style={s.brandAccent}>Marketing</Text> LTD
           </Text>
-          <Text style={styles.headerMeta}>Партньорска програма · 2026</Text>
+          <Text style={s.brandMeta}>Партньорска програма · 2026</Text>
         </View>
 
-        {/* HERO */}
-        <Text style={styles.eyebrow}>01 · Партньорска програма</Text>
-        <Text style={styles.hero}>
-          Ние сме твоят <Text style={styles.heroAccent}>execution екип</Text> за AI автоматизация.
-        </Text>
-        <Text style={styles.lead}>
-          За маркетинг агенции, които обслужват хотели и имотни агенции. Ти продаваш AI автоматизация на твоите клиенти — ние я изграждаме под твоя бранд или явно като ProMarketing. Срок: 30–60 дни. Без месечни абонаменти за теб, без скрити такси.
-        </Text>
-
-        <View style={styles.divider} />
-
-        {/* SERVICES */}
-        <Text style={styles.eyebrow}>02 · Какво изпълняваме за теб</Text>
-        <Text style={styles.sectionTitle}>Шест направления — един партньор</Text>
-        <View style={styles.grid}>
-          {SERVICES.map((s) => (
-            <View key={s.title} style={styles.cardWrap}>
-              <View style={styles.card}>
-                <Text style={styles.cardTitle}>{s.title}</Text>
-                <Text style={styles.cardBody}>{s.body}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.divider} />
-
-        {/* PROCESS */}
-        <Text style={styles.eyebrow}>03 · Как работим заедно</Text>
-        <Text style={styles.sectionTitle}>Три стъпки до handover</Text>
-        <View style={styles.processRow}>
-          {STEPS.map((s) => (
-            <View key={s.n} style={styles.processCol}>
-              <View style={styles.processInner}>
-                <Text style={styles.processNum}>{s.n}</Text>
-                <Text style={styles.processTag}>{s.tag}</Text>
-                <Text style={styles.processTitle}>{s.title}</Text>
-                <Text style={styles.processBody}>{s.body}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {/* FOOTER */}
-        <View style={styles.footer}>
-          <View>
-            <Text style={styles.footerName}>Ивайло Петев · ProMarketing LTD</Text>
-            <Text style={styles.footerContact}>+359 877 399 963 · ivailo@promarketing.pw</Text>
-            <Text style={styles.footerContact}>promarketing.pw/partneri</Text>
+        <View style={s.body}>
+          {/* HERO */}
+          <View style={s.heroEyebrowRow}>
+            <View style={s.heroEyebrowBar} />
+            <Text style={s.heroEyebrow}>За маркетинг агенции в hotel & real-estate ниша</Text>
           </View>
-          <Text style={styles.footerCta}>Запази discovery call</Text>
+          <Text style={s.hero}>
+            Ние сме твоят{"\n"}
+            <Text style={s.heroAccent}>execution екип</Text> за AI автоматизация.
+          </Text>
+          <Text style={s.lead}>
+            Ти продаваш на клиентите си — ние изграждаме под твоя бранд или явно като ProMarketing. Без месечен абонамент. Без скрити такси. Фиксирана цена за всеки проект.
+          </Text>
+          <View style={s.pillRow}>
+            <Text style={s.pill}>White-label</Text>
+            <Text style={s.pill}>30–60 дни</Text>
+            <Text style={s.pill}>Hotels · Real-estate</Text>
+            <Text style={s.pill}>BG · EN · DE · RU</Text>
+          </View>
+
+          {/* SERVICES */}
+          <View style={s.sectionLead}>
+            <Text style={s.sectionTitle}>Шест направления — един партньор</Text>
+            <Text style={s.sectionEyebrow}>02 · Услуги</Text>
+          </View>
+          <View style={s.divider} />
+          <View style={s.grid}>
+            {SERVICES.map((sv) => (
+              <View key={sv.n} style={s.cardWrap}>
+                <View style={s.card}>
+                  <Text style={s.cardNum}>{sv.n}</Text>
+                  <Text style={s.cardTitle}>{sv.title}</Text>
+                  <Text style={s.cardBody}>{sv.body}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+
+          {/* PROCESS */}
+          <View style={s.sectionLead}>
+            <Text style={s.sectionTitle}>Три стъпки до handover</Text>
+            <Text style={s.sectionEyebrow}>03 · Процес</Text>
+          </View>
+          <View style={s.divider} />
+          <View style={s.processRow}>
+            {STEPS.map((st) => (
+              <View key={st.n} style={s.processCol}>
+                <View style={s.processInner}>
+                  <Text style={s.processNum}>{st.n}</Text>
+                  <Text style={s.processTag}>{st.tag}</Text>
+                  <Text style={s.processTitle}>{st.title}</Text>
+                  <Text style={s.processBody}>{st.body}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* CTA BAR */}
+        <View style={s.ctaBar}>
+          <View style={s.ctaLeft}>
+            <Text style={s.ctaHeadline}>Готов да тестваш партньорството?</Text>
+            <Text style={s.ctaSub}>Запази безплатна 30-мин discovery call</Text>
+          </View>
+          <View style={s.ctaRight}>
+            <Text style={s.ctaPhone}>+359 877 399 963</Text>
+            <Text style={s.ctaUrl}>promarketing.pw/partneri</Text>
+          </View>
+        </View>
+
+        {/* SIGNATURE */}
+        <View style={s.sig}>
+          <Text style={s.sigText}>Ивайло Петев · ivailo@promarketing.pw</Text>
+          <Text style={s.sigText}>ProMarketing LTD · 2026</Text>
         </View>
       </Page>
     </Document>
