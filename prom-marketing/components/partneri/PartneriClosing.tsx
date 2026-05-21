@@ -19,7 +19,10 @@ export function PartneriClosing() {
           04 · Следваща стъпка
         </p>
 
-        <h2 className="font-[family-name:var(--font-editorial)] text-[clamp(40px,8vw,104px)] font-extrabold leading-[0.94]">
+        <h2
+          className="font-[family-name:var(--font-editorial)] text-[clamp(32px,7vw,92px)] font-extrabold leading-[1.02]"
+          style={{ overflowWrap: "break-word", hyphens: "auto", wordBreak: "break-word" }}
+        >
           Готов да тестваш<br />
           <span style={{ color: "var(--color-accent-cyan)" }}>партньорството</span>?
         </h2>

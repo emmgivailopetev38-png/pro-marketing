@@ -29,7 +29,10 @@ export function PartneriHero() {
           01 · Партньорска програма
         </p>
 
-        <h1 className="font-[family-name:var(--font-editorial)] text-[clamp(40px,8vw,108px)] font-extrabold leading-[0.95] tracking-tight">
+        <h1
+          className="font-[family-name:var(--font-editorial)] text-[clamp(32px,7vw,96px)] font-extrabold leading-[1.02] tracking-tight"
+          style={{ overflowWrap: "break-word", hyphens: "auto", wordBreak: "break-word" }}
+        >
           Ние сме твоят{" "}
           <span style={{ color: "var(--color-accent-cyan)" }}>execution екип</span>
           <br />
