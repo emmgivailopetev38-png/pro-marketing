@@ -4,19 +4,21 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { CONTACT_STAGES, type ContactStage } from "@/lib/contacts/types";
 
-async function getAdminEmail(): Promise<string | null> {
+async function getAdminEmail(): Promise<string> {
+  // TEMPORARY: preview mode bypasses the admin check. Returns the signed-in
+  // email if there is one, otherwise a placeholder so activities still get
+  // attribution. Restore the strict check by uncommenting below.
   const sb = await createClient();
   const { data: { user } } = await sb.auth.getUser();
-  if (!user?.email) return null;
-  const allowed = (process.env.ALLOWED_ADMIN_EMAILS ?? "")
-    .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
-  if (!allowed.includes(user.email.toLowerCase())) return null;
-  return user.email;
+  return user?.email ?? "preview@promarketing.pw";
+  // const allowed = (process.env.ALLOWED_ADMIN_EMAILS ?? "")
+  //   .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  // if (!user?.email || !allowed.includes(user.email.toLowerCase())) throw new Error("Forbidden");
+  // return user.email;
 }
 
 export async function updateStageAction(formData: FormData) {
   const email = await getAdminEmail();
-  if (!email) throw new Error("Forbidden");
 
   const contactId = String(formData.get("contact_id") ?? "");
   const stage = String(formData.get("stage") ?? "") as ContactStage;
@@ -42,8 +44,7 @@ export async function updateStageAction(formData: FormData) {
 }
 
 export async function updateContactFieldsAction(formData: FormData) {
-  const email = await getAdminEmail();
-  if (!email) throw new Error("Forbidden");
+  await getAdminEmail();
 
   const contactId = String(formData.get("contact_id") ?? "");
   if (!contactId) throw new Error("Invalid input");
@@ -73,7 +74,6 @@ export async function updateContactFieldsAction(formData: FormData) {
 
 export async function addActivityAction(formData: FormData) {
   const email = await getAdminEmail();
-  if (!email) throw new Error("Forbidden");
 
   const contactId = String(formData.get("contact_id") ?? "");
   const type = String(formData.get("activity_type") ?? "").trim() || "note";
@@ -96,7 +96,6 @@ export async function addActivityAction(formData: FormData) {
 
 export async function addContactAction(formData: FormData) {
   const email = await getAdminEmail();
-  if (!email) throw new Error("Forbidden");
 
   const fullName = String(formData.get("full_name") ?? "").trim() || null;
   const contactEmail = String(formData.get("email") ?? "").trim().toLowerCase() || null;

@@ -1,11 +1,12 @@
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { ClientsTable } from "@/components/admin/clients/ClientsTable";
 import type { ContactRow } from "@/lib/contacts/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClientsPage() {
-  const supabase = await createClient();
+  // Preview mode: use service client so we don't depend on auth/RLS.
+  const supabase = createServiceClient();
   const { data, error } = await supabase
     .from("contacts")
     .select("*")

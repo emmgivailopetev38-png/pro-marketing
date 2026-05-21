@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { ContactDetail } from "@/components/admin/clients/ContactDetail";
 import type { ActivityRow, ContactRow } from "@/lib/contacts/types";
 
@@ -8,7 +8,8 @@ export const dynamic = "force-dynamic";
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = await createClient();
+  // Preview mode: bypass RLS via service client.
+  const supabase = createServiceClient();
 
   const [{ data: contact }, { data: activities }] = await Promise.all([
     supabase.from("contacts").select("*").eq("id", id).maybeSingle(),
