@@ -49,7 +49,7 @@ export function WhatWeBuild() {
         </h2>
 
         <p className="mt-10 max-w-3xl text-lg leading-relaxed text-[var(--color-text-secondary)] md:text-xl">
-          {`Не template от Shopify. Не „един от много" онлайн магазини. Конкретно изграден за начина, по който твоите клиентки купуват — бавно, с удоволствие, със сетива.`}
+          {`Базата е Shopify — платформата, която ползват Allbirds, Heinz, Gymshark, Tesla. Но не "един от много" template — изграждаме над нея конкретно за начина, по който твоите клиентки купуват: бавно, с удоволствие, със сетива.`}
         </p>
 
         <div className="mt-20 grid grid-cols-1 gap-px overflow-hidden rounded-sm border border-[var(--color-border-default)] bg-[var(--color-border-default)] md:grid-cols-2 lg:grid-cols-3">

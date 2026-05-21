@@ -60,12 +60,30 @@ const DISCOUNT = SUBTOTAL - PARTNER_PRICE;
 const DISCOUNT_PCT = Math.round((DISCOUNT / SUBTOTAL) * 100);
 
 const INCLUDED_FREE = [
-  "Domain &amp; SSL setup",
-  "Hosting на Vercel (без месечна такса 6 месеца)",
-  "Документация и видео обучение",
-  "3 месеца support + corrections",
-  "Резервно копие всеки ден",
+  "Shopify theme customisation + всички apps настроени",
+  "Обучение на живо · 2 сесии по 1 час, с презентация по сайта",
+  "3 месеца support + corrections след стартиране",
+  "Конфигуриране на собствен домейн + SSL",
   "Конфигуриране на email на собствен домейн",
+  "Резервно копие всеки ден + достъп до архив",
+];
+
+const MONTHLY_COSTS = [
+  {
+    label: "Shopify Basic",
+    amount: "~100 €/м",
+    note: "плащана директно към Shopify, не през нас",
+  },
+  {
+    label: "Домейн",
+    amount: "~15 €/год",
+    note: "ако вече нямаш — препоръчваме .bg или .com",
+  },
+  {
+    label: "Транзакционни такси",
+    amount: "~1.4% / транзакция",
+    note: "стандартни такси за приемане на плащания, не са скрити",
+  },
 ];
 
 function formatEur(n: number): string {
@@ -194,8 +212,42 @@ export function ScopeBreakdown() {
         </div>
 
         <p className="mt-8 max-w-2xl text-sm italic text-[var(--color-text-tertiary)] md:text-base">
-          Плащане на 3 вноски — 40% при стартиране, 30% при готова визия, 30% при launch. Без скрити такси, без месечни задължения, без vendor lock-in.
+          Плащане на 3 вноски — 40% при стартиране, 30% при готова визия, 30% при launch. Без скрити такси, без vendor lock-in. Сайтът остава твой и можеш да го местиш по всяко време.
         </p>
+
+        {/* Transparency: ongoing platform costs */}
+        <div className="mt-16 rounded-sm border border-[var(--color-border-default)] bg-[var(--color-bg-void)] p-8 md:p-10">
+          <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-[var(--color-accent-magenta)]">
+            Текущи разходи · извън нашата фактура
+          </p>
+          <h3 className="mt-4 font-[family-name:var(--font-editorial)] text-2xl italic text-[var(--color-text-primary)] md:text-3xl">
+            Прозрачно за бъдещето.
+          </h3>
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--color-text-secondary)] md:text-base">
+            Сайтът е изграден върху <span className="font-[family-name:var(--font-editorial)] italic">Shopify</span> — стандарта за луксозни брандове в света. Това са разходите, които ще плащаш месечно директно към платформата, не през нас:
+          </p>
+          <ul className="mt-6 space-y-4">
+            {MONTHLY_COSTS.map((c) => (
+              <li
+                key={c.label}
+                className="grid grid-cols-[1fr_auto] items-baseline gap-4 border-b border-[var(--color-border-default)] pb-3 last:border-b-0 last:pb-0"
+              >
+                <div>
+                  <p className="font-[family-name:var(--font-editorial)] text-lg italic text-[var(--color-text-primary)]">
+                    {c.label}
+                  </p>
+                  <p className="text-xs text-[var(--color-text-tertiary)]">{c.note}</p>
+                </div>
+                <p className="font-mono text-sm text-[var(--color-text-secondary)] md:text-base">
+                  {c.amount}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-6 text-xs italic text-[var(--color-text-tertiary)]">
+            Защо Shopify? Защото е най-сигурната, най-бързата и най-разпознатата платформа за e-commerce. Не трябва да мислиш за сървъри, обновления или сигурност — всичко е поето. И когато решиш да се развиваш в чужбина, преходът е въпрос на минути.
+          </p>
+        </div>
       </div>
     </section>
   );
