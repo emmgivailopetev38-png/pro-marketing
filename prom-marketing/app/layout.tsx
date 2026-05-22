@@ -29,7 +29,10 @@ export const metadata: Metadata = {
   title: "ProMarketing LTD — AI автоматизации за бизнеса",
   description:
     "Автоматизирай рутината с AI агенти. Поверявай ни процеси, връщай си времето. Запази безплатна консултация.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(
+    (process.env.NEXT_PUBLIC_SITE_URL && process.env.NEXT_PUBLIC_SITE_URL.trim()) ||
+      "https://promarketing.pw"
+  ),
   openGraph: {
     type: "website",
     locale: "bg_BG",
