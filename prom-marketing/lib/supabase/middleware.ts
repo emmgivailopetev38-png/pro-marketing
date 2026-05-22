@@ -30,15 +30,12 @@ export async function updateSession(request: NextRequest) {
   const url = request.nextUrl.clone();
   const isAdminRoute = url.pathname.startsWith("/admin");
   const isLoginPage = url.pathname === "/admin/login";
-  // TEMPORARY: preview mode bypasses the admin gate for ALL /admin pages so
-  // the user can inspect everything before auth is wired back on.
-  const isPreviewBypass = isAdminRoute;
   const allowed = (process.env.ALLOWED_ADMIN_EMAILS ?? "")
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
 
-  if (isAdminRoute && !isLoginPage && !isPreviewBypass) {
+  if (isAdminRoute && !isLoginPage) {
     if (!user) {
       url.pathname = "/admin/login";
       return NextResponse.redirect(url);

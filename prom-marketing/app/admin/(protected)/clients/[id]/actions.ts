@@ -5,16 +5,14 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { CONTACT_STAGES, type ContactStage } from "@/lib/contacts/types";
 
 async function getAdminEmail(): Promise<string> {
-  // TEMPORARY: preview mode bypasses the admin check. Returns the signed-in
-  // email if there is one, otherwise a placeholder so activities still get
-  // attribution. Restore the strict check by uncommenting below.
   const sb = await createClient();
   const { data: { user } } = await sb.auth.getUser();
-  return user?.email ?? "preview@promarketing.pw";
-  // const allowed = (process.env.ALLOWED_ADMIN_EMAILS ?? "")
-  //   .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
-  // if (!user?.email || !allowed.includes(user.email.toLowerCase())) throw new Error("Forbidden");
-  // return user.email;
+  const allowed = (process.env.ALLOWED_ADMIN_EMAILS ?? "")
+    .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  if (!user?.email || !allowed.includes(user.email.toLowerCase())) {
+    throw new Error("Forbidden");
+  }
+  return user.email;
 }
 
 export async function updateStageAction(formData: FormData) {

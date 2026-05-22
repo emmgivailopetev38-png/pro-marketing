@@ -180,6 +180,9 @@ export async function POST(request: Request) {
  * guard before going public.
  */
 export async function GET(request: Request) {
+  if (!checkBearer(request)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const url = new URL(request.url);
   const filter = url.searchParams.get("filter") ?? "not_emailed";
 
