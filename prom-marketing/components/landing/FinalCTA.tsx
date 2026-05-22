@@ -10,7 +10,11 @@ export function FinalCTA() {
       <AuroraBackground intensity="intense" />
       <div className="relative mx-auto max-w-3xl px-6 text-center">
         <SectionReveal>
-          <h2 className="font-display text-5xl font-bold leading-tight tracking-tight md:text-7xl">
+          <h2
+            className="font-display text-[clamp(32px,8vw,72px)] font-bold leading-[1.05] tracking-tight"
+            style={{ overflowWrap: "break-word", hyphens: "auto", wordBreak: "break-word" }}
+            lang="bg"
+          >
             Готов ли си да автоматизираш?
           </h2>
           <p className="mx-auto mt-6 max-w-xl text-lg text-[var(--color-text-secondary)]">

@@ -36,7 +36,11 @@ export function Process() {
             <p className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-[var(--color-accent-cyan)]">
               {"// процес"}
             </p>
-            <h2 className="font-display text-5xl font-bold leading-tight tracking-tight md:text-6xl">
+            <h2
+              className="font-display text-[clamp(32px,7vw,64px)] font-bold leading-[1.08] tracking-tight"
+              style={{ overflowWrap: "break-word", hyphens: "auto", wordBreak: "break-word" }}
+              lang="bg"
+            >
               Четири стъпки от идея до резултат
             </h2>
           </div>

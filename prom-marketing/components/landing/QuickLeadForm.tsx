@@ -58,7 +58,11 @@ export function QuickLeadForm() {
           <p className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-[0.3em] text-[var(--color-accent-violet)]">
             Свържи се
           </p>
-          <h2 className="mt-4 font-display text-4xl font-bold leading-[1.05] md:text-5xl">
+          <h2
+            className="mt-4 font-display text-[clamp(30px,6vw,52px)] font-bold leading-[1.08]"
+            style={{ overflowWrap: "break-word", hyphens: "auto", wordBreak: "break-word" }}
+            lang="bg"
+          >
             Остави си контакта —<br />
             <span style={{ color: "var(--color-accent-cyan)" }}>ние се обаждаме.</span>
           </h2>
