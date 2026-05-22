@@ -10,6 +10,7 @@ const NAV = [
   { href: "#process", label: "Процес" },
   { href: "#industries", label: "За кого" },
   { href: "#faq", label: "Въпроси" },
+  { href: "#kontakti", label: "Контакти" },
 ];
 
 export function Navbar() {
@@ -81,6 +82,17 @@ export function Navbar() {
           >
             <Phone className="h-4 w-4" />
           </a>
+          <a
+            href="#kontakti"
+            className="hidden md:inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-all hover:scale-[1.03]"
+            style={{
+              borderColor: "var(--color-accent-cyan)",
+              color: "var(--color-accent-cyan)",
+              background: "rgba(0, 212, 255, 0.06)",
+            }}
+          >
+            📞 Остави контакт
+          </a>
           <button
             type="button"
             onClick={() => void openBookingPopup()}
@@ -143,6 +155,18 @@ export function Navbar() {
               Запази среща
               <span aria-hidden>→</span>
             </button>
+            <a
+              href="#kontakti"
+              onClick={() => setOpen(false)}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full border-2 px-5 py-3 text-base font-semibold"
+              style={{
+                borderColor: "var(--color-accent-cyan)",
+                color: "var(--color-accent-cyan)",
+                background: "rgba(0, 212, 255, 0.06)",
+              }}
+            >
+              📞 Остави контакт
+            </a>
             <a
               href="tel:+359877399963"
               onClick={() => setOpen(false)}

@@ -34,7 +34,10 @@ export function QuickLeadForm() {
   }
 
   return (
-    <section className="relative overflow-hidden border-y border-[var(--color-border-default)] py-24 md:py-32">
+    <section
+      id="kontakti"
+      className="relative overflow-hidden border-y border-[var(--color-border-default)] py-24 md:py-32 scroll-mt-20"
+    >
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"

@@ -48,6 +48,18 @@ export function Hero() {
             </button>
           </MagneticButton>
           <a
+            href="#kontakti"
+            className="group inline-flex items-center gap-2 rounded-full border-2 px-6 py-3.5 text-base font-semibold transition-all hover:scale-[1.03]"
+            style={{
+              borderColor: "var(--color-accent-cyan)",
+              color: "var(--color-accent-cyan)",
+              background: "rgba(0, 212, 255, 0.05)",
+            }}
+          >
+            📞 Остави телефон
+            <span aria-hidden className="transition-transform group-hover:translate-y-0.5">↓</span>
+          </a>
+          <a
             href="#services"
             className="inline-flex items-center gap-2 px-2 text-sm text-[var(--color-text-secondary)] underline-offset-4 hover:text-[var(--color-text-primary)] hover:underline"
           >
