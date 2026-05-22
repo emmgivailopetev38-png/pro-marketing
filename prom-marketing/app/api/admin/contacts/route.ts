@@ -31,15 +31,54 @@ export async function POST(request: Request) {
   if (!checkBearer(request)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  let body: { leads?: IncomingLead[] };
+  let body: {
+    leads?: IncomingLead[];
+    action?: string;
+    email?: string;
+    activity_type?: string;
+    title?: string;
+    body_text?: string;
+    stage?: string;
+    next_followup_at?: string;
+    notes?: string;
+  };
   try {
-    body = (await request.json()) as { leads?: IncomingLead[] };
+    body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
+
+  // Single-contact action mode: log activity / update stage / set followup
+  if (body.action === "log_activity") {
+    const sb = createServiceClient();
+    const email = (body.email ?? "").toLowerCase().trim();
+    if (!email) return NextResponse.json({ error: "email required" }, { status: 400 });
+    const { data: c } = await sb.from("contacts").select("id, stage").eq("email", email).maybeSingle();
+    if (!c) return NextResponse.json({ error: "contact not found" }, { status: 404 });
+
+    if (body.activity_type && body.title) {
+      await sb.from("contact_activities").insert({
+        contact_id: c.id,
+        activity_type: body.activity_type,
+        title: body.title,
+        body: body.body_text ?? null,
+        occurred_at: new Date().toISOString(),
+        created_by: "preview@promarketing.pw",
+      });
+    }
+    const patch: Record<string, string | null> = {};
+    if (body.stage) patch.stage = body.stage;
+    if (body.next_followup_at) patch.next_followup_at = body.next_followup_at;
+    if (body.notes !== undefined) patch.notes = body.notes || null;
+    if (Object.keys(patch).length > 0) {
+      await sb.from("contacts").update(patch).eq("id", c.id);
+    }
+    return NextResponse.json({ ok: true, contact_id: c.id });
+  }
+
   const leads = body.leads ?? [];
   if (!Array.isArray(leads) || leads.length === 0) {
-    return NextResponse.json({ error: "leads array required" }, { status: 400 });
+    return NextResponse.json({ error: "leads array or action required" }, { status: 400 });
   }
 
   const sb = createServiceClient();
