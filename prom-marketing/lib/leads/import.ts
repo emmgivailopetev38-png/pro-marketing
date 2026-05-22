@@ -176,10 +176,101 @@ export interface SyncResult {
   error: string | null;
 }
 
+/**
+ * Mirror freshly synced Meta leads into the new contacts + activities tables
+ * so they appear in /admin/clients automatically (not just /admin/leads).
+ * Dedup by email first, then phone. Updates missing fields on existing rows.
+ */
+async function mirrorLeadsToContacts(leads: NormalizedLead[]): Promise<number> {
+  if (leads.length === 0) return 0;
+  const supabase = createServiceClient();
+  let count = 0;
+  for (const lead of leads) {
+    const email = lead.email?.toLowerCase() ?? null;
+    const phone = lead.phone ?? null;
+    if (!email && !phone) continue;
+
+    // Lookup existing
+    let existing: { id: string; full_name: string | null; phone: string | null } | null = null;
+    if (email) {
+      const { data } = await supabase
+        .from("contacts")
+        .select("id, full_name, phone")
+        .eq("email", email)
+        .maybeSingle();
+      existing = data;
+    }
+    if (!existing && phone) {
+      const { data } = await supabase
+        .from("contacts")
+        .select("id, full_name, phone")
+        .eq("phone", phone)
+        .maybeSingle();
+      existing = data;
+    }
+
+    let contactId: string;
+    if (existing) {
+      contactId = existing.id;
+      const patch: { full_name?: string; phone?: string } = {};
+      if (!existing.full_name && lead.full_name) patch.full_name = lead.full_name;
+      if (!existing.phone && phone) patch.phone = phone;
+      if (Object.keys(patch).length > 0) {
+        await supabase.from("contacts").update(patch).eq("id", contactId);
+      }
+    } else {
+      const { data: created } = await supabase
+        .from("contacts")
+        .insert({
+          full_name: lead.full_name,
+          email: email,
+          phone: phone,
+          stage: "lead",
+          source: "meta_lead",
+          source_ref: lead.meta_lead_id,
+          created_at: lead.created_time ?? undefined,
+        })
+        .select("id")
+        .single();
+      if (!created) continue;
+      contactId = created.id;
+      count++;
+    }
+
+    // Activity timeline (idempotent on meta_lead_id)
+    const { data: exists } = await supabase
+      .from("contact_activities")
+      .select("id")
+      .eq("contact_id", contactId)
+      .eq("activity_type", "meta_lead")
+      .contains("metadata", { meta_lead_id: lead.meta_lead_id })
+      .maybeSingle();
+    if (!exists) {
+      await supabase.from("contact_activities").insert({
+        contact_id: contactId,
+        activity_type: "meta_lead",
+        title: `Meta lead · ${lead.form_name ?? lead.campaign_name ?? "Lead Form"}`,
+        body: lead.ad_name ? `Реклама: ${lead.ad_name}` : null,
+        occurred_at: lead.created_time ?? new Date().toISOString(),
+        metadata: {
+          meta_lead_id: lead.meta_lead_id,
+          form_id: lead.form_id,
+          campaign_id: lead.campaign_id,
+          ad_id: lead.ad_id,
+          source: lead.source,
+        },
+        created_by: "cron_sync",
+      });
+    }
+  }
+  return count;
+}
+
 export async function syncAllSources(): Promise<{
   results: SyncResult[];
   totalNewLeads: number;
   newLeads: NormalizedLead[];
+  mirroredToContacts: number;
 }> {
   const supabase = createServiceClient();
   const { data: sources } = await supabase
@@ -221,9 +312,13 @@ export async function syncAllSources(): Promise<{
     results.push(result);
   }
 
+  // Mirror to contacts/activities after meta_leads upserts
+  const mirroredToContacts = await mirrorLeadsToContacts(newLeads);
+
   return {
     results,
     totalNewLeads: results.reduce((s, r) => s + r.inserted, 0),
     newLeads,
+    mirroredToContacts,
   };
 }
