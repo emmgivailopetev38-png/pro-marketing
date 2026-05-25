@@ -12,7 +12,7 @@ const CONVERSATION: ChatMessage[] = [
   },
   {
     role: "bot",
-    text: "127 leads този месец — 34% повече от април. От тях 23 са на етап „Оферта", 12 чакат подпис. Топ canal: Facebook Lead Ads (52%).",
+    text: `127 leads този месец — 34% повече от април. От тях 23 са на етап „Оферта", 12 чакат подпис. Топ canal: Facebook Lead Ads (52%).`,
     meta: "09:32 · 0.8 сек",
   },
   {
