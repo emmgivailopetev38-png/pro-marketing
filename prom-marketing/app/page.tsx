@@ -3,6 +3,7 @@ import { Hero } from "@/components/landing/Hero";
 import { TrustStrip } from "@/components/landing/TrustStrip";
 import { Services } from "@/components/landing/Services";
 import { LiveDashboards } from "@/components/landing/LiveDashboards";
+import { PainPoints } from "@/components/landing/PainPoints";
 import { Process } from "@/components/landing/Process";
 import { Industries } from "@/components/landing/Industries";
 import { WhyUs } from "@/components/landing/WhyUs";
@@ -27,6 +28,7 @@ export default function HomePage() {
         <TrustStrip />
         <Services />
         <LiveDashboards />
+        <PainPoints />
         <Process />
         <Industries />
         <WhyUs />
