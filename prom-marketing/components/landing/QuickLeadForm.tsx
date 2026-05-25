@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Phone, Mail, User, MessageSquare, Send, Loader2, Check } from "lucide-react";
+import { Phone, Mail, User, MessageSquare, Send, Loader2, Check, Building2 } from "lucide-react";
 import { track } from "@/lib/analytics/track";
 
 type Status = "idle" | "submitting" | "success" | "error";
@@ -8,7 +8,13 @@ type Status = "idle" | "submitting" | "success" | "error";
 export function QuickLeadForm() {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({ full_name: "", email: "", phone: "", message: "" });
+  const [form, setForm] = useState({
+    full_name: "",
+    email: "",
+    phone: "",
+    company_activity: "",
+    message: "",
+  });
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -25,7 +31,7 @@ export function QuickLeadForm() {
       if (res.ok && json.ok) {
         setStatus("success");
         track("lead_form_submitted", { source: "homepage_quick_form" });
-        setForm({ full_name: "", email: "", phone: "", message: "" });
+        setForm({ full_name: "", email: "", phone: "", company_activity: "", message: "" });
       } else {
         setStatus("error");
         track("lead_form_submit_failed", { status: res.status, error: json?.error });
@@ -150,6 +156,23 @@ export function QuickLeadForm() {
                   value={form.phone}
                   onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
                   placeholder="+359 88 123 4567"
+                  className="w-full bg-transparent text-base text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-tertiary)]/60"
+                />
+              </FieldRow>
+
+              <FieldRow
+                icon={<Building2 className="h-4 w-4" />}
+                label="Фирма и дейност"
+                htmlFor="ql-company"
+              >
+                <input
+                  id="ql-company"
+                  type="text"
+                  maxLength={200}
+                  autoComplete="organization"
+                  value={form.company_activity}
+                  onChange={(e) => setForm((f) => ({ ...f, company_activity: e.target.value }))}
+                  placeholder="напр. Хотел Алба · хотелиерство · Варна"
                   className="w-full bg-transparent text-base text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-tertiary)]/60"
                 />
               </FieldRow>

@@ -9,6 +9,7 @@ const schema = z.object({
   full_name: z.string().min(2).max(120),
   email: z.email().max(200),
   phone: z.string().min(6).max(40),
+  company_activity: z.string().max(200).optional(),
   message: z.string().max(2000).optional(),
 });
 
@@ -24,22 +25,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid input", details: parsed.error.message }, { status: 400 });
   }
 
-  const { full_name, email, phone, message } = parsed.data;
+  const { full_name, email, phone, company_activity, message } = parsed.data;
   const supabase = createServiceClient();
 
   // Upsert contact by email — if exists, refresh missing fields.
   const { data: existing } = await supabase
     .from("contacts")
-    .select("id, full_name, phone")
+    .select("id, full_name, phone, company")
     .eq("email", email.toLowerCase())
     .maybeSingle();
 
   let contactId: string;
   if (existing) {
     contactId = existing.id;
-    const patch: { full_name?: string; phone?: string } = {};
+    const patch: { full_name?: string; phone?: string; company?: string } = {};
     if (!existing.full_name) patch.full_name = full_name;
     if (!existing.phone) patch.phone = phone;
+    if (!existing.company && company_activity) patch.company = company_activity;
     if (Object.keys(patch).length > 0) {
       await supabase.from("contacts").update(patch).eq("id", contactId);
     }
@@ -50,6 +52,7 @@ export async function POST(request: Request) {
         full_name,
         email: email.toLowerCase(),
         phone,
+        company: company_activity || null,
         stage: "lead",
         source: "website_form",
         notes: message || null,
@@ -66,9 +69,21 @@ export async function POST(request: Request) {
     contact_id: contactId,
     activity_type: "website_form",
     title: "Изпрати форма от уебсайта",
-    body: message || null,
+    body:
+      [
+        company_activity ? `Фирма/дейност: ${company_activity}` : null,
+        message ? `Съобщение: ${message}` : null,
+      ]
+        .filter(Boolean)
+        .join("\n") || null,
     created_by: "website",
-    metadata: { full_name, email, phone, message: message || null },
+    metadata: {
+      full_name,
+      email,
+      phone,
+      company_activity: company_activity || null,
+      message: message || null,
+    },
   });
 
   // Notify admin (fire-and-forget — don't fail the form if email is down).
@@ -87,6 +102,7 @@ export async function POST(request: Request) {
 <tr><td style="padding:4px 12px 4px 0;color:#777;">Име:</td><td><strong>${full_name}</strong></td></tr>
 <tr><td style="padding:4px 12px 4px 0;color:#777;">Имейл:</td><td><a href="mailto:${email}">${email}</a></td></tr>
 <tr><td style="padding:4px 12px 4px 0;color:#777;">Телефон:</td><td><a href="tel:${phone}">${phone}</a></td></tr>
+${company_activity ? `<tr><td style="padding:4px 12px 4px 0;color:#777;vertical-align:top;">Фирма/дейност:</td><td><strong>${company_activity}</strong></td></tr>` : ""}
 ${message ? `<tr><td style="padding:4px 12px 4px 0;color:#777;vertical-align:top;">Съобщение:</td><td>${message.replace(/\n/g, "<br/>")}</td></tr>` : ""}
 </table>
 <p style="margin-top:18px;">📊 <a href="https://promarketing.pw/admin/clients/${contactId}">Виж в CRM-а</a></p>
@@ -95,8 +111,7 @@ ${message ? `<tr><td style="padding:4px 12px 4px 0;color:#777;vertical-align:top
 
 Име: ${full_name}
 Имейл: ${email}
-Телефон: ${phone}
-${message ? `\nСъобщение:\n${message}` : ""}
+Телефон: ${phone}${company_activity ? `\nФирма/дейност: ${company_activity}` : ""}${message ? `\n\nСъобщение:\n${message}` : ""}
 
 CRM: https://promarketing.pw/admin/clients/${contactId}`,
     }).catch(() => {});

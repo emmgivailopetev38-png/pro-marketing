@@ -1,4 +1,13 @@
-import { Bot, Mail, Database, Mic, Filter, Sparkles } from "lucide-react";
+import {
+  Bot,
+  Mail,
+  Database,
+  Mic,
+  Filter,
+  Sparkles,
+  LayoutDashboard,
+  Code2,
+} from "lucide-react";
 import { TiltCard } from "@/components/effects/TiltCard";
 import { SectionReveal } from "@/components/effects/SectionReveal";
 import { LiveChatFeed } from "./LiveChatFeed";
@@ -9,6 +18,18 @@ const SERVICES = [
     title: "AI чат агенти",
     body: "24/7 поддръжка, продажби и квалификация на лийдове по Messenger, Viber, Instagram и сайт.",
     feature: true,
+  },
+  {
+    icon: LayoutDashboard,
+    title: "AI CRM",
+    body: "Личен CRM с AI агент — auto преглежда лийдове, праща оферти, следи договори. Не плащаш Salesforce. Дашборд на твоя домейн.",
+    highlight: true,
+  },
+  {
+    icon: Code2,
+    title: "AI Софтуер по поръчка",
+    body: "Custom AI инструменти за конкретни процеси в бизнеса ти — от сметки и оферти до планиране и анализи.",
+    highlight: true,
   },
   {
     icon: Mail,
@@ -51,18 +72,52 @@ export function Services() {
               style={{ overflowWrap: "break-word", hyphens: "auto", wordBreak: "break-word" }}
               lang="bg"
             >
-              Шест начина да автоматизираш бизнеса си
+              Осем начина да автоматизираш бизнеса си
             </h2>
+            <p className="mt-4 text-sm text-[var(--color-text-secondary)] md:text-base">
+              От готови чат агенти до{" "}
+              <span className="font-semibold text-[var(--color-text-primary)]">
+                собствен AI CRM
+              </span>{" "}
+              и{" "}
+              <span className="font-semibold text-[var(--color-text-primary)]">
+                AI софтуер по поръчка
+              </span>{" "}
+              — изграждаме точно това, което бизнесът ти иска.
+            </p>
           </div>
         </SectionReveal>
 
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-3 md:grid-rows-2">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
           {SERVICES.map((s, i) => {
             const Icon = s.icon;
             return (
               <SectionReveal key={s.title} delay={i * 80} className={s.feature ? "md:col-span-2" : ""}>
                 <TiltCard className="h-full rounded-2xl">
-                  <div className="glass relative h-full rounded-2xl p-7">
+                  <div
+                    className="glass relative h-full rounded-2xl p-7"
+                    style={
+                      s.highlight
+                        ? {
+                            background:
+                              "linear-gradient(165deg, rgba(6,182,212,0.10) 0%, rgba(124,58,237,0.08) 100%), var(--color-bg-glass)",
+                            boxShadow:
+                              "0 0 0 1px rgba(6,182,212,0.25), 0 0 40px rgba(6,182,212,0.08)",
+                          }
+                        : undefined
+                    }
+                  >
+                    {s.highlight && (
+                      <span
+                        className="absolute right-5 top-5 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+                        style={{
+                          background: "rgba(6,182,212,0.15)",
+                          color: "var(--color-accent-cyan)",
+                        }}
+                      >
+                        Ново
+                      </span>
+                    )}
                     <Icon className="mb-5 h-7 w-7 text-[var(--color-accent-cyan)]" strokeWidth={1.5} />
                     <h3 className="font-display text-xl font-bold">{s.title}</h3>
                     <p className="mt-3 text-sm text-[var(--color-text-secondary)]">{s.body}</p>

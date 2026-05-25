@@ -32,9 +32,13 @@ export function Hero() {
         </h1>
 
         <p className="mt-8 max-w-xl text-lg text-[var(--color-text-secondary)] md:text-xl">
-          Превръщаме рутината в растеж. Изграждаме AI агенти, които работят
-          24/7 — отговарят на клиенти, квалифицират лийдове и автоматизират
-          процесите, които те бавят.
+          Превръщаме рутината в растеж. AI чат агенти, личен{" "}
+          <span className="font-semibold text-[var(--color-text-primary)]">AI CRM</span>{" "}
+          и{" "}
+          <span className="font-semibold text-[var(--color-text-primary)]">
+            AI софтуер по поръчка
+          </span>{" "}
+          — работят 24/7 и автоматизират процесите, които те бавят.
         </p>
 
         <div className="mt-10 flex flex-wrap items-center gap-4">
