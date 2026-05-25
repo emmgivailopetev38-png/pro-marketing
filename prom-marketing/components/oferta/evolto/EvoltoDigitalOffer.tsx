@@ -36,7 +36,7 @@ export function EvoltoDigitalOffer() {
               <Feature title="📊 Live ROI калкулатор" body="Клиентът вижда колко спестява, кога инвестицията се изплаща, прогноза за 25 години." />
               <Feature title="📲 Уникален линк" body="evolto.app/o/abc123 — изпраща се през email/SMS/Viber. Винаги достъпен, винаги актуален." />
               <Feature title="👁 Read receipts" body="Виждаш кога клиентът е отворил офертата, колко време е стоял, на коя секция." />
-              <Feature title="✅ One-click accept" body="Бутон „Приемам офертата" → автоматично пуска договор за подпис." />
+              <Feature title="✅ One-click accept" body={`Бутон „Приемам офертата" → автоматично пуска договор за подпис.`} />
             </ul>
           </div>
 
