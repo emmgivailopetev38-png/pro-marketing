@@ -84,9 +84,8 @@ const s = StyleSheet.create({
   signBlock: {
     marginTop: 24,
     flexDirection: "row",
-    gap: 30,
   },
-  signCol: { flex: 1 },
+  signCol: { flex: 1, paddingRight: 15 },
   signLabel: {
     fontSize: 9,
     fontWeight: 700,
