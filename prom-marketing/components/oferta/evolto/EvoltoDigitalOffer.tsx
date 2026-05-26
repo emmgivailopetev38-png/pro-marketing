@@ -25,7 +25,7 @@ export function EvoltoDigitalOffer() {
         </h2>
 
         <p className="mt-8 max-w-2xl text-lg leading-relaxed text-[var(--color-text-secondary)] md:text-xl">
-          Изпращате на клиента по имейл или Viber. Той избира как да я разгледа: интерактивен линк (с live ROI калкулатор и tracking) или класически PDF (за разпечатване / архив). Системата праща и двете.
+          Изпращате на клиента по имейл или WhatsApp. Той избира как да я разгледа: интерактивен линк (с live ROI калкулатор) или класически PDF (за разпечатване / архив). Системата праща и двете.
         </p>
 
         <div className="mt-16 grid grid-cols-1 gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
@@ -34,7 +34,7 @@ export function EvoltoDigitalOffer() {
             <ul className="space-y-5 text-sm text-[var(--color-text-secondary)] md:text-base">
               <Feature title="🎯 Персонализирана" body="Изчисления според покрив, kW, годишно потребление и финансиране. Имена и снимки на клиента." />
               <Feature title="📊 Live ROI калкулатор" body="Клиентът вижда колко спестява, кога инвестицията се изплаща, прогноза за 25 години." />
-              <Feature title="📲 Уникален линк + PDF" body="evolto.app/o/abc123 — интерактивен линк с live данни. Плюс автоматичен PDF за разпечатване / архив. Изпращат се заедно през email/Viber." />
+              <Feature title="📲 Уникален линк + PDF" body="evolto.app/o/abc123 — интерактивен линк с live данни. Плюс автоматичен PDF за разпечатване / архив. Изпращат се заедно през email/WhatsApp." />
               <Feature title="✅ One-click accept" body={`Бутон „Приемам офертата" → автоматично пуска договор за подпис.`} />
             </ul>
           </div>

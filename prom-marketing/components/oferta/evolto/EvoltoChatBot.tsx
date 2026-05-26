@@ -22,7 +22,7 @@ const CONVERSATION: ChatMessage[] = [
   },
   {
     role: "bot",
-    text: "Готово. Draft в Content tab → одобрение чака. Подгоних и 3 варианта banner (FB/IG/LinkedIn). Искаш ли да включа и Reels от монтажа?",
+    text: "Готово. Draft в Content tab → одобрение чака. Подготвих и 3 варианта banner (FB/IG/LinkedIn). Искаш ли да включа и Reels от монтажа?",
     meta: "09:33 · 2.1 сек",
   },
   {

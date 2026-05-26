@@ -17,7 +17,7 @@ const ASSETS = [
     type: "Пост LinkedIn",
     duration: "180 думи",
     title: "Защо хотелите минават на соларна енергия",
-    tag: "Запланиран",
+    tag: "Планира",
     color: "#3B82F6",
   },
   {
