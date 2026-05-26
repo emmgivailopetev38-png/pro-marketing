@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { syncAllSources } from "@/lib/leads/import";
 import { sendEmail } from "@/lib/email/resend";
-import { renderDailyLeadsEmail } from "@/lib/email/daily-leads-email";
-import { createServiceClient } from "@/lib/supabase/service";
+import { buildDailyCrmReport } from "@/lib/email/daily-crm-report";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -11,12 +10,18 @@ export const maxDuration = 60;
  * Vercel Cron: GET /api/cron/daily-lead-summary
  *
  * Triggered daily at 05:00 UTC (≈ 8 AM Sofia summer / 7 AM winter).
- * 1. Pulls each enabled meta_lead_sources sheet and upserts new leads
- * 2. Counts leads in the last 24h and 7d
- * 3. Emails a summary to every address in ALLOWED_ADMIN_EMAILS
  *
- * Authenticated via Vercel's automatic `Authorization: Bearer ${CRON_SECRET}`
- * header. The same endpoint is callable manually with the secret for testing.
+ * What it does:
+ *   1. Pulls fresh Meta leads from configured Google Sheets
+ *   2. Builds a full CRM morning report:
+ *      - Yesterday's activities per type
+ *      - Today's follow-ups / meetings
+ *      - 7-day offer follow-up reminders (auto-logs a note on each contact)
+ *      - Overdue follow-ups
+ *      - Pipeline snapshot
+ *   3. Emails the report to ivailopetev38@gmail.com (via EMAIL_REPLY_TO env)
+ *
+ * Auth: Vercel cron sends `Authorization: Bearer ${CRON_SECRET}` automatically.
  */
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -25,59 +30,33 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // 1. Sync Meta leads first so the report includes the latest data
   const syncResult = await syncAllSources();
-  const supabase = createServiceClient();
 
-  const now = new Date();
-  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  // 2. Build the comprehensive CRM report (includes 7-day reminders)
+  const report = await buildDailyCrmReport();
 
-  const [{ count: last24h }, { count: last7d }] = await Promise.all([
-    supabase
-      .from("meta_leads")
-      .select("*", { count: "exact", head: true })
-      .gte("imported_at", oneDayAgo),
-    supabase
-      .from("meta_leads")
-      .select("*", { count: "exact", head: true })
-      .gte("imported_at", sevenDaysAgo),
-  ]);
-
-  const syncErrors = syncResult.results
-    .filter((r) => r.error)
-    .map((r) => `${r.label}: ${r.error}`);
-
-  const { subject, html, text } = renderDailyLeadsEmail({
-    leads: syncResult.newLeads,
-    totalLast24h: last24h ?? 0,
-    totalLast7d: last7d ?? 0,
-    syncErrors,
-  });
-
-  const recipients = (process.env.ALLOWED_ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  if (recipients.length === 0) {
-    return NextResponse.json({
-      ok: true,
-      sync: syncResult,
-      email: { skipped: "no recipients in ALLOWED_ADMIN_EMAILS" },
-    });
-  }
+  // 3. Send the report to the user's Gmail
+  const recipient = process.env.EMAIL_REPLY_TO || "ivailopetev38@gmail.com";
 
   const emailResult = await sendEmail({
-    to: recipients,
-    subject,
-    html,
-    text,
+    to: recipient,
+    subject: report.subject,
+    html: report.html,
+    text: report.text,
   });
 
   return NextResponse.json({
-    ok: true,
-    sync: syncResult,
-    email: emailResult,
-    counts: { last24h: last24h ?? 0, last7d: last7d ?? 0 },
+    ok: !emailResult.error,
+    sync: {
+      newLeads: syncResult.totalNewLeads,
+      mirrored: syncResult.mirroredToContacts,
+    },
+    report: report.stats,
+    email: {
+      to: recipient,
+      id: emailResult.id,
+      error: emailResult.error,
+    },
   });
 }
