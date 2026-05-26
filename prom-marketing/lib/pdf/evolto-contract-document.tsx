@@ -136,17 +136,13 @@ export function EvoltoContractDocument() {
         </Text>
 
         <View style={s.partiesBlock}>
+          <Text style={[s.partyLine, { fontWeight: 700 }]}>ИЗПЪЛНИТЕЛ:</Text>
           <Text style={s.partyLine}>
-            <Text style={s.partyLabel}>ИЗПЪЛНИТЕЛ:</Text> ProMarketing LTD, със седалище и адрес
-            на управление гр. София, представлявано от <Text style={{ fontWeight: 700 }}>Ивайло Петев</Text>,
-            електронна поща ivailo@promarketing.pw, телефон +359 877 399 963 — наричано по-долу
-            „Изпълнителят".
+            ProMarketing LTD, със седалище и адрес на управление гр. София, представлявано от Ивайло Петев, електронна поща ivailo@promarketing.pw, телефон +359 877 399 963 — наричано по-долу „Изпълнителят".
           </Text>
-          <Text style={[s.partyLine, { marginTop: 8 }]}>
-            <Text style={s.partyLabel}>ВЪЗЛОЖИТЕЛ:</Text> Evolto, със седалище ЛИП Родопи,
-            ул. Околовръстен път, 4109 гр. Пловдив, представлявано от{" "}
-            <Text style={{ fontWeight: 700 }}>Васил Бедров</Text> — собственик, електронна поща
-            info@evolto.bg, телефон +359 894 255 855 — наричано по-долу „Възложителят".
+          <Text style={[s.partyLine, { marginTop: 10, fontWeight: 700 }]}>ВЪЗЛОЖИТЕЛ:</Text>
+          <Text style={s.partyLine}>
+            Evolto, със седалище ЛИП Родопи, ул. Околовръстен път, 4109 гр. Пловдив, представлявано от Васил Бедров — собственик, електронна поща info@evolto.bg, телефон +359 894 255 855 — наричано по-долу „Възложителят".
           </Text>
         </View>
 
