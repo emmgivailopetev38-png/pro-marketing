@@ -94,7 +94,7 @@ export function EvoltoHero() {
           <Stat label="Часа спестени седмично" value="40+" />
           <Stat label="По-бързи оферти" value="10×" />
           <Stat label="Постове/месец" value="60+" />
-          <Stat label="Срок до live" value="60 дни" />
+          <Stat label="Срок до live" value="30 дни" />
         </div>
 
         <div className="mt-16 flex flex-wrap items-center gap-4">

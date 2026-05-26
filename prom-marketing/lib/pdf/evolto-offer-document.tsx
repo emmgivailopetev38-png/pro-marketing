@@ -280,37 +280,8 @@ export function EvoltoOfferDocument() {
 
           <Text style={s.sectionTitle}>Обхват на проекта</Text>
           <View style={s.modulesGrid}>
-            {SCOPE.slice(0, 3).map((m) => (
-              <View key={m.title} style={s.moduleCard}>
-                <Text style={s.moduleTitle}>{m.title}</Text>
-                <Text style={s.moduleBody}>{m.body}</Text>
-                {m.bullets.map((b) => (
-                  <View key={b} style={s.bulletRow}>
-                    <Text style={s.bullet}>▸</Text>
-                    <Text style={s.bulletText}>{b}</Text>
-                  </View>
-                ))}
-              </View>
-            ))}
-          </View>
-        </View>
-      </Page>
-
-      {/* Page 2 */}
-      <Page size="A4" style={s.page}>
-        <View style={s.topBar} />
-        <View style={s.body}>
-          <View style={s.brandRow}>
-            <Text style={s.brand}>
-              Pro<Text style={s.brandAccent}>Marketing</Text> LTD
-            </Text>
-            <Text style={s.meta}>Оферта · Evolto · стр. 2</Text>
-          </View>
-
-          <Text style={s.sectionTitle}>Обхват (продължение)</Text>
-          <View style={s.modulesGrid}>
-            {SCOPE.slice(3).map((m) => (
-              <View key={m.title} style={s.moduleCard}>
+            {SCOPE.map((m) => (
+              <View key={m.title} style={s.moduleCard} wrap={false}>
                 <Text style={s.moduleTitle}>{m.title}</Text>
                 <Text style={s.moduleBody}>{m.body}</Text>
                 {m.bullets.map((b) => (
@@ -343,31 +314,23 @@ export function EvoltoOfferDocument() {
           <View style={s.bulletRow}>
             <Text style={s.bullet}>▸</Text>
             <Text style={s.bulletText}>
-              <Text style={{ fontWeight: 700 }}>Срок за изграждане:</Text> 10 работни дни, считани
-              от датата на първото авансово плащане.
+              <Text style={{ fontWeight: 700 }}>Общ срок за изпълнение:</Text> 30 (тридесет) дни от
+              получаване на авансовото плащане до пълно стартиране на системата.
             </Text>
           </View>
           <View style={s.bulletRow}>
             <Text style={s.bullet}>▸</Text>
             <Text style={s.bulletText}>
-              <Text style={{ fontWeight: 700 }}>Инсталация на място:</Text> 1 работен ден в офиса
-              на Възложителя (Пловдив) — настройка на корпоративен имейл, свързване на социалните
-              мрежи, инсталация на Cloud + Hermes.
+              <Text style={{ fontWeight: 700 }}>Инсталация на място:</Text> 1 до 3 работни дни в
+              офиса на Възложителя (Пловдив) — настройка на корпоративен имейл, свързване на
+              социалните мрежи, инсталация на Cloud + Hermes, fine-tuning с екипа.
             </Text>
           </View>
           <View style={s.bulletRow}>
             <Text style={s.bullet}>▸</Text>
             <Text style={s.bulletText}>
-              <Text style={{ fontWeight: 700 }}>Допълнителна настройка:</Text> при необходимост от
-              fine-tuning след инсталация — до 30 дни допълнителни онлайн срещи, без
-              допълнително заплащане.
-            </Text>
-          </View>
-          <View style={s.bulletRow}>
-            <Text style={s.bullet}>▸</Text>
-            <Text style={s.bulletText}>
-              <Text style={{ fontWeight: 700 }}>Поддръжка:</Text> 30 дни безплатен саппорт след
-              инсталация — въпроси, отговори и съдействие за оптимизация.
+              <Text style={{ fontWeight: 700 }}>Поддръжка след инсталация:</Text> 30 календарни дни
+              безплатен саппорт — въпроси, отговори, оптимизация и корекции на дефекти.
             </Text>
           </View>
 
