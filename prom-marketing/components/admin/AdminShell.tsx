@@ -12,6 +12,7 @@ const LINKS = [
   { href: "/admin/clients", label: "Клиенти" },
   { href: "/admin/bookings", label: "Срещи" },
   { href: "/admin/leads", label: "Meta лийдове" },
+  { href: "/admin/ads", label: "Реклами" },
   { href: "/admin/email", label: "Имейл" },
   { href: "/admin/settings", label: "Настройки" },
 ];
