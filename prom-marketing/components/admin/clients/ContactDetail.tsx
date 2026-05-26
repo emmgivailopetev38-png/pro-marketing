@@ -16,6 +16,7 @@ import {
   updateContactFieldsAction,
   updateStageAction,
 } from "@/app/admin/(protected)/clients/[id]/actions";
+import { FilesPanel } from "./FilesPanel";
 
 const LOGGER_TYPES: Array<{ v: string; label: string }> = [
   { v: "note", label: "📝 Бележка" },
@@ -275,6 +276,8 @@ export function ContactDetail({
             <Row label="Обновен" value={fmtDate(contact.updated_at)} />
           </dl>
         </Card>
+
+        <FilesPanel contactId={contact.id} />
       </aside>
     </div>
   );
