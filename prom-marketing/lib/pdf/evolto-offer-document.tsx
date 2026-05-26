@@ -96,32 +96,37 @@ const s = StyleSheet.create({
     borderBottomColor: C.border,
   },
   para: { fontSize: 9.5, color: C.ink, lineHeight: 1.5, marginBottom: 4 },
-  // Modules grid
+  // Modules grid (2 columns)
   modulesGrid: {
-    marginTop: 6,
+    marginTop: 4,
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  moduleWrap: {
+    width: "50%",
+    padding: 3,
   },
   moduleCard: {
     backgroundColor: C.panel,
     borderRadius: 4,
-    padding: 12,
-    marginBottom: 8,
+    padding: 9,
     borderLeftWidth: 3,
     borderLeftColor: C.blue,
   },
   moduleTitle: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: 700,
     color: C.ink,
-    marginBottom: 4,
+    marginBottom: 3,
   },
-  moduleBody: { fontSize: 9, color: C.inkSoft, lineHeight: 1.5 },
+  moduleBody: { fontSize: 8, color: C.inkSoft, lineHeight: 1.4 },
   bulletRow: {
     flexDirection: "row",
-    marginTop: 3,
-    paddingLeft: 8,
+    marginTop: 2,
+    paddingLeft: 4,
   },
-  bullet: { width: 10, color: C.gold, fontSize: 10 },
-  bulletText: { flex: 1, fontSize: 8.5, color: C.ink, lineHeight: 1.45 },
+  bullet: { width: 8, color: C.gold, fontSize: 8 },
+  bulletText: { flex: 1, fontSize: 7.5, color: C.ink, lineHeight: 1.4 },
   // Pricing box
   priceBox: {
     flexDirection: "row",
@@ -281,15 +286,17 @@ export function EvoltoOfferDocument() {
           <Text style={s.sectionTitle}>Обхват на проекта</Text>
           <View style={s.modulesGrid}>
             {SCOPE.map((m) => (
-              <View key={m.title} style={s.moduleCard} wrap={false}>
-                <Text style={s.moduleTitle}>{m.title}</Text>
-                <Text style={s.moduleBody}>{m.body}</Text>
-                {m.bullets.map((b) => (
-                  <View key={b} style={s.bulletRow}>
-                    <Text style={s.bullet}>▸</Text>
-                    <Text style={s.bulletText}>{b}</Text>
-                  </View>
-                ))}
+              <View key={m.title} style={s.moduleWrap} wrap={false}>
+                <View style={s.moduleCard}>
+                  <Text style={s.moduleTitle}>{m.title}</Text>
+                  <Text style={s.moduleBody}>{m.body}</Text>
+                  {m.bullets.map((b) => (
+                    <View key={b} style={s.bulletRow}>
+                      <Text style={s.bullet}>▸</Text>
+                      <Text style={s.bulletText}>{b}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
             ))}
           </View>
