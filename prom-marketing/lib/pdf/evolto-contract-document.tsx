@@ -92,14 +92,16 @@ const s = StyleSheet.create({
     fontWeight: 700,
     marginBottom: 24,
     textTransform: "uppercase",
-    letterSpacing: 1,
   },
-  signLine: {
+  signBox: {
     borderTopWidth: 1,
     borderTopColor: C.ink,
-    paddingTop: 4,
+    paddingTop: 6,
+  },
+  signLine: {
     fontSize: 8.5,
     color: C.inkSoft,
+    marginBottom: 2,
   },
 });
 
@@ -332,19 +334,19 @@ export function EvoltoContractDocument() {
         <View style={s.signBlock}>
           <View style={s.signCol}>
             <Text style={s.signLabel}>За Изпълнителя</Text>
-            <Text style={s.signLine}>
-              ___________________________{"\n"}
-              Ивайло Петев{"\n"}
-              ProMarketing LTD
-            </Text>
+            <View style={s.signBox}>
+              <Text style={s.signLine}>___________________________</Text>
+              <Text style={s.signLine}>Ивайло Петев</Text>
+              <Text style={s.signLine}>ProMarketing LTD</Text>
+            </View>
           </View>
           <View style={s.signCol}>
             <Text style={s.signLabel}>За Възложителя</Text>
-            <Text style={s.signLine}>
-              ___________________________{"\n"}
-              Васил Бедров{"\n"}
-              Evolto
-            </Text>
+            <View style={s.signBox}>
+              <Text style={s.signLine}>___________________________</Text>
+              <Text style={s.signLine}>Васил Бедров</Text>
+              <Text style={s.signLine}>Evolto</Text>
+            </View>
           </View>
         </View>
       </Page>
