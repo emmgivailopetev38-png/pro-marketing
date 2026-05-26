@@ -1,28 +1,43 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
+import { timingSafeEqual } from "node:crypto";
 import { syncAllSources } from "@/lib/leads/import";
+import { ADMIN_COOKIE, verifySession } from "@/lib/admin/session";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-async function requireAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user?.email) return null;
-  const allowed = (process.env.ALLOWED_ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
-  if (!allowed.includes(user.email.toLowerCase())) return null;
-  return user;
+function checkBearer(request: Request): boolean {
+  const expected = process.env.INTERNAL_SEND_TOKEN;
+  if (!expected) return false;
+  const header = request.headers.get("authorization") ?? "";
+  if (!header.startsWith("Bearer ")) return false;
+  const provided = header.slice(7);
+  const a = Buffer.from(provided);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  try {
+    return timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
 }
 
-export async function POST() {
-  const user = await requireAdmin();
-  if (!user) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+async function isAuthed(request: Request): Promise<boolean> {
+  if (checkBearer(request)) return true;
+  const store = await cookies();
+  return verifySession(store.get(ADMIN_COOKIE)?.value ?? null);
+}
 
+export async function POST(request: Request) {
+  if (!(await isAuthed(request))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const result = await syncAllSources();
-  return NextResponse.json({ ok: true, sync: result });
+  return NextResponse.json({ ok: true, ...result });
+}
+
+export async function GET(request: Request) {
+  // Same handler — convenient for browser inspection / cron tooling.
+  return POST(request);
 }
