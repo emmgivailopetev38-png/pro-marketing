@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 interface FileRow {
   id: string;
@@ -59,6 +60,26 @@ export function FilesPanel({ contactId }: { contactId: string }) {
 
   useEffect(() => {
     void reload();
+    // Live updates на файлове — ако друг tab/устройство качи или изтрие.
+    const supabase = createClient();
+    const ch = supabase
+      .channel(`contact-${contactId}-files`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "contact_files",
+          filter: `contact_id=eq.${contactId}`,
+        },
+        () => {
+          void reload();
+        }
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(ch);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contactId]);
 

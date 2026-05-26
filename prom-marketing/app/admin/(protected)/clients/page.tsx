@@ -11,7 +11,8 @@ export default async function ClientsPage({
   searchParams: Promise<{ view?: string }>;
 }) {
   const { view } = await searchParams;
-  const showAll = view === "all";
+  // Default: всички контакти (по-полезно за CRM преглед). 'emailed' филтрира само тези с изпратен имейл.
+  const showAll = view !== "emailed";
 
   // Preview mode: use service client so we don't depend on auth/RLS.
   const supabase = createServiceClient();
@@ -66,23 +67,23 @@ export default async function ClientsPage({
             href="/admin/clients"
             className="rounded-full border px-4 py-2 transition-colors"
             style={{
-              borderColor: showAll ? "var(--color-border-default)" : "var(--color-accent-cyan)",
-              background: showAll ? "transparent" : "rgba(0,212,255,0.1)",
-              color: showAll ? "var(--color-text-secondary)" : "var(--color-accent-cyan)",
-            }}
-          >
-            ✉️ С изпратени имейли
-          </Link>
-          <Link
-            href="/admin/clients?view=all"
-            className="rounded-full border px-4 py-2 transition-colors"
-            style={{
               borderColor: showAll ? "var(--color-accent-cyan)" : "var(--color-border-default)",
               background: showAll ? "rgba(0,212,255,0.1)" : "transparent",
               color: showAll ? "var(--color-accent-cyan)" : "var(--color-text-secondary)",
             }}
           >
             Всички контакти
+          </Link>
+          <Link
+            href="/admin/clients?view=emailed"
+            className="rounded-full border px-4 py-2 transition-colors"
+            style={{
+              borderColor: !showAll ? "var(--color-accent-cyan)" : "var(--color-border-default)",
+              background: !showAll ? "rgba(0,212,255,0.1)" : "transparent",
+              color: !showAll ? "var(--color-accent-cyan)" : "var(--color-text-secondary)",
+            }}
+          >
+            ✉️ Само с имейл
           </Link>
         </div>
       </header>
