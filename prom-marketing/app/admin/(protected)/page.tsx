@@ -1,201 +1,376 @@
+import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/service";
-import { StatsCards } from "@/components/admin/StatsCards";
-import { format } from "date-fns";
-import { bg } from "date-fns/locale";
+import {
+  CONTACT_STAGES,
+  STAGE_COLOR,
+  STAGE_LABEL,
+  type ContactRow,
+  type ContactStage,
+} from "@/lib/contacts/types";
 
 export const dynamic = "force-dynamic";
 
-interface BookingPreview {
-  id: string;
-  attendee_name: string;
-  attendee_email: string;
-  scheduled_at: string;
-  business: string | null;
-  automation_goal: string | null;
-  services_interested: string[] | null;
-  timeline: string | null;
+interface ContactWithActivity extends ContactRow {
+  last_activity_at?: string | null;
+  last_activity_title?: string | null;
+  total_activities?: number;
+  total_files?: number;
 }
 
 export default async function AdminDashboard() {
   const supabase = createServiceClient();
-  const now = new Date();
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-  const [
-    { count: weekCount },
-    { count: monthCount },
-    { count: upcomingCount },
-    { count: totalCount },
-    { data: recent },
-    { data: allForStats },
-  ] = await Promise.all([
-    supabase.from("bookings").select("*", { count: "exact", head: true }).gte("created_at", weekAgo.toISOString()),
-    supabase.from("bookings").select("*", { count: "exact", head: true }).gte("created_at", monthAgo.toISOString()),
-    supabase.from("bookings").select("*", { count: "exact", head: true }).gte("scheduled_at", now.toISOString()).eq("status", "confirmed"),
-    supabase.from("bookings").select("*", { count: "exact", head: true }),
-    supabase
-      .from("bookings")
-      .select("id, attendee_name, attendee_email, scheduled_at, business, automation_goal, services_interested, timeline")
-      .order("created_at", { ascending: false })
-      .limit(5),
-    supabase
-      .from("bookings")
-      .select("services_interested, timeline")
-      .gte("created_at", monthAgo.toISOString()),
+  // Fetch all non-lost contacts + their last activity + file count
+  const { data: contactsRaw } = await supabase
+    .from("contacts")
+    .select("*")
+    .neq("stage", "lost")
+    .order("updated_at", { ascending: false });
+
+  const contacts = (contactsRaw ?? []) as ContactRow[];
+  const ids = contacts.map((c) => c.id);
+
+  // Fetch last activity per contact + file counts in parallel
+  const [activitiesRes, filesRes] = await Promise.all([
+    ids.length > 0
+      ? supabase
+          .from("contact_activities")
+          .select("contact_id, title, occurred_at, activity_type")
+          .in("contact_id", ids)
+          .order("occurred_at", { ascending: false })
+      : Promise.resolve({ data: [] }),
+    ids.length > 0
+      ? supabase
+          .from("contact_files")
+          .select("contact_id")
+          .in("contact_id", ids)
+      : Promise.resolve({ data: [] }),
   ]);
 
-  const recentBookings = (recent ?? []) as BookingPreview[];
-  const monthRows = (allForStats ?? []) as Pick<BookingPreview, "services_interested" | "timeline">[];
+  const lastActivityByContact = new Map<string, { title: string; occurred_at: string; type: string }>();
+  const activityCountByContact = new Map<string, number>();
+  for (const a of (activitiesRes.data ?? []) as Array<{
+    contact_id: string;
+    title: string;
+    occurred_at: string;
+    activity_type: string;
+  }>) {
+    activityCountByContact.set(a.contact_id, (activityCountByContact.get(a.contact_id) ?? 0) + 1);
+    if (!lastActivityByContact.has(a.contact_id)) {
+      lastActivityByContact.set(a.contact_id, {
+        title: a.title,
+        occurred_at: a.occurred_at,
+        type: a.activity_type,
+      });
+    }
+  }
 
-  const serviceCounts = countOccurrences(
-    monthRows.flatMap((r) => r.services_interested ?? [])
+  const fileCountByContact = new Map<string, number>();
+  for (const f of (filesRes.data ?? []) as Array<{ contact_id: string }>) {
+    fileCountByContact.set(f.contact_id, (fileCountByContact.get(f.contact_id) ?? 0) + 1);
+  }
+
+  const enriched: ContactWithActivity[] = contacts.map((c) => {
+    const la = lastActivityByContact.get(c.id);
+    return {
+      ...c,
+      last_activity_at: la?.occurred_at ?? null,
+      last_activity_title: la?.title ?? null,
+      total_activities: activityCountByContact.get(c.id) ?? 0,
+      total_files: fileCountByContact.get(c.id) ?? 0,
+    };
+  });
+
+  // Group by stage
+  const byStage = new Map<ContactStage, ContactWithActivity[]>();
+  for (const s of CONTACT_STAGES) byStage.set(s, []);
+  for (const c of enriched) {
+    if (c.stage !== "lost") byStage.get(c.stage)?.push(c);
+  }
+
+  // Quick stats
+  const now = Date.now();
+  const upcomingFollowups = enriched
+    .filter((c) => c.next_followup_at && new Date(c.next_followup_at).getTime() > now - 24 * 3600 * 1000)
+    .sort((a, b) => new Date(a.next_followup_at!).getTime() - new Date(b.next_followup_at!).getTime());
+
+  const overdueFollowups = enriched.filter(
+    (c) => c.next_followup_at && new Date(c.next_followup_at).getTime() < now - 24 * 3600 * 1000
   );
-  const timelineCounts = countOccurrences(
-    monthRows.map((r) => r.timeline).filter((v): v is string => Boolean(v))
-  );
+
+  const stagesToShow: ContactStage[] = ["lead", "contacted", "discovery", "offer_sent", "negotiating", "won"];
 
   return (
     <div className="p-6 md:p-10">
       <header className="mb-8">
-        <h1 className="font-display text-3xl font-bold">Преглед</h1>
+        <h1 className="font-display text-3xl font-bold">Преглед на CRM</h1>
         <p className="text-sm text-[var(--color-text-secondary)]">
-          Снимка на най-новата активност и интересите на клиентите
+          Всички активни клиенти и до какъв етап са стигнали — бърз поглед за 30 секунди
         </p>
       </header>
 
-      <StatsCards
-        stats={[
-          { label: "Седмица", value: weekCount ?? 0, hint: "нови заявки" },
-          { label: "Месец", value: monthCount ?? 0, hint: "нови заявки" },
-          { label: "Предстоящи", value: upcomingCount ?? 0, hint: "потвърдени" },
-          { label: "Общо", value: totalCount ?? 0, hint: "от стартирането" },
-        ]}
-      />
-
-      <section className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <BreakdownCard
-          title="Интерес по услуги (последните 30 дни)"
-          subtitle="Колко лида искат всяка услуга"
-          rows={serviceCounts}
-          emptyHint="Все още няма данни"
-          accent="cyan"
+      {/* Top stats */}
+      <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <StatCard
+          label="Активни клиенти"
+          value={enriched.length}
+          hint={`от ${contacts.length} общо`}
+          color="#06b6d4"
         />
-        <BreakdownCard
-          title="Готовност за стартиране"
-          subtitle="Кога клиентите искат да започнат"
-          rows={timelineCounts}
-          emptyHint="Все още няма данни"
-          accent="violet"
+        <StatCard
+          label="Оферти изпратени"
+          value={byStage.get("offer_sent")?.length ?? 0}
+          hint="чакаме отговор"
+          color="#FFB800"
         />
-      </section>
+        <StatCard
+          label="Предстоящи срещи"
+          value={upcomingFollowups.length}
+          hint="следващите дни"
+          color="#22c55e"
+        />
+        <StatCard
+          label="Просрочени follow-up"
+          value={overdueFollowups.length}
+          hint="спешно действие"
+          color={overdueFollowups.length > 0 ? "#ef4444" : "#7da8cc"}
+        />
+      </div>
 
-      <section className="mt-10">
-        <h2 className="mb-4 font-display text-xl font-bold">Последни 5 заявки</h2>
-        <div className="glass rounded-xl overflow-hidden">
-          <ul className="divide-y divide-[var(--color-border-default)]">
-            {recentBookings.map((b) => (
-              <li key={b.id} className="flex flex-col gap-2 px-5 py-4">
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="font-medium">{b.attendee_name}</p>
-                    <p className="text-xs text-[var(--color-text-secondary)]">{b.attendee_email}</p>
-                  </div>
-                  <div className="text-sm text-[var(--color-text-secondary)]">
-                    {format(new Date(b.scheduled_at), "d MMM yyyy, HH:mm", { locale: bg })}
-                  </div>
-                </div>
-                {b.business && (
-                  <p className="text-xs text-[var(--color-text-tertiary)]">
-                    <span className="text-[var(--color-text-secondary)]">Бизнес:</span> {b.business}
-                  </p>
+      {/* Upcoming follow-ups alert */}
+      {upcomingFollowups.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-3 font-mono text-xs uppercase tracking-[0.3em] text-[var(--color-accent-violet)]">
+            🔔 Предстоящи срещи / разговори
+          </h2>
+          <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+            {upcomingFollowups.slice(0, 6).map((c) => (
+              <Link
+                key={c.id}
+                href={`/admin/clients/${c.id}`}
+                className="rounded-lg border border-[#22c55e]/30 bg-[#22c55e]/5 p-3 transition-colors hover:border-[#22c55e]"
+              >
+                <p className="text-xs font-mono uppercase tracking-wider text-[#22c55e]">
+                  {formatFollowup(c.next_followup_at!)}
+                </p>
+                <p className="mt-1 text-sm font-medium text-[var(--color-text-primary)]">
+                  {c.full_name || c.email || "—"}
+                </p>
+                {c.company && (
+                  <p className="text-xs text-[var(--color-text-tertiary)]">{c.company}</p>
                 )}
-                {b.automation_goal && (
-                  <p className="line-clamp-2 text-xs text-[var(--color-text-tertiary)]">
-                    <span className="text-[var(--color-text-secondary)]">Цел:</span> {b.automation_goal}
-                  </p>
-                )}
-                {b.services_interested && b.services_interested.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {b.services_interested.map((s) => (
-                      <span
-                        key={s}
-                        className="rounded-full bg-[var(--color-accent-cyan)]/10 px-2 py-0.5 text-[10px] text-[var(--color-accent-cyan)]"
-                      >
-                        {s}
-                      </span>
-                    ))}
-                    {b.timeline && (
-                      <span className="rounded-full bg-[var(--color-accent-violet)]/10 px-2 py-0.5 text-[10px] text-[var(--color-accent-violet)]">
-                        ⏱ {b.timeline}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </li>
+              </Link>
             ))}
-            {recentBookings.length === 0 && (
-              <li className="px-5 py-8 text-center text-sm text-[var(--color-text-tertiary)]">
-                Все още няма заявки
-              </li>
-            )}
-          </ul>
+          </div>
+        </section>
+      )}
+
+      {/* Overdue alert */}
+      {overdueFollowups.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-3 font-mono text-xs uppercase tracking-[0.3em] text-[#ef4444]">
+            ⚠️ Просрочени · нужно действие
+          </h2>
+          <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+            {overdueFollowups.slice(0, 6).map((c) => (
+              <Link
+                key={c.id}
+                href={`/admin/clients/${c.id}`}
+                className="rounded-lg border border-[#ef4444]/30 bg-[#ef4444]/5 p-3 transition-colors hover:border-[#ef4444]"
+              >
+                <p className="text-xs font-mono uppercase tracking-wider text-[#ef4444]">
+                  {formatFollowup(c.next_followup_at!)}
+                </p>
+                <p className="mt-1 text-sm font-medium text-[var(--color-text-primary)]">
+                  {c.full_name || c.email || "—"}
+                </p>
+                {c.company && (
+                  <p className="text-xs text-[var(--color-text-tertiary)]">{c.company}</p>
+                )}
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Pipeline columns */}
+      <section>
+        <h2 className="mb-4 font-display text-xl font-bold">
+          🚀 Pipeline · {enriched.length} активни клиенти
+        </h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          {stagesToShow.map((s) => {
+            const items = byStage.get(s) ?? [];
+            return (
+              <div
+                key={s}
+                className="rounded-lg border border-[var(--color-border-default)] bg-[var(--color-bg-deep)]/40 p-3"
+              >
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <h3
+                    className="text-xs font-bold uppercase tracking-wider"
+                    style={{ color: STAGE_COLOR[s] }}
+                  >
+                    {STAGE_LABEL[s]}
+                  </h3>
+                  <span
+                    className="rounded-full px-2 py-0.5 text-xs font-mono"
+                    style={{
+                      background: `${STAGE_COLOR[s]}1a`,
+                      color: STAGE_COLOR[s],
+                    }}
+                  >
+                    {items.length}
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {items.map((c) => (
+                    <ClientCard key={c.id} contact={c} />
+                  ))}
+                  {items.length === 0 && (
+                    <p className="rounded-md border border-dashed border-[var(--color-border-default)] p-3 text-center text-[10px] text-[var(--color-text-tertiary)]">
+                      Празно
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
+
+      {/* Quick links */}
+      <section className="mt-10 grid gap-4 md:grid-cols-3">
+        <Link
+          href="/admin/clients"
+          className="rounded-lg border border-[var(--color-border-default)] bg-[var(--color-bg-deep)]/40 p-5 transition-colors hover:border-[var(--color-accent-cyan)]"
+        >
+          <p className="font-mono text-xs uppercase tracking-wider text-[var(--color-text-tertiary)]">
+            Преглед
+          </p>
+          <p className="mt-1 text-lg font-bold">📋 Всички клиенти</p>
+          <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
+            Пълен списък с филтри и търсене
+          </p>
+        </Link>
+        <Link
+          href="/admin/leads"
+          className="rounded-lg border border-[var(--color-border-default)] bg-[var(--color-bg-deep)]/40 p-5 transition-colors hover:border-[var(--color-accent-cyan)]"
+        >
+          <p className="font-mono text-xs uppercase tracking-wider text-[var(--color-text-tertiary)]">
+            Източници
+          </p>
+          <p className="mt-1 text-lg font-bold">📥 Meta лидове</p>
+          <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
+            Внасяне на лидове от Facebook кампании
+          </p>
+        </Link>
+        <Link
+          href="/admin/email"
+          className="rounded-lg border border-[var(--color-border-default)] bg-[var(--color-bg-deep)]/40 p-5 transition-colors hover:border-[var(--color-accent-cyan)]"
+        >
+          <p className="font-mono text-xs uppercase tracking-wider text-[var(--color-text-tertiary)]">
+            Изпращане
+          </p>
+          <p className="mt-1 text-lg font-bold">✉️ Имейли</p>
+          <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
+            Прати персонален имейл към клиент
+          </p>
+        </Link>
+      </section>
     </div>
   );
 }
 
-function countOccurrences(items: string[]): Array<{ label: string; count: number }> {
-  const map = new Map<string, number>();
-  for (const it of items) {
-    map.set(it, (map.get(it) ?? 0) + 1);
-  }
-  return Array.from(map.entries())
-    .map(([label, count]) => ({ label, count }))
-    .sort((a, b) => b.count - a.count);
-}
-
-interface BreakdownCardProps {
-  title: string;
-  subtitle: string;
-  rows: Array<{ label: string; count: number }>;
-  emptyHint: string;
-  accent: "cyan" | "violet";
-}
-
-function BreakdownCard({ title, subtitle, rows, emptyHint, accent }: BreakdownCardProps) {
-  const max = rows.reduce((m, r) => Math.max(m, r.count), 0);
-  const accentColor =
-    accent === "cyan" ? "var(--color-accent-cyan)" : "var(--color-accent-violet)";
+function StatCard({
+  label,
+  value,
+  hint,
+  color,
+}: {
+  label: string;
+  value: number;
+  hint: string;
+  color: string;
+}) {
   return (
-    <div className="glass rounded-xl p-6">
-      <h3 className="font-display text-lg font-bold">{title}</h3>
-      <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">{subtitle}</p>
-      <ul className="mt-5 space-y-3">
-        {rows.length === 0 && (
-          <li className="text-sm text-[var(--color-text-tertiary)]">{emptyHint}</li>
-        )}
-        {rows.map((r) => {
-          const pct = max > 0 ? (r.count / max) * 100 : 0;
-          return (
-            <li key={r.label}>
-              <div className="flex items-center justify-between text-sm">
-                <span className="truncate pr-3">{r.label}</span>
-                <span className="font-mono text-xs text-[var(--color-text-secondary)]">
-                  {r.count}
-                </span>
-              </div>
-              <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-white/5">
-                <div
-                  className="h-full rounded-full"
-                  style={{ width: `${pct}%`, background: accentColor }}
-                />
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+    <div
+      className="rounded-lg border p-4"
+      style={{
+        borderColor: "var(--color-border-default)",
+        background: "rgba(13,18,33,0.4)",
+      }}
+    >
+      <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--color-text-tertiary)]">
+        {label}
+      </p>
+      <p className="mt-1 text-3xl font-bold" style={{ color }}>
+        {value}
+      </p>
+      <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">{hint}</p>
     </div>
   );
+}
+
+function ClientCard({ contact: c }: { contact: ContactWithActivity }) {
+  return (
+    <Link
+      href={`/admin/clients/${c.id}`}
+      className="block rounded-md border border-[var(--color-border-default)] bg-black/30 p-3 transition-colors hover:border-[var(--color-accent-cyan)]"
+    >
+      <p className="truncate text-sm font-medium text-[var(--color-text-primary)]">
+        {c.full_name || c.email || "—"}
+      </p>
+      {c.company && (
+        <p className="truncate text-[10px] text-[var(--color-text-tertiary)]">{c.company}</p>
+      )}
+      {c.last_activity_title && (
+        <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-[var(--color-text-secondary)]">
+          {c.last_activity_title}
+        </p>
+      )}
+      <div className="mt-2 flex items-center gap-2 text-[10px] text-[var(--color-text-tertiary)]">
+        {(c.total_files ?? 0) > 0 && (
+          <span title={`${c.total_files} файла в архива`}>📎 {c.total_files}</span>
+        )}
+        {(c.total_activities ?? 0) > 0 && (
+          <span title={`${c.total_activities} активности`}>📊 {c.total_activities}</span>
+        )}
+        {c.last_activity_at && (
+          <span className="ml-auto truncate">
+            {formatRelative(c.last_activity_at)}
+          </span>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+function formatRelative(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+  if (days === 0) {
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+    if (hours === 0) return "току що";
+    return `${hours}ч`;
+  }
+  if (days === 1) return "вчера";
+  if (days < 7) return `${days} дни`;
+  if (days < 30) return `${Math.floor(days / 7)} седм.`;
+  return `${Math.floor(days / 30)} мес.`;
+}
+
+function formatFollowup(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(d);
+  target.setHours(0, 0, 0, 0);
+  const diff = Math.floor((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  const time = d.toLocaleTimeString("bg-BG", { hour: "2-digit", minute: "2-digit" });
+  if (diff === 0) return `Днес ${time}`;
+  if (diff === 1) return `Утре ${time}`;
+  if (diff === -1) return `Вчера ${time}`;
+  if (diff < 0) return `Преди ${Math.abs(diff)} дни`;
+  return d.toLocaleDateString("bg-BG", { day: "2-digit", month: "short" }) + " " + time;
 }

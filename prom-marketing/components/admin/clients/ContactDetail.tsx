@@ -24,6 +24,7 @@ const LOGGER_TYPES: Array<{ v: string; label: string }> = [
   { v: "email_sent", label: "✉️ Имейл изпратен" },
   { v: "email_received", label: "📨 Имейл получен" },
   { v: "meeting", label: "🤝 Среща" },
+  { v: "presentation_sent", label: "🎯 Презентация" },
   { v: "offer_sent", label: "💎 Оферта" },
   { v: "contract_sent", label: "📜 Договор" },
   { v: "contract_signed", label: "✍️ Подписан" },
