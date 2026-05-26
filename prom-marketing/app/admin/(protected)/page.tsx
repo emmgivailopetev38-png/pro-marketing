@@ -98,7 +98,16 @@ export default async function AdminDashboard() {
     (c) => c.next_followup_at && new Date(c.next_followup_at).getTime() < now - 24 * 3600 * 1000
   );
 
-  const stagesToShow: ContactStage[] = ["lead", "contacted", "discovery", "offer_sent", "negotiating", "won"];
+  // Приоритет: най-близо до сделка отляво → леад отдясно
+  const stagesToShow: ContactStage[] = [
+    "won",
+    "negotiating",
+    "offer_sent",
+    "presentation_sent",
+    "discovery",
+    "contacted",
+    "lead",
+  ];
 
   return (
     <div className="p-6 md:p-10">
@@ -118,9 +127,9 @@ export default async function AdminDashboard() {
           color="#06b6d4"
         />
         <StatCard
-          label="Оферти изпратени"
-          value={byStage.get("offer_sent")?.length ?? 0}
-          hint="чакаме отговор"
+          label="Оферти + презентации"
+          value={(byStage.get("offer_sent")?.length ?? 0) + (byStage.get("presentation_sent")?.length ?? 0) + (byStage.get("negotiating")?.length ?? 0)}
+          hint={`${byStage.get("offer_sent")?.length ?? 0} оферти + ${byStage.get("presentation_sent")?.length ?? 0} презентации`}
           color="#FFB800"
         />
         <StatCard
@@ -198,7 +207,7 @@ export default async function AdminDashboard() {
         <h2 className="mb-4 font-display text-xl font-bold">
           🚀 Pipeline · {enriched.length} активни клиенти
         </h2>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
           {stagesToShow.map((s) => {
             const items = byStage.get(s) ?? [];
             return (
