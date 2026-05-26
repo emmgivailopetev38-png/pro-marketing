@@ -230,7 +230,7 @@ const SCOPE = [
 
 export function EvoltoOfferDocument() {
   return (
-    <Document title="Оферта · Evolto × ProMarketing" author="ProMarketing LTD">
+    <Document title="Оферта · Evolto × ProMarketing" author="ПроМаркетинг ЕООД">
       {/* Page 1 */}
       <Page size="A4" style={s.page}>
         <View style={s.topBar} />
@@ -256,12 +256,13 @@ export function EvoltoOfferDocument() {
           <View style={s.parties}>
             <View style={s.partyCard}>
               <Text style={s.partyLabel}>Изпълнител</Text>
-              <Text style={s.partyName}>ProMarketing LTD</Text>
+              <Text style={s.partyName}>„ПроМаркетинг" ЕООД</Text>
               <Text style={s.partyDetail}>
-                Гр. София, България{"\n"}
+                ЕИК / ДДС № BG207223552{"\n"}
+                Гр. Русе, ул. Цар Асен I-ви № 31{"\n"}
+                МОЛ: Ивайло Петров Петев{"\n"}
                 ivailo@promarketing.pw{"\n"}
-                +359 877 399 963{"\n"}
-                promarketing.pw
+                +359 877 399 963
               </Text>
             </View>
             <View style={s.partyCard}>
@@ -420,8 +421,8 @@ export function EvoltoOfferDocument() {
 
           <View style={s.footer}>
             <View style={s.footerCol}>
-              <Text style={s.footerBold}>ProMarketing LTD</Text>
-              <Text>Ивайло Петев</Text>
+              <Text style={s.footerBold}>„ПроМаркетинг" ЕООД</Text>
+              <Text>Ивайло Петров Петев · управител</Text>
               <Text>ivailo@promarketing.pw</Text>
               <Text>+359 877 399 963</Text>
             </View>

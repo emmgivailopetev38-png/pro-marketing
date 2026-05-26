@@ -24,22 +24,25 @@ const s = StyleSheet.create({
 });
 
 export function EvoltoContractDocument() {
-  const today = new Date().toLocaleDateString("bg-BG");
   return (
-    <Document title="Договор · Evolto" author="ProMarketing LTD">
+    <Document title="Договор · Evolto" author="ПроМаркетинг ЕООД">
       <Page size="A4" style={s.page}>
         <Text style={s.title}>ДОГОВОР ЗА ИЗРАБОТКА</Text>
-        <Text style={s.p}>Днес, {today}, се сключи настоящият Договор между:</Text>
+        <Text style={s.p}>
+          Днес, ___.___.________ г., в гр. Пловдив, се сключи настоящият Договор между:
+        </Text>
 
         <Text style={s.h}>Страни</Text>
         <Text style={s.p}>
-          ИЗПЪЛНИТЕЛ: ProMarketing LTD, гр. София, представлявано от Ивайло Петев,
-          ivailo@promarketing.pw, +359 877 399 963 — наричано Изпълнителят.
+          ИЗПЪЛНИТЕЛ: „ПроМаркетинг" ЕООД, ЕИК 207223552, ДДС № BG207223552, със седалище и
+          адрес на управление гр. Русе, ул. Цар Асен I-ви № 31, представлявано от управителя
+          Ивайло Петров Петев, телефон +359 877 399 963, електронна поща
+          ivailo@promarketing.pw — наричано по-долу „Изпълнителят".
         </Text>
         <Text style={s.p}>
-          ВЪЗЛОЖИТЕЛ: Evolto, ЛИП Родопи, ул. Околовръстен път, 4109 гр. Пловдив,
-          представлявано от Васил Бедров — собственик, info@evolto.bg, +359 894 255 855 —
-          наричано Възложителят.
+          ВЪЗЛОЖИТЕЛ: Evolto, със седалище ЛИП Родопи, ул. Околовръстен път, 4109 гр. Пловдив,
+          представлявано от Васил Бедров — собственик, телефон +359 894 255 855, електронна
+          поща info@evolto.bg — наричано по-долу „Възложителят".
         </Text>
 
         <Text style={s.h}>Чл. 1. Предмет</Text>
@@ -144,13 +147,19 @@ export function EvoltoContractDocument() {
           сканиран подпис, изпратен по имейл, се признава като валиден.
         </Text>
 
-        <View style={{ marginTop: 30, flexDirection: "row" }} wrap={false}>
+        <Text style={[s.p, { marginTop: 24, color: "#475569" }]}>
+          Подписан в гр. Пловдив на ___.___.________ г., в 2 (два) еднообразни екземпляра.
+        </Text>
+
+        <View style={{ marginTop: 20, flexDirection: "row" }} wrap={false}>
           <View style={{ flex: 1, paddingRight: 20 }}>
             <Text style={{ fontSize: 9, fontWeight: 700, marginBottom: 24 }}>
               За Изпълнителя
             </Text>
             <Text style={{ fontSize: 9, color: "#475569" }}>___________________________</Text>
-            <Text style={{ fontSize: 9, color: "#475569", marginTop: 3 }}>Ивайло Петев · ProMarketing LTD</Text>
+            <Text style={{ fontSize: 9, color: "#475569", marginTop: 3 }}>
+              Ивайло Петров Петев · „ПроМаркетинг" ЕООД
+            </Text>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 9, fontWeight: 700, marginBottom: 24 }}>
