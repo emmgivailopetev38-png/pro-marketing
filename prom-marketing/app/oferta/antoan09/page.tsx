@@ -165,9 +165,8 @@ export default function Antoan09Page() {
             за
           </p>
 
-          <h1 className="font-[family-name:var(--font-editorial)] text-[clamp(48px,10vw,140px)] font-extrabold leading-[0.92] tracking-tight">
-            <span style={{ color: "var(--color-text-primary)" }}>Antoan</span>
-            <br />
+          <h1 className="font-[family-name:var(--font-editorial)] text-[clamp(36px,6vw,72px)] font-extrabold leading-[1.05] tracking-tight">
+            <span style={{ color: "var(--color-text-primary)" }}>Antoan </span>
             <span
               style={{
                 color: "transparent",
@@ -489,13 +488,13 @@ export default function Antoan09Page() {
                   antoan09.bg/dashboard
                 </span>
                 <span className="rounded-full bg-[var(--color-red)]/20 px-3 py-1 text-[10px] font-mono text-[var(--color-red-bright)]">
-                  🧯 Валентин · собственик
+                  🧯 Управител
                 </span>
               </div>
               <div className="p-6">
                 <div className="mb-6">
                   <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-red-bright)]">27 МАЙ 2026 · СРЯДА</p>
-                  <h4 className="mt-1 font-display text-2xl font-bold text-white">Добро утро, Валентин</h4>
+                  <h4 className="mt-1 font-display text-2xl font-bold text-white">Добро утро, управител</h4>
                 </div>
                 <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
                   {[

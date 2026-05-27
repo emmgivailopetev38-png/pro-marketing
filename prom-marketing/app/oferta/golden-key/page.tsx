@@ -275,9 +275,8 @@ export default function GoldenKeyPage() {
             за
           </p>
 
-          <h1 className="font-[family-name:var(--font-editorial)] text-[clamp(48px,10vw,140px)] font-extrabold leading-[0.92] tracking-tight">
-            <span style={{ color: "var(--color-text-primary)" }}>Golden</span>
-            <br />
+          <h1 className="font-[family-name:var(--font-editorial)] text-[clamp(36px,6vw,72px)] font-extrabold leading-[1.05] tracking-tight">
+            <span style={{ color: "var(--color-text-primary)" }}>Golden </span>
             <span
               style={{
                 color: "transparent",
@@ -372,7 +371,7 @@ export default function GoldenKeyPage() {
                   crm.goldenkey.bg/dashboard
                 </span>
                 <span className="rounded-full bg-[var(--color-gold)]/20 px-3 py-1 text-[10px] font-mono text-[var(--color-gold-bright)]">
-                  👤 Росен · собственик
+                  👤 Управител
                 </span>
               </div>
 
@@ -381,7 +380,7 @@ export default function GoldenKeyPage() {
                 <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
                   <div>
                     <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-gold)]">GOLDEN KEY · 27 МАЙ 2026</p>
-                    <h4 className="mt-1 font-display text-2xl font-bold text-white">Добро утро, Росене</h4>
+                    <h4 className="mt-1 font-display text-2xl font-bold text-white">Добро утро, управител</h4>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] text-[var(--color-text-tertiary)]">Live · обновено току що</p>
