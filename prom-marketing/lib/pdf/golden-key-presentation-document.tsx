@@ -316,22 +316,20 @@ export function GoldenKeyPresentationDocument() {
           </Text>
 
           <Text style={s.sectionTitle}>Ежемесечни разходи · след стартиране</Text>
-          <View style={s.tiersRow} wrap={false}>
-            {RECURRING_COSTS.map((r) => (
-              <View key={r.title} style={s.tierCard}>
-                <Text style={s.tierBadge}>{r.badge}</Text>
-                <Text style={s.tierTitle}>{r.title}</Text>
-                <Text style={s.tierPrice}>{r.price}</Text>
-                <Text style={s.tierPriceSub}>без ДДС</Text>
-                {r.features.map((f) => (
-                  <View key={f} style={s.tierFeature}>
-                    <Text style={s.tierCheck}>✓</Text>
-                    <Text style={s.tierFeatureText}>{f}</Text>
-                  </View>
-                ))}
-              </View>
-            ))}
-          </View>
+          {RECURRING_COSTS.map((r) => (
+            <View key={r.title} style={[s.tierCard, { width: "60%", marginLeft: "auto", marginRight: "auto", marginTop: 6 }]} wrap={false}>
+              <Text style={s.tierBadge}>{r.badge}</Text>
+              <Text style={s.tierTitle}>{r.title}</Text>
+              <Text style={s.tierPrice}>{r.price}</Text>
+              <Text style={s.tierPriceSub}>без ДДС</Text>
+              {r.features.map((f) => (
+                <View key={f} style={s.tierFeature}>
+                  <Text style={s.tierCheck}>✓</Text>
+                  <Text style={s.tierFeatureText}>{f}</Text>
+                </View>
+              ))}
+            </View>
+          ))}
           <Text style={{ fontSize: 7.5, color: C.inkSoft, marginTop: 6, textAlign: "center" }}>
             Алтернатива: почасова поддръжка 50 €/час, но абонаментът е по-изгоден за активен бизнес.
           </Text>
