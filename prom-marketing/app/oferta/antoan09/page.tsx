@@ -81,8 +81,8 @@ const MODULES = [
       "Румънски · за пазар Румъния",
       "Гръцки · за пазар Гърция",
       "Английски · за международни клиенти",
-      "Гласов асистент · клиентът говори, AI разпознава, отговаря на същия език",
-      "*Доплащане за multilingual + voice — отделна Phase 2",
+      "Чат-бот на уебсайта · разпознава езика на посетителя автоматично",
+      "*Доплащане за multilingual — отделна Phase 2",
     ],
   },
 ];
@@ -654,7 +654,7 @@ export default function Antoan09Page() {
             <div className="mt-6 rounded-lg border border-dashed border-[var(--color-orange)]/30 bg-[var(--color-orange)]/5 p-4">
               <p className="text-xs text-[var(--color-orange)] font-bold">+ ОПЦИЯ ЗА ПО-НАТАТЪК</p>
               <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                Многоезичен AI чат + гласов асистент за чуждестранни клиенти (BG/RO/EL/EN) — отделна Phase 2, договаряме като дойде време.
+                Многоезичен AI чат за чуждестранни клиенти (BG/RO/EL/EN) — отделна Phase 2, договаряме като дойде време.
               </p>
             </div>
           </div>
