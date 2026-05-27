@@ -108,6 +108,41 @@ const s = StyleSheet.create({
   stepBody: { flex: 1 },
   stepTitle: { fontSize: 10, fontWeight: 700, color: C.ink, marginBottom: 1 },
   stepDesc: { fontSize: 8, color: C.inkSoft, lineHeight: 1.35 },
+  // Tiers
+  tiersRow: { flexDirection: "row", gap: 8, marginTop: 6 },
+  tierCard: {
+    flex: 1,
+    backgroundColor: C.panel,
+    borderRadius: 4,
+    padding: 10,
+    borderTopWidth: 3,
+    borderTopColor: C.gold,
+  },
+  tierCardHighlight: {
+    flex: 1,
+    backgroundColor: "#FFF3D6",
+    borderRadius: 4,
+    padding: 10,
+    borderTopWidth: 4,
+    borderTopColor: C.goldBright,
+  },
+  tierBadge: {
+    fontSize: 6.5,
+    color: C.goldBright,
+    letterSpacing: 1.3,
+    marginBottom: 3,
+    textTransform: "uppercase",
+  },
+  tierTitle: { fontSize: 13, fontWeight: 700, color: C.ink, marginBottom: 3 },
+  tierPrice: { fontSize: 18, fontWeight: 700, color: C.goldBright, marginBottom: 2 },
+  tierPriceSub: { fontSize: 7, color: C.inkSoft, marginBottom: 3 },
+  tierTimeline: { fontSize: 7.5, color: C.inkSoft, marginBottom: 6, fontWeight: 700 },
+  tierFeature: { flexDirection: "row", marginTop: 2 },
+  tierCheck: { width: 8, color: C.goldBright, fontSize: 7 },
+  tierFeatureText: { flex: 1, fontSize: 7, color: C.ink, lineHeight: 1.3 },
+  // Security
+  secRow: { flexDirection: "row", marginTop: 4, gap: 6 },
+  secText: { flex: 1, fontSize: 8, color: C.inkSoft, lineHeight: 1.4 },
   footer: {
     marginTop: 18,
     paddingTop: 14,
@@ -138,6 +173,63 @@ const PROCESS = [
   { step: "3", title: "Изграждане", body: "От 30 до 60 дни според големината на проекта." },
   { step: "4", title: "Старт + тренинг", body: "Стартиране на системата с реалните ви данни и онлайн тренинг на екипа." },
   { step: "5", title: "Поддръжка", body: "30 дни безплатна + продължаваща оптимизация." },
+];
+
+const TIERS = [
+  {
+    badge: "Phase 1",
+    title: "Базов",
+    price: "3 800 €",
+    timeline: "30-45 дни",
+    features: [
+      "Custom CRM ядро · клиенти, имоти, брокери",
+      "Tiered access · брокер / team lead / мениджър",
+      "Lead capture форми · уебсайт → CRM",
+      "Графичен Dashboard · real-time KPIs",
+      "AI текст асистент · отчети по заявка",
+      "Form-based data entry за брокерите",
+      "Backup + GDPR audit log",
+      "30 дни безплатна поддръжка",
+    ],
+  },
+  {
+    badge: "Phase 1 + 2 · ПРЕПОРЪЧАН",
+    title: "Разширен",
+    price: "4 900 €",
+    timeline: "45-60 дни",
+    features: [
+      "Всичко от Базов",
+      "AI Content генератор · описания на имоти",
+      "Auto-публикуване · Facebook + Instagram",
+      "Telegram бот · гласови команди за отчети",
+      "Email + Telegram daily reports",
+      "Многоезична подкрепа · BG + EN",
+      "Weekly off-site backup",
+    ],
+  },
+  {
+    badge: "Всички фази",
+    title: "Пълен",
+    price: "6 000 €",
+    timeline: "60 дни",
+    features: [
+      "Всичко от Разширен",
+      "AI Video Editor · видеа на имоти",
+      "Virtual Staging · мебелиране на стая",
+      "Facebook + Google Ads management",
+      "LinkedIn + YouTube auto-публикуване",
+      "Lead Ads → CRM автоматично",
+      "Reels автоматизация",
+      "Monthly archive backup · 5 г.",
+    ],
+  },
+];
+
+const SECURITY_HIGHLIGHTS = [
+  "🔐 GDPR-съвместимо · Supabase EU (Frankfurt) · AES-256 encryption at rest",
+  "🔄 3-слоен backup · Daily PITR + Weekly off-site + Monthly архив",
+  "👤 Audit log · кой/кога/какво — пълна следа за GDPR одит",
+  "🏢 Опционален локален сървър · self-hosted в офиса (Phase 3, +€1500)",
 ];
 
 export function GoldenKeyPresentationDocument() {
@@ -183,6 +275,35 @@ export function GoldenKeyPresentationDocument() {
               </View>
             ))}
           </View>
+
+          <Text style={s.sectionTitle} break>Цени · 3 нива</Text>
+          <View style={s.tiersRow} wrap={false}>
+            {TIERS.map((t, i) => (
+              <View key={t.title} style={i === 1 ? s.tierCardHighlight : s.tierCard}>
+                <Text style={s.tierBadge}>{t.badge}</Text>
+                <Text style={s.tierTitle}>{t.title}</Text>
+                <Text style={s.tierPrice}>{t.price}</Text>
+                <Text style={s.tierPriceSub}>без ДДС · еднократно</Text>
+                <Text style={s.tierTimeline}>⏱ {t.timeline}</Text>
+                {t.features.map((f) => (
+                  <View key={f} style={s.tierFeature}>
+                    <Text style={s.tierCheck}>✓</Text>
+                    <Text style={s.tierFeatureText}>{f}</Text>
+                  </View>
+                ))}
+              </View>
+            ))}
+          </View>
+          <Text style={{ fontSize: 8, color: C.inkSoft, marginTop: 8, textAlign: "center" }}>
+            Плащане: 50% при подписване · 50% при стартиране · ДДС се добавя при фактуриране, ако е приложим
+          </Text>
+
+          <Text style={s.sectionTitle}>Сигурност на данните · GDPR</Text>
+          {SECURITY_HIGHLIGHTS.map((sec) => (
+            <View key={sec} style={s.secRow}>
+              <Text style={s.secText}>{sec}</Text>
+            </View>
+          ))}
 
           <Text style={s.sectionTitle}>Как работим</Text>
           {PROCESS.map((p) => (

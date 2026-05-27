@@ -129,6 +129,85 @@ const WHY = [
   { title: "Локален екип", body: "От Русе сме. Лична комуникация, лично присъствие при разговор и тренинг — не само автоматизирани чатове." },
 ];
 
+const TIERS = [
+  {
+    badge: "Phase 1",
+    title: "Базов",
+    price: "3 800 €",
+    priceSub: "без ДДС",
+    timeline: "30-45 дни",
+    color: "var(--color-text-secondary)",
+    features: [
+      "Custom CRM ядро · клиенти, имоти, брокери",
+      "Tiered access · брокер / team lead / мениджър · custom permissions",
+      "Lead capture форми · уебсайт → CRM в реално време",
+      "Графичен Dashboard · real-time KPIs (звъняния, имоти, сделки)",
+      "AI текст асистент · в системата (отчети по заявка)",
+      "Form-based data entry · за брокерите (без Excel)",
+      "Backup стратегия · daily snapshots + GDPR audit log",
+      "30 дни безплатна поддръжка",
+    ],
+    cta: "Стартиране Phase 1",
+  },
+  {
+    badge: "Phase 1 + 2",
+    title: "Разширен",
+    price: "4 900 €",
+    priceSub: "без ДДС",
+    timeline: "45-60 дни",
+    color: "var(--color-gold)",
+    highlight: true,
+    features: [
+      "Всичко от Базов",
+      "AI Content генератор · описания на имоти автоматично",
+      "Auto-публикуване · Facebook + Instagram · cross-posting",
+      "Telegram бот · гласови команди „Дай ми днешния отчет на всички брокери\"",
+      "Email + Telegram daily reports",
+      "Многоезична подкрепа · BG + EN",
+      "Weekly off-site backup · допълнителен слой защита",
+    ],
+    cta: "Препоръчан вариант",
+  },
+  {
+    badge: "Всички фази",
+    title: "Пълен",
+    price: "6 000 €",
+    priceSub: "без ДДС",
+    timeline: "60 дни",
+    color: "var(--color-gold-bright)",
+    features: [
+      "Всичко от Разширен",
+      "AI Video Editor · автоматични видеа на имоти",
+      "Virtual Staging · празна стая → мебелирана",
+      "Facebook + Google Ads management · кампании от CRM-а",
+      "LinkedIn + YouTube · auto-публикуване",
+      "Lead Ads → CRM · реклами от FB/Google → автоматично в системата",
+      "Reels автоматизация",
+      "Monthly archive backup · 5 години retention",
+    ],
+    cta: "Пълно решение",
+  },
+];
+
+const SECURITY = [
+  {
+    title: "GDPR-съвместима архитектура",
+    body: "Supabase PostgreSQL · EU (Frankfurt) · encrypted at rest (AES-256) · TLS encryption in transit · Row Level Security (всеки брокер вижда само своите клиенти).",
+  },
+  {
+    title: "Многослоен backup",
+    body: "1. Daily point-in-time recovery (7 дни) 2. Weekly off-site encrypted backup → Wasabi EU 3. Monthly архивен снапшот (5 години retention).",
+  },
+  {
+    title: "Audit log · кой какво кога",
+    body: "Всяка промяна се записва: кой потребител, кога, какво е променил. Login attempts, IP адреси, експорт на данни — пълна следа за GDPR одит.",
+  },
+  {
+    title: "Опционален локален сървър",
+    body: "За максимална контрола — Self-hosted Supabase на офис компютър/NAS със Cloud replica за disaster recovery. One-time €1 500 setup + €100/мес поддръжка.",
+  },
+];
+
 export default function GoldenKeyPage() {
   return (
     <main className="font-[family-name:var(--font-body)] text-[var(--color-text-primary)]">
@@ -236,6 +315,121 @@ export default function GoldenKeyPage() {
                     </li>
                   ))}
                 </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* TIERS — 3 PRICING LEVELS */}
+      <section id="tiers" className="relative border-t border-[var(--color-border-default)] py-32" style={{ background: "rgba(212, 175, 55, 0.03)" }}>
+        <div className="mx-auto max-w-6xl px-6 md:px-12">
+          <p className="mb-4 font-[family-name:var(--font-mono)] text-xs uppercase tracking-[0.4em] text-[var(--color-gold-bright)]">
+            Цени · 3 нива
+          </p>
+          <h2 className="mb-4 max-w-3xl font-[family-name:var(--font-editorial)] text-[clamp(36px,6vw,72px)] font-extrabold leading-[0.95]">
+            Phased rollout — <span className="text-[var(--color-gold-bright)]">плащате според обхвата</span>.
+          </h2>
+          <p className="mb-16 max-w-3xl text-base leading-relaxed text-[var(--color-text-secondary)]">
+            Започвате с основата и добавяте слоеве, или вземате цялото решение за 60 дни. Без скрити такси.
+          </p>
+
+          <div className="grid gap-6 md:grid-cols-3">
+            {TIERS.map((t) => (
+              <div
+                key={t.title}
+                className="relative flex flex-col rounded-lg border bg-[var(--color-bg-deep)] p-7 transition-transform hover:scale-[1.02]"
+                style={{
+                  borderColor: t.highlight ? t.color : "var(--color-border-default)",
+                  borderWidth: t.highlight ? "2px" : "1px",
+                  boxShadow: t.highlight ? "0 0 40px rgba(212, 175, 55, 0.15)" : undefined,
+                }}
+              >
+                {t.highlight && (
+                  <div
+                    className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-4 py-1 text-[10px] font-bold uppercase tracking-wider"
+                    style={{ background: t.color, color: "#0a0805" }}
+                  >
+                    Препоръчан
+                  </div>
+                )}
+                <p
+                  className="mb-2 font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.3em]"
+                  style={{ color: t.color }}
+                >
+                  {t.badge}
+                </p>
+                <h3 className="mb-3 font-[family-name:var(--font-editorial)] text-3xl font-bold">
+                  {t.title}
+                </h3>
+                <div className="mb-2 flex items-baseline gap-2">
+                  <span
+                    className="font-[family-name:var(--font-editorial)] text-4xl font-extrabold"
+                    style={{ color: t.color }}
+                  >
+                    {t.price}
+                  </span>
+                  <span className="text-xs text-[var(--color-text-tertiary)]">
+                    {t.priceSub}
+                  </span>
+                </div>
+                <p className="mb-6 text-xs font-mono text-[var(--color-text-secondary)]">
+                  ⏱ {t.timeline}
+                </p>
+                <ul className="mb-6 flex-1 space-y-2">
+                  {t.features.map((f, i) => (
+                    <li key={i} className="flex gap-2 text-sm leading-relaxed">
+                      <span aria-hidden style={{ color: t.color }}>
+                        ✓
+                      </span>
+                      <span className="text-[var(--color-text-primary)]">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div
+                  className="mt-auto rounded-md border px-4 py-3 text-center text-sm font-bold uppercase tracking-wider"
+                  style={{
+                    borderColor: t.color,
+                    color: t.color,
+                  }}
+                >
+                  {t.cta}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-10 text-center text-xs text-[var(--color-text-tertiary)]">
+            Плащане: 50% при подписване · 50% при стартиране · ДДС се добавя при фактуриране, ако е приложим
+          </p>
+        </div>
+      </section>
+
+      {/* SECURITY · GDPR · BACKUP */}
+      <section className="relative border-t border-[var(--color-border-default)] py-32">
+        <div className="mx-auto max-w-6xl px-6 md:px-12">
+          <p className="mb-4 font-[family-name:var(--font-mono)] text-xs uppercase tracking-[0.4em] text-[var(--color-gold-bright)]">
+            Сигурност на данните
+          </p>
+          <h2 className="mb-4 max-w-3xl font-[family-name:var(--font-editorial)] text-[clamp(36px,6vw,72px)] font-extrabold leading-[0.95]">
+            Данните на клиентите ви — <span className="text-[var(--color-gold-bright)]">защитени</span>.
+          </h2>
+          <p className="mb-16 max-w-3xl text-base leading-relaxed text-[var(--color-text-secondary)]">
+            GDPR-съвместима архитектура, многослоен backup и пълен audit log за всяка промяна. Никога не сте без копие на данните си.
+          </p>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            {SECURITY.map((s) => (
+              <div
+                key={s.title}
+                className="rounded-lg border border-[var(--color-border-default)] bg-[var(--color-bg-deep)]/50 p-7"
+              >
+                <h3 className="mb-3 font-[family-name:var(--font-editorial)] text-xl font-bold">
+                  🔐 {s.title}
+                </h3>
+                <p className="text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                  {s.body}
+                </p>
               </div>
             ))}
           </div>
