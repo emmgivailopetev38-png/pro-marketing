@@ -293,7 +293,7 @@ export function GoldenKeyPresentationDocument() {
             ))}
           </View>
 
-          <Text style={s.sectionTitle} break>Цени · 3 нива</Text>
+          <Text style={s.sectionTitle}>Цени · 3 нива</Text>
           <View style={s.tiersRow} wrap={false}>
             {TIERS.map((t, i) => (
               <View key={t.title} style={i === 1 ? s.tierCardHighlight : s.tierCard}>
@@ -317,17 +317,21 @@ export function GoldenKeyPresentationDocument() {
 
           <Text style={s.sectionTitle}>Ежемесечни разходи · след стартиране</Text>
           {RECURRING_COSTS.map((r) => (
-            <View key={r.title} style={[s.tierCard, { width: "60%", marginLeft: "auto", marginRight: "auto", marginTop: 6 }]} wrap={false}>
-              <Text style={s.tierBadge}>{r.badge}</Text>
-              <Text style={s.tierTitle}>{r.title}</Text>
-              <Text style={s.tierPrice}>{r.price}</Text>
-              <Text style={s.tierPriceSub}>без ДДС</Text>
-              {r.features.map((f) => (
-                <View key={f} style={s.tierFeature}>
-                  <Text style={s.tierCheck}>✓</Text>
-                  <Text style={s.tierFeatureText}>{f}</Text>
-                </View>
-              ))}
+            <View key={r.title} style={[s.tierCard, { marginTop: 4, flexDirection: "row", alignItems: "flex-start", gap: 12 }]} wrap={false}>
+              <View style={{ width: 130 }}>
+                <Text style={s.tierBadge}>{r.badge}</Text>
+                <Text style={[s.tierTitle, { fontSize: 11 }]}>{r.title}</Text>
+                <Text style={[s.tierPrice, { fontSize: 16 }]}>{r.price}</Text>
+                <Text style={s.tierPriceSub}>без ДДС</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                {r.features.map((f) => (
+                  <View key={f} style={s.tierFeature}>
+                    <Text style={s.tierCheck}>✓</Text>
+                    <Text style={s.tierFeatureText}>{f}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
           ))}
           <Text style={{ fontSize: 7.5, color: C.inkSoft, marginTop: 6, textAlign: "center" }}>
