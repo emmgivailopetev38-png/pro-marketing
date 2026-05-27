@@ -97,7 +97,7 @@ const PROCESS = [
 
 const WHY = [
   { title: "Изграждаме по поръчка", body: "Не продаваме готов SaaS. Системата се прави около вашите конкретни процеси за пожарогасители." },
-  { title: "10x обем без 10x хора", body: "Сега 300/седм, целите 3000. Без автоматизация ще ви трябват 10 пъти повече хора. С AI — същият екип, повече обекти." },
+  { title: "Повече обем без повече хора", body: "Без автоматизация ще ви трябват повече хора с ръст на бизнеса. С AI — същият екип, повече обекти, същият контрол." },
   { title: "Локален екип", body: "От Русе сме. Лична комуникация, лично присъствие при разговор и тренинг." },
   { title: "Готови за разширение", body: "Когато сте готови за Румъния и Гърция — multilingual AI се добавя върху същата система." },
 ];
@@ -154,7 +154,7 @@ export default function Antoan09Page() {
 
           <div className="mt-12 max-w-2xl">
             <p className="text-lg leading-relaxed text-[var(--color-text-secondary)] md:text-xl">
-              AI система за управление на пожарогасители — <span className="font-[family-name:var(--font-editorial)] font-bold text-[var(--color-text-primary)]">QR сканиране, автоматични протоколи, проследяване на 3 вида обслужване</span>. От 300 на 3 000 пожарогасителя седмично без увеличаване на хора.
+              AI система за управление на пожарогасители — <span className="font-[family-name:var(--font-editorial)] font-bold text-[var(--color-text-primary)]">QR сканиране, автоматични протоколи, проследяване на 3 вида обслужване и проследяване по обект</span>. Повече обем без увеличаване на хора.
             </p>
           </div>
 
@@ -493,7 +493,7 @@ export default function Antoan09Page() {
                         </div>
                       ))}
                     </div>
-                    <p className="mt-2 text-center text-[9px] text-white/40">Целта: 3 000/седм с пълна автоматизация</p>
+                    <p className="mt-2 text-center text-[9px] text-white/40">Ръст на обема с пълна автоматизация</p>
                   </div>
                   <div className="rounded-md border border-white/10 bg-white/5 p-4">
                     <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-white/60">👥 ТЕХНИЦИ ДНЕС</p>
@@ -623,7 +623,7 @@ export default function Antoan09Page() {
             <div className="mt-6 rounded-lg border border-dashed border-[var(--color-orange)]/30 bg-[var(--color-orange)]/5 p-4">
               <p className="text-xs text-[var(--color-orange)] font-bold">+ ОПЦИЯ ЗА ПО-НАТАТЪК</p>
               <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                Многоезичен AI чат за чуждестранни клиенти (BG/RO/EL/EN) — отделна Phase 2, договаряме като дойде време.
+                Многоезичен AI чат за чуждестранни клиенти (BG/RO/EL/EN) + детайлно проследяване и анализ по обект (история, графики, прогнози) — отделна Phase 2, договаряме като дойде време.
               </p>
             </div>
           </div>

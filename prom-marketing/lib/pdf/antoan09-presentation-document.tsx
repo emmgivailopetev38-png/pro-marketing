@@ -112,7 +112,7 @@ export function Antoan09PresentationDocument() {
           <Text style={s.tag}>🧯 Antoan 09 EOOD · Сервиз + Продажба</Text>
           <Text style={s.lead}>
             QR сканиране, авто-протоколи, проследяване на 3 вида обслужване (техническо, презареждане,
-            хидростатично). От 300 към 3 000 пожарогасителя седмично — без увеличаване на хора.
+            хидростатично) и проследяване по обект — повече обем без увеличаване на хора.
           </Text>
 
           <Text style={s.sectionTitle}>7 модула · едно цяло</Text>
@@ -143,7 +143,7 @@ export function Antoan09PresentationDocument() {
               Плащане: 50% при подписване · 50% при стартиране · ДДС се добавя при фактуриране
             </Text>
             <Text style={{ fontSize: 8, color: C.orange, marginTop: 8, fontWeight: 700, textAlign: "center" }}>
-              + ОПЦИЯ: Многоезичен AI чат (BG/RO/EL/EN) — отделна Phase 2
+              + ОПЦИЯ: Многоезичен AI чат (BG/RO/EL/EN) + детайлно проследяване по обект — Phase 2
             </Text>
           </View>
 
