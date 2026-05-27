@@ -54,14 +54,15 @@ const MODULES = [
   },
   {
     n: "05",
-    title: "Чат за брокери",
-    body: "Вътрешен бизнес чат с AI помощник — не Viber, не Messenger, ваше пространство.",
+    title: "WhatsApp + Telegram · интеграция",
+    body: "Ползвате тези канали? Свързваме ги с CRM-а — без да сменяте навиците на екипа.",
     bullets: [
-      "Канали по екипи, по район, по сделка",
-      "Споделяне на имоти, документи, снимки между брокери",
-      "AI помощник: 'Намери ми всички 3-стайни в Тракия до 150к'",
-      "История на всичко казано по даден клиент или имот",
-      "Voice → text + auto-summary на дълги дискусии",
+      "WhatsApp Business API → разговорите с клиенти автоматично в CRM",
+      "Telegram групи на брокерите → AI summary на дискусии",
+      "Auto-логване на размяна на имоти/документи в картата на клиента",
+      "AI команди в Telegram: 'Намери ми всички 3-стайни в Тракия до 150к'",
+      "Voice messages → текст + автоматичен запис в timeline-а",
+      "Не сменяте Viber/WhatsApp — обогатяваме ги с автоматизация",
     ],
   },
   {
@@ -81,7 +82,8 @@ const MODULES = [
     title: "Промотиране на обяви и опит",
     body: "Имотите и експертизата ви достигат до повече хора с по-малко усилие.",
     bullets: [
-      "Auto-публикуване на нови имоти във Facebook, Instagram, OLX, imot.bg",
+      "Auto-публикуване във Facebook + Instagram (директни API-та · 100% автоматично)",
+      "OLX и imot.bg · ако открият публично API → пълно auto. Иначе semi-auto (1-clik генериране на текст и публикация)",
       "AI генерира описания на имотите от снимки и параметри",
       "Reels от обиколка на имот (time-lapse + voiceover)",
       "Storytelling постове за брокерите — личен бранд",
@@ -577,7 +579,7 @@ export default function GoldenKeyPage() {
               <h3 className="font-[family-name:var(--font-editorial)] text-2xl font-bold">На телефон · брокерите в полето</h3>
             </div>
             <p className="mb-6 max-w-3xl text-sm leading-relaxed text-[var(--color-text-secondary)]">
-              Брокерите работят от телефона си — въвеждат данни в момента на огледа, виждат новите лиди през 5 секунди, отговарят на клиенти.
+              Брокерите работят от телефона си — въвеждат данни в момента на огледа, виждат новите лидове за 5 секунди, отговарят на клиенти.
             </p>
 
             <div className="flex flex-wrap items-start justify-center gap-6">
@@ -645,6 +647,296 @@ export default function GoldenKeyPage() {
                       ))}
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* MOCKUP 6: Карта на имот */}
+          <div className="mb-20">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-gold-bright)]">Изглед 06</span>
+              <h3 className="font-[family-name:var(--font-editorial)] text-2xl font-bold">Карта на имот · детайл</h3>
+            </div>
+            <p className="mb-6 max-w-3xl text-sm leading-relaxed text-[var(--color-text-secondary)]">
+              Всеки имот има пълна карта — снимки, описание, КСС, история на огледи, заинтересовани клиенти. Един екран — цялата история.
+            </p>
+
+            <div className="overflow-hidden rounded-lg border-2 border-[var(--color-border-bright)] bg-[#0f1a2e] shadow-2xl">
+              <div className="grid gap-0 md:grid-cols-3">
+                {/* Gallery */}
+                <div className="md:col-span-2">
+                  <div className="grid grid-cols-3 gap-1 p-2">
+                    <div className="col-span-2 row-span-2 h-44 rounded bg-gradient-to-br from-[var(--color-gold)]/30 via-[var(--color-gold)]/15 to-[var(--color-gold)]/5" />
+                    <div className="h-[88px] rounded bg-gradient-to-br from-cyan-500/30 to-cyan-500/10" />
+                    <div className="h-[88px] rounded bg-gradient-to-br from-pink-500/30 to-pink-500/10" />
+                    <div className="col-span-3 grid grid-cols-4 gap-1">
+                      <div className="h-12 rounded bg-white/10" />
+                      <div className="h-12 rounded bg-white/10" />
+                      <div className="h-12 rounded bg-white/10" />
+                      <div className="flex h-12 items-center justify-center rounded bg-black/40 text-[10px] text-white/60">+8 снимки</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Details */}
+                <div className="border-l border-white/10 p-4">
+                  <div className="mb-3 flex items-start justify-between">
+                    <div>
+                      <p className="text-[9px] font-mono uppercase tracking-wider text-white/50">ID-247 · Тракия</p>
+                      <p className="mt-1 text-lg font-bold text-white">3-стаен апартамент</p>
+                    </div>
+                    <span className="rounded-full bg-[#22c55e]/20 px-2 py-1 text-[10px] text-[#22c55e]">🟢 Активен</span>
+                  </div>
+                  <p className="mb-3 text-2xl font-bold text-[var(--color-gold-bright)]">€128 000</p>
+                  <div className="mb-3 space-y-1 text-[10px] text-white/70">
+                    <div className="flex justify-between"><span className="text-white/40">Площ:</span><span>85 м²</span></div>
+                    <div className="flex justify-between"><span className="text-white/40">Етаж:</span><span>2 от 5</span></div>
+                    <div className="flex justify-between"><span className="text-white/40">Строеж:</span><span>Тухла · 2018</span></div>
+                    <div className="flex justify-between"><span className="text-white/40">Брокер:</span><span>Мария Петрова</span></div>
+                  </div>
+                  <div className="mb-2 border-t border-white/10 pt-2">
+                    <p className="text-[9px] font-mono uppercase tracking-wider text-white/50">ИНТЕРЕС</p>
+                    <p className="text-[11px] text-white/80">👁 23 преглеждания · 4 огледа · 2 оферти</p>
+                  </div>
+                  <button className="mt-2 w-full rounded bg-[var(--color-gold)] py-1.5 text-[10px] font-bold text-black">📤 Промотирай</button>
+                </div>
+              </div>
+
+              {/* Timeline */}
+              <div className="border-t border-white/10 p-4">
+                <p className="mb-2 text-[9px] font-mono uppercase tracking-wider text-white/50">📅 ИСТОРИЯ</p>
+                <div className="space-y-1.5 text-[10px]">
+                  <div className="flex justify-between"><span className="text-white/80">💎 Оферта изпратена · К. Тодоров · €95K</span><span className="text-white/40">днес 11:20</span></div>
+                  <div className="flex justify-between"><span className="text-white/80">🤝 Оглед · сем. Атанасови</span><span className="text-white/40">вчера 18:00</span></div>
+                  <div className="flex justify-between"><span className="text-white/80">📤 Публикуван в OLX + imot.bg + FB</span><span className="text-white/40">3 дни</span></div>
+                  <div className="flex justify-between"><span className="text-white/80">📸 Качени 12 снимки + Reel</span><span className="text-white/40">3 дни</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* MOCKUP 7: Календар на огледи */}
+          <div className="mb-20">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-gold-bright)]">Изглед 07</span>
+              <h3 className="font-[family-name:var(--font-editorial)] text-2xl font-bold">Календар на огледи · всички брокери</h3>
+            </div>
+            <p className="mb-6 max-w-3xl text-sm leading-relaxed text-[var(--color-text-secondary)]">
+              Кой брокер кого среща и кога — една седмица напред, в реално време. Без двойни записи, без забравени огледи.
+            </p>
+
+            <div className="overflow-x-auto rounded-lg border-2 border-[var(--color-border-bright)] bg-[#0f1a2e] p-4 shadow-2xl">
+              <div className="min-w-[800px]">
+                {/* Days header */}
+                <div className="mb-2 grid grid-cols-8 gap-2 border-b border-white/10 pb-2 text-center">
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-white/40">Брокер</div>
+                  {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"].map((d) => (
+                    <div key={d} className="text-[10px] font-mono uppercase tracking-wider text-white/60">{d}</div>
+                  ))}
+                </div>
+
+                {/* Broker rows */}
+                {[
+                  { name: "Мария Петрова", events: [{ day: 0, t: "10:00", title: "Оглед · Тракия" }, { day: 2, t: "14:00", title: "Среща · оферта" }, { day: 4, t: "11:00", title: "Огледи x2" }] },
+                  { name: "Иван Стоянов", events: [{ day: 1, t: "09:00", title: "Оглед · Лозен" }, { day: 3, t: "16:00", title: "Подпис договор" }] },
+                  { name: "Петя Димитрова", events: [{ day: 0, t: "15:00", title: "Оглед · Център" }, { day: 5, t: "12:00", title: "Open House" }] },
+                  { name: "Г. Николов", events: [{ day: 2, t: "10:30", title: "Огледи x3" }, { day: 4, t: "17:00", title: "Resale visit" }] },
+                ].map((row) => (
+                  <div key={row.name} className="mb-2 grid grid-cols-8 gap-2 items-center">
+                    <div className="text-[10px] font-medium text-white truncate">{row.name}</div>
+                    {[0, 1, 2, 3, 4, 5, 6].map((d) => {
+                      const ev = row.events.find((e) => e.day === d);
+                      return (
+                        <div key={d} className="h-12">
+                          {ev ? (
+                            <div className="h-full rounded bg-[var(--color-gold)]/20 border border-[var(--color-gold)]/40 px-1.5 py-1">
+                              <p className="text-[8px] text-[var(--color-gold-bright)] font-mono">{ev.t}</p>
+                              <p className="text-[8px] text-white/80 leading-tight truncate">{ev.title}</p>
+                            </div>
+                          ) : <div className="h-full rounded border border-dashed border-white/5" />}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+
+                <p className="mt-3 text-[10px] text-white/40">🟡 12 огледа · 3 подписа · 1 Open House</p>
+              </div>
+            </div>
+          </div>
+
+          {/* MOCKUP 8: Финансов отчет + Социални */}
+          <div className="mb-20 grid gap-6 lg:grid-cols-2">
+            {/* Финанси */}
+            <div>
+              <div className="mb-4 flex items-center gap-3">
+                <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-gold-bright)]">Изглед 08</span>
+                <h3 className="font-[family-name:var(--font-editorial)] text-2xl font-bold">Финансов отчет</h3>
+              </div>
+              <p className="mb-4 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                Кой колко изкарва, кой колко струва, чиста печалба по проект.
+              </p>
+              <div className="rounded-lg border-2 border-[var(--color-border-bright)] bg-[#0f1a2e] p-5 shadow-2xl">
+                <div className="mb-4 grid grid-cols-3 gap-2">
+                  {[
+                    { label: "Приходи · Май", value: "€127K", color: "#22c55e" },
+                    { label: "Комисиони", value: "€38K", color: "#facc15" },
+                    { label: "Чиста печалба", value: "€18K", color: "#06b6d4" },
+                  ].map((s) => (
+                    <div key={s.label} className="rounded border border-white/10 bg-white/5 p-2">
+                      <p className="text-[8px] uppercase tracking-wider text-white/50">{s.label}</p>
+                      <p className="mt-1 text-lg font-bold" style={{ color: s.color }}>{s.value}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="mb-2 font-mono text-[9px] uppercase tracking-wider text-white/50">КОМИСИОНИ ПО БРОКЕР</p>
+                <div className="space-y-1.5">
+                  {[
+                    { name: "Мария Петрова", amount: "€12 400", pct: 100 },
+                    { name: "Иван Стоянов", amount: "€8 200", pct: 66 },
+                    { name: "Петя Димитрова", amount: "€6 100", pct: 49 },
+                    { name: "Г. Николов", amount: "€4 800", pct: 39 },
+                  ].map((b) => (
+                    <div key={b.name}>
+                      <div className="mb-0.5 flex justify-between text-[10px]">
+                        <span className="text-white/80">{b.name}</span>
+                        <span className="font-mono text-[var(--color-gold-bright)]">{b.amount}</span>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
+                        <div className="h-full rounded-full bg-gradient-to-r from-[var(--color-gold)] to-[var(--color-gold-bright)]" style={{ width: `${b.pct}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <button className="flex-1 rounded border border-white/20 py-1.5 text-[10px] text-white/80">📊 Експорт Excel</button>
+                  <button className="flex-1 rounded border border-white/20 py-1.5 text-[10px] text-white/80">📧 Прати на счет.</button>
+                </div>
+              </div>
+            </div>
+
+            {/* Социални */}
+            <div>
+              <div className="mb-4 flex items-center gap-3">
+                <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-gold-bright)]">Изглед 09</span>
+                <h3 className="font-[family-name:var(--font-editorial)] text-2xl font-bold">Социални мрежи · един редактор</h3>
+              </div>
+              <p className="mb-4 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                AI пише описанието. Натискаш веднъж → отива във FB, IG, LinkedIn, YouTube.
+              </p>
+              <div className="rounded-lg border-2 border-[var(--color-border-bright)] bg-[#0f1a2e] p-5 shadow-2xl">
+                <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-2">
+                  <span className="text-[10px] font-mono text-white/60">📝 НОВ ПОСТ · 3-стаен Тракия</span>
+                  <span className="text-[10px] text-[var(--color-gold-bright)]">✨ AI generated</span>
+                </div>
+                <div className="mb-3 rounded bg-white/5 p-2 text-[10px] leading-relaxed text-white/80">
+                  „🏠 Слънчев апартамент в сърцето на Тракия! 85м², 3 стаи, изцяло обзаведен. Перфектен за семейство — близо до училище, парк, метро. €128К — изключителна цена!"
+                </div>
+                <div className="mb-3">
+                  <p className="mb-1.5 font-mono text-[9px] uppercase tracking-wider text-white/50">КАНАЛИ</p>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[
+                      { name: "Facebook", on: true },
+                      { name: "Instagram", on: true },
+                      { name: "LinkedIn", on: true },
+                      { name: "YouTube", on: false },
+                    ].map((c) => (
+                      <div key={c.name} className="rounded border px-2 py-1 text-center text-[9px]" style={{ borderColor: c.on ? "var(--color-gold)" : "rgba(255,255,255,0.1)", color: c.on ? "var(--color-gold-bright)" : "rgba(255,255,255,0.3)", background: c.on ? "rgba(212,175,55,0.1)" : "transparent" }}>
+                        {c.on ? "✓" : "○"} {c.name}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="mb-3 grid grid-cols-2 gap-1.5 text-[9px]">
+                  <div className="rounded border border-white/10 bg-white/5 p-1.5 text-center text-white/70">📅 Сега</div>
+                  <div className="rounded border border-white/10 bg-white/5 p-1.5 text-center text-white/40">⏰ Утре 09:00</div>
+                </div>
+                <button className="w-full rounded bg-[var(--color-gold)] py-2 text-[11px] font-bold text-black">📤 Публикувай във всички</button>
+              </div>
+            </div>
+          </div>
+
+          {/* MOCKUP 10: HR + WhatsApp */}
+          <div className="mb-20 grid gap-6 lg:grid-cols-2">
+            {/* HR */}
+            <div>
+              <div className="mb-4 flex items-center gap-3">
+                <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-gold-bright)]">Изглед 10</span>
+                <h3 className="font-[family-name:var(--font-editorial)] text-2xl font-bold">HR · кандидати за брокери</h3>
+              </div>
+              <p className="mb-4 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                Форма на сайта → AI скрининг → авто-интервюта в календара ви.
+              </p>
+              <div className="rounded-lg border-2 border-[var(--color-border-bright)] bg-[#0f1a2e] p-4 shadow-2xl">
+                <p className="mb-3 font-mono text-[9px] uppercase tracking-wider text-white/50">📥 НОВИ КАНДИДАТИ · 7</p>
+                <div className="space-y-2">
+                  {[
+                    { name: "Стефан Радев", exp: "3 г опит · СПИ", score: 87, color: "#22c55e" },
+                    { name: "Деница Колева", exp: "1 г опит · Hospitality", score: 72, color: "#facc15" },
+                    { name: "Александър М.", exp: "5 г опит · Друга агенция", score: 91, color: "#22c55e" },
+                    { name: "Ива Петкова", exp: "Без опит · мотивиран", score: 54, color: "#fb923c" },
+                  ].map((c) => (
+                    <div key={c.name} className="rounded border border-white/10 bg-white/5 p-2">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-[11px] font-bold text-white">{c.name}</p>
+                          <p className="text-[9px] text-white/50">{c.exp}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[9px] text-white/50">AI Score</p>
+                          <p className="text-sm font-bold" style={{ color: c.color }}>{c.score}/100</p>
+                        </div>
+                      </div>
+                      <div className="mt-1 flex gap-1">
+                        <button className="flex-1 rounded bg-[var(--color-gold)]/20 py-0.5 text-[9px] text-[var(--color-gold-bright)]">📅 Интервю</button>
+                        <button className="flex-1 rounded border border-white/10 py-0.5 text-[9px] text-white/60">📧 CV</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* WhatsApp / Telegram */}
+            <div>
+              <div className="mb-4 flex items-center gap-3">
+                <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-gold-bright)]">Изглед 11</span>
+                <h3 className="font-[family-name:var(--font-editorial)] text-2xl font-bold">WhatsApp + Telegram · вход за CRM</h3>
+              </div>
+              <p className="mb-4 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                Брокерът разменя WhatsApp/Viber съобщения с клиента — те влизат автоматично в timeline-а.
+              </p>
+              <div className="rounded-lg border-2 border-[var(--color-border-bright)] bg-[#0f1a2e] p-4 shadow-2xl">
+                <div className="mb-3 flex items-center gap-2 border-b border-white/10 pb-2">
+                  <span className="rounded bg-[#25D366] px-1.5 py-0.5 text-[9px] font-bold text-white">WhatsApp</span>
+                  <span className="text-[10px] text-white/60">Мария ↔ Иван Костов</span>
+                  <span className="ml-auto rounded bg-[var(--color-gold)]/20 px-1.5 py-0.5 text-[9px] text-[var(--color-gold-bright)]">→ CRM</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex">
+                    <div className="max-w-[80%] rounded-lg rounded-bl-sm bg-white/5 px-3 py-1.5 text-[10px] text-white/90">
+                      Здравейте, видях обявата за апартамента в Тракия. Може ли оглед?
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <div className="max-w-[80%] rounded-lg rounded-br-sm bg-[#25D366]/20 px-3 py-1.5 text-[10px] text-white">
+                      Разбира се! Утре в 14:00 свободен?
+                    </div>
+                  </div>
+                  <div className="flex">
+                    <div className="max-w-[80%] rounded-lg rounded-bl-sm bg-white/5 px-3 py-1.5 text-[10px] text-white/90">
+                      Да, перфектно. Адресът?
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 rounded border border-[var(--color-gold)]/30 bg-[var(--color-gold)]/5 p-2">
+                  <p className="text-[9px] text-[var(--color-gold-bright)]">🤖 AI авто-действия:</p>
+                  <ul className="mt-1 space-y-0.5 text-[10px] text-white/70">
+                    <li>✓ Създадена карта на клиент · Иван Костов</li>
+                    <li>✓ Запазен оглед за утре 14:00 (Мария + Тракия)</li>
+                    <li>✓ Имотът маркиран „с интерес"</li>
+                  </ul>
                 </div>
               </div>
             </div>
