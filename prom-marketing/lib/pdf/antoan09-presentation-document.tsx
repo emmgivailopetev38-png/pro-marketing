@@ -95,11 +95,6 @@ const PROCESS = [
   { step: "5", title: "Поддръжка", body: "30 дни безплатна + постоянна оптимизация." },
 ];
 
-const RECURRING = [
-  { badge: "ПОДДРЪЖКА", title: "Месечна поддръжка", price: "200 – 300 € / мес", features: ["Технически промени и нови функции", "Корекции на грешки", "Реакция < 24ч", "Тренинг на нови техници", "Месечен отчет"] },
-  { badge: "ХОСТИНГ", title: "Сигурно място", price: "20 – 40 € / мес", features: ["Сървър EU (Frankfurt) · GDPR", "Encrypted AES-256 + TLS", "Daily backup (7 дни)", "Weekly off-site", "Възможност за още encryption keys"] },
-];
-
 export function Antoan09PresentationDocument() {
   const today = new Date().toLocaleDateString("bg-BG");
   return (
@@ -150,24 +145,6 @@ export function Antoan09PresentationDocument() {
             <Text style={{ fontSize: 8, color: C.orange, marginTop: 8, fontWeight: 700, textAlign: "center" }}>
               + ОПЦИЯ: Многоезичен AI чат (BG/RO/EL/EN) — отделна Phase 2
             </Text>
-          </View>
-
-          <Text style={s.sectionTitle}>Ежемесечни разходи · след стартиране</Text>
-          <View style={s.tiersRow} wrap={false}>
-            {RECURRING.map((r) => (
-              <View key={r.title} style={s.tierCard}>
-                <Text style={s.tierBadge}>{r.badge}</Text>
-                <Text style={s.tierTitle}>{r.title}</Text>
-                <Text style={s.tierPrice}>{r.price}</Text>
-                <Text style={s.tierPriceSub}>без ДДС</Text>
-                {r.features.map((f) => (
-                  <View key={f} style={s.tierFeature}>
-                    <Text style={s.tierCheck}>✓</Text>
-                    <Text style={s.tierFeatureText}>{f}</Text>
-                  </View>
-                ))}
-              </View>
-            ))}
           </View>
 
           <Text style={s.sectionTitle}>Как работим</Text>

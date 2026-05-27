@@ -102,37 +102,6 @@ const WHY = [
   { title: "Готови за разширение", body: "Когато сте готови за Румъния и Гърция — multilingual AI се добавя върху същата система." },
 ];
 
-const RECURRING = [
-  {
-    badge: "Поддръжка",
-    title: "Месечна поддръжка и развитие",
-    price: "200 – 300 €",
-    priceSub: "на месец · без ДДС",
-    color: "var(--color-red-bright)",
-    features: [
-      "Технически промени и нови функции",
-      "Корекции на грешки и оптимизация",
-      "Reagиране в рамките на 24 часа за критични проблеми",
-      "Тренинг на нови техници при наемане",
-      "Месечен отчет",
-    ],
-  },
-  {
-    badge: "Хостинг",
-    title: "Хостинг · сигурно място за данните",
-    price: "20 – 40 €",
-    priceSub: "на месец · спрямо обем",
-    color: "var(--color-orange)",
-    features: [
-      "Сървър в EU (Frankfurt) · GDPR-съвместим",
-      "Encrypted at rest · AES-256 · TLS",
-      "Daily backup (7 дни recovery)",
-      "Weekly off-site backup",
-      "Възможност за добавяне на още encryption keys",
-    ],
-  },
-];
-
 export default function Antoan09Page() {
   return (
     <main className="font-[family-name:var(--font-body)] text-[var(--color-text-primary)]">
@@ -657,50 +626,6 @@ export default function Antoan09Page() {
                 Многоезичен AI чат за чуждестранни клиенти (BG/RO/EL/EN) — отделна Phase 2, договаряме като дойде време.
               </p>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* RECURRING */}
-      <section className="relative border-t border-[var(--color-border-default)] py-32">
-        <div className="mx-auto max-w-6xl px-6 md:px-12">
-          <p className="mb-4 font-[family-name:var(--font-mono)] text-xs uppercase tracking-[0.4em] text-[var(--color-red-bright)]">
-            След стартиране
-          </p>
-          <h2 className="mb-4 max-w-3xl font-[family-name:var(--font-editorial)] text-[clamp(36px,6vw,72px)] font-extrabold leading-[0.95]">
-            Ежемесечни <span className="text-[var(--color-red-bright)]">разходи</span>.
-          </h2>
-          <p className="mb-16 max-w-3xl text-base leading-relaxed text-[var(--color-text-secondary)]">
-            Системата трябва да живее и да съхранява данните ви сигурно. Това са постоянните оперативни разходи.
-          </p>
-
-          <div className="grid gap-6 md:grid-cols-2">
-            {RECURRING.map((r) => (
-              <div
-                key={r.title}
-                className="flex flex-col rounded-lg border bg-[var(--color-bg-deep)] p-7"
-                style={{ borderColor: "var(--color-border-default)", borderTopWidth: "3px", borderTopColor: r.color }}
-              >
-                <p className="mb-2 font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.3em]" style={{ color: r.color }}>
-                  {r.badge}
-                </p>
-                <h3 className="mb-3 font-[family-name:var(--font-editorial)] text-2xl font-bold">{r.title}</h3>
-                <div className="mb-1 flex items-baseline gap-2">
-                  <span className="font-[family-name:var(--font-editorial)] text-4xl font-extrabold" style={{ color: r.color }}>
-                    {r.price}
-                  </span>
-                </div>
-                <p className="mb-6 text-xs text-[var(--color-text-tertiary)]">{r.priceSub}</p>
-                <ul className="flex-1 space-y-2">
-                  {r.features.map((f, i) => (
-                    <li key={i} className="flex gap-2 text-sm leading-relaxed">
-                      <span aria-hidden style={{ color: r.color }}>✓</span>
-                      <span className="text-[var(--color-text-primary)]">{f}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
           </div>
         </div>
       </section>
