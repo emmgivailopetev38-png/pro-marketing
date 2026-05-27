@@ -236,27 +236,17 @@ const RECURRING_COSTS = [
       "Постоянно следене 24/7 + реагиране < 24ч",
       "Тренинг на нови служители",
       "Месечен отчет",
-    ],
-  },
-  {
-    badge: "ХОСТИНГ",
-    title: "Хостинг · сигурно място",
-    price: "30 – 60 € / мес",
-    features: [
-      "Сървър EU (Frankfurt) · GDPR",
-      "Encrypted at rest · AES-256",
-      "Daily backup (7 дни recovery)",
-      "Weekly off-site → Wasabi EU",
-      "Възможност за още encryption keys",
+      "Хостинг и backup ВКЛЮЧЕНИ в цената",
     ],
   },
 ];
 
 const SECURITY_HIGHLIGHTS = [
-  "🔐 GDPR-съвместимо · сървър в EU (Frankfurt) · AES-256 encryption at rest",
-  "🔄 3-слоен backup · Daily PITR + Weekly off-site + Monthly архив",
-  "👤 Audit log · кой/кога/какво — пълна следа за GDPR одит",
-  "🏢 Опционален локален сървър · self-hosted в офиса (Phase 3, +€1500)",
+  "🔐 Сигурен хостинг от стартиране · Supabase EU (Frankfurt) · GDPR-съвместимост · индустриален стандарт",
+  "🔒 Encrypted at rest (AES-256) + TLS in transit · включено",
+  "🔄 Многослоен backup · Daily PITR + Weekly off-site + Monthly архив",
+  "👤 Audit log · при нужда · кой/кога/какво — пълна следа за GDPR одит",
+  "🛡 Row Level Security · всеки брокер вижда само своите клиенти",
 ];
 
 export function GoldenKeyPresentationDocument() {

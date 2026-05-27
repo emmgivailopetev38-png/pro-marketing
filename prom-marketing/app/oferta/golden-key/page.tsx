@@ -196,7 +196,7 @@ const RECURRING = [
     badge: "Поддръжка",
     title: "Месечна поддръжка и развитие",
     price: "300 – 400 €",
-    priceSub: "на месец · без ДДС",
+    priceSub: "на месец · без ДДС · включва хостинг и сигурност",
     color: "var(--color-gold)",
     features: [
       "Технически промени и нови функции по заявка",
@@ -205,41 +205,27 @@ const RECURRING = [
       "Тренинг на нови служители при наемане",
       "Реагиране в рамките на 24 часа за критични проблеми",
       "Месечен отчет за свършена работа",
-    ],
-  },
-  {
-    badge: "Хостинг",
-    title: "Хостинг · сигурно място за данните",
-    price: "30 – 60 €",
-    priceSub: "на месец · спрямо обем",
-    color: "var(--color-gold-bright)",
-    features: [
-      "Сървър в EU (Frankfurt) · GDPR-съвместим",
-      "Encrypted at rest · AES-256 · TLS in transit",
-      "Daily point-in-time backup (7 дни recovery)",
-      "Weekly off-site backup · EU дата центрове",
-      "Възможност за добавяне на още encryption keys при нужда",
-      "Автоматично скалиране при ръст на данните",
+      "Хостинг и backup включени в цената",
     ],
   },
 ];
 
 const SECURITY = [
   {
-    title: "GDPR-съвместима архитектура",
-    body: "Сървър в EU (Frankfurt) · encrypted at rest (AES-256) · TLS encryption in transit · Row Level Security (всеки брокер вижда само своите клиенти).",
+    title: "Сигурен хостинг от стартиране",
+    body: "В началото системата е на Supabase — индустриален стандарт за сигурен EU хостинг с GDPR-съвместимост. Сървър във Frankfurt, encrypted at rest (AES-256), TLS in transit. Включено в месечната поддръжка.",
   },
   {
     title: "Многослоен backup",
-    body: "1. Daily point-in-time recovery (7 дни) 2. Weekly off-site encrypted backup → Wasabi EU 3. Monthly архивен снапшот (5 години retention).",
+    body: "Daily point-in-time recovery (7 дни), weekly off-site encrypted backup (EU дата центрове), monthly архивен снапшот за дългосрочно съхранение. Никога не сте без копие на данните си.",
   },
   {
-    title: "Audit log · кой какво кога",
-    body: "Всяка промяна се записва: кой потребител, кога, какво е променил. Login attempts, IP адреси, експорт на данни — пълна следа за GDPR одит.",
+    title: "Audit log · при нужда",
+    body: "При нужда добавяме пълен audit log — кой потребител, кога, какво е променил, login attempts, IP адреси, експорт на данни. Пълна следа за GDPR одит при изискване.",
   },
   {
-    title: "Опционален локален сървър",
-    body: "За максимална контрола — Self-hosted сървър на офис компютър/NAS със Cloud replica за disaster recovery. One-time €1 500 setup + €100/мес поддръжка.",
+    title: "Row Level Security",
+    body: "Всеки брокер вижда само своите клиенти. Мениджърите виждат всички. Достъпите се настройват в админ панела — без програмист.",
   },
 ];
 
@@ -1126,7 +1112,7 @@ export default function GoldenKeyPage() {
             След първоначалното изграждане системата трябва да живее, да расте и да съхранява данните на клиентите ви сигурно. Това са постоянните оперативни разходи.
           </p>
 
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="mx-auto grid max-w-2xl gap-6">
             {RECURRING.map((r) => (
               <div
                 key={r.title}
