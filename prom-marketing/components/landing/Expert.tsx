@@ -189,7 +189,7 @@ export function Expert() {
                 </a>
                 <span className="inline-flex items-center gap-2 text-[var(--color-text-tertiary)]">
                   <MapPin className="h-4 w-4" />
-                  Русе, България
+                  Пловдив, България
                 </span>
               </div>
             </SectionReveal>

@@ -429,7 +429,7 @@ export default function MentorPage() {
           </div>
 
           <p className="mt-16 font-mono text-[11px] uppercase tracking-[0.3em] text-[var(--color-text-tertiary)]">
-            Ивайло Петев · ProMarketing ЕООД · Русе, България
+            Ивайло Петев · ProMarketing ЕООД · Пловдив, България
           </p>
         </div>
       </section>
