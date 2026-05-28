@@ -51,7 +51,7 @@ const MODULES = [
   {
     n: "04",
     title: "Плащания · мулти-валута + сверяване",
-    body: "BGN, EUR, GBP, RON в една система. AI сверява плащанията с поръчките автоматично — без таблици и проследяване ръчно.",
+    body: "EUR, GBP, RON в една система. AI сверява плащанията с поръчките автоматично — без таблици и проследяване ръчно.",
     bullets: [
       "Банкови преводи · авто-идентификация на клиента по основанието",
       "Картови плащания (e-commerce) · Stripe/Borica интеграция",
@@ -145,9 +145,10 @@ const TIERS = [
     badge: "Препоръчвам",
     highlight: true,
     features: [
+      "Авто-публикуване в социалните мрежи · мулти-езично (модул 01)",
       "Имейл център с AI разпознаване (модул 02)",
       "Документи · фактури + сертификати (модул 03)",
-      "Плащания · сверяване BGN/EUR/GBP (модул 04)",
+      "Плащания · сверяване EUR/GBP/RON (модул 04)",
       "B2B портал за магазините в Европа (модул 05)",
       "Склад · 4 локации + срок на годност (модул 06)",
       "Базова интеграция с уебсайта",
@@ -161,9 +162,9 @@ const TIERS = [
     suffix: "еднократно · без ДДС",
     features: [
       "Всичко от Phase 1",
-      "Авто-публикуване в социалните мрежи (модул 01)",
       "AI customer support мулти-езичен (модул 08)",
-      "Анализи · топ продукти по държава (модул 09)",
+      "Анализи · топ продукти по държава + сезонност (модул 09)",
+      "Авто-генериране на визии и Reels от продуктови снимки",
       "60-75 дни срок",
     ],
   },
@@ -174,15 +175,15 @@ const TIERS = [
     features: [
       "Всичко от Phase 1 + Phase 2",
       "Франчайз модул цялостен (модул 07)",
-      "AI генериране на визии за нови продукти",
-      "Reels авто-генериране от продуктови снимки",
+      "Onboarding workflow за нови франчайз партньори",
       "Прогнозни анализи за склад",
+      "Performance tracking на франчайзи",
       "90-120 дни срок",
     ],
   },
 ];
 
-const RECURRING = "Месечна поддръжка след стартиране: 400 – 600 € без ДДС на месец (хостинг, AI API кредити, технически промени, реакция в рамките на 24 ч).";
+const RECURRING = "Месечна поддръжка след стартиране: 150 – 300 € без ДДС на месец (хостинг, AI API кредити, технически промени, реакция в рамките на 24 ч).";
 
 export default function TasteOfBulgariaPage() {
   return (
@@ -706,6 +707,225 @@ export default function TasteOfBulgariaPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* MOCKUP 5: Social Media Calendar */}
+          <div className="mt-20 mb-20">
+            <div className="mb-5 flex items-center gap-3">
+              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-orange-bright)]">
+                Изглед 05
+              </span>
+              <h3 className="font-[family-name:var(--font-editorial)] text-2xl font-bold">
+                Социални мрежи · седмичен календар
+              </h3>
+            </div>
+            <div
+              className="rounded-2xl border-2 p-6"
+              style={{
+                borderColor: "var(--color-border-bright)",
+                background: "rgba(42, 18, 8, 0.85)",
+              }}
+            >
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <p className="font-mono text-[10px] uppercase text-white/50">Седмица 2-8 юни 2026</p>
+                  <p className="font-bold text-white">📅 12 публикации запланувани</p>
+                </div>
+                <div className="flex gap-2">
+                  <span className="rounded-full bg-[#4267B2]/20 px-3 py-1 text-[10px] font-bold uppercase text-[#4267B2]">FB</span>
+                  <span className="rounded-full bg-[#E1306C]/20 px-3 py-1 text-[10px] font-bold uppercase text-[#E1306C]">IG</span>
+                  <span className="rounded-full bg-[#000]/40 px-3 py-1 text-[10px] font-bold uppercase text-white">TT</span>
+                  <span className="rounded-full bg-[#0077B5]/20 px-3 py-1 text-[10px] font-bold uppercase text-[#0077B5]">LI</span>
+                </div>
+              </div>
+
+              <div className="grid gap-2 md:grid-cols-7">
+                {[
+                  { day: "Пон 02", posts: [{ time: "09:00", text: "Нов кашкавал 🧀", lang: "BG/EN", color: "#f97316" }, { time: "18:00", text: "TikTok Reel · кисело", lang: "EN/DE", color: "#facc15" }] },
+                  { day: "Вто 03", posts: [{ time: "11:00", text: "Луканка Орлов", lang: "BG/DE", color: "#f97316" }] },
+                  { day: "Сря 04", posts: [{ time: "10:00", text: "Гергьовден meal", lang: "BG/EN", color: "#dc2626" }, { time: "16:00", text: "Reels агнешко 🐑", lang: "EN", color: "#facc15" }] },
+                  { day: "Чет 05", posts: [{ time: "09:30", text: "Кампания UK магазини", lang: "EN", color: "#06b6d4" }] },
+                  { day: "Пет 06", posts: [{ time: "12:00", text: "Weekend deals 🎉", lang: "EN/DE", color: "#22c55e" }, { time: "19:00", text: "Story · нов продукт", lang: "BG", color: "#f97316" }] },
+                  { day: "Съб 07", posts: [{ time: "10:00", text: "Recipe: Шопска", lang: "EN/DE/RO", color: "#a78bfa" }] },
+                  { day: "Нед 08", posts: [{ time: "11:00", text: "Седмичен blog", lang: "BG/EN", color: "#06b6d4" }, { time: "17:00", text: "Reels: Хора + храна", lang: "ALL", color: "#facc15" }] },
+                ].map((d, i) => (
+                  <div key={i} className="rounded-lg border border-white/5 bg-black/20 p-3">
+                    <p className="mb-2 text-center font-mono text-[10px] uppercase text-white/60">{d.day}</p>
+                    <div className="space-y-1.5">
+                      {d.posts.map((p, j) => (
+                        <div
+                          key={j}
+                          className="rounded p-1.5"
+                          style={{ background: p.color + "15", borderLeft: `2px solid ${p.color}` }}
+                        >
+                          <p className="font-mono text-[9px] text-white/70">{p.time}</p>
+                          <p className="text-[10px] font-bold text-white truncate">{p.text}</p>
+                          <p className="text-[9px] text-white/50">{p.lang}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 rounded-lg border border-[var(--color-orange-bright)]/30 bg-[rgba(249,115,22,0.06)] p-4">
+                <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--color-orange-bright)]">
+                  🤖 AI препоръка
+                </p>
+                <p className="mt-2 text-xs leading-relaxed text-white/80">
+                  „За Гергьовден агнешкото е +260% търсене в Германия. Препоръчвам да добавиш +2 поста с DE превод в сряда и петък. Натисни Apply за авто-генериране."
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* MOCKUP 6: Documents Archive */}
+          <div className="mb-20">
+            <div className="mb-5 flex items-center gap-3">
+              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-orange-bright)]">
+                Изглед 06
+              </span>
+              <h3 className="font-[family-name:var(--font-editorial)] text-2xl font-bold">
+                Документи · търсиш за 2 секунди
+              </h3>
+            </div>
+            <div
+              className="rounded-2xl border-2 p-6"
+              style={{
+                borderColor: "var(--color-border-bright)",
+                background: "rgba(42, 18, 8, 0.85)",
+              }}
+            >
+              <div className="mb-5">
+                <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-black/40 p-3">
+                  <span className="text-lg">🔍</span>
+                  <input
+                    readOnly
+                    value='"фактура март 2026 Bulgarian Shop London"'
+                    className="flex-1 bg-transparent text-sm text-white outline-none"
+                  />
+                  <span className="rounded bg-[var(--color-orange)] px-3 py-1 text-[10px] font-bold text-white">
+                    47 резултата
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                {[
+                  { icon: "📄", type: "Фактура", id: "INV-2026-1142", client: "Bulgarian Shop London", date: "12.03.2026", amount: "£8 420", status: "Платена" },
+                  { icon: "📋", type: "Сертификат", id: "CERT-BSE-203", client: "Маджаров Млечни", date: "08.03.2026", amount: "—", status: "Валиден до 2027" },
+                  { icon: "🚛", type: "CMR", id: "CMR-2026-0421", client: "Bulgarian Shop London", date: "10.03.2026", amount: "—", status: "Доставено" },
+                  { icon: "📑", type: "Договор", id: "FR-2026-007", client: "Стефан · Виена (Франчайз)", date: "15.03.2026", amount: "—", status: "Активен" },
+                  { icon: "💳", type: "Митнически", id: "EX-A-2026-0892", client: "EU Export", date: "10.03.2026", amount: "£8 420", status: "Подадено" },
+                  { icon: "📨", type: "Опаков. лист", id: "PL-2026-0421", client: "Bulgarian Shop London", date: "10.03.2026", amount: "16 палети", status: "Натоварено" },
+                ].map((d, i) => (
+                  <div
+                    key={i}
+                    className="rounded-lg border border-white/5 bg-black/20 p-3 hover:border-[var(--color-orange-bright)]/40 transition-colors"
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{d.icon}</span>
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--color-orange-bright)]">
+                          {d.type}
+                        </span>
+                      </div>
+                      <span className="font-mono text-[9px] text-white/40">{d.id}</span>
+                    </div>
+                    <p className="text-xs font-bold text-white">{d.client}</p>
+                    <div className="mt-2 flex items-center justify-between text-[10px] text-white/60">
+                      <span>{d.date}</span>
+                      <span className="text-white/80">{d.amount}</span>
+                    </div>
+                    <p className="mt-1 text-[10px] text-[#22c55e]">✓ {d.status}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 flex items-center justify-between rounded-lg border border-white/5 bg-black/20 px-4 py-2 text-[11px] text-white/60">
+                <span>📊 Архив към момента: <span className="text-white">14 287 документа</span></span>
+                <span className="font-mono">Скорост на търсене: 1.8 сек</span>
+              </div>
+            </div>
+          </div>
+
+          {/* MOCKUP 7: Payments Reconciliation */}
+          <div className="mb-20">
+            <div className="mb-5 flex items-center gap-3">
+              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-orange-bright)]">
+                Изглед 07
+              </span>
+              <h3 className="font-[family-name:var(--font-editorial)] text-2xl font-bold">
+                Плащания · автоматично сверяване
+              </h3>
+            </div>
+            <div
+              className="rounded-2xl border-2 p-6"
+              style={{
+                borderColor: "var(--color-border-bright)",
+                background: "rgba(42, 18, 8, 0.85)",
+              }}
+            >
+              <div className="mb-5 grid gap-3 md:grid-cols-3">
+                <div className="rounded-lg border border-[#22c55e]/30 bg-[#22c55e]/10 p-4">
+                  <p className="font-mono text-[10px] uppercase text-[#22c55e]">Сверени днес</p>
+                  <p className="mt-1 font-display text-3xl font-bold text-white">€18 420</p>
+                  <p className="text-[10px] text-white/60">23 транзакции автоматично</p>
+                </div>
+                <div className="rounded-lg border border-[#facc15]/30 bg-[#facc15]/10 p-4">
+                  <p className="font-mono text-[10px] uppercase text-[#facc15]">Чакат ръчно</p>
+                  <p className="mt-1 font-display text-3xl font-bold text-white">€842</p>
+                  <p className="text-[10px] text-white/60">2 неясни — провери</p>
+                </div>
+                <div className="rounded-lg border border-[#ef4444]/30 bg-[#ef4444]/10 p-4">
+                  <p className="font-mono text-[10px] uppercase text-[#ef4444]">Просрочени B2B</p>
+                  <p className="mt-1 font-display text-3xl font-bold text-white">€4 120</p>
+                  <p className="text-[10px] text-white/60">3 клиента · 14+ дни</p>
+                </div>
+              </div>
+
+              <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-white/50">
+                Последни транзакции (банкови преводи)
+              </p>
+              <div className="space-y-2">
+                {[
+                  { bank: "DSK", from: "BULGARIAN SHOP LONDON LTD", amount: "+€8 420", match: "INV-2026-1142", status: "✓ Автоматично сверено", color: "#22c55e" },
+                  { bank: "UniCredit", from: "BULGARIAN FOOD HAMBURG GMBH", amount: "+€5 240", match: "INV-2026-1156", status: "✓ Автоматично сверено", color: "#22c55e" },
+                  { bank: "DSK", from: "STRIPE PAYOUT", amount: "+€842", match: "Множ. поръчки", status: "⏳ Чака разпределение", color: "#facc15" },
+                  { bank: "Revolut", from: "DIASPORA SHOP DUBLIN", amount: "+€2 180", match: "INV-2026-1098", status: "✓ Автоматично сверено", color: "#22c55e" },
+                  { bank: "UniCredit", from: "Неясен превод от EU", amount: "+€640", match: "—", status: "⚠️ Не разпознат", color: "#ef4444" },
+                ].map((t, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-4 rounded-lg border border-white/5 bg-black/20 px-4 py-3"
+                  >
+                    <span className="rounded bg-white/5 px-2 py-1 font-mono text-[9px] text-white/60">
+                      🏦 {t.bank}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate text-xs font-bold text-white">{t.from}</p>
+                      <p className="text-[10px] text-white/50">{t.match}</p>
+                    </div>
+                    <p className="font-display text-sm font-bold text-white">{t.amount}</p>
+                    <span
+                      className="rounded-full px-2 py-0.5 text-[9px] font-bold"
+                      style={{ background: t.color + "22", color: t.color }}
+                    >
+                      {t.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 rounded-lg border border-[var(--color-orange-bright)]/30 bg-[rgba(249,115,22,0.06)] p-4">
+                <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--color-orange-bright)]">
+                  🤖 AI откри
+                </p>
+                <p className="mt-2 text-xs leading-relaxed text-white/80">
+                  „Превода от €640 е от нов клиент в Холандия. Изпратих му имейл с молба за основание. Просрочените B2B (€4 120) са от 3 клиента — да автоматизирам имейл с напомняне?"
+                </p>
               </div>
             </div>
           </div>
