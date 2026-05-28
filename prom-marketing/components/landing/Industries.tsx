@@ -3,13 +3,13 @@ import { TiltCard } from "@/components/effects/TiltCard";
 import { ShoppingBag, Home, UtensilsCrossed, Stethoscope, Scale, Dumbbell, Briefcase } from "lucide-react";
 
 const INDUSTRIES = [
-  { icon: ShoppingBag, name: "E-commerce", use: "Автоматичен ретаргетинг и AI customer support" },
+  { icon: ShoppingBag, name: "Е-търговия", use: "Автоматичен ретаргетинг и AI обслужване на клиенти" },
   { icon: Home, name: "Имоти", use: "Квалификация на купувачи и автоматични огледи" },
   { icon: UtensilsCrossed, name: "Ресторанти", use: "Резервации, ревюта, лоялност" },
-  { icon: Stethoscope, name: "Медицински клиники", use: "Записване на часове и follow-up на пациенти" },
+  { icon: Stethoscope, name: "Медицински клиники", use: "Записване на часове и проследяване на пациенти" },
   { icon: Scale, name: "Юристи", use: "Първоначална консултация и документи" },
-  { icon: Dumbbell, name: "Фитнес и студия", use: "Резервации, retention, membership" },
-  { icon: Briefcase, name: "B2B услуги", use: "Lead nurturing и предложения" },
+  { icon: Dumbbell, name: "Фитнес и студия", use: "Резервации, задържане, абонаменти" },
+  { icon: Briefcase, name: "B2B услуги", use: "Развиване на лидове и предложения" },
 ];
 
 export function Industries() {

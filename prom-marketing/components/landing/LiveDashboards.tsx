@@ -4,28 +4,28 @@ import { TiltCard } from "@/components/effects/TiltCard";
 import { SectionReveal } from "@/components/effects/SectionReveal";
 
 const AGENTS = [
-  { name: "Сара", role: "Sales agent", task: "Анализира 14 нови leads", status: "working", color: "#06b6d4" },
-  { name: "Виктор", role: "Content writer", task: "Пише блог пост · 78%", status: "working", color: "#a78bfa" },
-  { name: "Михаил", role: "Email assistant", task: "Изпратени 3 follow-ups", status: "done", color: "#22c55e" },
-  { name: "Елена", role: "Lead qualifier", task: "Score: 8 hot · 12 warm", status: "working", color: "#06b6d4" },
-  { name: "Иван", role: "Voice agent", task: "На линия с клиент", status: "calling", color: "#f59e0b" },
-  { name: "Анна", role: "Data analyst", task: "Готов седмичен отчет", status: "done", color: "#22c55e" },
-  { name: "Тодор", role: "Booking assistant", task: "Идле · чака повикване", status: "idle", color: "#64748b" },
-  { name: "Невена", role: "CRM keeper", task: "Синхронизира 23 записа", status: "working", color: "#06b6d4" },
+  { name: "Сара", role: "Продажби", task: "Анализира 14 нови лида", status: "working", color: "#06b6d4" },
+  { name: "Виктор", role: "Копирайтър", task: "Пише блог пост · 78%", status: "working", color: "#a78bfa" },
+  { name: "Михаил", role: "Имейл асистент", task: "Изпратени 3 проследяващи писма", status: "done", color: "#22c55e" },
+  { name: "Елена", role: "Оценител на лидове", task: "Оценка: 8 топли · 12 хладни", status: "working", color: "#06b6d4" },
+  { name: "Иван", role: "Гласов агент", task: "На линия с клиент", status: "calling", color: "#f59e0b" },
+  { name: "Анна", role: "Анализатор", task: "Готов седмичен отчет", status: "done", color: "#22c55e" },
+  { name: "Тодор", role: "Резервации", task: "Свободен · чака повикване", status: "idle", color: "#64748b" },
+  { name: "Невена", role: "CRM поддръжка", task: "Синхронизира 23 записа", status: "working", color: "#06b6d4" },
 ];
 
 const PIPELINES = [
-  { name: "Lead → Discovery", count: 14, color: "#06b6d4", progress: 35 },
-  { name: "Discovery → Оферта", count: 8, color: "#a78bfa", progress: 62 },
+  { name: "Лид → Среща", count: 14, color: "#06b6d4", progress: 35 },
+  { name: "Среща → Оферта", count: 8, color: "#a78bfa", progress: 62 },
   { name: "Оферта → Договор", count: 5, color: "#f59e0b", progress: 78 },
   { name: "Договор → Старт", count: 3, color: "#22c55e", progress: 92 },
 ];
 
 const FEED = [
   { time: "00:12", text: "Сара изпрати оферта на хотел Алба", color: "#06b6d4" },
-  { time: "00:45", text: "Михаил написа 2 follow-up имейла", color: "#a78bfa" },
-  { time: "01:23", text: "Booking #4421 потвърден от клиент", color: "#22c55e" },
-  { time: "02:08", text: "Виктор публикува LinkedIn пост", color: "#a78bfa" },
+  { time: "00:45", text: "Михаил написа 2 проследяващи имейла", color: "#a78bfa" },
+  { time: "01:23", text: "Резервация #4421 потвърдена от клиент", color: "#22c55e" },
+  { time: "02:08", text: "Виктор публикува пост в LinkedIn", color: "#a78bfa" },
   { time: "03:14", text: "Иван приключи разговор · 4:32 мин", color: "#f59e0b" },
 ];
 
@@ -33,7 +33,7 @@ const STATUS_LABEL: Record<string, string> = {
   working: "Работи",
   done: "Готово",
   calling: "На линия",
-  idle: "Idle",
+  idle: "Свободен",
 };
 
 export function LiveDashboards() {
@@ -96,7 +96,7 @@ export function LiveDashboards() {
                 <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "#22c55e" }} />
               </span>
               <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-secondary)]">
-                LIVE preview · моите системи
+                НА ЖИВО · моите системи
               </span>
             </div>
           </div>
@@ -164,7 +164,7 @@ export function LiveDashboards() {
               <TiltCard className="rounded-2xl">
                 <div className="glass relative rounded-2xl p-6 md:p-7">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-display text-base font-bold">Live приходи</h3>
+                    <h3 className="font-display text-base font-bold">Приходи на живо</h3>
                     <span className="font-mono text-[10px] text-[var(--color-text-tertiary)]">днес</span>
                   </div>
                   <p
@@ -216,7 +216,7 @@ export function LiveDashboards() {
               <TiltCard className="rounded-2xl">
                 <div className="glass relative rounded-2xl p-6 md:p-7">
                   <div className="mb-4 flex items-center justify-between">
-                    <h3 className="font-display text-base font-bold">Lead pipeline</h3>
+                    <h3 className="font-display text-base font-bold">Лидов процес</h3>
                     <span
                       className="font-mono text-3xl font-extrabold transition-all duration-500"
                       style={{ color: "var(--color-accent-cyan)" }}
@@ -261,13 +261,13 @@ export function LiveDashboards() {
             <TiltCard className="rounded-2xl">
               <div className="glass relative rounded-2xl p-6 md:p-7">
                 <div className="mb-5 flex items-center justify-between">
-                  <h3 className="font-display text-base font-bold">Activity stream · последния час</h3>
+                  <h3 className="font-display text-base font-bold">Поток на активността · последния час</h3>
                   <span className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]">
                     <span className="relative flex h-1.5 w-1.5">
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" style={{ background: "#22c55e" }} />
                       <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ background: "#22c55e" }} />
                     </span>
-                    streaming
+                    на живо
                   </span>
                 </div>
                 <ul className="space-y-2">
