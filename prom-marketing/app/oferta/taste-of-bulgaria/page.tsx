@@ -183,7 +183,7 @@ const TIERS = [
   },
 ];
 
-const RECURRING = "Месечна поддръжка след стартиране: 150 – 300 € без ДДС на месец (хостинг, AI API кредити, технически промени, реакция в рамките на 24 ч).";
+const RECURRING = "Месечна поддръжка след стартиране: 150 – 300 € без ДДС на месец (хостинг, AI API кредити, технически промени, реакция в рамките на 24 ч). При проект с такъв мащаб поддръжката може да е по-висока — подлежи на преговори след като видим реалния обем след стартиране.";
 
 export default function TasteOfBulgariaPage() {
   return (
@@ -320,6 +320,22 @@ export default function TasteOfBulgariaPage() {
           <p className="mt-10 max-w-3xl text-sm leading-relaxed text-[var(--color-text-secondary)]">
             Експортна фирма с този мащаб — 15 000 продукта, 4 склада, 3 температурни зони, износ към 7+ европейски държави, плюс франчайз мрежа — не може да работи с Excel и ръчни имейли. AI системата по-долу адресира всеки един от тези процеси.
           </p>
+
+          <div
+            className="mt-8 rounded-2xl border-2 p-6"
+            style={{
+              borderColor: "rgba(250, 204, 21, 0.30)",
+              background: "rgba(250, 204, 21, 0.04)",
+            }}
+          >
+            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-gold)]">
+              ℹ️ Важно
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-[var(--color-text-primary)]">
+              <span className="font-bold">Това е базов анализ</span> по информацията, която намерих в интернет за Taste of Bulgaria. Конкретните модули, обхват и цена винаги можем да{" "}
+              <span className="font-bold text-[var(--color-gold)]">персонализираме</span> след среща с теб — според реалните ви процеси, екип и приоритети. Цената може да се промени нагоре или надолу в зависимост от нуждите.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -1078,9 +1094,21 @@ export default function TasteOfBulgariaPage() {
             Готов да автоматизираш <br />
             <span className="text-[var(--color-orange-bright)]">експорта си</span>?
           </h2>
-          <p className="mb-12 mx-auto max-w-2xl text-base leading-relaxed text-[var(--color-text-secondary)]">
-            Кажи „да" по имейл или телефон. Идвам в Пловдив за 1-2 дни — преглеждаме процесите, уточняваме обхват, подписваме договор.
+          <p className="mb-8 mx-auto max-w-2xl text-base leading-relaxed text-[var(--color-text-secondary)]">
+            И двамата сме в Пловдив — нека се видим на живо когато ти е удобно. Сядаме, обсъждаме реалните процеси на терен, уточняваме обхват и едва тогава финализираме цената и срока.
           </p>
+
+          <div
+            className="mx-auto mb-12 max-w-2xl rounded-xl border p-4"
+            style={{
+              borderColor: "rgba(250, 204, 21, 0.30)",
+              background: "rgba(250, 204, 21, 0.05)",
+            }}
+          >
+            <p className="text-sm leading-relaxed text-[var(--color-text-primary)]">
+              📍 <span className="font-bold">Среща в Пловдив</span> — обикаляме склада ти, виждаме процесите на живо, говорим с екипа. Това винаги дава по-точна оферта от далекомерието.
+            </p>
+          </div>
 
           <div className="flex flex-wrap justify-center gap-4">
             <a
