@@ -7,6 +7,7 @@ import { PainPoints } from "@/components/landing/PainPoints";
 import { Process } from "@/components/landing/Process";
 import { Industries } from "@/components/landing/Industries";
 import { WhyUs } from "@/components/landing/WhyUs";
+import { Expert } from "@/components/landing/Expert";
 import { FAQ } from "@/components/landing/FAQ";
 import { QuickLeadForm } from "@/components/landing/QuickLeadForm";
 import { FinalCTA } from "@/components/landing/FinalCTA";
@@ -32,6 +33,7 @@ export default function HomePage() {
         <Process />
         <Industries />
         <WhyUs />
+        <Expert />
         <FAQ />
         <QuickLeadForm />
         <FinalCTA />
