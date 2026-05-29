@@ -35,8 +35,8 @@ export function Footer() {
                 +359 877 399 963
               </a>
             </li>
-            <li><a className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]" href="mailto:ivailo@promarketing.pw">ivailo@promarketing.pw</a></li>
-            <li className="text-[var(--color-text-secondary)]">София, България</li>
+            <li><a className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]" href="mailto:ivailopetev38@gmail.com">ivailopetev38@gmail.com</a></li>
+            <li className="text-[var(--color-text-secondary)]">Пловдив, България</li>
           </ul>
         </div>
         <div>
