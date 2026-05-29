@@ -589,12 +589,12 @@ export default function Antoan09Page() {
             </p>
             <div className="my-6 flex items-baseline justify-center gap-3">
               <span
-                className="font-[family-name:var(--font-editorial)] text-7xl font-extrabold"
+                className="font-[family-name:var(--font-editorial)] text-4xl font-extrabold md:text-5xl"
                 style={{ color: "var(--color-red-bright)" }}
               >
                 1 800 €
               </span>
-              <span className="text-sm text-[var(--color-text-tertiary)]">без ДДС</span>
+              <span className="text-xs text-[var(--color-text-tertiary)]">без ДДС</span>
             </div>
             <p className="text-base text-[var(--color-text-secondary)]">⏱ 30-45 дни до пълно стартиране</p>
 
@@ -641,12 +641,12 @@ export default function Antoan09Page() {
             </p>
             <div className="my-4 flex items-baseline justify-center gap-3">
               <span
-                className="font-[family-name:var(--font-editorial)] text-5xl font-extrabold"
+                className="font-[family-name:var(--font-editorial)] text-3xl font-extrabold md:text-4xl"
                 style={{ color: "#22c55e" }}
               >
                 180 €
               </span>
-              <span className="text-sm text-[var(--color-text-tertiary)]">без ДДС</span>
+              <span className="text-xs text-[var(--color-text-tertiary)]">без ДДС</span>
             </div>
             <p className="text-sm text-[var(--color-text-secondary)]">
               Работещо demo на основните модули, за да видите реално как изглежда системата с вашите данни — преди да решите за пълния проект.
@@ -657,7 +657,6 @@ export default function Antoan09Page() {
                 "Генериране на 1 примерен протокол (PDF)",
                 "Демо акаунт на телефон + дашборд",
                 "30-мин онлайн презентация на живо",
-                "Сумата се приспада, ако продължите с пълния проект",
               ].map((f) => (
                 <div key={f} className="flex gap-2">
                   <span aria-hidden style={{ color: "#22c55e" }}>✓</span>
