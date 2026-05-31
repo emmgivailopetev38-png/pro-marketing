@@ -19,7 +19,14 @@ export default async function HomePage() {
         gap: 12,
       }}
     >
-      <header style={{ flexShrink: 0 }}>
+      <header
+        style={{
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
         <h1
           style={{
             fontWeight: 700,
@@ -31,6 +38,34 @@ export default async function HomePage() {
         >
           ZOPEXPERT
         </h1>
+        <div style={{ display: "flex", gap: 4 }}>
+          <a
+            href="/admin/knowledge"
+            title="База знания"
+            style={{
+              fontSize: 16,
+              color: "var(--color-text-tertiary)",
+              textDecoration: "none",
+              padding: "4px 8px",
+              borderRadius: 4,
+            }}
+          >
+            📚
+          </a>
+          <a
+            href="/admin/workspaces"
+            title="Настройки на работни места"
+            style={{
+              fontSize: 16,
+              color: "var(--color-text-tertiary)",
+              textDecoration: "none",
+              padding: "4px 8px",
+              borderRadius: 4,
+            }}
+          >
+            ⚙️
+          </a>
+        </div>
       </header>
 
       <ChatGrid chats={chats} />
