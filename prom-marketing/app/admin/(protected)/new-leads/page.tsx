@@ -10,9 +10,10 @@ interface ContactWithMeta extends ContactRow {
 
 export default async function NewLeadsPage() {
   const supabase = createServiceClient();
+  const nowMs = new Date().getTime();
 
   // Всички лидове създадени в последните 7 дни
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const sevenDaysAgo = new Date(nowMs - 7 * 24 * 60 * 60 * 1000).toISOString();
   const { data: rows } = await supabase
     .from("contacts")
     .select("*")
@@ -42,7 +43,7 @@ export default async function NewLeadsPage() {
   }));
 
   // Категории по време
-  const now = Date.now();
+  const now = nowMs;
   const dayMs = 24 * 60 * 60 * 1000;
   const today = enriched.filter((c) => now - new Date(c.created_at).getTime() < dayMs);
   const last3days = enriched.filter((c) => {
