@@ -677,6 +677,7 @@ export default async function AdminDashboard() {
               hint={manualReviewOpen > 0 ? `${manualReviewOpen} отворени` : "чисто"}
             />
             <NavCard href="/admin/expenses" icon="🧮" label="Разходи" hint="към доставчици" />
+            <NavCard href="/admin/gps" icon="🛰️" label="GPS устройства" hint="монтажи, история" />
             <NavCard href="/admin/documents" icon="📁" label="Документи" hint="фактури, OCR" />
             <NavCard href="/admin/meta-ads" icon="📈" label="Meta анализ" hint="реклами днес" />
           </div>

@@ -104,6 +104,31 @@ export const EXPENSE_STATUS_COLOR: Record<string, string> = {
   cancelled: "#64748b",
 };
 
+export const GPS_STATUS_LABEL: Record<string, string> = {
+  active: "Активно",
+  paused: "На пауза",
+  removed: "Демонтирано",
+  moved: "Преместено",
+};
+
+export const GPS_STATUS_COLOR: Record<string, string> = {
+  active: "#22c55e",
+  paused: "#facc15",
+  removed: "#64748b",
+  moved: "#06b6d4",
+};
+
+export const GPS_EVENT_LABEL: Record<string, string> = {
+  install: "Монтаж",
+  uninstall: "Демонтаж",
+  move: "Преместване",
+  swap: "Смяна на устройство",
+  service: "Обслужване",
+  pause: "Пауза",
+  resume: "Възобновяване",
+  other: "Друго",
+};
+
 export const RECURRING_SERVICE_TYPE_LABEL: Record<string, string> = {
   gps: "GPS",
   crm: "CRM",

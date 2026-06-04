@@ -40,6 +40,7 @@ const LINK_GROUPS: LinkGroup[] = [
       { href: "/admin/payments", label: "💰 Плащания" },
       { href: "/admin/expenses", label: "🧮 Разходи" },
       { href: "/admin/recurring", label: "🔁 Абонаменти" },
+      { href: "/admin/gps", label: "🛰️ GPS устройства" },
       { href: "/admin/documents", label: "📁 Документи" },
       { href: "/admin/manual-review", label: "🔍 Ръчна проверка" },
     ],

@@ -490,3 +490,52 @@ export interface MetaAdsReportRow {
   dedupe_key: string | null;
   created_at: string;
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// GPS module (operations)
+// ─────────────────────────────────────────────────────────────────────────
+export const GPS_DEVICE_STATUSES = ["active", "paused", "removed", "moved"] as const;
+export const GPS_EVENT_TYPES = [
+  "install",
+  "uninstall",
+  "move",
+  "swap",
+  "service",
+  "pause",
+  "resume",
+  "other",
+] as const;
+
+export interface GpsDeviceRow {
+  id: string;
+  contact_id: string;
+  recurring_service_id: string | null;
+  label: string | null;
+  imei: string | null;
+  sim: string | null;
+  vehicle_plate: string | null;
+  vehicle_model: string | null;
+  monthly_fee: number | null;
+  currency: string;
+  status: (typeof GPS_DEVICE_STATUSES)[number];
+  installed_at: string | null;
+  removed_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GpsEventRow {
+  id: string;
+  device_id: string;
+  contact_id: string | null;
+  event_type: (typeof GPS_EVENT_TYPES)[number];
+  event_date: string | null;
+  from_vehicle: string | null;
+  to_vehicle: string | null;
+  price: number | null;
+  currency: string;
+  technician: string | null;
+  notes: string | null;
+  created_at: string;
+}
