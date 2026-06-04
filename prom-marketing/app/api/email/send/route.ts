@@ -22,7 +22,23 @@ const bodySchema = z.object({
   replyTo: z.email().optional(),
   from: z.email().optional(),
   attachments: z.array(attachmentSchema).max(10).optional(),
+  /** Required for token (Hermes) sends to non-owner recipients — explicit human approval. */
+  approved: z.boolean().optional(),
 });
+
+/** Owner inboxes — token callers may always send here (previews), no approval needed. */
+function ownerAddresses(): Set<string> {
+  return new Set(
+    [
+      process.env.EMAIL_REPLY_TO,
+      "ivailopetev38@gmail.com",
+      "ivailo@promarketing.pw",
+      ...(process.env.ALLOWED_ADMIN_EMAILS ?? "").split(","),
+    ]
+      .map((s) => (s ?? "").trim().toLowerCase())
+      .filter(Boolean)
+  );
+}
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -75,6 +91,25 @@ export async function POST(request: Request) {
       { error: "Either html or text body required" },
       { status: 400 }
     );
+  }
+
+  // Approval interlock: a token caller (Hermes / scripts) may freely send to the
+  // owner's own inboxes (previews), but sending to any other recipient requires
+  // an explicit approved:true. The human admin composer authenticates via cookie
+  // (not token) and is unaffected; app welcome emails use a separate path.
+  if (bearer) {
+    const recipients = Array.isArray(parsed.data.to) ? parsed.data.to : [parsed.data.to];
+    const owners = ownerAddresses();
+    const allToOwner = recipients.every((r) => owners.has(r.toLowerCase()));
+    if (!allToOwner && parsed.data.approved !== true) {
+      return NextResponse.json(
+        {
+          error:
+            "Изпращане към клиент през токен изисква approved:true. Прати preview към собственика и вземи изрично одобрение първо.",
+        },
+        { status: 403 }
+      );
+    }
   }
 
   // Default reply-to is the admin who's sending — so replies land in their inbox

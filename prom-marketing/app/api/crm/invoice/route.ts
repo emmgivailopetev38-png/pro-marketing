@@ -25,5 +25,7 @@ export async function POST(request: Request) {
     id: result.id,
     created: result.created,
     contact_id: result.contact_id,
+    // FX audit so Hermes can verify EUR invoices keep original_amount null.
+    audit: result.audit,
   });
 }

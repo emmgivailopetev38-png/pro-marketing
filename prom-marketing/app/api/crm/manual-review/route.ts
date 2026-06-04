@@ -1,9 +1,66 @@
 import { NextResponse } from "next/server";
 import { checkHermesAuth } from "@/lib/crm/auth";
-import { manualReviewInputSchema } from "@/lib/crm/types";
+import { manualReviewInputSchema, MANUAL_REVIEW_STATUSES } from "@/lib/crm/types";
 import { createManualReviewItem } from "@/lib/crm/repository";
+import { createServiceClient } from "@/lib/supabase/service";
 
 export const dynamic = "force-dynamic";
+
+const ACTIVE_STATUSES = ["open", "needs_user", "blocked"];
+
+/**
+ * GET /api/crm/manual-review?status=needs_user&limit=50&offset=0
+ * Lists review items for Hermes' daily check. Defaults to active statuses
+ * (open + needs_user + blocked). PII-conscious: returns titles but not the raw
+ * description (only a has_description flag) so it is safe to log.
+ */
+export async function GET(request: Request) {
+  if (!checkHermesAuth(request)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  const url = new URL(request.url);
+  const statusParam = url.searchParams.get("status");
+  const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 50, 1), 200);
+  const offset = Math.max(Number(url.searchParams.get("offset")) || 0, 0);
+
+  const statuses = statusParam
+    ? statusParam
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => (MANUAL_REVIEW_STATUSES as readonly string[]).includes(s))
+    : ACTIVE_STATUSES;
+  if (statuses.length === 0) {
+    return NextResponse.json({ error: "Invalid status filter" }, { status: 400 });
+  }
+
+  const sb = createServiceClient();
+  const { data, error, count } = await sb
+    .from("manual_review_items")
+    .select(
+      "id, type, title, description, severity, status, related_contact_id, related_invoice_id, related_payment_id, created_at, resolved_at",
+      { count: "exact" }
+    )
+    .in("status", statuses)
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+  if (error) {
+    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  }
+
+  const items = (data ?? []).map(({ description, ...rest }) => ({
+    ...rest,
+    has_description: !!description,
+  }));
+  return NextResponse.json({
+    ok: true,
+    statuses,
+    limit,
+    offset,
+    total: count ?? null,
+    count: items.length,
+    items,
+  });
+}
 
 /** POST /api/crm/manual-review — queue an item for Ivailo (idempotent). */
 export async function POST(request: Request) {

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/resend";
 import { sendWelcomeEmail } from "@/lib/email/welcome";
+import { escapeHtml } from "@/lib/email/escape";
 
 export const dynamic = "force-dynamic";
 
@@ -121,11 +122,11 @@ export async function POST(request: Request) {
       html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#0d1221;">
 <p><strong>Нов lead от формата на promarketing.pw</strong></p>
 <table style="border-collapse:collapse;">
-<tr><td style="padding:4px 12px 4px 0;color:#777;">Име:</td><td><strong>${full_name}</strong></td></tr>
-<tr><td style="padding:4px 12px 4px 0;color:#777;">Имейл:</td><td><a href="mailto:${email}">${email}</a></td></tr>
-<tr><td style="padding:4px 12px 4px 0;color:#777;">Телефон:</td><td><a href="tel:${phone}">${phone}</a></td></tr>
-${company_activity ? `<tr><td style="padding:4px 12px 4px 0;color:#777;vertical-align:top;">Фирма/дейност:</td><td><strong>${company_activity}</strong></td></tr>` : ""}
-${message ? `<tr><td style="padding:4px 12px 4px 0;color:#777;vertical-align:top;">Съобщение:</td><td>${message.replace(/\n/g, "<br/>")}</td></tr>` : ""}
+<tr><td style="padding:4px 12px 4px 0;color:#777;">Име:</td><td><strong>${escapeHtml(full_name)}</strong></td></tr>
+<tr><td style="padding:4px 12px 4px 0;color:#777;">Имейл:</td><td><a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a></td></tr>
+<tr><td style="padding:4px 12px 4px 0;color:#777;">Телефон:</td><td><a href="tel:${escapeHtml(phone)}">${escapeHtml(phone)}</a></td></tr>
+${company_activity ? `<tr><td style="padding:4px 12px 4px 0;color:#777;vertical-align:top;">Фирма/дейност:</td><td><strong>${escapeHtml(company_activity)}</strong></td></tr>` : ""}
+${message ? `<tr><td style="padding:4px 12px 4px 0;color:#777;vertical-align:top;">Съобщение:</td><td>${escapeHtml(message).replace(/\n/g, "<br/>")}</td></tr>` : ""}
 </table>
 <p style="margin-top:18px;">📊 <a href="https://promarketing.pw/admin/clients/${contactId}">Виж в CRM-а</a></p>
 </div>`,

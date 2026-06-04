@@ -47,6 +47,11 @@ class Query implements PromiseLike<{ data: unknown; error: unknown }> {
     return this;
   }
 
+  in(col: string, vals: unknown[]): this {
+    this.filters.push((r) => vals.includes(r[col]));
+    return this;
+  }
+
   is(col: string, val: unknown): this {
     this.filters.push((r) =>
       val === null ? r[col] === null || r[col] === undefined : r[col] === val

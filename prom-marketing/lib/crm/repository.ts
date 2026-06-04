@@ -167,7 +167,18 @@ async function findExistingInvoice(sb: Sb, input: InvoiceInput): Promise<{ id: s
   return null;
 }
 
-export async function upsertInvoice(input: InvoiceInput): Promise<UpsertResult & { contact_id: string | null }> {
+export interface InvoiceAudit {
+  currency: string;
+  amount_gross: number | null;
+  original_amount: number | null;
+  original_currency: string | null;
+  fx_rate: number | null;
+  fx_source: string | null;
+}
+
+export async function upsertInvoice(
+  input: InvoiceInput
+): Promise<UpsertResult & { contact_id: string | null; audit: InvoiceAudit | null }> {
   const sb = createServiceClient();
 
   // Resolve the contact so the invoice shows up on the contact profile.
@@ -178,11 +189,12 @@ export async function upsertInvoice(input: InvoiceInput): Promise<UpsertResult &
   }
 
   const existing = await findExistingInvoice(sb, input);
-  if (existing) return { id: existing.id, created: false, error: null, contact_id: contactId };
+  if (existing) return { id: existing.id, created: false, error: null, contact_id: contactId, audit: null };
 
   const status = input.status ?? (input.source === "manual" ? "draft" : "awaiting_payment");
   // Everything is stored in EUR; the original currency/amount/rate is preserved.
   const fx = toEur(input.amount_gross, input.currency, input.fx_rate);
+  const fxCols = fxColumns(fx);
   const row = {
     contact_id: contactId,
     client_name: input.client_name ?? null,
@@ -195,7 +207,7 @@ export async function upsertInvoice(input: InvoiceInput): Promise<UpsertResult &
     amount_gross: fx.amount_eur,
     vat_amount: convertWith(input.vat_amount, fx.fx_rate),
     currency: "EUR",
-    ...fxColumns(fx),
+    ...fxCols,
     service_type: input.service_type ?? null,
     status,
     source: input.source,
@@ -209,8 +221,8 @@ export async function upsertInvoice(input: InvoiceInput): Promise<UpsertResult &
   const { data, error } = await sb.from("invoices").insert(row).select("id").single();
   if (error || !data) {
     const again = await findExistingInvoice(sb, input);
-    if (again) return { id: again.id, created: false, error: null, contact_id: contactId };
-    return { id: null, created: false, error: error?.message ?? "insert failed", contact_id: contactId };
+    if (again) return { id: again.id, created: false, error: null, contact_id: contactId, audit: null };
+    return { id: null, created: false, error: error?.message ?? "insert failed", contact_id: contactId, audit: null };
   }
 
   if (contactId) {
@@ -233,7 +245,13 @@ export async function upsertInvoice(input: InvoiceInput): Promise<UpsertResult &
     }).catch(() => {});
   }
 
-  return { id: data.id, created: true, error: null, contact_id: contactId };
+  return {
+    id: data.id,
+    created: true,
+    error: null,
+    contact_id: contactId,
+    audit: { currency: "EUR", amount_gross: fx.amount_eur, ...fxCols },
+  };
 }
 
 // ── payments ──────────────────────────────────────────────────────────────
@@ -304,7 +322,7 @@ export async function createManualReviewItem(input: ManualReviewInput): Promise<
     .from("manual_review_items")
     .select("id")
     .eq("dedupe_key", dedupe)
-    .eq("status", "open")
+    .in("status", ["open", "needs_user", "blocked"])
     .maybeSingle();
   if (existing) return { id: existing.id, created: false, error: null };
 
@@ -328,7 +346,7 @@ export async function createManualReviewItem(input: ManualReviewInput): Promise<
       .from("manual_review_items")
       .select("id")
       .eq("dedupe_key", dedupe)
-      .eq("status", "open")
+      .in("status", ["open", "needs_user", "blocked"])
       .maybeSingle();
     if (again) return { id: again.id, created: false, error: null };
     return { id: null, created: false, error: error?.message ?? "insert failed" };

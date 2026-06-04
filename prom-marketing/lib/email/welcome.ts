@@ -1,5 +1,6 @@
 import "server-only";
 import { sendEmail } from "./resend";
+import { escapeHtml } from "./escape";
 import type { createServiceClient } from "@/lib/supabase/service";
 
 type Sb = ReturnType<typeof createServiceClient>;
@@ -47,11 +48,12 @@ export async function sendWelcomeEmail(args: WelcomeArgs): Promise<WelcomeResult
   if (already) return { sent: false, skipped: true, id: null, error: null };
 
   const firstName = fullName?.trim().split(/\s+/)[0] ?? "";
-  const greeting = firstName ? `Здравейте, ${firstName}` : "Здравейте";
+  const greetingText = firstName ? `Здравейте, ${firstName}` : "Здравейте";
+  const greetingHtml = firstName ? `Здравейте, ${escapeHtml(firstName)}` : "Здравейте";
   const subject = "Получихме запитването ви — ще се чуем скоро";
 
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#0d1221;max-width:600px;margin:0 auto;">
-  <p>${greeting},</p>
+  <p>${greetingHtml},</p>
   <p>Благодаря, че се свързахте с <strong>ProMarketing</strong>. Получихме запитването ви за AI автоматизация и маркетинг и ще ви се обадим съвсем скоро, за да уточним как най-бързо можем да помогнем.</p>
   <p>Междувременно можете да:</p>
   <ul style="padding-left:20px;margin:10px 0;">
@@ -65,7 +67,7 @@ export async function sendWelcomeEmail(args: WelcomeArgs): Promise<WelcomeResult
   📞 +359 877 399 963 · 🌐 <a href="https://promarketing.pw" style="color:#0066cc;">promarketing.pw</a></p>
 </div>`;
 
-  const text = `${greeting},
+  const text = `${greetingText},
 
 Благодаря, че се свързахте с ProMarketing. Получихме запитването ви за AI автоматизация и маркетинг и ще ви се обадим съвсем скоро.
 

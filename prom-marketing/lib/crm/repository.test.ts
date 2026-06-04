@@ -126,6 +126,23 @@ describe("upsertInvoice", () => {
     expect(inv.fx_source).toBe("fixed_eur_bgn_1.95583");
   });
 
+  it("returns an FX audit so Hermes can verify EUR keeps original_amount null", async () => {
+    const r = await upsertInvoice({
+      invoice_number: "F-AUDIT-EUR",
+      invoice_type: "invoice",
+      amount_gross: 100,
+      currency: "EUR",
+      source: "hermes",
+    });
+    expect(r.audit).toMatchObject({
+      currency: "EUR",
+      amount_gross: 100,
+      original_amount: null,
+      original_currency: null,
+      fx_source: null,
+    });
+  });
+
   it("is idempotent on source_email_id", async () => {
     const args = {
       client_email: "x@firma.bg",
@@ -204,6 +221,22 @@ describe("createManualReviewItem", () => {
     const a = await createManualReviewItem(args);
     const b = await createManualReviewItem(args);
     expect(a.created).toBe(true);
+    expect(b.created).toBe(false);
+    expect(h.fake.store.manual_review_items).toHaveLength(1);
+  });
+
+  it("still dedupes while the item is needs_user or blocked (not only open)", async () => {
+    const args = {
+      type: "duplicate_invoice" as const,
+      title: "Дубликат?",
+      related_invoice_id: "00000000-0000-0000-0000-000000000009",
+      severity: "medium" as const,
+    };
+    const a = await createManualReviewItem(args);
+    expect(a.created).toBe(true);
+    // Ивайло moves it to needs_user — it must NOT be recreated as a new open item.
+    (h.fake.store.manual_review_items[0] as { status: string }).status = "needs_user";
+    const b = await createManualReviewItem(args);
     expect(b.created).toBe(false);
     expect(h.fake.store.manual_review_items).toHaveLength(1);
   });
