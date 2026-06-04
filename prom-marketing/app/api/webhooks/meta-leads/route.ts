@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/resend";
+import { sendWelcomeEmail } from "@/lib/email/welcome";
 
 export const dynamic = "force-dynamic";
 
@@ -191,44 +192,11 @@ async function processLead(leadgenId: string, formId: string | null) {
     created_by: "meta_webhook",
   });
 
-  // --- Auto-welcome email to the lead (in parallel with admin notification) ---
-  // Само ако не е дупликат — пращаме welcome имейл само на нови лидове за да не спамим
-  // съществуващи контакти. Auto-welcome се изключва с META_AUTO_WELCOME=false.
+  // --- Auto-welcome email to the lead (idempotent; new contacts only) ---
+  // Изключва се с META_AUTO_WELCOME=false. Един общ template с website формата.
   const autoWelcomeEnabled = process.env.META_AUTO_WELCOME !== "false";
   if (!existing && emailLower && autoWelcomeEnabled) {
-    const firstName = fullName?.split(" ")[0] ?? "";
-    const greeting = firstName ? `Здравейте ${firstName}` : "Здравейте";
-    sendEmail({
-      to: emailLower,
-      subject: "Получихме запитването ви — ще се чуем скоро",
-      replyTo: "ivailopetev38@gmail.com",
-      html: `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.7;color:#0d1221;max-width:600px">
-<p>${greeting},</p>
-<p>Благодаря, че попълнихте формата ни за AI автоматизация. Получих запитването ви и ще ви се обадя в рамките на следващите часове за кратък разговор.</p>
-<p>В междувременно, можете да:</p>
-<ul style="padding-left:20px">
-  <li>Резервирате 30 мин директно: <a href="https://promarketing.pw/booking" style="color:#0066cc">promarketing.pw/booking</a></li>
-  <li>Видите какво правим: <a href="https://promarketing.pw" style="color:#0066cc">promarketing.pw</a></li>
-  <li>Отговорите на този имейл, ако имате конкретен въпрос</li>
-</ul>
-<p>До скоро,<br/>
-<strong>Ивайло Петев</strong><br/>
-Управител · „ПроМаркетинг" ЕООД<br/>
-+359 877 399 963</p>
-</div>`,
-      text: `${greeting},\n\nБлагодаря, че попълнихте формата ни за AI автоматизация. Получих запитването ви и ще ви се обадя в рамките на следващите часове.\n\nВ междувременно можете да:\n- Резервирате 30 мин: https://promarketing.pw/booking\n- Видите какво правим: https://promarketing.pw\n- Отговорите на този имейл\n\nДо скоро,\nИвайло Петев\n„ПроМаркетинг" ЕООД\n+359 877 399 963`,
-    }).then((res) => {
-      // Log the auto-welcome activity
-      void supabase.from("contact_activities").insert({
-        contact_id: contactId,
-        activity_type: "email_sent",
-        title: "🤖 Auto-welcome имейл (Meta lead)",
-        body: `Автоматичен приветствен имейл изпратен веднага след попълване на формата. Resend ID: ${res.id ?? "n/a"}`,
-        occurred_at: new Date().toISOString(),
-        created_by: "meta_webhook",
-        metadata: { resend_id: res.id, auto: true },
-      });
-    }).catch(() => {});
+    await sendWelcomeEmail({ supabase, contactId, to: emailLower, fullName, source: "meta_lead" });
   }
 
   // Notify admin (fire-and-forget)

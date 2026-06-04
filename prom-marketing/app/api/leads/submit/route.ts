@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/resend";
+import { sendWelcomeEmail } from "@/lib/email/welcome";
 
 export const dynamic = "force-dynamic";
 
@@ -85,6 +86,17 @@ export async function POST(request: Request) {
       message: message || null,
     },
   });
+
+  // Auto-welcome to the lead (new website contacts only; idempotent).
+  if (!existing) {
+    await sendWelcomeEmail({
+      supabase,
+      contactId,
+      to: email.toLowerCase(),
+      fullName: full_name,
+      source: "website",
+    });
+  }
 
   // Notify admin (fire-and-forget — don't fail the form if email is down).
   const adminTo = (process.env.ALLOWED_ADMIN_EMAILS ?? "ivailopetev38@gmail.com")

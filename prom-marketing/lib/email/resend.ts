@@ -31,8 +31,9 @@ export interface SendArgs {
 }
 
 export async function sendEmail(args: SendArgs): Promise<{ id: string | null; error: string | null }> {
-  const from = process.env.EMAIL_FROM ?? "ProMarketing <onboarding@resend.dev>";
-  const replyTo = args.replyTo ?? process.env.EMAIL_REPLY_TO;
+  // Use || (not ??) so an empty-string env var also falls back to a valid sender.
+  const from = process.env.EMAIL_FROM || "ProMarketing <onboarding@resend.dev>";
+  const replyTo = args.replyTo || process.env.EMAIL_REPLY_TO || undefined;
   try {
     const client = getClient();
     const { data, error } = await client.emails.send({
