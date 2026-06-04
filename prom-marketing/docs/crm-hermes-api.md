@@ -149,3 +149,64 @@ item за ръчно свързване (за да излезе фактурат
 Borima Trans (край след май 2026): `active: false`, `excluded_from_auto_send: true`,
 `excluded_reason: "..."` — автоматизацията спира бъдещи GPS фактури, историята остава.
 → `{ "ok": true, "id": "...", "created": true }`
+
+## POST /api/crm/expense
+
+Разход към доставчик (счетоводител, хостинг, реклами, GPS хардуер…).
+
+```json
+{
+  "supplier_name": "Кръстьо счетоводител",
+  "category": "accountant",   // accountant|hosting|ads|gps_hardware|software|office|salary|tax|bank_fee|other
+  "invoice_number": "...",
+  "amount_net": 100, "vat_amount": 20, "amount_gross": 120,
+  "currency": "EUR",
+  "expense_date": "2026-06-01", "due_date": "2026-06-15",
+  "status": "unpaid",         // unpaid|paid|partially_paid|cancelled
+  "source": "accountant_email", "source_email_id": "gmail:...", "contact_id": null
+}
+```
+→ `{ "ok": true, "id": "...", "created": true }`
+
+## POST /api/crm/document
+
+Документ (PDF/снимка/талон/извлечение) + OCR данни, извлечени от Hermes; свързва се
+към контакт/фактура/плащане/разход. Несвързаните → ръчна проверка.
+
+```json
+{
+  "doc_type": "invoice",      // invoice|proforma|receipt|bank_statement|contract|photo|gps_protocol|other
+  "title": "Фактура 1000123", "file_name": "factura.pdf",
+  "storage_path": "crm-documents/...",
+  "ocr_text": "извлечен текст…",
+  "extracted": { "invoice_number": "1000123", "amount_gross": 120 },
+  "match_confidence": "high", // low|medium|high
+  "client_email": "client@firma.bg",  // авто-свързване с контакт
+  "invoice_id": null, "payment_id": null, "expense_id": null,
+  "source": "hermes", "source_email_id": "gmail:..."
+}
+```
+→ `{ "ok": true, "id": "...", "created": true, "contact_id": "..." }`
+
+## POST /api/crm/meta-ads-report
+
+Сутрешният анализ на рекламите (Hermes го парсва от имейла ти). Upsert по
+`(report_date, campaign)`. CPL се смята авто от spend/leads, ако липсва.
+
+```json
+{
+  "report_date": "2026-06-04", "campaign": "Лийдове · Юни",
+  "spend": 100, "leads": 20, "cpl": 5,
+  "impressions": 12000, "clicks": 240, "ctr": 2.0, "currency": "EUR",
+  "quality_notes": "…", "recommendations": "…", "raw": {}, "source": "hermes"
+}
+```
+→ `{ "ok": true, "id": "...", "created": true }`
+
+## GET /api/crm/accounting-summary  ·  GET /api/crm/sales-summary
+
+Четат обобщения (Bearer). accounting-summary: оборот/плащания/разходи/печалба/неплатени
+за текущия месец. sales-summary: pipeline + follow-up състояние.
+
+> **Welcome имейли** се пращат от приложението (Resend · от `ivailo@promarketing.pw` ·
+> reply-to `ivailopetev38@gmail.com`) — **НЕ от Hermes**.
