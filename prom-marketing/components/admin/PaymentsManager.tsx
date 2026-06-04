@@ -55,7 +55,7 @@ export function PaymentsManager({
               <input name="amount" type="number" step="0.01" required className={inputCls} />
             </Field>
             <Field label="Валута">
-              <input name="currency" defaultValue="BGN" className={inputCls} />
+              <input name="currency" defaultValue="EUR" className={inputCls} />
             </Field>
             <Field label="Платено на">
               <input name="paid_at" type="date" className={inputCls} />

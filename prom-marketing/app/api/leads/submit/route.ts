@@ -29,12 +29,22 @@ export async function POST(request: Request) {
   const { full_name, email, phone, company_activity, message } = parsed.data;
   const supabase = createServiceClient();
 
-  // Upsert contact by email — if exists, refresh missing fields.
-  const { data: existing } = await supabase
+  // Upsert contact by email, then fall back to phone — prevents duplicate
+  // contacts when the same person submits with a typo'd / different email but
+  // the same phone (matches the Meta lead dedup behaviour).
+  let { data: existing } = await supabase
     .from("contacts")
     .select("id, full_name, phone, company")
     .eq("email", email.toLowerCase())
     .maybeSingle();
+  if (!existing && phone) {
+    const { data: byPhone } = await supabase
+      .from("contacts")
+      .select("id, full_name, phone, company")
+      .eq("phone", phone)
+      .maybeSingle();
+    existing = byPhone;
+  }
 
   let contactId: string;
   if (existing) {

@@ -357,7 +357,7 @@ export async function upsertRecurringService(input: RecurringServiceInput): Prom
       contact_id: input.contact_id,
       service_type: input.service_type,
       amount: input.amount ?? null,
-      currency: input.currency ?? "BGN",
+      currency: input.currency ?? "EUR",
       billing_period: input.billing_period ?? "monthly",
       billing_day: input.billing_day ?? null,
       active: input.active ?? true,

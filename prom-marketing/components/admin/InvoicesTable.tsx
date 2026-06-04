@@ -322,7 +322,7 @@ function CreateInvoiceForm({ onClose }: { onClose: () => void }) {
           <input name="amount_gross" type="number" step="0.01" className={inputCls} />
         </Field>
         <Field label="Валута">
-          <input name="currency" defaultValue="BGN" className={inputCls} />
+          <input name="currency" defaultValue="EUR" className={inputCls} />
         </Field>
         <Field label="Услуга">
           <input name="service_type" placeholder="напр. GPS месечен" className={inputCls} />

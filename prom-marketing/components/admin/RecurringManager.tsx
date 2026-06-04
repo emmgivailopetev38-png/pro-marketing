@@ -56,7 +56,7 @@ export function RecurringManager({ services }: { services: EnrichedService[] }) 
               <input name="amount" type="number" step="0.01" className={inputCls} />
             </Field>
             <Field label="Валута">
-              <input name="currency" defaultValue="BGN" className={inputCls} />
+              <input name="currency" defaultValue="EUR" className={inputCls} />
             </Field>
             <Field label="Период">
               <select name="billing_period" defaultValue="monthly" className={inputCls}>

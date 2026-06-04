@@ -53,7 +53,7 @@ export async function createInvoiceAction(formData: FormData) {
     amount_net: num(formData.get("amount_net")),
     amount_gross: num(formData.get("amount_gross")),
     vat_amount: num(formData.get("vat_amount")),
-    currency: str(formData.get("currency")) ?? "BGN",
+    currency: str(formData.get("currency")) ?? "EUR",
     service_type: str(formData.get("service_type")),
     status,
     source: "manual",
@@ -102,7 +102,7 @@ export async function recordPaymentAction(formData: FormData) {
 
   const res = await upsertPayment({
     amount,
-    currency: str(formData.get("currency")) ?? "BGN",
+    currency: str(formData.get("currency")) ?? "EUR",
     paid_at: str(formData.get("paid_at")),
     counterparty_name: str(formData.get("counterparty_name")),
     payment_reference_redacted: str(formData.get("reference")),

@@ -104,7 +104,7 @@ export const RECURRING_SERVICE_TYPE_LABEL: Record<string, string> = {
 };
 
 /** Format an amount with its currency, Bulgarian locale. */
-export function formatMoney(amount: number | null | undefined, currency = "BGN"): string {
+export function formatMoney(amount: number | null | undefined, currency = "EUR"): string {
   if (amount == null) return "—";
   return `${Number(amount).toLocaleString("bg-BG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 }
