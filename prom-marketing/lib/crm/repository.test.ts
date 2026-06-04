@@ -14,6 +14,10 @@ import {
   createManualReviewItem,
   upsertRecurringService,
   matchPayment,
+  upsertExpense,
+  upsertDocument,
+  upsertMetaAdsReport,
+  recordAutomationEvent,
 } from "./repository";
 
 beforeEach(() => {
@@ -238,5 +242,84 @@ describe("matchPayment", () => {
     expect(r.blockers).toContain("ambiguous_candidates");
     expect((h.fake.store.payments[0] as { match_status: string }).match_status).toBe("ambiguous");
     expect((h.fake.store.invoices[0] as { status: string }).status).toBe("awaiting_payment");
+  });
+});
+
+describe("upsertExpense", () => {
+  it("creates an expense and is idempotent on source_email_id", async () => {
+    const args = {
+      supplier_name: "Кръстьо счетоводител",
+      category: "accountant" as const,
+      amount_gross: 120,
+      currency: "EUR",
+      status: "unpaid" as const,
+      source: "accountant_email" as const,
+      source_email_id: "exp-msg-1",
+    };
+    const a = await upsertExpense(args);
+    const b = await upsertExpense(args);
+    expect(a.created).toBe(true);
+    expect(b.created).toBe(false);
+    expect(h.fake.store.expenses).toHaveLength(1);
+  });
+});
+
+describe("upsertDocument", () => {
+  it("links a document to a contact by client_email", async () => {
+    h.fake = createFakeSupabase({ contacts: [{ id: "c1", email: "client@firma.bg" }] });
+    const r = await upsertDocument({
+      client_email: "client@firma.bg",
+      doc_type: "invoice",
+      title: "Фактура PDF",
+      source: "hermes",
+      storage_path: "crm-documents/x.pdf",
+    });
+    expect(r.created).toBe(true);
+    expect(r.contact_id).toBe("c1");
+    expect((h.fake.store.documents[0] as { match_status: string }).match_status).toBe("matched");
+  });
+
+  it("flags an unlinked document for manual review", async () => {
+    const r = await upsertDocument({ doc_type: "bank_statement", title: "Извлечение", source: "hermes" });
+    expect(r.created).toBe(true);
+    expect(r.contact_id).toBeNull();
+    expect((h.fake.store.documents[0] as { match_status: string }).match_status).toBe("unmatched");
+    expect(h.fake.store.manual_review_items).toHaveLength(1);
+  });
+});
+
+describe("upsertMetaAdsReport", () => {
+  it("upserts per (report_date, campaign) and computes CPL", async () => {
+    const a = await upsertMetaAdsReport({
+      report_date: "2026-06-04",
+      campaign: "Лийдове Юни",
+      spend: 100,
+      leads: 20,
+      currency: "EUR",
+      source: "hermes",
+    });
+    expect(a.created).toBe(true);
+    expect((h.fake.store.meta_ads_reports[0] as { cpl: number }).cpl).toBe(5);
+
+    const b = await upsertMetaAdsReport({
+      report_date: "2026-06-04",
+      campaign: "Лийдове Юни",
+      spend: 120,
+      leads: 20,
+      currency: "EUR",
+      source: "hermes",
+    });
+    expect(b.created).toBe(false);
+    expect(h.fake.store.meta_ads_reports).toHaveLength(1);
+  });
+});
+
+describe("recordAutomationEvent", () => {
+  it("is idempotent on idempotency_key", async () => {
+    const a = await recordAutomationEvent({ event_type: "test", idempotency_key: "k1" });
+    const b = await recordAutomationEvent({ event_type: "test", idempotency_key: "k1" });
+    expect(a.created).toBe(true);
+    expect(b.created).toBe(false);
+    expect(h.fake.store.automation_events).toHaveLength(1);
   });
 });

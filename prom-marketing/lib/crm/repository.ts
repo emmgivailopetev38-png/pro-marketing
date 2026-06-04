@@ -8,6 +8,9 @@ import type {
   RecurringServiceInput,
   MatchPaymentInput,
   UpsertResult,
+  ExpenseInput,
+  DocumentInput,
+  MetaAdsReportInput,
 } from "./types";
 
 type Sb = ReturnType<typeof createServiceClient>;
@@ -486,5 +489,296 @@ export async function matchPayment(input: MatchPaymentInput): Promise<MatchPayme
     payment_id: payment.id as string,
     invoice_id: invoice?.id as string | undefined,
     manual_review_id: mr.id ?? undefined,
+  };
+}
+
+// ── automation events (audit log) ───────────────────────────────────────────
+export async function recordAutomationEvent(input: {
+  event_type: string;
+  status?: "success" | "failed" | "skipped";
+  related_contact_id?: string | null;
+  related_invoice_id?: string | null;
+  related_payment_id?: string | null;
+  related_document_id?: string | null;
+  summary?: string;
+  detail?: Record<string, unknown>;
+  idempotency_key?: string;
+}): Promise<{ id: string | null; created: boolean }> {
+  const sb = createServiceClient();
+  if (input.idempotency_key) {
+    const { data } = await sb
+      .from("automation_events")
+      .select("id")
+      .eq("idempotency_key", input.idempotency_key)
+      .maybeSingle();
+    if (data) return { id: data.id, created: false };
+  }
+  const { data, error } = await sb
+    .from("automation_events")
+    .insert({
+      event_type: input.event_type,
+      status: input.status ?? "success",
+      related_contact_id: input.related_contact_id ?? null,
+      related_invoice_id: input.related_invoice_id ?? null,
+      related_payment_id: input.related_payment_id ?? null,
+      related_document_id: input.related_document_id ?? null,
+      summary: input.summary ?? null,
+      detail: input.detail ?? null,
+      idempotency_key: input.idempotency_key ?? null,
+    })
+    .select("id")
+    .single();
+  if (error || !data) return { id: null, created: false };
+  return { id: data.id, created: true };
+}
+
+// ── expenses ────────────────────────────────────────────────────────────────
+async function findExistingExpense(sb: Sb, input: ExpenseInput): Promise<{ id: string } | null> {
+  if (input.source_email_id) {
+    const { data } = await sb.from("expenses").select("id").eq("source_email_id", input.source_email_id).maybeSingle();
+    if (data) return data;
+  }
+  if (input.dedupe_key) {
+    const { data } = await sb.from("expenses").select("id").eq("dedupe_key", input.dedupe_key).maybeSingle();
+    if (data) return data;
+  }
+  return null;
+}
+
+export async function upsertExpense(input: ExpenseInput): Promise<UpsertResult> {
+  const sb = createServiceClient();
+  const existing = await findExistingExpense(sb, input);
+  if (existing) return { id: existing.id, created: false, error: null };
+
+  const { data, error } = await sb
+    .from("expenses")
+    .insert({
+      contact_id: input.contact_id ?? null,
+      supplier_name: input.supplier_name ?? null,
+      category: input.category,
+      description: input.description ?? null,
+      invoice_number: input.invoice_number ?? null,
+      amount_net: input.amount_net ?? null,
+      amount_gross: input.amount_gross ?? null,
+      vat_amount: input.vat_amount ?? null,
+      currency: input.currency,
+      expense_date: input.expense_date ?? null,
+      due_date: input.due_date ?? null,
+      status: input.status,
+      source: input.source,
+      source_email_id: input.source_email_id ?? null,
+      document_id: input.document_id ?? null,
+      notes: input.notes ?? null,
+      dedupe_key: input.dedupe_key ?? null,
+    })
+    .select("id")
+    .single();
+  if (error || !data) {
+    const again = await findExistingExpense(sb, input);
+    if (again) return { id: again.id, created: false, error: null };
+    return { id: null, created: false, error: error?.message ?? "insert failed" };
+  }
+  await recordAutomationEvent({
+    event_type: "expense_recorded",
+    related_contact_id: input.contact_id ?? null,
+    summary: `Разход ${input.amount_gross ?? "?"} ${input.currency} · ${input.supplier_name ?? input.category}`,
+    idempotency_key: `expense:${data.id}`,
+  }).catch(() => {});
+  return { id: data.id, created: true, error: null };
+}
+
+// ── documents ────────────────────────────────────────────────────────────────
+export async function upsertDocument(input: DocumentInput): Promise<UpsertResult & { contact_id: string | null }> {
+  const sb = createServiceClient();
+
+  let contactId = input.contact_id ?? null;
+  if (!contactId && input.client_email) {
+    const { data } = await sb.from("contacts").select("id").eq("email", input.client_email.toLowerCase()).maybeSingle();
+    if (data) contactId = data.id;
+  }
+
+  if (input.source_email_id) {
+    const { data } = await sb.from("documents").select("id").eq("source_email_id", input.source_email_id).maybeSingle();
+    if (data) return { id: data.id, created: false, error: null, contact_id: contactId };
+  }
+  if (input.dedupe_key) {
+    const { data } = await sb.from("documents").select("id").eq("dedupe_key", input.dedupe_key).maybeSingle();
+    if (data) return { id: data.id, created: false, error: null, contact_id: contactId };
+  }
+
+  const linked = !!(contactId || input.invoice_id || input.payment_id || input.expense_id);
+  const matchStatus = input.match_status ?? (linked ? "matched" : "unmatched");
+
+  const { data, error } = await sb
+    .from("documents")
+    .insert({
+      contact_id: contactId,
+      invoice_id: input.invoice_id ?? null,
+      payment_id: input.payment_id ?? null,
+      expense_id: input.expense_id ?? null,
+      doc_type: input.doc_type,
+      title: input.title ?? null,
+      file_name: input.file_name ?? null,
+      storage_path: input.storage_path ?? null,
+      mime_type: input.mime_type ?? null,
+      size_bytes: input.size_bytes ?? null,
+      ocr_text: input.ocr_text ?? null,
+      extracted: input.extracted ?? null,
+      match_status: matchStatus,
+      match_confidence: input.match_confidence ?? null,
+      source: input.source,
+      source_email_id: input.source_email_id ?? null,
+      notes: input.notes ?? null,
+      dedupe_key: input.dedupe_key ?? null,
+    })
+    .select("id")
+    .single();
+  if (error || !data) {
+    return { id: null, created: false, error: error?.message ?? "insert failed", contact_id: contactId };
+  }
+
+  if (!linked) {
+    await createManualReviewItem({
+      type: "ambiguous_pdf",
+      title: `Документ за свързване: ${input.title ?? input.file_name ?? input.doc_type}`,
+      description: `Документ без връзка към контакт/фактура/плащане. Тип: ${input.doc_type}.`,
+      related_contact_id: contactId ?? undefined,
+      severity: "low",
+      dedupe_key: `mr:doc:${data.id}`,
+    }).catch(() => {});
+  }
+  await recordAutomationEvent({
+    event_type: "document_ingested",
+    related_contact_id: contactId,
+    related_document_id: data.id,
+    related_invoice_id: input.invoice_id ?? null,
+    summary: `Документ (${input.doc_type}) от ${input.source}`,
+    idempotency_key: `doc:${data.id}`,
+  }).catch(() => {});
+
+  return { id: data.id, created: true, error: null, contact_id: contactId };
+}
+
+// ── meta ads reports ─────────────────────────────────────────────────────────
+export async function upsertMetaAdsReport(input: MetaAdsReportInput): Promise<UpsertResult> {
+  const sb = createServiceClient();
+  const campaign = input.campaign ?? null;
+  const cpl =
+    input.cpl ?? (input.spend != null && input.leads ? Number((input.spend / input.leads).toFixed(2)) : null);
+
+  const row = {
+    report_date: input.report_date,
+    campaign,
+    spend: input.spend ?? null,
+    leads: input.leads ?? null,
+    cpl,
+    impressions: input.impressions ?? null,
+    clicks: input.clicks ?? null,
+    ctr: input.ctr ?? null,
+    currency: input.currency,
+    quality_notes: input.quality_notes ?? null,
+    recommendations: input.recommendations ?? null,
+    raw: input.raw ?? null,
+    source: input.source,
+    source_email_id: input.source_email_id ?? null,
+    dedupe_key: input.dedupe_key ?? null,
+  };
+
+  // Upsert by (report_date, campaign) — re-ingesting the morning report refreshes it.
+  let finder = sb.from("meta_ads_reports").select("id").eq("report_date", input.report_date);
+  finder = campaign === null ? finder.is("campaign", null) : finder.eq("campaign", campaign);
+  const { data: existing } = await finder.maybeSingle();
+  if (existing) {
+    await sb.from("meta_ads_reports").update(row).eq("id", existing.id);
+    return { id: existing.id, created: false, error: null };
+  }
+
+  const { data, error } = await sb.from("meta_ads_reports").insert(row).select("id").single();
+  if (error || !data) return { id: null, created: false, error: error?.message ?? "insert failed" };
+  await recordAutomationEvent({
+    event_type: "meta_report_ingested",
+    summary: `Meta справка ${input.report_date}${campaign ? " · " + campaign : ""}`,
+    idempotency_key: `metareport:${data.id}`,
+  }).catch(() => {});
+  return { id: data.id, created: true, error: null };
+}
+
+// ── read summaries (for Hermes / daily reports) ──────────────────────────────
+function monthIndex(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return d.getFullYear() * 12 + d.getMonth();
+}
+
+export async function getAccountingSummary(): Promise<Record<string, unknown>> {
+  const sb = createServiceClient();
+  const now = new Date();
+  const cur = now.getFullYear() * 12 + now.getMonth();
+  const UNPAID = ["sent", "awaiting_payment", "partially_paid", "overdue"];
+
+  const [{ data: inv }, { data: pay }, { data: exp }] = await Promise.all([
+    sb.from("invoices").select("status, amount_gross, issue_date, due_date"),
+    sb.from("payments").select("amount, paid_at, created_at, match_status"),
+    sb.from("expenses").select("amount_gross, status, expense_date"),
+  ]);
+  const invoices = (inv ?? []) as Array<{ status: string; amount_gross: number | null; issue_date: string | null; due_date: string | null }>;
+  const payments = (pay ?? []) as Array<{ amount: number | null; paid_at: string | null; created_at: string; match_status: string }>;
+  const expenses = (exp ?? []) as Array<{ amount_gross: number | null; status: string; expense_date: string | null }>;
+
+  const revenueExpected = invoices
+    .filter((i) => monthIndex(i.issue_date) === cur && !["cancelled", "excluded"].includes(i.status))
+    .reduce((s, i) => s + (Number(i.amount_gross) || 0), 0);
+  const paymentsReceived = payments
+    .filter((p) => p.match_status !== "ignored" && monthIndex(p.paid_at ?? p.created_at) === cur)
+    .reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  const unpaidList = invoices.filter((i) => UNPAID.includes(i.status));
+  const unpaidTotal = unpaidList.reduce((s, i) => s + (Number(i.amount_gross) || 0), 0);
+  const overdueCount = unpaidList.filter((i) => i.due_date && new Date(i.due_date) < now).length;
+  const expensesThisMonth = expenses
+    .filter((e) => monthIndex(e.expense_date) === cur && e.status !== "cancelled")
+    .reduce((s, e) => s + (Number(e.amount_gross) || 0), 0);
+
+  return {
+    month: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
+    revenue_expected: revenueExpected,
+    payments_received: paymentsReceived,
+    expenses: expensesThisMonth,
+    profit: Number((paymentsReceived - expensesThisMonth).toFixed(2)),
+    unpaid_invoices_count: unpaidList.length,
+    unpaid_invoices_total: unpaidTotal,
+    overdue_invoices_count: overdueCount,
+    currency: "EUR",
+  };
+}
+
+export async function getSalesSummary(): Promise<Record<string, unknown>> {
+  const sb = createServiceClient();
+  const now = Date.now();
+  const { data } = await sb
+    .from("contacts")
+    .select("stage, followup_status, next_followup_at, last_heard_from_at");
+  const contacts = (data ?? []) as Array<{
+    stage: string;
+    followup_status: string | null;
+    next_followup_at: string | null;
+    last_heard_from_at: string | null;
+  }>;
+
+  const byStage: Record<string, number> = {};
+  for (const c of contacts) byStage[c.stage] = (byStage[c.stage] ?? 0) + 1;
+
+  const heardSince = (c: { next_followup_at: string | null; last_heard_from_at: string | null }) =>
+    !!c.last_heard_from_at && !!c.next_followup_at && c.last_heard_from_at >= c.next_followup_at;
+  const overdueNotHeard = contacts.filter(
+    (c) => c.next_followup_at && new Date(c.next_followup_at).getTime() < now && !heardSince(c)
+  ).length;
+
+  return {
+    total_contacts: contacts.length,
+    by_stage: byStage,
+    offer_sent: contacts.filter((c) => c.stage === "offer_sent" || c.followup_status === "sent_offer").length,
+    negotiating: byStage["negotiating"] ?? 0,
+    overdue_followups: overdueNotHeard,
+    ready_to_close: contacts.filter((c) => c.followup_status === "ready_to_close").length,
   };
 }

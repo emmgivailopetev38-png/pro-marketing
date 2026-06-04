@@ -318,3 +318,175 @@ export interface UpsertResult {
   created: boolean;
   error: string | null;
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Expenses (разходи към доставчици)
+// ─────────────────────────────────────────────────────────────────────────
+export const EXPENSE_CATEGORIES = [
+  "accountant",
+  "hosting",
+  "ads",
+  "gps_hardware",
+  "software",
+  "office",
+  "salary",
+  "tax",
+  "bank_fee",
+  "other",
+] as const;
+export const EXPENSE_STATUSES = ["unpaid", "paid", "partially_paid", "cancelled"] as const;
+export const EXPENSE_SOURCES = [
+  "manual",
+  "gmail",
+  "accountant_email",
+  "hermes",
+  "uploaded_pdf",
+  "bank_statement",
+] as const;
+
+export const expenseInputSchema = z.object({
+  contact_id: contactRef,
+  supplier_name: z.string().trim().optional(),
+  category: z.enum(EXPENSE_CATEGORIES).default("other"),
+  description: z.string().optional(),
+  invoice_number: z.string().trim().optional(),
+  amount_net: moneyOptional,
+  amount_gross: moneyOptional,
+  vat_amount: moneyOptional,
+  currency: z.string().trim().default("EUR"),
+  expense_date: isoDate,
+  due_date: isoDate,
+  status: z.enum(EXPENSE_STATUSES).default("unpaid"),
+  source: z.enum(EXPENSE_SOURCES).default("hermes"),
+  source_email_id: z.string().trim().optional(),
+  document_id: z.string().uuid().optional(),
+  notes: z.string().optional(),
+  dedupe_key: z.string().trim().optional(),
+});
+export type ExpenseInput = z.infer<typeof expenseInputSchema>;
+
+export interface ExpenseRow {
+  id: string;
+  contact_id: string | null;
+  supplier_name: string | null;
+  category: (typeof EXPENSE_CATEGORIES)[number];
+  description: string | null;
+  invoice_number: string | null;
+  amount_net: number | null;
+  amount_gross: number | null;
+  vat_amount: number | null;
+  currency: string;
+  expense_date: string | null;
+  due_date: string | null;
+  status: (typeof EXPENSE_STATUSES)[number];
+  source: string;
+  source_email_id: string | null;
+  document_id: string | null;
+  notes: string | null;
+  dedupe_key: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Documents (PDF/снимки/талони/извлечения + OCR данни от Hermes)
+// ─────────────────────────────────────────────────────────────────────────
+export const DOC_TYPES = [
+  "invoice",
+  "proforma",
+  "receipt",
+  "bank_statement",
+  "contract",
+  "photo",
+  "gps_protocol",
+  "other",
+] as const;
+export const DOC_SOURCES = ["hermes", "upload", "gmail", "accountant_email", "bank_statement"] as const;
+
+export const documentInputSchema = z.object({
+  contact_id: contactRef,
+  client_email: z.string().email().optional(),
+  invoice_id: z.string().uuid().optional(),
+  payment_id: z.string().uuid().optional(),
+  expense_id: z.string().uuid().optional(),
+  doc_type: z.enum(DOC_TYPES).default("other"),
+  title: z.string().trim().optional(),
+  file_name: z.string().trim().optional(),
+  storage_path: z.string().trim().optional(),
+  mime_type: z.string().trim().optional(),
+  size_bytes: z.coerce.number().int().optional(),
+  ocr_text: z.string().optional(),
+  extracted: z.record(z.string(), z.unknown()).optional(),
+  match_status: z.enum(MATCH_STATUSES).optional(),
+  match_confidence: z.enum(MATCH_CONFIDENCES).optional(),
+  source: z.enum(DOC_SOURCES).default("hermes"),
+  source_email_id: z.string().trim().optional(),
+  notes: z.string().optional(),
+  dedupe_key: z.string().trim().optional(),
+});
+export type DocumentInput = z.infer<typeof documentInputSchema>;
+
+export interface DocumentRow {
+  id: string;
+  contact_id: string | null;
+  invoice_id: string | null;
+  payment_id: string | null;
+  expense_id: string | null;
+  doc_type: (typeof DOC_TYPES)[number];
+  title: string | null;
+  file_name: string | null;
+  storage_path: string | null;
+  mime_type: string | null;
+  size_bytes: number | null;
+  ocr_text: string | null;
+  extracted: Record<string, unknown> | null;
+  match_status: (typeof MATCH_STATUSES)[number];
+  match_confidence: (typeof MATCH_CONFIDENCES)[number] | null;
+  source: string;
+  source_email_id: string | null;
+  notes: string | null;
+  dedupe_key: string | null;
+  created_at: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Meta ads reports (сутрешният анализ от Hermes)
+// ─────────────────────────────────────────────────────────────────────────
+export const metaAdsReportInputSchema = z.object({
+  report_date: z.string().trim().min(1),
+  campaign: z.string().trim().optional(),
+  spend: moneyOptional,
+  leads: z.coerce.number().int().optional(),
+  cpl: moneyOptional,
+  impressions: z.coerce.number().int().optional(),
+  clicks: z.coerce.number().int().optional(),
+  ctr: z.coerce.number().optional(),
+  currency: z.string().trim().default("EUR"),
+  quality_notes: z.string().optional(),
+  recommendations: z.string().optional(),
+  raw: z.record(z.string(), z.unknown()).optional(),
+  source: z.enum(["hermes", "email", "manual"]).default("hermes"),
+  source_email_id: z.string().trim().optional(),
+  dedupe_key: z.string().trim().optional(),
+});
+export type MetaAdsReportInput = z.infer<typeof metaAdsReportInputSchema>;
+
+export interface MetaAdsReportRow {
+  id: string;
+  report_date: string;
+  campaign: string | null;
+  spend: number | null;
+  leads: number | null;
+  cpl: number | null;
+  impressions: number | null;
+  clicks: number | null;
+  ctr: number | null;
+  currency: string;
+  quality_notes: string | null;
+  recommendations: string | null;
+  raw: Record<string, unknown> | null;
+  source: string;
+  source_email_id: string | null;
+  dedupe_key: string | null;
+  created_at: string;
+}

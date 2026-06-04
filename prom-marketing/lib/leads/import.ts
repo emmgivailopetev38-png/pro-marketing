@@ -2,6 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/service";
 import { fetchSheetCsv, parseCsv, type CsvRow } from "./google-sheets";
+import { sendWelcomeEmail } from "@/lib/email/welcome";
 
 export interface LeadSource {
   id: string;
@@ -235,6 +236,19 @@ async function mirrorLeadsToContacts(leads: NormalizedLead[]): Promise<number> {
       if (!created) continue;
       contactId = created.id;
       count++;
+
+      // Auto-welcome за нови лидове от таблицата (същият template като сайт/Meta
+      // webhook; idempotent — никой не получава два пъти). Изключва се с
+      // META_AUTO_WELCOME=false.
+      if (email && process.env.META_AUTO_WELCOME !== "false") {
+        await sendWelcomeEmail({
+          supabase,
+          contactId,
+          to: email,
+          fullName: lead.full_name,
+          source: "meta_lead",
+        }).catch(() => {});
+      }
     }
 
     // Activity timeline (idempotent on meta_lead_id)

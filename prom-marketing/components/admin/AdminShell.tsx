@@ -38,6 +38,7 @@ const LINK_GROUPS: LinkGroup[] = [
       { href: "/admin/accounting", label: "📊 Счетоводно табло" },
       { href: "/admin/invoices", label: "🧾 Фактури" },
       { href: "/admin/payments", label: "💰 Плащания" },
+      { href: "/admin/expenses", label: "🧮 Разходи" },
       { href: "/admin/recurring", label: "🔁 Абонаменти" },
       { href: "/admin/manual-review", label: "🔍 Ръчна проверка" },
     ],

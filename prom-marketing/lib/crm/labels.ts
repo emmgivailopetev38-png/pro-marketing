@@ -66,6 +66,33 @@ export const SEVERITY_COLOR: Record<string, string> = {
   high: "#ef4444",
 };
 
+export const EXPENSE_CATEGORY_LABEL: Record<string, string> = {
+  accountant: "Счетоводител",
+  hosting: "Хостинг",
+  ads: "Реклами",
+  gps_hardware: "GPS хардуер",
+  software: "Софтуер",
+  office: "Офис",
+  salary: "Заплати",
+  tax: "Данъци",
+  bank_fee: "Банкови такси",
+  other: "Друго",
+};
+
+export const EXPENSE_STATUS_LABEL: Record<string, string> = {
+  unpaid: "Неплатен",
+  paid: "Платен",
+  partially_paid: "Частично",
+  cancelled: "Анулиран",
+};
+
+export const EXPENSE_STATUS_COLOR: Record<string, string> = {
+  unpaid: "#facc15",
+  paid: "#22c55e",
+  partially_paid: "#fb923c",
+  cancelled: "#64748b",
+};
+
 export const RECURRING_SERVICE_TYPE_LABEL: Record<string, string> = {
   gps: "GPS",
   crm: "CRM",

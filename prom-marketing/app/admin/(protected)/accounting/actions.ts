@@ -2,13 +2,15 @@
 import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/service";
 import { requireAdmin } from "@/lib/admin/require-admin";
-import { upsertInvoice, upsertPayment, upsertRecurringService } from "@/lib/crm/repository";
+import { upsertInvoice, upsertPayment, upsertRecurringService, upsertExpense } from "@/lib/crm/repository";
 import { invoiceStatusAfterPayment } from "@/lib/crm/match";
 import {
   INVOICE_TYPES,
   INVOICE_STATUSES,
   RECURRING_SERVICE_TYPES,
   BILLING_PERIODS,
+  EXPENSE_CATEGORIES,
+  EXPENSE_STATUSES,
   type InvoiceType,
   type InvoiceStatus,
 } from "@/lib/crm/types";
@@ -199,5 +201,50 @@ export async function toggleRecurringAction(formData: FormData) {
     .from("recurring_services")
     .update({ [field]: value })
     .eq("id", id);
+  revalidateAccounting();
+}
+
+/** Add an expense manually (разход към доставчик). */
+export async function createExpenseAction(formData: FormData) {
+  await requireAdmin();
+  const categoryRaw = str(formData.get("category"));
+  const category =
+    categoryRaw && EXPENSE_CATEGORIES.includes(categoryRaw as (typeof EXPENSE_CATEGORIES)[number])
+      ? (categoryRaw as (typeof EXPENSE_CATEGORIES)[number])
+      : "other";
+  const statusRaw = str(formData.get("status"));
+  const status =
+    statusRaw && EXPENSE_STATUSES.includes(statusRaw as (typeof EXPENSE_STATUSES)[number])
+      ? (statusRaw as (typeof EXPENSE_STATUSES)[number])
+      : "unpaid";
+
+  const res = await upsertExpense({
+    supplier_name: str(formData.get("supplier_name")),
+    category,
+    description: str(formData.get("description")),
+    invoice_number: str(formData.get("invoice_number")),
+    amount_net: num(formData.get("amount_net")),
+    amount_gross: num(formData.get("amount_gross")),
+    vat_amount: num(formData.get("vat_amount")),
+    currency: str(formData.get("currency")) ?? "EUR",
+    expense_date: str(formData.get("expense_date")),
+    due_date: str(formData.get("due_date")),
+    status,
+    source: "manual",
+  });
+  if (res.error) throw new Error(res.error);
+  revalidateAccounting();
+}
+
+/** Quick status change on an expense. */
+export async function setExpenseStatusAction(formData: FormData) {
+  await requireAdmin();
+  const id = str(formData.get("expense_id"));
+  const status = str(formData.get("status"));
+  if (!id || !status || !EXPENSE_STATUSES.includes(status as (typeof EXPENSE_STATUSES)[number])) {
+    throw new Error("Invalid input");
+  }
+  const svc = createServiceClient();
+  await svc.from("expenses").update({ status }).eq("id", id);
   revalidateAccounting();
 }

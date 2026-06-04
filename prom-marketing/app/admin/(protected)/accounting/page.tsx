@@ -19,16 +19,18 @@ export default async function AccountingPage() {
   };
   const curMonth = now.getFullYear() * 12 + now.getMonth();
 
-  const [{ data: inv }, { data: pay }, { data: rec }, { data: review }] = await Promise.all([
+  const [{ data: inv }, { data: pay }, { data: rec }, { data: review }, { data: exp }] = await Promise.all([
     sb.from("invoices").select("*").order("issue_date", { ascending: false }),
     sb.from("payments").select("*").order("paid_at", { ascending: false }),
     sb.from("recurring_services").select("service_type, active, excluded_from_auto_send"),
     sb.from("manual_review_items").select("id, status").eq("status", "open"),
+    sb.from("expenses").select("amount_gross, status, expense_date"),
   ]);
 
   const invoices = (inv ?? []) as InvoiceRow[];
   const payments = (pay ?? []) as PaymentRow[];
   const recurring = (rec ?? []) as Array<{ service_type: string; active: boolean; excluded_from_auto_send: boolean }>;
+  const expenses = (exp ?? []) as Array<{ amount_gross: number | null; status: string; expense_date: string | null }>;
 
   // Revenue + payments — this month vs last month.
   const sumInvoices = (m: number) =>
@@ -44,6 +46,15 @@ export default async function AccountingPage() {
   const revenueLast = sumInvoices(curMonth - 1);
   const paidThis = sumPayments(curMonth);
   const paidLast = sumPayments(curMonth - 1);
+
+  const sumExpenses = (m: number) =>
+    expenses
+      .filter((e) => e.status !== "cancelled" && monthOf(e.expense_date) === m)
+      .reduce((s, e) => s + (Number(e.amount_gross) || 0), 0);
+  const expensesThis = sumExpenses(curMonth);
+  const expensesLast = sumExpenses(curMonth - 1);
+  const profitThis = paidThis - expensesThis;
+  const marginPct = paidThis > 0 ? Math.round((profitThis / paidThis) * 100) : 0;
 
   // 6-month paid trend.
   const trend = Array.from({ length: 6 }, (_, idx) => {
@@ -116,6 +127,8 @@ export default async function AccountingPage() {
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           <KpiCard label="Очакван приход" value={formatMoney(revenueThis)} hint={`минал месец ${formatMoney(revenueLast)}`} color="#facc15" />
           <KpiCard label="Получени плащания" value={formatMoney(paidThis)} hint={`минал месец ${formatMoney(paidLast)}`} color="#22c55e" />
+          <KpiCard label="Разходи" value={formatMoney(expensesThis)} hint={`минал месец ${formatMoney(expensesLast)}`} color="#fb923c" href="/admin/expenses" />
+          <KpiCard label="Печалба / марж" value={formatMoney(profitThis)} hint={`${marginPct}% марж`} color={profitThis >= 0 ? "#22c55e" : "#ef4444"} />
           <KpiCard label="Неплатени" value={formatMoney(unpaidTotal)} hint={`${unpaidList.length} фактури`} color="#fb923c" href="/admin/invoices" />
           <KpiCard label="Просрочени" value={overdueList.length} hint="минал падеж" color={overdueList.length > 0 ? "#ef4444" : "#22c55e"} href="/admin/invoices" />
           <KpiCard label="Чакат потвърждение" value={awaitingConfirmation} hint="незасечени плащания" color="#7da8cc" href="/admin/payments" />
