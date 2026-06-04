@@ -2,18 +2,22 @@
 import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/service";
 import { requireAdmin } from "@/lib/admin/require-admin";
+import { MANUAL_REVIEW_STATUSES } from "@/lib/crm/types";
 
-/** Mark an item resolved or ignored. */
+const CLOSED = new Set(["resolved", "ignored"]);
+
+/** Set the lifecycle status of a manual-review item (open/needs_user/blocked/resolved/ignored). */
 export async function resolveManualReview(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("item_id") ?? "");
   const status = String(formData.get("status") ?? "");
-  if (!id || !["resolved", "ignored"].includes(status)) throw new Error("Invalid input");
+  if (!id || !(MANUAL_REVIEW_STATUSES as readonly string[]).includes(status)) throw new Error("Invalid input");
 
   const svc = createServiceClient();
   await svc
     .from("manual_review_items")
-    .update({ status, resolved_at: new Date().toISOString() })
+    // resolved_at is set only for terminal states; re-opening clears it.
+    .update({ status, resolved_at: CLOSED.has(status) ? new Date().toISOString() : null })
     .eq("id", id);
 
   revalidatePath("/admin/manual-review");

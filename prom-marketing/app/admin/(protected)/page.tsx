@@ -82,7 +82,7 @@ export default async function AdminDashboard() {
     supabase.from("bookings").select("id, status, scheduled_at, attendee_name, attendee_email, business, meeting_url"),
     supabase.from("meta_leads").select("id, processed, created_at"),
     supabase.from("invoices").select("id, status, amount_gross, due_date, issue_date, contact_id"),
-    supabase.from("manual_review_items").select("id").eq("status", "open"),
+    supabase.from("manual_review_items").select("id").in("status", ["open", "needs_user", "blocked"]),
     supabase.from("payments").select("amount, paid_at, created_at, match_status"),
     supabase.from("expenses").select("amount_gross, status, expense_date"),
     supabase

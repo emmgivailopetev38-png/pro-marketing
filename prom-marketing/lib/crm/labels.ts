@@ -66,6 +66,22 @@ export const SEVERITY_COLOR: Record<string, string> = {
   high: "#ef4444",
 };
 
+export const MANUAL_REVIEW_STATUS_LABEL: Record<string, string> = {
+  open: "Отворено",
+  needs_user: "Чака Ивайло",
+  blocked: "Блокирано",
+  resolved: "Решено",
+  ignored: "Игнорирано",
+};
+
+export const MANUAL_REVIEW_STATUS_COLOR: Record<string, string> = {
+  open: "#facc15",
+  needs_user: "#06b6d4",
+  blocked: "#ef4444",
+  resolved: "#22c55e",
+  ignored: "#64748b",
+};
+
 export const DOC_TYPE_LABEL: Record<string, string> = {
   invoice: "Фактура",
   proforma: "Проформа",

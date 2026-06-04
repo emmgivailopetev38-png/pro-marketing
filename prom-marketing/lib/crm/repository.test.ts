@@ -78,6 +78,29 @@ describe("upsertInvoice", () => {
     expect(h.fake.store.contact_activities).toHaveLength(1);
   });
 
+  it("converts a BGN invoice to EUR and preserves the original", async () => {
+    const r = await upsertInvoice({
+      invoice_number: "F-BGN",
+      invoice_type: "invoice",
+      amount_gross: 240,
+      currency: "BGN",
+      source: "hermes",
+    });
+    expect(r.created).toBe(true);
+    const inv = h.fake.store.invoices[0] as {
+      currency: string;
+      amount_gross: number;
+      original_amount: number;
+      original_currency: string;
+      fx_source: string;
+    };
+    expect(inv.currency).toBe("EUR");
+    expect(inv.amount_gross).toBe(122.71); // 240 / 1.95583
+    expect(inv.original_amount).toBe(240);
+    expect(inv.original_currency).toBe("BGN");
+    expect(inv.fx_source).toBe("fixed_eur_bgn_1.95583");
+  });
+
   it("is idempotent on source_email_id", async () => {
     const args = {
       client_email: "x@firma.bg",

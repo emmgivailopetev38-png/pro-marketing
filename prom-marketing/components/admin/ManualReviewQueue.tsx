@@ -1,7 +1,12 @@
 "use client";
 import Link from "next/link";
-import type { ManualReviewRow } from "@/lib/crm/types";
-import { MANUAL_REVIEW_TYPE_LABEL, SEVERITY_COLOR } from "@/lib/crm/labels";
+import type { ManualReviewRow, ManualReviewStatus } from "@/lib/crm/types";
+import {
+  MANUAL_REVIEW_TYPE_LABEL,
+  SEVERITY_COLOR,
+  MANUAL_REVIEW_STATUS_LABEL,
+  MANUAL_REVIEW_STATUS_COLOR,
+} from "@/lib/crm/labels";
 import {
   resolveManualReview,
   matchToContactByEmail,
@@ -47,6 +52,17 @@ export function ManualReviewQueue({ items }: { items: ReviewItem[] }) {
                 <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-[var(--color-text-tertiary)]">
                   {MANUAL_REVIEW_TYPE_LABEL[it.type] ?? it.type}
                 </span>
+                {it.status !== "open" && (
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                    style={{
+                      background: `${MANUAL_REVIEW_STATUS_COLOR[it.status] ?? "#64748b"}22`,
+                      color: MANUAL_REVIEW_STATUS_COLOR[it.status] ?? "#64748b",
+                    }}
+                  >
+                    {MANUAL_REVIEW_STATUS_LABEL[it.status] ?? it.status}
+                  </span>
+                )}
                 <span className="font-medium text-[var(--color-text-primary)]">{it.title}</span>
               </div>
               {it.description && (
@@ -89,6 +105,16 @@ export function ManualReviewQueue({ items }: { items: ReviewItem[] }) {
                 📞 Създай follow-up
               </ActionButton>
             )}
+            {it.status !== "needs_user" && (
+              <ResolveButton itemId={it.id} status="needs_user" className="border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10">
+                ⏳ Чакам Ивайло
+              </ResolveButton>
+            )}
+            {it.status !== "blocked" && (
+              <ResolveButton itemId={it.id} status="blocked" className="border-red-500/40 text-red-300 hover:bg-red-500/10">
+                ⛔ Блокирай
+              </ResolveButton>
+            )}
             <ResolveButton itemId={it.id} status="resolved" className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10">
               ✓ Решено
             </ResolveButton>
@@ -109,7 +135,7 @@ function ResolveButton({
   children,
 }: {
   itemId: string;
-  status: "resolved" | "ignored";
+  status: ManualReviewStatus;
   className?: string;
   children: React.ReactNode;
 }) {

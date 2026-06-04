@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { evaluatePaymentMatch, invoiceStatusAfterPayment, type MatchConfidence } from "./match";
+import { toEur, convertWith, fxColumns } from "./fx";
 import type {
   ActivityInput,
   InvoiceInput,
@@ -172,6 +173,8 @@ export async function upsertInvoice(input: InvoiceInput): Promise<UpsertResult &
   if (existing) return { id: existing.id, created: false, error: null, contact_id: contactId };
 
   const status = input.status ?? (input.source === "manual" ? "draft" : "awaiting_payment");
+  // Everything is stored in EUR; the original currency/amount/rate is preserved.
+  const fx = toEur(input.amount_gross, input.currency, input.fx_rate);
   const row = {
     contact_id: contactId,
     client_name: input.client_name ?? null,
@@ -180,10 +183,11 @@ export async function upsertInvoice(input: InvoiceInput): Promise<UpsertResult &
     invoice_type: input.invoice_type,
     issue_date: input.issue_date ?? null,
     due_date: input.due_date ?? null,
-    amount_net: input.amount_net ?? null,
-    amount_gross: input.amount_gross ?? null,
-    vat_amount: input.vat_amount ?? null,
-    currency: input.currency,
+    amount_net: convertWith(input.amount_net, fx.fx_rate),
+    amount_gross: fx.amount_eur,
+    vat_amount: convertWith(input.vat_amount, fx.fx_rate),
+    currency: "EUR",
+    ...fxColumns(fx),
     service_type: input.service_type ?? null,
     status,
     source: input.source,
@@ -208,7 +212,7 @@ export async function upsertInvoice(input: InvoiceInput): Promise<UpsertResult &
       type: "invoice",
       title: label,
       body: input.notes ?? null,
-      metadata: { dedupe_key: `invoice:${data.id}`, invoice_id: data.id, amount_gross: input.amount_gross, status },
+      metadata: { dedupe_key: `invoice:${data.id}`, invoice_id: data.id, amount_gross: fx.amount_eur, currency: "EUR", status },
     }).catch(() => {});
   } else if (input.client_email || input.client_name) {
     // Surface unlinked invoices so they get attached to a profile.
@@ -243,11 +247,13 @@ export async function upsertPayment(input: PaymentInput): Promise<UpsertResult> 
   const existing = await findExistingPayment(sb, input);
   if (existing) return { id: existing.id, created: false, error: null };
 
+  const fx = toEur(input.amount, input.currency, input.fx_rate);
   const row = {
     contact_id: input.contact_id ?? null,
     invoice_id: input.invoice_id ?? null,
-    amount: input.amount,
-    currency: input.currency,
+    amount: fx.amount_eur ?? input.amount,
+    currency: "EUR",
+    ...fxColumns(fx),
     paid_at: input.paid_at ?? null,
     counterparty_name: input.counterparty_name ?? null,
     payment_reference_redacted: input.payment_reference_redacted ?? null,
@@ -271,7 +277,7 @@ export async function upsertPayment(input: PaymentInput): Promise<UpsertResult> 
     await logActivity(sb, {
       contact_id: input.contact_id,
       type: "payment_received",
-      title: `Плащане ${input.amount} ${input.currency}`,
+      title: `Плащане ${fx.amount_eur ?? input.amount} EUR`,
       metadata: { dedupe_key: `payment:${data.id}`, payment_id: data.id, match_status: input.match_status },
     }).catch(() => {});
   }
@@ -550,6 +556,7 @@ export async function upsertExpense(input: ExpenseInput): Promise<UpsertResult> 
   const existing = await findExistingExpense(sb, input);
   if (existing) return { id: existing.id, created: false, error: null };
 
+  const fx = toEur(input.amount_gross, input.currency, input.fx_rate);
   const { data, error } = await sb
     .from("expenses")
     .insert({
@@ -558,10 +565,11 @@ export async function upsertExpense(input: ExpenseInput): Promise<UpsertResult> 
       category: input.category,
       description: input.description ?? null,
       invoice_number: input.invoice_number ?? null,
-      amount_net: input.amount_net ?? null,
-      amount_gross: input.amount_gross ?? null,
-      vat_amount: input.vat_amount ?? null,
-      currency: input.currency,
+      amount_net: convertWith(input.amount_net, fx.fx_rate),
+      amount_gross: fx.amount_eur,
+      vat_amount: convertWith(input.vat_amount, fx.fx_rate),
+      currency: "EUR",
+      ...fxColumns(fx),
       expense_date: input.expense_date ?? null,
       due_date: input.due_date ?? null,
       status: input.status,
@@ -581,7 +589,7 @@ export async function upsertExpense(input: ExpenseInput): Promise<UpsertResult> 
   await recordAutomationEvent({
     event_type: "expense_recorded",
     related_contact_id: input.contact_id ?? null,
-    summary: `Разход ${input.amount_gross ?? "?"} ${input.currency} · ${input.supplier_name ?? input.category}`,
+    summary: `Разход ${fx.amount_eur ?? "?"} EUR · ${input.supplier_name ?? input.category}`,
     idempotency_key: `expense:${data.id}`,
   }).catch(() => {});
   return { id: data.id, created: true, error: null };

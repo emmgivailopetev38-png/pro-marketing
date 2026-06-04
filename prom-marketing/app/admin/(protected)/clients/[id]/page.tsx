@@ -33,7 +33,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       .from("manual_review_items")
       .select("*")
       .eq("related_contact_id", id)
-      .eq("status", "open")
+      .in("status", ["open", "needs_user", "blocked"])
       .order("created_at", { ascending: false }),
   ]);
 

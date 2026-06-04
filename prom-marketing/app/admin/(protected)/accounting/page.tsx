@@ -23,7 +23,7 @@ export default async function AccountingPage() {
     sb.from("invoices").select("*").order("issue_date", { ascending: false }),
     sb.from("payments").select("*").order("paid_at", { ascending: false }),
     sb.from("recurring_services").select("service_type, active, excluded_from_auto_send"),
-    sb.from("manual_review_items").select("id, status").eq("status", "open"),
+    sb.from("manual_review_items").select("id, status").in("status", ["open", "needs_user", "blocked"]),
     sb.from("expenses").select("amount_gross, status, expense_date"),
   ]);
 

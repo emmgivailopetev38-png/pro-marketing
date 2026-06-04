@@ -9,7 +9,7 @@ export default async function ManualReviewPage() {
   const { data } = await sb
     .from("manual_review_items")
     .select("*")
-    .eq("status", "open")
+    .in("status", ["open", "needs_user", "blocked"])
     .order("created_at", { ascending: false });
 
   const rows = (data ?? []) as ManualReviewRow[];
@@ -44,7 +44,7 @@ export default async function ManualReviewPage() {
         </p>
         <h1 className="mt-1 font-display text-4xl font-bold">Ръчна проверка</h1>
         <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-          {items.length} отворени · неща, за които Hermes не е сигурен.
+          {items.length} активни · неща, за които Hermes не е сигурен.
         </p>
       </header>
 

@@ -73,6 +73,8 @@ export const MANUAL_REVIEW_TYPES = [
   "recurring_billing_issue",
 ] as const;
 export const SEVERITIES = ["low", "medium", "high"] as const;
+export const MANUAL_REVIEW_STATUSES = ["open", "resolved", "ignored", "needs_user", "blocked"] as const;
+export type ManualReviewStatus = (typeof MANUAL_REVIEW_STATUSES)[number];
 
 // ─────────────────────────────────────────────────────────────────────────
 // Shared zod helpers
@@ -141,6 +143,8 @@ export const invoiceInputSchema = z.object({
   amount_gross: moneyOptional,
   vat_amount: moneyOptional,
   currency: z.string().trim().default("EUR"),
+  /** Units of `currency` per 1 EUR (for non-pegged currencies). BGN auto-uses 1.95583. */
+  fx_rate: moneyOptional,
   service_type: z.string().trim().optional(),
   status: z.enum(INVOICE_STATUSES).optional(),
   source: z.enum(INVOICE_SOURCES).default("hermes"),
@@ -161,6 +165,8 @@ export const paymentInputSchema = z.object({
   invoice_id: z.string().uuid().optional(),
   amount: moneyRequired,
   currency: z.string().trim().default("EUR"),
+  /** Units of `currency` per 1 EUR (for non-pegged currencies). BGN auto-uses 1.95583. */
+  fx_rate: moneyOptional,
   paid_at: z.string().optional(),
   counterparty_name: z.string().trim().optional(),
   payment_reference_redacted: z.string().trim().optional(),
@@ -249,6 +255,10 @@ export interface InvoiceRow {
   amount_gross: number | null;
   vat_amount: number | null;
   currency: string;
+  original_amount: number | null;
+  original_currency: string | null;
+  fx_rate: number | null;
+  fx_source: string | null;
   service_type: string | null;
   status: InvoiceStatus;
   source: string;
@@ -267,6 +277,10 @@ export interface PaymentRow {
   invoice_id: string | null;
   amount: number;
   currency: string;
+  original_amount: number | null;
+  original_currency: string | null;
+  fx_rate: number | null;
+  fx_source: string | null;
   paid_at: string | null;
   counterparty_name: string | null;
   payment_reference_redacted: string | null;
@@ -289,7 +303,7 @@ export interface ManualReviewRow {
   related_invoice_id: string | null;
   related_payment_id: string | null;
   severity: (typeof SEVERITIES)[number];
-  status: "open" | "resolved" | "ignored";
+  status: ManualReviewStatus;
   dedupe_key: string | null;
   created_at: string;
   resolved_at: string | null;
@@ -354,6 +368,8 @@ export const expenseInputSchema = z.object({
   amount_gross: moneyOptional,
   vat_amount: moneyOptional,
   currency: z.string().trim().default("EUR"),
+  /** Units of `currency` per 1 EUR (for non-pegged currencies). BGN auto-uses 1.95583. */
+  fx_rate: moneyOptional,
   expense_date: isoDate,
   due_date: isoDate,
   status: z.enum(EXPENSE_STATUSES).default("unpaid"),
@@ -376,6 +392,10 @@ export interface ExpenseRow {
   amount_gross: number | null;
   vat_amount: number | null;
   currency: string;
+  original_amount: number | null;
+  original_currency: string | null;
+  fx_rate: number | null;
+  fx_source: string | null;
   expense_date: string | null;
   due_date: string | null;
   status: (typeof EXPENSE_STATUSES)[number];
