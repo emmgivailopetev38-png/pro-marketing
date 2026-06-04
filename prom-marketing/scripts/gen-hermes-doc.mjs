@@ -84,7 +84,7 @@ const spacer = () => new Paragraph({ spacing: { after: 60 }, children: [t("")] }
 // ---------- content ----------
 const kids = [];
 kids.push(title("ХЕРМЕС — пълни инструкции"));
-kids.push(subtitle("Как Hermes поддържа CRM-а на ProMarketing жив и точен, без да го разваля. Версия 1.3 · 04.06.2026 · валута: EUR · API: внедрен и жив"));
+kids.push(subtitle("Как Hermes поддържа CRM-а на ProMarketing жив и точен, без да го разваля. Версия 1.4 · 04.06.2026 · валута: EUR · API: внедрен и жив"));
 
 kids.push(p([
   t("Hermes е ", {}), t("AI „писар + анализатор", { bold: true }), t("“ — не администратор. Той чете имейлите ти (Gmail), банковите извлечения, фактурите и сутрешния Meta анализ и ги "),
@@ -202,6 +202,7 @@ kids.push(table(
     ["POST", "/api/crm/meta-ads-report", "Сутрешен Meta анализ"],
     ["GET", "/api/crm/accounting-summary", "Чете: оборот/плащания/разходи/печалба"],
     ["GET", "/api/crm/sales-summary", "Чете: pipeline + follow-up състояние"],
+    ["GET", "/api/crm/manual-review", "Чете: активни за проверка (?status=needs_user)"],
   ],
   [12, 36, 52],
 ));
@@ -284,7 +285,8 @@ kids.push(code(`{
   "severity": "medium"       // low|medium|high
 }`));
 
-kids.push(p([t("Жизнен цикъл на статуса: "), t("open → needs_user", { font: "Consolas", size: 19 }), t(" (чака решение от Ивайло) или "), t("blocked", { font: "Consolas", size: 19 }), t(" (спънка) → "), t("resolved / ignored", { font: "Consolas", size: 19 }), t(". Дедуп: не създава втори активен елемент за същия проблем.")]));
+kids.push(p([t("Жизнен цикъл на статуса: "), t("open → needs_user", { font: "Consolas", size: 19 }), t(" (чака решение от Ивайло) или "), t("blocked", { font: "Consolas", size: 19 }), t(" (спънка) → "), t("resolved / ignored", { font: "Consolas", size: 19 }), t(". Дедуп: не създава втори активен елемент (open/needs_user/blocked) за същия проблем.")]));
+kids.push(p([t("Дневен преглед (само четене): "), t("GET /api/crm/manual-review?status=needs_user", { font: "Consolas", size: 19 }), t(" — връща активните за проверка със заглавия (без сурово описание), с "), t("limit/offset", { font: "Consolas", size: 19 }), t(".")]));
 
 kids.push(h2("6.6 POST /api/crm/recurring-service"));
 kids.push(code(`{
@@ -349,6 +351,8 @@ kids.push(h1("8. Имейли"));
 kids.push(bullet([t("Welcome имейлите се пращат от ПРИЛОЖЕНИЕТО", { bold: true }), t(" (Resend, от "), t("ivailo@promarketing.pw", { font: "Consolas", size: 20 }), t(", reply-to "), t("ivailopetev38@gmail.com", { font: "Consolas", size: 20 }), t(") за нови лийдове от Meta и сайта. Hermes стои настрана.")]));
 kids.push(bullet([t("Нов имейл шаблон / кампания", { bold: true }), t(": първо preview към "), t("ivailopetev38@gmail.com", { font: "Consolas", size: 20 }), t(", чакай „да“, чак тогава към реален получател.")]));
 kids.push(bullet([t("Hermes записва изпратените имейли като активност ("), t("activity_type: email_sent", { font: "Consolas", size: 20 }), t(") с "), t("dedupe_key", { font: "Consolas", size: 20 }), t(", за да са видими в профила.")]));
+
+kids.push(bullet([t("Технически интерлок", { bold: true }), t(": "), t("/api/email/send", { font: "Consolas", size: 19 }), t(" с токен към НЕ-собственик изисква "), t("approved:true", { font: "Consolas", size: 19 }), t(". Preview към собственика е свободно; welcome авто-имейлите ползват отделен път.")]));
 
 // 9 Rhythm
 kids.push(h1("9. Ритъм на автоматизациите"));
