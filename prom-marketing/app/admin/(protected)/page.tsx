@@ -16,6 +16,12 @@ import { Sparkline, type SparklinePoint } from "@/components/admin/charts/Sparkl
 export const dynamic = "force-dynamic";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const REVENUE_EXCLUDED_STATUSES = new Set(["draft", "cancelled", "excluded"]);
+
+function isBillableInvoice(status: string): boolean {
+  return !REVENUE_EXCLUDED_STATUSES.has(status);
+}
+
 const SOURCE_PALETTE: Record<string, { label: string; color: string }> = {
   meta_lead: { label: "Meta реклама", color: "#1877F2" },
   website_form: { label: "Сайт", color: "#06b6d4" },
@@ -63,6 +69,9 @@ export default async function AdminDashboard() {
   const fourteenAgo = new Date(nowMs - 14 * DAY_MS).toISOString();
   const thirtyAgo = new Date(nowMs - 30 * DAY_MS).toISOString();
   const sixtyAgo = new Date(nowMs - 60 * DAY_MS).toISOString();
+  const startOfYear = new Date(new Date().getFullYear(), 0, 1);
+  const startOfYearIso = startOfYear.toISOString();
+  const startOfYearDate = startOfYearIso.slice(0, 10);
 
   // Auto-promote stale confirmed bookings → completed (also covers the admin
   // overview when nobody opened /admin/bookings recently).
@@ -81,15 +90,15 @@ export default async function AdminDashboard() {
       .order("occurred_at", { ascending: false }),
     supabase.from("bookings").select("id, status, scheduled_at, attendee_name, attendee_email, business, meeting_url"),
     supabase.from("meta_leads").select("id, processed, created_at"),
-    supabase.from("invoices").select("id, status, amount_gross, due_date, issue_date, contact_id"),
+    supabase.from("invoices").select("id, status, amount_gross, due_date, issue_date, contact_id, invoice_type, service_type, currency"),
     supabase.from("manual_review_items").select("id").in("status", ["open", "needs_user", "blocked"]),
     supabase.from("payments").select("amount, paid_at, created_at, match_status"),
-    supabase.from("expenses").select("amount_gross, status, expense_date"),
+    supabase.from("expenses").select("amount_gross, status, expense_date, created_at"),
     supabase
       .from("meta_ads_reports")
       .select("report_date, spend, leads, cpl, currency")
-      .order("report_date", { ascending: false })
-      .limit(30),
+      .gte("report_date", startOfYearDate)
+      .order("report_date", { ascending: false }),
     supabase.from("gps_devices").select("status, monthly_fee, currency"),
     supabase.from("recurring_services").select("active, amount, currency, billing_period"),
   ]);
@@ -114,9 +123,12 @@ export default async function AdminDashboard() {
     due_date: string | null;
     issue_date: string | null;
     contact_id: string | null;
+    invoice_type: string;
+    service_type: string | null;
+    currency: string;
   }>;
   const payments = (paymentsRes.data ?? []) as Array<{ amount: number | null; paid_at: string | null; created_at: string; match_status: string }>;
-  const expenses = (expensesRes.data ?? []) as Array<{ amount_gross: number | null; status: string; expense_date: string | null }>;
+  const expenses = (expensesRes.data ?? []) as Array<{ amount_gross: number | null; status: string; expense_date: string | null; created_at: string | null }>;
   const metaReports = (metaReportsRes.data ?? []) as Array<{ report_date: string; spend: number | null; leads: number | null; cpl: number | null; currency: string }>;
   const gpsDevices = (gpsRes.data ?? []) as Array<{ status: string; monthly_fee: number | null; currency: string }>;
   const recurringServices = (recurringRes.data ?? []) as Array<{ active: boolean | null; amount: number | null; currency: string; billing_period: string | null }>;
@@ -221,27 +233,32 @@ export default async function AdminDashboard() {
   ).length;
   const manualReviewOpen = (manualReviewRes.data ?? []).length;
 
-  // ── Accounting + Meta (за обединения Преглед) ──────────────────────────
-  const curMonthKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
-  const inMonth = (iso: string | null | undefined) => !!iso && iso.slice(0, 7) === curMonthKey;
-  const revenueMonth = invoices
-    .filter((i) => inMonth(i.issue_date) && !["cancelled", "excluded"].includes(i.status))
-    .reduce((s, i) => s + (Number(i.amount_gross) || 0), 0);
-  const receivedMonth = payments
-    .filter((p) => p.match_status !== "ignored" && inMonth(p.paid_at ?? p.created_at))
+  // ── Accounting + Meta (YTD за обединения Преглед) ──────────────────────
+  const isYtd = (iso: string | null | undefined) => {
+    if (!iso) return false;
+    const d = new Date(iso);
+    return d >= startOfYear && d <= new Date(nowIso);
+  };
+  const isGpsInvoice = (i: { invoice_type: string; service_type: string | null }) =>
+    i.invoice_type === "gps_fee" || /gps/i.test(i.service_type ?? "");
+  const ytdInvoices = invoices.filter((i) => isYtd(i.issue_date) && isBillableInvoice(i.status));
+  const revenueYtd = ytdInvoices.reduce((s, i) => s + (Number(i.amount_gross) || 0), 0);
+  const receivedYtd = payments
+    .filter((p) => p.match_status !== "ignored" && isYtd(p.paid_at ?? p.created_at))
     .reduce((s, p) => s + (Number(p.amount) || 0), 0);
-  const expensesMonth = expenses
-    .filter((e) => e.status !== "cancelled" && inMonth(e.expense_date))
+  const expensesYtd = expenses
+    .filter((e) => e.status !== "cancelled" && isYtd(e.expense_date ?? e.created_at))
     .reduce((s, e) => s + (Number(e.amount_gross) || 0), 0);
-  const profitMonth = receivedMonth - expensesMonth;
+  const profitYtd = receivedYtd - expensesYtd;
   const unpaidInvoicesTotal = invoices
     .filter((i) => ["sent", "awaiting_payment", "partially_paid", "overdue"].includes(i.status))
     .reduce((s, i) => s + (Number(i.amount_gross) || 0), 0);
-  const metaLatestDate = metaReports[0]?.report_date ?? null;
-  const metaToday = metaReports.filter((r) => r.report_date === metaLatestDate);
-  const metaSpend = metaToday.reduce((s, r) => s + (Number(r.spend) || 0), 0);
-  const metaLeadsToday = metaToday.reduce((s, r) => s + (Number(r.leads) || 0), 0);
-  const metaCpl = metaLeadsToday > 0 ? metaSpend / metaLeadsToday : 0;
+  const gpsInvoicesYtd = ytdInvoices.filter(isGpsInvoice);
+  const gpsRevenueYtd = gpsInvoicesYtd.reduce((s, i) => s + (Number(i.amount_gross) || 0), 0);
+  const gpsOpenYtd = gpsInvoicesYtd.filter((i) => ["sent", "awaiting_payment", "partially_paid", "overdue"].includes(i.status)).length;
+  const metaSpendYtd = metaReports.reduce((s, r) => s + (Number(r.spend) || 0), 0);
+  const metaLeadsYtd = metaReports.reduce((s, r) => s + (Number(r.leads) || 0), 0);
+  const metaCplYtd = metaLeadsYtd > 0 ? metaSpendYtd / metaLeadsYtd : 0;
 
   // ── Повтарящ се приход (MRR): GPS устройства + Абонаменти ───────────────
   const gpsActive = gpsDevices.filter((d) => d.status === "active");
@@ -362,11 +379,11 @@ export default async function AdminDashboard() {
       {/* ─── Счетоводство този месец + Meta днес ─────────────────────── */}
       <section>
         <h2 className="mb-3 font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-text-tertiary)]">
-          Счетоводство · този месец
+          Счетоводство · от началото на годината
         </h2>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
-          <KpiCard label="Приход" value={formatMoney(revenueMonth)} hint="издадени фактури" color="#facc15" href="/admin/accounting" />
-          <KpiCard label="Получени" value={formatMoney(receivedMonth)} hint="плащания" color="#22c55e" href="/admin/payments" />
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
+          <KpiCard label="Приход" value={formatMoney(revenueYtd)} hint={`от ${startOfYearDate}`} color="#facc15" href="/admin/accounting" />
+          <KpiCard label="Получени" value={formatMoney(receivedYtd)} hint="YTD плащания" color="#22c55e" href="/admin/payments" />
           <KpiCard
             label="Повтарящ се / мес"
             value={formatMoney(totalMrr)}
@@ -374,20 +391,27 @@ export default async function AdminDashboard() {
             color="#14b8a6"
             href="/admin/recurring"
           />
-          <KpiCard label="Разходи" value={formatMoney(expensesMonth)} hint="към доставчици" color="#fb923c" href="/admin/expenses" />
+          <KpiCard label="Разходи" value={formatMoney(expensesYtd)} hint="YTD разходи" color="#fb923c" href="/admin/expenses" />
           <KpiCard
             label="Печалба"
-            value={formatMoney(profitMonth)}
-            hint="получени − разходи"
-            color={profitMonth >= 0 ? "#22c55e" : "#ef4444"}
+            value={formatMoney(profitYtd)}
+            hint="YTD получени − разходи"
+            color={profitYtd >= 0 ? "#22c55e" : "#ef4444"}
             href="/admin/accounting"
           />
           <KpiCard label="Неплатени" value={formatMoney(unpaidInvoicesTotal)} hint="чакащи фактури" color="#fb923c" href="/admin/invoices" />
           <KpiCard
-            label="Meta CPL днес"
-            value={metaLeadsToday > 0 ? formatMoney(metaCpl) : "—"}
-            hint={`${metaLeadsToday} лийда · ${formatMoney(metaSpend)}`}
+            label="GPS YTD"
+            value={formatMoney(gpsRevenueYtd)}
+            hint={`${gpsInvoicesYtd.length} фактури · ${gpsOpenYtd} чакат`}
             color="#06b6d4"
+            href="/admin/gps"
+          />
+          <KpiCard
+            label="Meta CPL YTD"
+            value={metaLeadsYtd > 0 ? formatMoney(metaCplYtd) : "—"}
+            hint={`${metaLeadsYtd} лийда · ${formatMoney(metaSpendYtd)}`}
+            color="#1877F2"
             href="/admin/meta-ads"
           />
         </div>
