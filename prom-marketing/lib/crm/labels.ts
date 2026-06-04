@@ -66,6 +66,17 @@ export const SEVERITY_COLOR: Record<string, string> = {
   high: "#ef4444",
 };
 
+export const DOC_TYPE_LABEL: Record<string, string> = {
+  invoice: "Фактура",
+  proforma: "Проформа",
+  receipt: "Талон / бележка",
+  bank_statement: "Банково извлечение",
+  contract: "Договор",
+  photo: "Снимка",
+  gps_protocol: "GPS протокол",
+  other: "Друго",
+};
+
 export const EXPENSE_CATEGORY_LABEL: Record<string, string> = {
   accountant: "Счетоводител",
   hosting: "Хостинг",
