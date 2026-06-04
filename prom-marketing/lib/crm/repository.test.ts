@@ -59,6 +59,31 @@ describe("recordActivity", () => {
     const c = h.fake.store.contacts[0] as { last_heard_from_at?: string };
     expect(c.last_heard_from_at).toBeTruthy();
   });
+
+  it("patches a known contact directly by contact_id (no new contact)", async () => {
+    h.fake = createFakeSupabase({ contacts: [{ id: "c1", email: "known@firma.bg", stage: "lead" }] });
+    const r = await recordActivity({
+      contact_id: "c1",
+      activity_type: "note",
+      title: "Бележка от Hermes",
+      stage: "negotiating",
+    });
+    expect(r.error).toBeNull();
+    expect(r.contact_id).toBe("c1");
+    expect(r.created).toBe(true);
+    expect(h.fake.store.contacts).toHaveLength(1); // did not create a second contact
+    expect((h.fake.store.contacts[0] as { stage: string }).stage).toBe("negotiating");
+  });
+
+  it("errors when the given contact_id does not exist", async () => {
+    const r = await recordActivity({
+      contact_id: "11111111-1111-4111-8111-111111111111",
+      activity_type: "note",
+      title: "x",
+    });
+    expect(r.created).toBe(false);
+    expect(r.error).toBe("contact_id not found");
+  });
 });
 
 describe("upsertInvoice", () => {

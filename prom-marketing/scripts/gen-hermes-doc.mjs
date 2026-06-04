@@ -84,7 +84,7 @@ const spacer = () => new Paragraph({ spacing: { after: 60 }, children: [t("")] }
 // ---------- content ----------
 const kids = [];
 kids.push(title("ХЕРМЕС — пълни инструкции"));
-kids.push(subtitle("Как Hermes поддържа CRM-а на ProMarketing жив и точен, без да го разваля. Версия 1.2 · 04.06.2026 · валута: EUR · API: внедрен и жив"));
+kids.push(subtitle("Как Hermes поддържа CRM-а на ProMarketing жив и точен, без да го разваля. Версия 1.3 · 04.06.2026 · валута: EUR · API: внедрен и жив"));
 
 kids.push(p([
   t("Hermes е ", {}), t("AI „писар + анализатор", { bold: true }), t("“ — не администратор. Той чете имейлите ти (Gmail), банковите извлечения, фактурите и сутрешния Meta анализ и ги "),
@@ -167,6 +167,7 @@ kids.push(h1("4. Автентикация"));
 kids.push(p([t("Всяка заявка носи header:")]));
 kids.push(code("Authorization: Bearer <token>"));
 kids.push(p([t("Приема се "), t("HERMES_API_TOKEN", { font: "Consolas", size: 20 }), t(" (ако е зададен) или "), t("INTERNAL_SEND_TOKEN", { font: "Consolas", size: 20 }), t(". Без валиден токен → "), t("403", { font: "Consolas", size: 20, bold: true }), t(". Всички "), t("/api/crm/*", { font: "Consolas", size: 20 }), t(" са "), t("POST", { font: "Consolas", size: 20, bold: true }), t(", приемат/връщат JSON и са идемпотентни.")]));
+kids.push(p([t("Жив токен (важно): ", { bold: true, color: OK }), t("приложението вече има "), t("INTERNAL_SEND_TOKEN", { font: "Consolas", size: 20 }), t(" в Vercel. За да пише Hermes, постави СЪЩАТА стойност в "), t("/root/.hermes/.env", { font: "Consolas", size: 20 }), t(" (като "), t("HERMES_API_TOKEN", { font: "Consolas", size: 20 }), t(" или "), t("INTERNAL_SEND_TOKEN", { font: "Consolas", size: 20 }), t("). Не е нужен нов app-токен — env-ът на app-а е в "), t("Vercel", { bold: true }), t(", не в Supabase.")]));
 
 // 5 Idempotency
 kids.push(h1("5. Идемпотентност и дедупликация"));
@@ -208,6 +209,7 @@ kids.push(spacer());
 
 kids.push(h2("6.1 POST /api/crm/activity"));
 kids.push(p([t("Find-or-create контакт + (по избор) идемпотентна активност + patch на follow-up полета.")]));
+kids.push(p([t("Може да подадеш и "), t("contact_id", { font: "Consolas", size: 20 }), t(" директно вместо email/phone — така се правят "), t("set-stage / set-followup / add-note", { font: "Consolas", size: 19 }), t(" по известен контакт.")]));
 kids.push(code(`{
   "email": "client@firma.bg",
   "full_name": "Иван Иванов",

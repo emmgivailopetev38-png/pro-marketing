@@ -51,13 +51,21 @@ export async function recordActivity(input: ActivityInput): Promise<ActivityResu
   const sb = createServiceClient();
   const email = input.email?.trim().toLowerCase() || null;
   const phone = input.phone?.trim() || null;
-  if (!email && !phone) {
-    return { contact_id: null, activity_id: null, created: false, error: "email or phone required" };
+  if (!email && !phone && !input.contact_id) {
+    return { contact_id: null, activity_id: null, created: false, error: "email, phone or contact_id required" };
   }
 
-  // Find-or-create the contact.
+  // Resolve the contact: an explicit contact_id wins (Hermes set-stage / set-followup /
+  // add-note); otherwise find-or-create by email, then phone.
   let existing: { id: string } | null = null;
-  if (email) {
+  if (input.contact_id) {
+    const { data } = await sb.from("contacts").select("id").eq("id", input.contact_id).maybeSingle();
+    if (!data) {
+      return { contact_id: null, activity_id: null, created: false, error: "contact_id not found" };
+    }
+    existing = data;
+  }
+  if (!existing && email) {
     const { data } = await sb.from("contacts").select("id").eq("email", email).maybeSingle();
     existing = data;
   }

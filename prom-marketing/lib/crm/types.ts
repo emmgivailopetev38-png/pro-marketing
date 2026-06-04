@@ -103,6 +103,8 @@ const contactRef = z.string().uuid().optional();
 
 export const activityInputSchema = z
   .object({
+    /** Patch a known contact directly (Hermes set-stage / set-followup / add-note). */
+    contact_id: contactRef,
     email: z.string().email().optional(),
     phone: z.string().trim().min(3).optional(),
     full_name: z.string().trim().optional(),
@@ -124,7 +126,9 @@ export const activityInputSchema = z
     notes: z.string().optional(),
     created_by: z.string().optional(),
   })
-  .refine((v) => v.email || v.phone, { message: "email or phone required" });
+  .refine((v) => v.email || v.phone || v.contact_id, {
+    message: "email, phone or contact_id required",
+  });
 export type ActivityInput = z.infer<typeof activityInputSchema>;
 
 // ─────────────────────────────────────────────────────────────────────────
