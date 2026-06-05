@@ -7,7 +7,9 @@ export const dynamic = "force-dynamic";
 export default async function DocumentsPage() {
   const sb = createServiceClient();
   const { data } = await sb.from("documents").select("*").order("created_at", { ascending: false }).limit(500);
-  const rows = (data ?? []) as DocumentRow[];
+  const allRows = (data ?? []) as DocumentRow[];
+  const rows = allRows.filter((r) => r.match_status !== "ignored");
+  const archivedRows = allRows.length - rows.length;
 
   const contactIds = Array.from(new Set(rows.map((r) => r.contact_id).filter(Boolean))) as string[];
   const invoiceIds = Array.from(new Set(rows.map((r) => r.invoice_id).filter(Boolean))) as string[];
@@ -40,7 +42,7 @@ export default async function DocumentsPage() {
         </p>
         <h1 className="mt-1 font-display text-4xl font-bold">Документен център</h1>
         <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-          {docs.length} документа · {unmatched} за свързване
+          {docs.length} активни документа · {unmatched} за свързване · {archivedRows} архивирани дубликата
         </p>
       </header>
 

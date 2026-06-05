@@ -96,7 +96,7 @@ export default async function AdminDashboard() {
     supabase.from("expenses").select("amount_gross, status, expense_date, created_at"),
     supabase
       .from("meta_ads_reports")
-      .select("report_date, spend, leads, cpl, currency")
+      .select("report_date, spend, leads, cpl, currency, raw")
       .gte("report_date", startOfYearDate)
       .order("report_date", { ascending: false }),
     supabase.from("gps_devices").select("status, monthly_fee, currency"),
@@ -129,7 +129,7 @@ export default async function AdminDashboard() {
   }>;
   const payments = (paymentsRes.data ?? []) as Array<{ amount: number | null; paid_at: string | null; created_at: string; match_status: string }>;
   const expenses = (expensesRes.data ?? []) as Array<{ amount_gross: number | null; status: string; expense_date: string | null; created_at: string | null }>;
-  const metaReports = (metaReportsRes.data ?? []) as Array<{ report_date: string; spend: number | null; leads: number | null; cpl: number | null; currency: string }>;
+  const metaReports = ((metaReportsRes.data ?? []) as Array<{ report_date: string; spend: number | null; leads: number | null; cpl: number | null; currency: string; raw?: Record<string, unknown> | null }>).filter((r) => r.raw?.audit_status !== "archived_duplicate" && r.currency !== "MIXED");
   const gpsDevices = (gpsRes.data ?? []) as Array<{ status: string; monthly_fee: number | null; currency: string }>;
   const recurringServices = (recurringRes.data ?? []) as Array<{ active: boolean | null; amount: number | null; currency: string; billing_period: string | null }>;
 
@@ -256,9 +256,13 @@ export default async function AdminDashboard() {
   const gpsInvoicesYtd = ytdInvoices.filter(isGpsInvoice);
   const gpsRevenueYtd = gpsInvoicesYtd.reduce((s, i) => s + (Number(i.amount_gross) || 0), 0);
   const gpsOpenYtd = gpsInvoicesYtd.filter((i) => ["sent", "awaiting_payment", "partially_paid", "overdue"].includes(i.status)).length;
-  const metaSpendYtd = metaReports.reduce((s, r) => s + (Number(r.spend) || 0), 0);
+  const metaSpendByCurrency = metaReports.reduce((acc, r) => {
+    const cur = r.currency || "EUR";
+    acc[cur] = (acc[cur] ?? 0) + (Number(r.spend) || 0);
+    return acc;
+  }, {} as Record<string, number>);
+  const metaSpendHint = Object.entries(metaSpendByCurrency).map(([cur, amount]) => formatMoney(amount, cur)).join(" + ") || "—";
   const metaLeadsYtd = metaReports.reduce((s, r) => s + (Number(r.leads) || 0), 0);
-  const metaCplYtd = metaLeadsYtd > 0 ? metaSpendYtd / metaLeadsYtd : 0;
 
   // ── Повтарящ се приход (MRR): GPS устройства + Абонаменти ───────────────
   const gpsActive = gpsDevices.filter((d) => d.status === "active");
@@ -408,9 +412,9 @@ export default async function AdminDashboard() {
             href="/admin/gps"
           />
           <KpiCard
-            label="Meta CPL YTD"
-            value={metaLeadsYtd > 0 ? formatMoney(metaCplYtd) : "—"}
-            hint={`${metaLeadsYtd} лийда · ${formatMoney(metaSpendYtd)}`}
+            label="Meta лидове YTD"
+            value={metaLeadsYtd || "—"}
+            hint={`Разход: ${metaSpendHint} · отделни валути`}
             color="#1877F2"
             href="/admin/meta-ads"
           />

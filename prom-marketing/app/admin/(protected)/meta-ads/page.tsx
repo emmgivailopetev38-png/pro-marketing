@@ -12,14 +12,21 @@ export default async function MetaAdsPage() {
     .select("*")
     .order("report_date", { ascending: false })
     .limit(200);
-  const rows = (data ?? []) as MetaAdsReportRow[];
+  const allRows = (data ?? []) as MetaAdsReportRow[];
+  const rows = allRows.filter((r) => r.raw?.audit_status !== "archived_duplicate");
+  const archivedRows = allRows.length - rows.length;
 
-  // "Today" = most recent report_date present.
+  // "Today" = most recent canonical report_date present. Keep currencies/account owners separate.
   const latestDate = rows[0]?.report_date ?? null;
   const today = rows.filter((r) => r.report_date === latestDate);
-  const spend = today.reduce((s, r) => s + (Number(r.spend) || 0), 0);
+  const spendByCurrency = today.reduce((acc, r) => {
+    const cur = r.currency || "EUR";
+    acc[cur] = (acc[cur] ?? 0) + (Number(r.spend) || 0);
+    return acc;
+  }, {} as Record<string, number>);
+  const spendHint = Object.entries(spendByCurrency).map(([cur, amount]) => formatMoney(amount, cur)).join(" + ") || "—";
   const leads = today.reduce((s, r) => s + (Number(r.leads) || 0), 0);
-  const cpl = leads > 0 ? spend / leads : 0;
+  const accountLabel = (r: MetaAdsReportRow) => r.raw?.account_owner === "client" ? "клиент" : r.raw?.account_owner === "own" ? "ProMarketing" : "акаунт";
 
   return (
     <div className="space-y-6 p-6 md:p-10">
@@ -34,7 +41,7 @@ export default async function MetaAdsPage() {
       </header>
 
       <p className="rounded-lg border border-[var(--color-border-default)] bg-[var(--color-bg-deep)]/40 px-4 py-3 text-xs text-[var(--color-text-secondary)]">
-        💡 Hermes чете сутрешния анализ от пощата ти и го праща тук структуриран (spend, leads, CPL, качество, препоръки) през /api/crm/meta-ads-report.
+        💡 Hermes чете сутрешния анализ от пощата ти и го праща тук структуриран по отделни Meta акаунти. IVO 1AD и Vanq Biznes/Vanya не се смесват; Vanq е клиентски акаунт от 01.05.2026. {archivedRows > 0 ? `${archivedRows} стари дублиращи справки са архивирани от одита.` : ""}
       </p>
 
       {/* Meta performance today */}
@@ -43,10 +50,10 @@ export default async function MetaAdsPage() {
           {latestDate ? `Днес · ${formatDate(latestDate)}` : "Днес"}
         </h2>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <KpiCard label="Разход" value={formatMoney(spend)} hint={`${today.length} кампании`} color="#facc15" />
-          <KpiCard label="Лийдове" value={leads} hint="от рекламите" color="#06b6d4" />
-          <KpiCard label="CPL" value={formatMoney(cpl)} hint="цена на лийд" color={cpl > 0 && cpl <= 10 ? "#22c55e" : "#fb923c"} />
-          <KpiCard label="Кампании" value={today.length} hint="активни днес" color="#a78bfa" />
+          <KpiCard label="Разход" value={spendHint} hint={`${today.length} отделни акаунта`} color="#facc15" />
+          <KpiCard label="Лийдове" value={leads} hint="общо, без смесване на валути" color="#06b6d4" />
+          <KpiCard label="Акаунти" value={today.length} hint="IVO / клиентски" color="#a78bfa" />
+          <KpiCard label="Архивирани дубликати" value={archivedRows} hint="скрити от KPI" color="#64748b" />
         </div>
       </section>
 
@@ -74,7 +81,10 @@ export default async function MetaAdsPage() {
                 {rows.map((r) => (
                   <tr key={r.id} className="align-top">
                     <td className="whitespace-nowrap px-3 py-2 text-xs text-[var(--color-text-tertiary)]">{formatDate(r.report_date)}</td>
-                    <td className="px-3 py-2 text-[var(--color-text-primary)]">{r.campaign || "(всички)"}</td>
+                    <td className="px-3 py-2 text-[var(--color-text-primary)]">
+                      <div>{r.campaign || "(всички)"}</div>
+                      <div className="mt-0.5 text-[10px] uppercase tracking-wide text-[var(--color-text-tertiary)]">{accountLabel(r)}</div>
+                    </td>
                     <td className="px-3 py-2 text-right">{formatMoney(r.spend, r.currency)}</td>
                     <td className="px-3 py-2 text-right">{r.leads ?? "—"}</td>
                     <td className="px-3 py-2 text-right">{r.cpl != null ? formatMoney(r.cpl, r.currency) : "—"}</td>
