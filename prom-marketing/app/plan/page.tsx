@@ -96,10 +96,9 @@ export default function PlanPage() {
               <li><div className="pl-mtitle">AI асистент „Управление" <i className="pl-ai">AI</i></div><div className="pl-msub">дневен бриф и приоритети за екипа</div></li>
             </ul>
             <div className="pl-acc">
-              <div className="pl-acch">🔐 Достъпи &amp; под-достъпи</div>
-              <div className="pl-accrow"><b>👑 Управление</b> финанси · отчети · настройки · права</div>
-              <div className="pl-accrow"><b>🧑‍💼 Служители</b> задачи · клиенти · сделки · документи</div>
-              <div className="pl-accrow"><b>🤝 Клиенти</b> портал · фактури · заявки</div>
+              <div className="pl-acch">🔐 Достъпи · основи</div>
+              <div className="pl-accrow"><b>3 роли:</b> 👑 Управление · 🧑‍💼 Служители · 🤝 Клиенти</div>
+              <div className="pl-accrow"><b>Основни права:</b> вход · профили · екип</div>
             </div>
             <div className="pl-out">Получаваш: сигурна основа, готова за растеж.</div>
             <div className="pl-meta"><span className="pl-time">⏱ 3–4 седмици</span><span className="pl-price">€2 200</span></div>
@@ -115,6 +114,11 @@ export default function PlanPage() {
               <li><div className="pl-mtitle">Сделки, срещи &amp; записки</div><div className="pl-msub">pipeline, напомняния, записки от срещи</div></li>
               <li><div className="pl-mtitle">AI бриф преди среща <i className="pl-ai">AI</i></div><div className="pl-msub">AI те подготвя за всеки клиент</div></li>
             </ul>
+            <div className="pl-acc">
+              <div className="pl-acch">🔐 Достъпи · операции</div>
+              <div className="pl-accrow"><b>🧑‍💼 Служители:</b> задачи · клиенти · сделки · документи</div>
+              <div className="pl-accrow"><b>🤝 Клиенти:</b> портал · фактури · заявки</div>
+            </div>
             <div className="pl-out">Получаваш: повече сделки, нулево изпускане.</div>
             <div className="pl-meta"><span className="pl-time">⏱ 2–3 седмици</span><span className="pl-price">€2 900</span></div>
           </article>
@@ -130,6 +134,11 @@ export default function PlanPage() {
               <li><div className="pl-mtitle">AI Екип (агенти) <i className="pl-ai">AI</i></div><div className="pl-msub">агенти със споделено учене</div></li>
               <li><div className="pl-mtitle">Авто-оферти &amp; интеграции</div><div className="pl-msub">авто-оферти + Meta/омниканал</div></li>
             </ul>
+            <div className="pl-acc">
+              <div className="pl-acch">🔐 Достъпи · AI &amp; растеж</div>
+              <div className="pl-accrow"><b>👑 Управление:</b> финанси · отчети · стратегии</div>
+              <div className="pl-accrow"><b>🤖 AI:</b> агенти · автоматизации · авто-оферти</div>
+            </div>
             <div className="pl-out">Получаваш: растеж без да наемаш екип.</div>
             <div className="pl-meta"><span className="pl-time">⏱ 1–2 седмици</span><span className="pl-price">€3 600</span></div>
           </article>
