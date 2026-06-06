@@ -95,6 +95,12 @@ export default function PlanPage() {
               <li><div className="pl-mtitle">Управление &amp; табло</div><div className="pl-msub">централно управление, настройки, преглед</div></li>
               <li><div className="pl-mtitle">AI асистент „Управление" <i className="pl-ai">AI</i></div><div className="pl-msub">дневен бриф и приоритети за екипа</div></li>
             </ul>
+            <div className="pl-acc">
+              <div className="pl-acch">🔐 Достъпи &amp; под-достъпи</div>
+              <div className="pl-accrow"><b>👑 Управление</b> финанси · отчети · настройки · права</div>
+              <div className="pl-accrow"><b>🧑‍💼 Служители</b> задачи · клиенти · сделки · документи</div>
+              <div className="pl-accrow"><b>🤝 Клиенти</b> портал · фактури · заявки</div>
+            </div>
             <div className="pl-out">Получаваш: сигурна основа, готова за растеж.</div>
             <div className="pl-meta"><span className="pl-time">⏱ 3–4 седмици</span><span className="pl-price">€2 200</span></div>
           </article>
@@ -380,6 +386,10 @@ export default function PlanPage() {
         .pl-ai{font-style:normal;font-size:9px;font-weight:700;letter-spacing:.05em;color:#06121a;background:linear-gradient(120deg,var(--cy),var(--lime));padding:2px 6px;border-radius:5px;box-shadow:0 0 12px rgba(52,231,228,.35);margin-left:auto;animation:pl-aipulse 2.6s ease-in-out infinite}
         @keyframes pl-aipulse{50%{box-shadow:0 0 18px rgba(52,231,228,.65)}}
         .pl-out{font-size:12px;color:var(--lime);background:rgba(163,230,53,.06);border:1px solid rgba(163,230,53,.18);border-radius:10px;padding:9px 12px;margin-top:16px;position:relative;z-index:1}
+        .pl-acc{margin-top:12px;background:rgba(52,231,228,.05);border:1px solid rgba(52,231,228,.16);border-radius:10px;padding:9px 11px;position:relative;z-index:1}
+        .pl-acch{font-family:var(--pl-mono),monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--cy);margin-bottom:6px}
+        .pl-accrow{font-size:11px;color:#9fb0c4;padding:2px 0;line-height:1.4}
+        .pl-accrow b{color:#eaf1f8;font-weight:600;margin-right:5px}
         .pl-meta{display:flex;align-items:center;justify-content:space-between;margin-top:16px;position:relative;z-index:1}
         .pl-time{font-size:11.5px;color:var(--mut)}
         .pl-price{font-family:var(--pl-mono),monospace;font-weight:700;font-size:25px;background:linear-gradient(120deg,#fff,var(--ac));-webkit-background-clip:text;background-clip:text;color:transparent}
