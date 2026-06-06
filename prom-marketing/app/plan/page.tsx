@@ -497,7 +497,9 @@ export default function PlanPage() {
         .pl-flag-cy{color:#04121a;background:var(--cy);box-shadow:0 0 18px rgba(52,231,228,.4)}
 
         /* packages */
-        .pl-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+        /* package flags hang from the top edge as a tab — never overlap the price */
+        .pl-pkg .pl-flag{top:-1px;right:18px;border-radius:0 0 9px 9px}
+        .pl-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:12px}
         .pl-top b{font-family:var(--pl-display),sans-serif;font-size:17px;color:var(--ink)}
         .pl-pp{font-family:var(--pl-mono),monospace;font-weight:700;font-size:20px;white-space:nowrap;color:#fff}
         .pl-pp.pl-g{background:linear-gradient(120deg,#fff,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
