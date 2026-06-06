@@ -259,7 +259,7 @@ export default function PlanPage() {
             🎟️ extra тикет <b>€20</b> · 📅 годишно <b>−2 месеца</b> · ☁️ платформи включени ·
             💳 изработка: депозит <b>50 / 50</b>
           </div>
-          <Link className="pl-cta" href="/">Заяви консултация →</Link>
+          <Link className="pl-cta" href="/booking">Заяви консултация →</Link>
         </footer>
       </div>
 
