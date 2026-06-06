@@ -136,6 +136,7 @@ export default function PlanPage() {
             <div className="pl-pkflag">★ най-изгодно</div>
             <div className="pl-pktop"><b>Пълна платформа</b><span className="pl-pkprice">€7 400</span></div>
             <p className="pl-pkdesc">И трите фази — система от край до край. <em>Спестяваш €1 300.</em></p>
+            <div className="pl-team">👥 <b>6</b> AI работника</div>
             <ul className="pl-inc">
               <li>Всичките 9 модула (Фаза 1 + 2 + 3)</li>
               <li>Базови интеграции (имейл, Meta, Cal.com)</li>
@@ -148,6 +149,7 @@ export default function PlanPage() {
             <div className="pl-pkflag pl-pkflag--gold">✦ премиум</div>
             <div className="pl-pktop"><b>Премиум</b><span className="pl-pkprice pl-pkprice--gold">от €12 000</span></div>
             <p className="pl-pkdesc">За по-сериозен бизнес — изцяло по поръчка.</p>
+            <div className="pl-team">👥 <b>6+</b> AI работника (по поръчка)</div>
             <ul className="pl-inc">
               <li>Всичко от Пълната платформа</li>
               <li>Custom интеграции (ERP, счетоводство, телефония)</li>
@@ -160,6 +162,7 @@ export default function PlanPage() {
           <article className="pl-pkg pl-rise" style={{ animationDelay: "0.42s" }}>
             <div className="pl-pktop"><b>Къстъм</b><span className="pl-pkprice pl-pkprice--c">без таван</span></div>
             <p className="pl-pkdesc">За мащабни и сложни проекти.</p>
+            <div className="pl-team">👥 <b>∞</b> AI работника</div>
             <ul className="pl-inc">
               <li>Мулти-екип / мулти-локация</li>
               <li>Интеграции по поръчка + миграция</li>
@@ -396,6 +399,8 @@ export default function PlanPage() {
         .pl-pkprice--c{font-size:15px;color:var(--gold)}
         .pl-pkdesc{font-size:12px;color:var(--mut);margin:8px 0 12px;line-height:1.5;position:relative;z-index:1}
         .pl-pkdesc em{color:var(--lime);font-style:normal;font-weight:600}
+        .pl-team{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--cy);background:rgba(52,231,228,.08);border:1px solid rgba(52,231,228,.24);border-radius:8px;padding:4px 10px;margin:0 0 10px}
+        .pl-team b{font-family:var(--pl-mono),monospace;color:#fff;font-size:13px}
         .pl-inc{list-style:none;position:relative;z-index:1}
         .pl-inc li{font-size:12px;color:#cdd9e8;padding:6px 0 6px 19px;position:relative;line-height:1.45}
         .pl-inc li::before{content:"✦";position:absolute;left:0;color:var(--gold);font-size:9px;top:8px}
