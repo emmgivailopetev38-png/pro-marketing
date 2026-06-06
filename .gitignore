@@ -36,3 +36,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+
+# secrets — НИКОГА в git (repo root = Бизнес, remote е ПУБЛИЧЕН)
+hermes-tokens.txt
+*-b64.txt
+.codex/
