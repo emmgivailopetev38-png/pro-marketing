@@ -87,20 +87,15 @@ export default async function ChatbotsPage({
   return (
     <div className="space-y-6 p-6 md:p-10">
       {/* Header */}
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      <header className="cc-panel cc-panel-accent overflow-hidden flex flex-wrap items-end justify-between gap-4 p-6">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-accent-cyan)]">
-            💬 AI чатботове · разговори от всички канали
-          </p>
-          <h1 className="mt-1 font-display text-3xl font-bold">Чатботове</h1>
+          <p className="hud text-[var(--color-accent-cyan)]">AI чатботове · всички канали</p>
+          <h1 className="cc-title mt-2 font-display text-3xl font-bold">Чатботове</h1>
           <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
             Виж кой пише, откъде, кога и какво е казал. AI отговаря, ти одобряваш.
           </p>
         </div>
-        <Link
-          href="/admin/chatbots#knowledge"
-          className="rounded-lg border border-[var(--color-accent-cyan)]/40 bg-[var(--color-accent-cyan)]/10 px-4 py-2 text-sm font-medium text-[var(--color-accent-cyan)] hover:bg-[var(--color-accent-cyan)]/20"
-        >
+        <Link href="/admin/chatbots#knowledge" className="cc-btn cc-btn-primary">
           + Управление на знания · {knowledge.length}
         </Link>
       </header>
@@ -233,7 +228,7 @@ export default async function ChatbotsPage({
       </section>
 
       {/* Knowledge base preview */}
-      <section id="knowledge" className="rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-deep)]/40 p-5">
+      <section id="knowledge" className="cc-panel p-5">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-display text-base font-semibold">🧠 База знания на чатбота</h2>
           <span className="font-mono text-xs text-[var(--color-text-tertiary)]">
@@ -251,9 +246,9 @@ export default async function ChatbotsPage({
 
 function Stat({ label, value, color, hint }: { label: string; value: number; color: string; hint?: string }) {
   return (
-    <div className="rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-deep)]/40 p-4">
-      <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--color-text-tertiary)]">{label}</p>
-      <p className="mt-1 text-2xl font-bold" style={{ color }}>
+    <div className="cc-kpi p-4">
+      <p className="hud">{label}</p>
+      <p className="mt-2 font-mono text-2xl font-bold" style={{ color }}>
         {value}
       </p>
       {hint && <p className="text-[11px] text-[var(--color-text-tertiary)]">{hint}</p>}

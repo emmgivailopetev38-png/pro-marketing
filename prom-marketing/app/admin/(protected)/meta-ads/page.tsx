@@ -30,11 +30,9 @@ export default async function MetaAdsPage() {
 
   return (
     <div className="space-y-6 p-6 md:p-10">
-      <header>
-        <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-accent-cyan)]">
-          ProMarketing · Реклами
-        </p>
-        <h1 className="mt-1 font-display text-4xl font-bold">Meta реклами</h1>
+      <header className="cc-panel cc-panel-accent overflow-hidden p-6">
+        <p className="hud text-[var(--color-accent-cyan)]">ProMarketing · Реклами</p>
+        <h1 className="cc-title mt-2 font-display text-4xl font-bold">Meta реклами</h1>
         <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
           Сутрешният анализ от Hermes — структуриран тук. {latestDate ? `Последно: ${formatDate(latestDate)}` : ""}
         </p>
@@ -58,7 +56,7 @@ export default async function MetaAdsPage() {
       </section>
 
       {/* History */}
-      <section className="rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-deep)]/40 p-5">
+      <section className="cc-panel p-5">
         <h3 className="mb-4 font-display text-base font-semibold">📊 История по кампании</h3>
         {rows.length === 0 ? (
           <p className="text-sm text-[var(--color-text-tertiary)]">

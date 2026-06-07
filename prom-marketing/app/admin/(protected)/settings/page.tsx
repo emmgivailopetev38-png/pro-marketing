@@ -10,9 +10,10 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-8 p-6 md:p-10">
-      <header>
-        <h1 className="font-display text-3xl font-bold">Настройки</h1>
-        <p className="text-sm text-[var(--color-text-secondary)]">Само за преглед — промени се правят чрез env vars и redeploy</p>
+      <header className="cc-panel cc-panel-accent overflow-hidden p-6">
+        <p className="hud text-[var(--color-accent-cyan)]">ProMarketing · Система</p>
+        <h1 className="cc-title mt-2 font-display text-3xl font-bold">Настройки</h1>
+        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">Само за преглед — промени се правят чрез env vars и redeploy</p>
       </header>
 
       <section className="glass space-y-3 rounded-xl p-6">
