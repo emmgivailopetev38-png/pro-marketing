@@ -226,7 +226,7 @@ export function ClientsTable({ initialRows }: { initialRows: ContactRow[] }) {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-[var(--color-border-default)]">
+      <div className="cc-panel overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead className="bg-[var(--color-bg-deep)] text-xs uppercase tracking-wider text-[var(--color-text-tertiary)]">
             <tr>

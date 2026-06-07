@@ -201,3 +201,43 @@
 .cc-kpi:nth-child(6), .cc-navcard:nth-child(6) { animation-delay: 0.20s; }
 .cc-kpi:nth-child(7) { animation-delay: 0.24s; }
 .cc-kpi:nth-child(8) { animation-delay: 0.28s; }
+
+/* ---- Cooler KPI numbers — gradient + glow ---- */
+.cc-kpi-value {
+  background: linear-gradient(135deg, var(--kpi, #06b6d4), color-mix(in srgb, var(--kpi, #06b6d4) 28%, #ffffff));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--kpi, #06b6d4) 45%, transparent));
+}
+
+/* ---- Command-center table ---- */
+.cc-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+.cc-table thead th {
+  position: sticky; top: 0; z-index: 1;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--color-text-tertiary); text-align: left; font-weight: 600;
+  padding: 10px 14px;
+  background: rgba(10, 14, 26, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(6, 182, 212, 0.28);
+}
+.cc-table tbody td { padding: 11px 14px; border-bottom: 1px solid rgba(120, 150, 200, 0.08); }
+.cc-table tbody tr { transition: background 0.18s ease; }
+.cc-table tbody tr:hover { background: rgba(6, 182, 212, 0.06); }
+.cc-table tbody tr:hover td:first-child { box-shadow: inset 2px 0 0 var(--color-accent-cyan); }
+.cc-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-text-primary); }
+
+/* ---- Auto-cool every admin table (global) ---- */
+.cc-bg table thead th {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--color-text-tertiary) !important;
+  border-bottom: 1px solid rgba(6, 182, 212, 0.28) !important;
+}
+.cc-bg table thead { background: rgba(10, 14, 26, 0.55); }
+.cc-bg table tbody tr { transition: background 0.18s ease; }
+.cc-bg table tbody tr:hover { background: rgba(6, 182, 212, 0.07) !important; }
+.cc-bg table tbody tr:hover td:first-child { box-shadow: inset 2px 0 0 var(--color-accent-cyan); }
+/* tabular numbers feel more "terminal" everywhere */
+.cc-bg table td { font-variant-numeric: tabular-nums; }

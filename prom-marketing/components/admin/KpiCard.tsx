@@ -40,10 +40,7 @@ export function KpiCard({ label, value, hint, delta, color, trend, trendColor, h
           </span>
         )}
       </div>
-      <p
-        className="mt-2.5 font-mono text-[27px] font-bold leading-none tabular-nums"
-        style={{ color: kpiColor }}
-      >
+      <p className="cc-kpi-value mt-2.5 font-mono text-[27px] font-bold leading-none tabular-nums">
         {typeof value === "number" ? <AnimatedNumber value={value} /> : value}
       </p>
       {hint && (
