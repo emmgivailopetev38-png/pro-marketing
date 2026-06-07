@@ -46,18 +46,18 @@ export default async function FollowupPage() {
     }));
 
   return (
-    <div className="space-y-6 p-6 md:p-10">
-      <header>
-        <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-accent-cyan)]">
-          ProMarketing · Продажби
-        </p>
-        <h1 className="mt-1 font-display text-4xl font-bold">Sales follow-up</h1>
-        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-          Всички, на които сме изпратили имейл, презентация, оферта или проформа — и какво следва.
-        </p>
-      </header>
+    <div className="cc-bg min-h-screen">
+      <div className="cc-content space-y-6 p-5 md:p-10">
+        <header className="cc-panel cc-panel-accent overflow-hidden p-6">
+          <p className="hud text-[var(--color-accent-cyan)]">ProMarketing · Продажби</p>
+          <h1 className="cc-title mt-2 font-display text-4xl font-bold">Sales follow-up</h1>
+          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+            Всички, на които сме изпратили имейл, презентация, оферта или проформа — и какво следва.
+          </p>
+        </header>
 
-      <FollowupQueue rows={rows} />
+        <FollowupQueue rows={rows} />
+      </div>
     </div>
   );
 }

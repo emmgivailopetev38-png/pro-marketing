@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Mail } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/service";
 import { ClientsTable } from "@/components/admin/clients/ClientsTable";
 import type { ContactRow } from "@/lib/contacts/types";
@@ -47,54 +48,38 @@ export default async function ClientsPage({
   }
 
   return (
-    <div className="px-4 py-8 md:px-10 md:py-12">
-      <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-[0.3em] text-[var(--color-accent-violet)]">
-            CRM · в реално време
-          </p>
-          <h1 className="mt-2 font-[family-name:var(--font-editorial)] text-3xl font-bold text-[var(--color-text-primary)] md:text-4xl">
-            Клиенти
-          </h1>
-          <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-            {showAll
-              ? "Всички контакти от Meta лийдове, Cal.com срещи и ръчно добавени."
-              : "Само клиентите, на които сме изпратили имейл."}
-          </p>
-        </div>
-        <div className="flex gap-2 text-xs">
-          <Link
-            href="/admin/clients"
-            className="rounded-full border px-4 py-2 transition-colors"
-            style={{
-              borderColor: showAll ? "var(--color-accent-cyan)" : "var(--color-border-default)",
-              background: showAll ? "rgba(0,212,255,0.1)" : "transparent",
-              color: showAll ? "var(--color-accent-cyan)" : "var(--color-text-secondary)",
-            }}
-          >
-            Всички контакти
-          </Link>
-          <Link
-            href="/admin/clients?view=emailed"
-            className="rounded-full border px-4 py-2 transition-colors"
-            style={{
-              borderColor: !showAll ? "var(--color-accent-cyan)" : "var(--color-border-default)",
-              background: !showAll ? "rgba(0,212,255,0.1)" : "transparent",
-              color: !showAll ? "var(--color-accent-cyan)" : "var(--color-text-secondary)",
-            }}
-          >
-            ✉️ Само с имейл
-          </Link>
-        </div>
-      </header>
+    <div className="cc-bg min-h-screen">
+      <div className="cc-content space-y-6 p-5 md:p-10">
+        <header className="cc-panel cc-panel-accent overflow-hidden p-6">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="hud text-[var(--color-accent-cyan)]">CRM · в реално време</p>
+              <h1 className="cc-title mt-2 font-display text-3xl font-bold md:text-4xl">Клиенти</h1>
+              <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+                {showAll
+                  ? "Всички контакти от Meta лийдове, Cal.com срещи и ръчно добавени."
+                  : "Само клиентите, на които сме изпратили имейл."}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Link href="/admin/clients" className={showAll ? "cc-btn cc-btn-primary" : "cc-btn"}>
+                Всички контакти
+              </Link>
+              <Link href="/admin/clients?view=emailed" className={!showAll ? "cc-btn cc-btn-primary" : "cc-btn"}>
+                <Mail className="h-4 w-4" strokeWidth={1.75} /> Само с имейл
+              </Link>
+            </div>
+          </div>
+        </header>
 
-      {error && (
-        <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
-          Грешка при зареждане: {error.message}
-        </div>
-      )}
+        {error && (
+          <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+            Грешка при зареждане: {error.message}
+          </div>
+        )}
 
-      <ClientsTable initialRows={rows} />
+        <ClientsTable initialRows={rows} />
+      </div>
     </div>
   );
 }
