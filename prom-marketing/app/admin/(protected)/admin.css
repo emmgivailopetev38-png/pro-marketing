@@ -330,3 +330,22 @@
 @keyframes cc-boot-scan { 0% { top: 0; } 100% { top: 100%; } }
 @keyframes cc-boot-text { 0% { opacity: 0; } 25% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .cc-boot { display: none; } }
+
+/* Animated edge trace — a light sweeping along a panel's top edge */
+.cc-trace {
+  position: absolute; top: 0; left: -30%; height: 2px; width: 30%; z-index: 4;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, #22d3ee, #7dd3fc, transparent);
+  box-shadow: 0 0 12px #22d3ee;
+  animation: cc-trace-move 5s linear infinite;
+}
+@keyframes cc-trace-move { 0% { left: -30%; } 100% { left: 100%; } }
+
+/* Corner brackets breathe gently (alive HUD) */
+.cc-panel::before, .cc-panel::after { animation: cc-bracket-pulse 4.5s ease-in-out infinite; }
+@keyframes cc-bracket-pulse { 0%, 100% { opacity: 0.82; } 50% { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .cc-trace { display: none; }
+  .cc-panel::before, .cc-panel::after { animation: none; }
+}

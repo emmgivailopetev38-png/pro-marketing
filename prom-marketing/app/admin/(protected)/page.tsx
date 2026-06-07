@@ -361,6 +361,7 @@ export default async function AdminDashboard() {
       <div className="cc-content space-y-7 p-5 md:p-10">
         {/* ─── Command-center header ──────────────────────────────────── */}
         <header className="cc-panel cc-panel-accent relative overflow-hidden p-6 md:p-7">
+          <div className="cc-trace" aria-hidden />
           <CommandCore />
           <div className="relative z-[1]">
           <div className="flex flex-wrap items-start justify-between gap-5">
