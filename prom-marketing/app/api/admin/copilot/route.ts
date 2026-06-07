@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
 import { ADMIN_COOKIE, verifySession } from "@/lib/admin/session";
 import { callChatProvider, type ProviderMessage } from "@/lib/chatbot/providers";
+import { buildCrmSnapshot } from "@/lib/crm/snapshot";
 
 export const dynamic = "force-dynamic";
 
@@ -30,10 +31,11 @@ const requestSchema = z.object({
 
 const SYSTEM = [
   "Ти си вътрешният AI co-pilot на ProMarketing CRM. Работиш за управителя Ивайло.",
-  "Задачата ти: разпознаваш командите му и казваш точно какво ще се случи.",
-  "Винаги отговаряй на български, кратко (под 50 думи), по същество. Без emoji освен ✓ за потвърждение.",
-  "За действия които изискват външна интеграция (Hermes, имейл, реклами) — обяснявай че утре когато Hermes е свързан, ще се изпълняват автоматично.",
-  "Спестявай му време. Предлагай конкретни следващи стъпки.",
+  "Имаш ЖИВА СНИМКА на CRM данните по-долу — ползвай точните числа и имена ОТ НЕЯ в отговорите. Не измисляй данни.",
+  "Винаги отговаряй на български, кратко и по същество. Може ✓ за потвърждение.",
+  "За четене/анализ (кой да чуя, колко неплатени, кои са топ сделките) — отговаряй директно с реалните числа от снимката.",
+  "За ДЕЙСТВИЯ които променят данни или пращат имейли — кажи какво ще стане; изпълнението идва когато Hermes агентите са свързани.",
+  "Спестявай му време. Предлагай конкретна следваща стъпка.",
 ].join(" ");
 
 // Detect intents the scripted bot can confidently handle and reply with what
@@ -49,17 +51,6 @@ function intentReply(
 
   // Order matters: more specific intents first. The "stale clients" check
   // must run before "add contact" because both mention клиент/лид.
-  if (
-    /(забравил|забравих|не\s+(съм\s+)?пипал|пипнал|неактивн|стар(и)?|stale|без\s+активн)/i.test(m)
-  ) {
-    return `✓ Намирам клиенти без активност > 7 дни. Покажи в Преглед → Просрочени, или искаш да им подготвя check-in имейли?`;
-  }
-  if (/(приход|оборот|сделк|спечел|won)/i.test(m) && /(месец|седмиц|днес|year|година)/i.test(m)) {
-    return `✓ Приходи са в KPI „Pipeline стойност" + „Спечелени €" на главното табло. За детайл по месеци — отвори /admin → Етапи на сделките.`;
-  }
-  if (/(какво\s+(да\s+)?правя|какво\s+(е\s+)?първо|priorit|приоритет|подготви\s+(ми\s+)?ден)/i.test(m)) {
-    return `✓ Топ 3 за днес: 1) Просрочени follow-ups (виж червената секция в /admin), 2) Предстоящи срещи утре, 3) Нови лидове без отговор. Започни от просрочените.`;
-  }
   if (/(промени|смени|премести|set)\s*(.*)?(етап|стадий|stage|stadium)/i.test(m)) {
     return `✓ Готов съм да премествам стадии${name ? ` за ${name}` : ""}. Кажи целевия етап — напр. 'на преговори' или 'спечелен'. Когато Hermes е свързан, ще го прави с едно изречение.`;
   }
@@ -112,7 +103,7 @@ export async function POST(request: Request) {
 
   // Bring in light context — pull the contact row so the assistant grounds
   // answers in real CRM data when there's a contact_id.
-  let knowledge = "";
+  let knowledge = await buildCrmSnapshot().catch(() => "");
   if (context?.contact_id) {
     const supabase = createServiceClient();
     const { data: contact } = await supabase
@@ -121,8 +112,8 @@ export async function POST(request: Request) {
       .eq("id", context.contact_id)
       .maybeSingle();
     if (contact) {
-      knowledge =
-        `Контактен контекст: ${contact.full_name ?? "—"} (${contact.email ?? "—"})\n` +
+      knowledge +=
+        `\n\nФОКУС КОНТАКТ: ${contact.full_name ?? "—"} (${contact.email ?? "—"})\n` +
         `Компания: ${contact.company ?? "—"} · Етап: ${contact.stage} · Сделка €${contact.deal_value_eur ?? 0}\n` +
         (contact.notes ? `Бележки: ${contact.notes}\n` : "") +
         (contact.next_followup_at ? `Следваща стъпка: ${contact.next_followup_at}\n` : "");
