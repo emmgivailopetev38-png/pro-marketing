@@ -59,11 +59,9 @@ export default async function GpsPage() {
 
   return (
     <div className="space-y-6 p-6 md:p-10">
-      <header>
-        <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-accent-cyan)]">
-          ProMarketing · Операции
-        </p>
-        <h1 className="mt-1 font-display text-4xl font-bold">GPS устройства</h1>
+      <header className="cc-panel cc-panel-accent overflow-hidden p-6">
+        <p className="hud text-[var(--color-accent-cyan)]">ProMarketing · Операции</p>
+        <h1 className="cc-title mt-2 font-display text-4xl font-bold">GPS устройства</h1>
         <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
           Устройства по клиент и автомобил, с история на монтаж/демонтаж/преместване.
         </p>
@@ -88,7 +86,7 @@ export default async function GpsPage() {
       </section>
 
       {gpsInvoices.length > 0 && (
-        <section className="rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-deep)]/40 p-5">
+        <section className="cc-panel p-5">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-display text-base font-semibold">🧾 GPS фактури и операции YTD</h2>
             <Link href="/admin/invoices" className="text-xs text-[var(--color-accent-cyan)] hover:underline">
