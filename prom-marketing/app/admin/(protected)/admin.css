@@ -260,12 +260,13 @@
 /* Panels → tactical HUD frames with corner brackets */
 .cc-panel { border-radius: 5px; }
 .cc-panel::before, .cc-panel::after {
-  content: ""; position: absolute; width: 13px; height: 13px; z-index: 3;
+  content: ""; position: absolute; width: 16px; height: 16px; z-index: 3;
   pointer-events: none;
-  border: 0 solid color-mix(in srgb, var(--cc, #22d3ee) 80%, transparent);
+  border: 0 solid var(--cc, #22d3ee);
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--cc, #22d3ee) 60%, transparent));
 }
-.cc-panel::before { top: 8px; left: 8px; border-left-width: 1.5px; border-top-width: 1.5px; }
-.cc-panel::after  { right: 8px; bottom: 8px; border-right-width: 1.5px; border-bottom-width: 1.5px; }
+.cc-panel::before { top: 7px; left: 7px; border-left-width: 2px; border-top-width: 2px; }
+.cc-panel::after  { right: 7px; bottom: 7px; border-right-width: 2px; border-bottom-width: 2px; }
 
 /* KPI tiles → instrument readouts (ticked scale bar + sharp frame) */
 .cc-kpi { border-radius: 5px; }
