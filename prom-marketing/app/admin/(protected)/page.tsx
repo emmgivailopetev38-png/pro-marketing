@@ -442,6 +442,7 @@ export default async function AdminDashboard() {
         {/* ─── Визуализации ────────────────────────────────────────────── */}
         <section className="grid gap-4 lg:grid-cols-3">
           <div className="cc-panel p-5">
+            <p className="hud-tag mb-2.5">{"// PIPELINE.01"}</p>
             <div className="mb-4 flex items-center justify-between">
               <h3 className="flex items-center gap-2 font-display text-base font-semibold"><BarChart3 className="h-4 w-4 text-[var(--color-accent-cyan)]" strokeWidth={1.75} /> Етапи на сделките</h3>
               <span className="hud">{active.length} активни</span>
@@ -450,6 +451,7 @@ export default async function AdminDashboard() {
           </div>
 
           <div className="cc-panel p-5">
+            <p className="hud-tag mb-2.5">{"// SOURCES.02"}</p>
             <div className="mb-4 flex items-center justify-between">
               <h3 className="flex items-center gap-2 font-display text-base font-semibold"><PieChart className="h-4 w-4 text-[var(--color-accent-cyan)]" strokeWidth={1.75} /> Източници на лидове</h3>
               <span className="hud">всичко</span>
@@ -462,6 +464,7 @@ export default async function AdminDashboard() {
           </div>
 
           <div className="cc-panel p-5">
+            <p className="hud-tag mb-2.5">{"// ACTIVITY.03"}</p>
             <div className="mb-2 flex items-center justify-between">
               <h3 className="flex items-center gap-2 font-display text-base font-semibold"><Activity className="h-4 w-4 text-[var(--color-accent-cyan)]" strokeWidth={1.75} /> Активност · 30 дни</h3>
               <span className="hud">{last30.length} действия</span>

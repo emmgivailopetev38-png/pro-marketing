@@ -36,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { CopilotWidget } from "@/components/admin/CopilotWidget";
 import { QuickAddContact } from "@/components/admin/QuickAddContact";
 import { CommandPalette } from "@/components/admin/CommandPalette";
+import { CommandBar } from "@/components/admin/CommandBar";
 
 type LinkItem = { href: string; label: string; icon: LucideIcon };
 type LinkGroup = { label: string; items: LinkItem[] };
@@ -140,6 +141,10 @@ export function AdminShell({ children, email }: { children: React.ReactNode; ema
   const path = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const sectionLabel =
+    [...ALL_LINKS]
+      .sort((a, b) => b.href.length - a.href.length)
+      .find((l) => path === l.href || path.startsWith(l.href + "/"))?.label ?? "Команден център";
 
   const signOut = async () => {
     await fetch("/api/admin/auth", { method: "DELETE" });
@@ -234,6 +239,7 @@ export function AdminShell({ children, email }: { children: React.ReactNode; ema
         <div className="cc-bg min-h-screen">
           <div className="cc-scan" aria-hidden />
           <div className="cc-grain" aria-hidden />
+          {path !== "/admin" && <CommandBar section={sectionLabel} />}
           {children}
         </div>
       </main>

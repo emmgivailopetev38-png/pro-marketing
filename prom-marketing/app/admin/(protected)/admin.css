@@ -306,6 +306,21 @@
 
 @media (prefers-reduced-motion: reduce) { .cc-scan { display: none; } }
 
+/* Global command-deck status bar (every board) */
+.cc-bar {
+  position: sticky; top: 0; z-index: 20;
+  display: none;
+  align-items: center; gap: 14px;
+  height: 40px; padding: 0 22px;
+  background: rgba(8, 12, 22, 0.74);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(6, 182, 212, 0.20);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03), 0 6px 18px -12px rgba(6, 182, 212, 0.5);
+}
+@media (min-width: 768px) { .cc-bar { display: flex; } }
+.cc-bar-sep { width: 1px; height: 14px; background: rgba(120, 160, 220, 0.28); }
+
 /* Boot sequence — plays once on full page load */
 .cc-boot {
   position: fixed; inset: 0; z-index: 80; pointer-events: none;
