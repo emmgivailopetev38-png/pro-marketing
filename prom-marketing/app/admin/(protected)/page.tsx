@@ -399,7 +399,7 @@ export default async function AdminDashboard() {
         {/* ─── Счетоводство YTD ────────────────────────────────────────── */}
         <section>
           <h2 className="hud mb-3">Счетоводство · от началото на годината</h2>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <KpiCard label="Приход" value={formatMoney(revenueYtd)} hint={`от ${startOfYearDate}`} color="#facc15" href="/admin/accounting" />
             <KpiCard label="Получени" value={formatMoney(receivedYtd)} hint="YTD плащания" color="#22c55e" href="/admin/payments" />
             <KpiCard label="Повтарящ се / мес" value={formatMoney(totalMrr)} hint={`GPS ${formatMoney(gpsMrr)} · абонаменти ${formatMoney(subsMrr)}`} color="#14b8a6" href="/admin/recurring" />

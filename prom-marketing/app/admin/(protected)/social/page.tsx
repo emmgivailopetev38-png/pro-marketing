@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { listSocialAccounts, listSocialPosts, hasPostformeKey } from "@/lib/social/postforme";
 import { SocialComposer } from "@/components/admin/SocialComposer";
 
@@ -39,23 +40,23 @@ export default async function SocialPage() {
       ) : (
         <>
           <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <div className="cc-kpi p-4">
+            <div className="cc-kpi p-4" style={{ "--kpi": "#06b6d4" } as CSSProperties}>
               <p className="hud">Свързани канала</p>
-              <p className="mt-2 font-mono text-2xl font-bold text-[var(--color-accent-cyan)]">{accounts.length}</p>
+              <p className="cc-kpi-value mt-2 font-mono text-2xl font-bold">{accounts.length}</p>
             </div>
-            <div className="cc-kpi p-4">
+            <div className="cc-kpi p-4" style={{ "--kpi": "#a78bfa" } as CSSProperties}>
               <p className="hud">Постове (последни)</p>
-              <p className="mt-2 font-mono text-2xl font-bold text-[#a78bfa]">{posts.length}</p>
+              <p className="cc-kpi-value mt-2 font-mono text-2xl font-bold">{posts.length}</p>
             </div>
-            <div className="cc-kpi p-4">
+            <div className="cc-kpi p-4" style={{ "--kpi": "#34d399" } as CSSProperties}>
               <p className="hud">Публикувани</p>
-              <p className="mt-2 font-mono text-2xl font-bold text-emerald-300">
+              <p className="cc-kpi-value mt-2 font-mono text-2xl font-bold">
                 {posts.filter((p) => p.status === "published").length}
               </p>
             </div>
-            <div className="cc-kpi p-4">
+            <div className="cc-kpi p-4" style={{ "--kpi": "#facc15" } as CSSProperties}>
               <p className="hud">Насрочени</p>
-              <p className="mt-2 font-mono text-2xl font-bold text-[#facc15]">
+              <p className="cc-kpi-value mt-2 font-mono text-2xl font-bold">
                 {posts.filter((p) => p.status === "scheduled").length}
               </p>
             </div>
