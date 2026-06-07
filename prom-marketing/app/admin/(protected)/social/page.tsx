@@ -1,145 +1,95 @@
-import { createServiceClient } from "@/lib/supabase/service";
-import { ModulePlaceholder } from "@/components/admin/ModulePlaceholder";
+import { listSocialAccounts, listSocialPosts, hasPostformeKey } from "@/lib/social/postforme";
+import { SocialComposer } from "@/components/admin/SocialComposer";
 
 export const dynamic = "force-dynamic";
 
-const PROVIDER_LABEL: Record<string, string> = {
-  facebook_page: "Facebook Page",
-  instagram: "Instagram",
-  linkedin: "LinkedIn",
-  x: "X (Twitter)",
-  tiktok: "TikTok",
-  youtube: "YouTube",
-};
-
-const PROVIDER_ICON: Record<string, string> = {
-  facebook_page: "👍",
-  instagram: "📷",
-  linkedin: "💼",
-  x: "✖️",
-  tiktok: "🎵",
-  youtube: "▶️",
+const STATUS_TONE: Record<string, string> = {
+  published: "text-emerald-300",
+  scheduled: "text-cyan-300",
+  draft: "text-slate-300",
+  processing: "text-amber-300",
+  error: "text-red-300",
+  failed: "text-red-300",
 };
 
 export default async function SocialPage() {
-  const supabase = createServiceClient();
-  const [accountsRes, postsRes] = await Promise.all([
-    supabase.from("social_accounts").select("id, provider, display_name, status, last_synced_at").order("created_at", { ascending: false }),
-    supabase
-      .from("social_posts")
-      .select("id, provider, caption, status, scheduled_for, published_at")
-      .order("created_at", { ascending: false })
-      .limit(50),
-  ]);
-
-  const accounts = (accountsRes.data ?? []) as Array<{
-    id: string;
-    provider: string;
-    display_name: string;
-    status: string;
-    last_synced_at: string | null;
-  }>;
-  const posts = (postsRes.data ?? []) as Array<{
-    id: string;
-    provider: string;
-    caption: string | null;
-    status: string;
-    scheduled_for: string | null;
-    published_at: string | null;
-  }>;
-
-  const scheduledCount = posts.filter((p) => p.status === "scheduled").length;
-  const publishedCount = posts.filter((p) => p.status === "published").length;
+  const connected = hasPostformeKey();
+  const [accounts, posts] = connected
+    ? await Promise.all([listSocialAccounts(), listSocialPosts(15)])
+    : [[], []];
 
   return (
-    <ModulePlaceholder
-      icon="📱"
-      title="Социални мрежи"
-      description="Управление на акаунти и публикации в социалните мрежи — Facebook, Instagram, LinkedIn, X, TikTok. Композирай веднъж, публикувай в избрани канали едновременно."
-      status={
-        accounts.some((a) => a.status === "connected")
-          ? { label: `${accounts.filter((a) => a.status === "connected").length} канала свързани`, tone: "ready" }
-          : { label: "очаква свързване на акаунти", tone: "pending" }
-      }
-      stats={[
-        { label: "Свързани акаунти", value: accounts.filter((a) => a.status === "connected").length, color: "#06b6d4" },
-        { label: "Чакащи свързване", value: accounts.filter((a) => a.status !== "connected").length, color: "#facc15" },
-        { label: "Планирани постове", value: scheduledCount, color: "#a78bfa" },
-        { label: "Публикувани (общо)", value: publishedCount, color: "#22c55e" },
-      ]}
-      primaryAction={{ label: "+ Свържи акаунт", href: "/admin/social#connect" }}
-      secondaryAction={{ label: "+ Нов пост", href: "/admin/social#compose" }}
-      features={[
-        {
-          icon: "🔗",
-          title: "Meta Graph API · Facebook & Instagram",
-          description: "OAuth flow с Page access tokens. Read + publish + insights. Изисква Meta Business app verification.",
-          ready: false,
-        },
-        {
-          icon: "💼",
-          title: "LinkedIn · публикации и компании",
-          description: "LinkedIn API v2. Лична страница + Company Page. Изисква Marketing Developer Platform достъп.",
-          ready: false,
-        },
-        {
-          icon: "📅",
-          title: "Календар на постовете",
-          description: "Drag-to-schedule view с филтри по канал. Cron job всяка минута публикува зрелите 'scheduled' постове.",
-          ready: false,
-        },
-        {
-          icon: "📊",
-          title: "Stats per post",
-          description: "Reach, likes, comments, shares, clicks — синхронизирани веднъж в час. Виждаш кое работи.",
-          ready: false,
-        },
-        {
-          icon: "🤖",
-          title: "AI композиране на пост",
-          description: "Hermes / Claude генерира варианти по тема + бранд тон. Изпращаш до одобрение преди публикуване.",
-          ready: false,
-        },
-        {
-          icon: "📸",
-          title: "Media библиотека",
-          description: "Изображения и видеа в Supabase Storage. Reuse, tag, search — без качване всеки път.",
-          ready: false,
-        },
-      ]}
-    >
-      {accounts.length > 0 && (
-        <section>
-          <h2 className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]">
-            Регистрирани акаунти
-          </h2>
-          <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-            {accounts.map((a) => (
-              <div
-                key={a.id}
-                className="flex items-center gap-3 rounded-lg border border-[var(--color-border-default)] bg-[var(--color-bg-deep)]/40 p-3"
-              >
-                <span className="text-2xl">{PROVIDER_ICON[a.provider] ?? "📱"}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="truncate text-sm font-medium">{a.display_name}</p>
-                  <p className="text-[11px] text-[var(--color-text-tertiary)]">
-                    {PROVIDER_LABEL[a.provider] ?? a.provider}
-                  </p>
-                </div>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[9px] font-mono uppercase tracking-wider ${
-                    a.status === "connected"
-                      ? "bg-emerald-500/15 text-emerald-300"
-                      : "bg-amber-500/15 text-amber-300"
-                  }`}
-                >
-                  {a.status}
-                </span>
+    <div className="space-y-6 p-5 md:p-10">
+      <header className="cc-panel cc-panel-accent overflow-hidden p-6">
+        <p className="hud text-[var(--color-accent-cyan)]">ProMarketing · Канали</p>
+        <h1 className="cc-title mt-2 font-display text-3xl font-bold md:text-4xl">Социални мрежи</h1>
+        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+          Композирай веднъж, публикувай в няколко канала наведнъж — през Post for Me.
+        </p>
+      </header>
+
+      {!connected ? (
+        <div className="cc-panel p-6 text-sm text-[var(--color-text-secondary)]">
+          Post for Me не е свързан — липсва API ключ.
+        </div>
+      ) : accounts.length === 0 ? (
+        <div className="cc-panel p-6 text-sm text-[var(--color-text-secondary)]">
+          Няма свързани акаунти (или ключът е невалиден). Свържи канали в таблото на Post for Me.
+        </div>
+      ) : (
+        <>
+          <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="cc-kpi p-4">
+              <p className="hud">Свързани канала</p>
+              <p className="mt-2 font-mono text-2xl font-bold text-[var(--color-accent-cyan)]">{accounts.length}</p>
+            </div>
+            <div className="cc-kpi p-4">
+              <p className="hud">Постове (последни)</p>
+              <p className="mt-2 font-mono text-2xl font-bold text-[#a78bfa]">{posts.length}</p>
+            </div>
+            <div className="cc-kpi p-4">
+              <p className="hud">Публикувани</p>
+              <p className="mt-2 font-mono text-2xl font-bold text-emerald-300">
+                {posts.filter((p) => p.status === "published").length}
+              </p>
+            </div>
+            <div className="cc-kpi p-4">
+              <p className="hud">Насрочени</p>
+              <p className="mt-2 font-mono text-2xl font-bold text-[#facc15]">
+                {posts.filter((p) => p.status === "scheduled").length}
+              </p>
+            </div>
+          </section>
+
+          <SocialComposer accounts={accounts} />
+
+          <section className="cc-panel p-5">
+            <h3 className="mb-4 font-display text-base font-semibold">Последни постове</h3>
+            {posts.length === 0 ? (
+              <p className="text-sm text-[var(--color-text-tertiary)]">Още няма постове. Композирай първия горе.</p>
+            ) : (
+              <div className="space-y-2">
+                {posts.map((p) => (
+                  <div key={p.id} className="flex items-start gap-3 rounded-lg border border-[var(--color-border-default)] bg-black/20 p-3">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm text-[var(--color-text-primary)]">{p.caption || "(без текст)"}</span>
+                      <span className="block text-[11px] text-[var(--color-text-tertiary)]">
+                        {p.social_accounts.length} канал(а)
+                        {p.created_at ? ` · ${new Date(p.created_at).toLocaleString("bg-BG", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}` : ""}
+                      </span>
+                    </span>
+                    {p.status && (
+                      <span className={`font-mono text-[10px] uppercase tracking-wider ${STATUS_TONE[p.status] ?? "text-[var(--color-text-tertiary)]"}`}>
+                        {p.status}
+                      </span>
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </section>
+            )}
+          </section>
+        </>
       )}
-    </ModulePlaceholder>
+    </div>
   );
 }
