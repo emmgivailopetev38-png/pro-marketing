@@ -158,6 +158,7 @@ export function AdminShell({ children, email }: { children: React.ReactNode; ema
 
   return (
     <div className="min-h-screen">
+      <div className="cc-boot" aria-hidden />
       {/* Mobile top bar */}
       <div className="md:hidden sticky top-0 z-30 flex items-center justify-between border-b border-[var(--color-border-default)] bg-[var(--color-bg-deep)]/80 px-4 py-3 backdrop-blur">
         <Link href="/admin" onClick={() => setOpen(false)}>

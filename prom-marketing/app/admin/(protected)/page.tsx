@@ -15,6 +15,7 @@ import {
 } from "@/lib/contacts/types";
 import { KpiCard } from "@/components/admin/KpiCard";
 import { TelemetryRail } from "@/components/admin/TelemetryRail";
+import { RadialGauge } from "@/components/admin/RadialGauge";
 import { LiveClock } from "@/components/admin/LiveClock";
 import { CommandCore } from "@/components/admin/CommandCore";
 import { formatMoney } from "@/lib/crm/labels";
@@ -351,6 +352,10 @@ export default async function AdminDashboard() {
     (c) => c.created_at >= new Date(nowMs - 72 * 3600 * 1000).toISOString()
   ).length;
 
+  const marginPct = receivedYtd > 0 ? Math.round((profitYtd / receivedYtd) * 100) : 0;
+  const pipelineShare =
+    pipelineEur + wonEur > 0 ? Math.round((pipelineEur / (pipelineEur + wonEur)) * 100) : 0;
+
   return (
     <div className="min-h-screen">
       <div className="cc-content space-y-7 p-5 md:p-10">
@@ -386,6 +391,13 @@ export default async function AdminDashboard() {
           <TelemetryRail nodes={active.length} />
           </div>
         </header>
+
+        {/* ─── Instrument cluster (radial gauges) ──────────────────────── */}
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <RadialGauge pct={conversionPct} display={`${conversionPct}%`} label="Конверсия" color="#34d399" />
+          <RadialGauge pct={marginPct} display={`${marginPct}%`} label="YTD Марж" color="#22d3ee" />
+          <RadialGauge pct={pipelineShare} display={`€${pipelineEur.toLocaleString("bg-BG")}`} label="Pipeline активен" color="#facc15" />
+        </section>
 
         {/* ─── Daily focus ─────────────────────────────────────────────── */}
         <section>

@@ -32,13 +32,13 @@ export function CommandCore() {
     resize();
     window.addEventListener("resize", resize);
 
-    const N = 6;
+    const N = 8;
 
     const render = () => {
       ctx.clearRect(0, 0, w, h);
       const cx = w * 0.78;
       const cy = h * 0.5;
-      const R = Math.max(40, Math.min(w * 0.16, h * 0.36));
+      const R = Math.max(48, Math.min(w * 0.19, h * 0.46));
 
       // core glow
       const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.7);
@@ -94,9 +94,9 @@ export function CommandCore() {
         // node
         ctx.fillStyle = col;
         ctx.shadowColor = col;
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = 14;
         ctx.beginPath();
-        ctx.arc(nx, ny, 3.2, 0, Math.PI * 2);
+        ctx.arc(nx, ny, 3.6, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
       }
@@ -104,9 +104,9 @@ export function CommandCore() {
       // bright core dot
       ctx.fillStyle = "rgba(220,250,255,0.95)";
       ctx.shadowColor = "#34e7e4";
-      ctx.shadowBlur = 18;
+      ctx.shadowBlur = 22;
       ctx.beginPath();
-      ctx.arc(cx, cy, 4.5, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 5.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
     };
