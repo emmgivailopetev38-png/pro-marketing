@@ -35,6 +35,7 @@ import { Logo } from "@/components/landing/Logo";
 import { cn } from "@/lib/utils";
 import { CopilotWidget } from "@/components/admin/CopilotWidget";
 import { QuickAddContact } from "@/components/admin/QuickAddContact";
+import { CommandPalette } from "@/components/admin/CommandPalette";
 
 type LinkItem = { href: string; label: string; icon: LucideIcon };
 type LinkGroup = { label: string; items: LinkItem[] };
@@ -231,6 +232,7 @@ export function AdminShell({ children, email }: { children: React.ReactNode; ema
       <main className="md:pl-64">{children}</main>
       <QuickAddContact />
       <CopilotWidget />
+      <CommandPalette />
     </div>
   );
 }
