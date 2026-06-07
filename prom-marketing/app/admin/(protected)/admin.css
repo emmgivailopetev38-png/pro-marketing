@@ -4,8 +4,13 @@
    Builds on the brand tokens defined in app/globals.css.
    ===================================================================== */
 
+/* Command-bridge HUD fonts — loaded ONLY on /admin (this file is imported
+   solely by the protected admin layout, so the public marketing site is
+   completely untouched). */
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
 /* ---- Atmospheric background (behind dashboard content) ---- */
-.cc-bg { position: relative; isolation: isolate; }
+.cc-bg { position: relative; isolation: isolate; --hud: "Chakra Petch", system-ui, sans-serif; --data: "JetBrains Mono", ui-monospace, monospace; }
 .cc-bg::before {
   content: "";
   position: absolute;
@@ -51,13 +56,8 @@
   border-color: rgba(6, 182, 212, 0.50);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 18px 55px -26px rgba(6, 182, 212, 0.6);
 }
-.cc-panel-accent::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 18px; right: 18px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--cc, #06b6d4), transparent);
-  opacity: 0.75;
+.cc-panel-accent {
+  border-top: 1px solid color-mix(in srgb, var(--cc, #22d3ee) 55%, transparent);
 }
 
 /* ---- KPI tile ---- */
@@ -241,3 +241,66 @@
 .cc-bg table tbody tr:hover td:first-child { box-shadow: inset 2px 0 0 var(--color-accent-cyan); }
 /* tabular numbers feel more "terminal" everywhere */
 .cc-bg table td { font-variant-numeric: tabular-nums; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   COMMAND BRIDGE · 2035 — HUD layer (scoped to /admin)
+   Techno type · corner brackets · instrument KPIs · scanline · grain
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* HUD typography */
+.cc-title { font-family: var(--hud) !important; font-weight: 700; letter-spacing: 0.006em; }
+.hud { font-family: var(--hud); font-weight: 600; }
+.cc-kpi-value, .cc-num { font-family: var(--data) !important; }
+.cc-bg .font-mono { font-family: var(--data); }
+.cc-bg table thead th { font-family: var(--data) !important; }
+
+/* Subtle screen-frame vignette */
+.cc-bg { box-shadow: inset 0 0 140px rgba(6, 182, 212, 0.05); }
+
+/* Panels → tactical HUD frames with corner brackets */
+.cc-panel { border-radius: 5px; }
+.cc-panel::before, .cc-panel::after {
+  content: ""; position: absolute; width: 13px; height: 13px; z-index: 3;
+  pointer-events: none;
+  border: 0 solid color-mix(in srgb, var(--cc, #22d3ee) 80%, transparent);
+}
+.cc-panel::before { top: 8px; left: 8px; border-left-width: 1.5px; border-top-width: 1.5px; }
+.cc-panel::after  { right: 8px; bottom: 8px; border-right-width: 1.5px; border-bottom-width: 1.5px; }
+
+/* KPI tiles → instrument readouts (ticked scale bar + sharp frame) */
+.cc-kpi { border-radius: 5px; }
+.cc-kpi::before {
+  height: 3px;
+  background: repeating-linear-gradient(90deg, var(--kpi, #22d3ee) 0 6px, transparent 6px 10px);
+  box-shadow: 0 0 10px var(--kpi, #22d3ee);
+  opacity: 0.92;
+}
+
+/* Panel ID tag (e.g. "// PIPELINE 03") */
+.hud-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--data);
+  font-size: 9.5px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-accent-cyan, #22d3ee) 62%, #94a3b8);
+}
+
+/* Global scanline sweep (behind content) */
+.cc-scan { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.cc-scan::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 200px;
+  background: linear-gradient(180deg, transparent, rgba(34, 211, 238, 0.05) 46%, rgba(125, 211, 252, 0.10) 50%, rgba(124, 58, 237, 0.05) 54%, transparent);
+  animation: cc-scanmove 9s linear infinite;
+}
+@keyframes cc-scanmove {
+  0% { transform: translateY(-200px); }
+  100% { transform: translateY(100vh); }
+}
+
+/* Film grain texture (behind content) */
+.cc-grain {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0.045;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: reduce) { .cc-scan { display: none; } }

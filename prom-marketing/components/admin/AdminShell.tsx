@@ -230,7 +230,11 @@ export function AdminShell({ children, email }: { children: React.ReactNode; ema
         </div>
       </aside>
       <main className="md:pl-64">
-        <div className="cc-bg min-h-screen">{children}</div>
+        <div className="cc-bg min-h-screen">
+          <div className="cc-scan" aria-hidden />
+          <div className="cc-grain" aria-hidden />
+          {children}
+        </div>
       </main>
       <QuickAddContact />
       <CopilotWidget />
