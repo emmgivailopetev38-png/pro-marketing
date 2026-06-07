@@ -33,9 +33,10 @@ export default async function BookingsPage() {
 
   return (
     <div className="p-6 md:p-10">
-      <header className="mb-8">
-        <h1 className="font-display text-3xl font-bold">Срещи</h1>
-        <p className="text-sm text-[var(--color-text-secondary)]">
+      <header className="mb-8 cc-panel cc-panel-accent overflow-hidden p-6">
+        <p className="hud text-[var(--color-accent-cyan)]">ProMarketing · Срещи</p>
+        <h1 className="cc-title mt-2 font-display text-3xl font-bold">Срещи</h1>
+        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
           Заявки от Cal.com webhook · {upcoming.length} предстоящи · {past.length} приключени
         </p>
       </header>

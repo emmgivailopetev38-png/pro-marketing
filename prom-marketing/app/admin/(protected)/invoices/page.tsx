@@ -17,16 +17,12 @@ export default async function InvoicesPage() {
 
   return (
     <div className="space-y-6 p-6 md:p-10">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-accent-cyan)]">
-            ProMarketing · Счетоводство
-          </p>
-          <h1 className="mt-1 font-display text-4xl font-bold">Фактури</h1>
-          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-            {rows.length} общо · {unpaid.length} неплатени ({formatMoney(unpaidTotal)})
-          </p>
-        </div>
+      <header className="cc-panel cc-panel-accent overflow-hidden p-6">
+        <p className="hud text-[var(--color-accent-cyan)]">ProMarketing · Счетоводство</p>
+        <h1 className="cc-title mt-2 font-display text-4xl font-bold">Фактури</h1>
+        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+          {rows.length} общо · {unpaid.length} неплатени ({formatMoney(unpaidTotal)})
+        </p>
       </header>
 
       <p className="rounded-lg border border-[var(--color-border-default)] bg-[var(--color-bg-deep)]/40 px-4 py-3 text-xs text-[var(--color-text-secondary)]">

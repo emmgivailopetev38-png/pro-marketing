@@ -57,12 +57,10 @@ export default async function NewLeadsPage() {
 
   return (
     <div className="p-6 md:p-10">
-      <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <header className="mb-8 cc-panel cc-panel-accent overflow-hidden flex flex-wrap items-center justify-between gap-4 p-6">
         <div>
-          <p className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-[0.3em] text-[#facc15]">
-            Нови контакти · последните 7 дни
-          </p>
-          <h1 className="mt-2 font-display text-3xl font-bold md:text-4xl">🆕 Нови лидове</h1>
+          <p className="hud text-[#facc15]">Нови контакти · последните 7 дни</p>
+          <h1 className="cc-title mt-2 font-display text-3xl font-bold md:text-4xl">Нови лидове</h1>
           <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
             Прясно влезли контакти, които още не са обработени или са в начален stage
           </p>
