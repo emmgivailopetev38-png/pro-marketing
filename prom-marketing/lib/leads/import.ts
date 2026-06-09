@@ -75,16 +75,23 @@ export function normalizeLeadRow(row: CsvRow, sourceLabel: string): NormalizedLe
   const r = lower(row);
 
   const name = pick(r, "full_name", "full name", "name", "име");
-  const email = pick(r, "email", "email_address", "email address", "имейл");
-  const phone = pick(r, "phone_number", "phone number", "phone", "телефон");
+  const emailRaw = pick(r, "email", "email_address", "email address", "имейл");
+  const email = emailRaw && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailRaw) ? emailRaw : null;
+  // Meta's "Send to Google Sheets" prefixes phone with "p:" and form_id with
+  // "f:" (forces text formatting). Strip them, then validate it's a real phone
+  // so misaligned columns (campaign/ad IDs) don't turn into bogus contacts.
+  const phoneRaw = pick(r, "phone_number", "phone number", "phone", "телефон");
+  const phoneClean = phoneRaw ? phoneRaw.replace(/^p:/i, "").replace(/[\s\-()]/g, "") : null;
+  const phone = phoneClean && /^\+?\d{9,14}$/.test(phoneClean) ? phoneClean : null;
   const createdRaw = pick(r, "created_time", "creation_time", "submit_time", "submitted_at", "created", "date added");
   const created = parseFlexibleDate(createdRaw);
 
-  if (!name && !email && !phone) return null;
+  // Require a real contact channel — skip header-junk / misaligned rows.
+  if (!email && !phone) return null;
 
   const realId = pick(r, "id", "lead_id");
   const formName = pick(r, "form_name", "form name", "form");
-  const formId = pick(r, "form_id", "form id");
+  const formId = (pick(r, "form_id", "form id") ?? "").replace(/^f:/i, "") || null;
 
   // Without a real lead id (Leads Center CSV doesn't include one), synthesise
   // a deterministic key so re-uploading the same CSV doesn't duplicate rows.

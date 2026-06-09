@@ -21,7 +21,9 @@ export function normalizeSheetUrl(url: string): string {
   const id = idMatch[1];
   const gidMatch = url.match(GID_RE);
   const gid = gidMatch ? gidMatch[1] : "0";
-  return `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${gid}`;
+  // Use the export endpoint (clean RFC-4180 CSV). The gviz/tq endpoint mangles
+  // multi-line / quoted cells and can desync a streaming CSV parser.
+  return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`;
 }
 
 export async function fetchSheetCsv(url: string): Promise<string> {
