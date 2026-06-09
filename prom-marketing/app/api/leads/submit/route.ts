@@ -7,13 +7,18 @@ import { escapeHtml } from "@/lib/email/escape";
 
 export const dynamic = "force-dynamic";
 
+// Phone is the only required field — lowest-friction capture. Name/email are
+// optional (richer forms still send them). Welcome email goes out only when we
+// actually have an email address.
 const schema = z.object({
-  full_name: z.string().min(2).max(120),
-  email: z.email().max(200),
+  full_name: z.string().max(120).optional(),
+  email: z.string().max(200).optional(),
   phone: z.string().min(6).max(40),
   company_activity: z.string().max(200).optional(),
   message: z.string().max(2000).optional(),
 });
+
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -27,17 +32,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid input", details: parsed.error.message }, { status: 400 });
   }
 
-  const { full_name, email, phone, company_activity, message } = parsed.data;
+  const phone = parsed.data.phone.trim();
+  const full_name = parsed.data.full_name?.trim() || "Уебсайт лийд";
+  const emailRaw = parsed.data.email?.trim().toLowerCase() || "";
+  const email = EMAIL_RE.test(emailRaw) ? emailRaw : null;
+  const { company_activity, message } = parsed.data;
   const supabase = createServiceClient();
 
-  // Upsert contact by email, then fall back to phone — prevents duplicate
-  // contacts when the same person submits with a typo'd / different email but
-  // the same phone (matches the Meta lead dedup behaviour).
-  let { data: existing } = await supabase
-    .from("contacts")
-    .select("id, full_name, phone, company")
-    .eq("email", email.toLowerCase())
-    .maybeSingle();
+  // Dedup by email when present, else by phone (matches Meta lead behaviour).
+  let existing: { id: string; full_name: string | null; phone: string | null; company: string | null } | null = null;
+  if (email) {
+    const { data } = await supabase
+      .from("contacts")
+      .select("id, full_name, phone, company")
+      .eq("email", email)
+      .maybeSingle();
+    existing = data;
+  }
   if (!existing && phone) {
     const { data: byPhone } = await supabase
       .from("contacts")
@@ -51,7 +62,7 @@ export async function POST(request: Request) {
   if (existing) {
     contactId = existing.id;
     const patch: { full_name?: string; phone?: string; company?: string } = {};
-    if (!existing.full_name) patch.full_name = full_name;
+    if (!existing.full_name && full_name) patch.full_name = full_name;
     if (!existing.phone) patch.phone = phone;
     if (!existing.company && company_activity) patch.company = company_activity;
     if (Object.keys(patch).length > 0) {
@@ -62,7 +73,7 @@ export async function POST(request: Request) {
       .from("contacts")
       .insert({
         full_name,
-        email: email.toLowerCase(),
+        email,
         phone,
         company: company_activity || null,
         stage: "lead",
@@ -98,12 +109,12 @@ export async function POST(request: Request) {
     },
   });
 
-  // Auto-welcome to the lead (new website contacts only; idempotent).
-  if (!existing) {
+  // Auto-welcome to the lead — only when we have an email (new contacts only).
+  if (!existing && email) {
     await sendWelcomeEmail({
       supabase,
       contactId,
-      to: email.toLowerCase(),
+      to: email,
       fullName: full_name,
       source: "website",
     });
@@ -123,7 +134,7 @@ export async function POST(request: Request) {
 <p><strong>Нов lead от формата на promarketing.pw</strong></p>
 <table style="border-collapse:collapse;">
 <tr><td style="padding:4px 12px 4px 0;color:#777;">Име:</td><td><strong>${escapeHtml(full_name)}</strong></td></tr>
-<tr><td style="padding:4px 12px 4px 0;color:#777;">Имейл:</td><td><a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a></td></tr>
+<tr><td style="padding:4px 12px 4px 0;color:#777;">Имейл:</td><td>${email ? `<a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a>` : "—"}</td></tr>
 <tr><td style="padding:4px 12px 4px 0;color:#777;">Телефон:</td><td><a href="tel:${escapeHtml(phone)}">${escapeHtml(phone)}</a></td></tr>
 ${company_activity ? `<tr><td style="padding:4px 12px 4px 0;color:#777;vertical-align:top;">Фирма/дейност:</td><td><strong>${escapeHtml(company_activity)}</strong></td></tr>` : ""}
 ${message ? `<tr><td style="padding:4px 12px 4px 0;color:#777;vertical-align:top;">Съобщение:</td><td>${escapeHtml(message).replace(/\n/g, "<br/>")}</td></tr>` : ""}
@@ -133,7 +144,7 @@ ${message ? `<tr><td style="padding:4px 12px 4px 0;color:#777;vertical-align:top
       text: `Нов lead от promarketing.pw
 
 Име: ${full_name}
-Имейл: ${email}
+Имейл: ${email || "—"}
 Телефон: ${phone}${company_activity ? `\nФирма/дейност: ${company_activity}` : ""}${message ? `\n\nСъобщение:\n${message}` : ""}
 
 CRM: https://promarketing.pw/admin/clients/${contactId}`,
