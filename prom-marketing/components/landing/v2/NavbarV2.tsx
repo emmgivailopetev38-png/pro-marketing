@@ -64,9 +64,19 @@ export function NavbarV2() {
         className={cn(
           "v2-glow flex w-full max-w-6xl items-center justify-between rounded-full px-5 py-2.5 transition-all duration-300",
           scrolled
-            ? "v2-glass shadow-[0_0_40px_-8px_var(--v2-glow-cyan)]"
+            ? "border shadow-[0_0_40px_-8px_var(--v2-glow-cyan)]"
             : "border border-transparent bg-transparent"
         )}
+        style={
+          scrolled
+            ? {
+                background: "rgba(7, 10, 22, 0.88)",
+                backdropFilter: "blur(22px) saturate(125%)",
+                WebkitBackdropFilter: "blur(22px) saturate(125%)",
+                borderColor: "var(--v2-line)",
+              }
+            : undefined
+        }
       >
         <a href="#top" aria-label="ProMarketing начало">
           <Logo />
