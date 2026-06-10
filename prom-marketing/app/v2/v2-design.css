@@ -1,0 +1,512 @@
+/* =====================================================================
+   ProMarketing · "2050" VISUAL LANGUAGE — "Luminescent Depth"
+   ---------------------------------------------------------------------
+   A coherent, prescriptive design layer for promarketing.pw/v2.
+   Goal: distinctive, premium, beyond public/velko — same DNA, sharper.
+
+   HOW TO USE (for section agents):
+     1. This file is imported once in app/v2/layout.tsx (or page.tsx).
+     2. Wrap every section in <section className="v2-section"> … </section>.
+     3. Use the ready-made classes below 1:1 — do NOT reinvent styles.
+        Compose with Tailwind only for layout/spacing, not for color/skin.
+     4. Drive entrance animation with .v2-reveal on any element; add
+        inline `style={{ ['--d' as any]: '0.12s' }}` to stagger.
+
+   Everything is namespaced `v2-` so it never collides with globals.css
+   or shadcn tokens. Palette is self-contained on `.v2-scope` /
+   `[data-v2]` so it can't leak into the rest of the app.
+   ===================================================================== */
+
+/* ---- DISTINCTIVE TYPE: Sora (display) + JetBrains Mono (mono) -------- */
+/* Sora = geometric, future-leaning, NOT Inter / NOT Space Grotesk.      */
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+
+/* CSS custom-angle for the conic neon edge (graceful no-op if unsupported) */
+@property --v2-a {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* =====================================================================
+   1 · DESIGN TOKENS  (scoped — apply on a wrapper: <div data-v2> or
+   className="v2-scope">. app/v2 should put it on <body> or <main>.)
+   ===================================================================== */
+.v2-scope,
+[data-v2] {
+  /* — Base: near-black with a cold blue undertone (depth, not flat black) */
+  --v2-void: #04060d;          /* page base                                */
+  --v2-bg-1: #070a16;          /* raised surface                           */
+  --v2-bg-2: #0a0f1f;          /* card / panel                             */
+  --v2-ink: #eef3ff;           /* primary text                            */
+  --v2-muted: #93a3c4;         /* secondary text                          */
+  --v2-faint: #5a6889;         /* tertiary / mono labels                   */
+
+  /* — Accents: electric cyan + violet, with support hues for gradients   */
+  --v2-cyan: #22d3ee;          /* PRIMARY electric accent                  */
+  --v2-cyan-2: #67e8f9;        /* lighter cyan (gradient stop)             */
+  --v2-violet: #7c3aed;        /* SECONDARY accent                         */
+  --v2-violet-2: #a78bfa;      /* lighter violet (gradient stop)           */
+  --v2-blue: #3b82f6;          /* bridge hue between cyan/violet           */
+  --v2-magenta: #d946ef;       /* rare pop / glitch only                   */
+  --v2-mint: #34d399;          /* "online / live" status only              */
+
+  /* — Soft luminance: translucent fills tuned for "lit glass"            */
+  --v2-glow-cyan: rgba(34, 211, 238, 0.55);
+  --v2-glow-violet: rgba(124, 58, 237, 0.50);
+  --v2-line: rgba(120, 150, 210, 0.14);   /* hairline borders             */
+  --v2-line-bright: rgba(34, 211, 238, 0.38);
+  --v2-glass: rgba(130, 165, 225, 0.045); /* depth-glass fill             */
+  --v2-glass-2: rgba(130, 165, 225, 0.07);
+
+  /* — Signature gradients (reuse, don't redefine inline) ----------------*/
+  --v2-grad-holo: linear-gradient(115deg, #ffffff 0%, var(--v2-cyan) 38%, var(--v2-violet-2) 72%, #ffffff 100%);
+  --v2-grad-accent: linear-gradient(115deg, var(--v2-cyan), var(--v2-cyan-2) 45%, var(--v2-violet));
+  --v2-grad-surface: linear-gradient(180deg, rgba(13, 18, 33, 0.92), rgba(6, 9, 18, 0.96));
+  --v2-grad-line: linear-gradient(90deg, var(--v2-cyan), transparent);
+
+  /* — Geometry / motion ------------------------------------------------ */
+  --v2-r: 18px;                /* card radius                              */
+  --v2-r-sm: 12px;
+  --v2-r-pill: 100px;
+  --v2-maxw: 1200px;
+  --v2-ease: cubic-bezier(0.22, 1, 0.36, 1);   /* the "premium" ease       */
+  --v2-shadow-card: 0 28px 70px -45px rgba(0, 0, 0, 0.95);
+  --v2-shadow-glow: 0 0 40px -6px var(--v2-glow-cyan);
+
+  /* fonts (local aliases so agents can reference them) */
+  --v2-font-display: "Sora", system-ui, sans-serif;
+  --v2-font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* =====================================================================
+   2 · ATMOSPHERE  (optional full-bleed backdrop helpers)
+   Drop <div className="v2-aurora" aria-hidden /> as the first child of a
+   .v2-scope to get the signature depth glow. Pointer-events none.
+   ===================================================================== */
+.v2-aurora {
+  position: fixed;
+  inset: -25%;
+  z-index: 0;
+  pointer-events: none;
+  filter: blur(95px);
+  opacity: 0.42;
+}
+.v2-aurora::before,
+.v2-aurora::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  mix-blend-mode: screen;
+}
+.v2-aurora::before {
+  width: 52vw;
+  height: 52vw;
+  left: -8vw;
+  top: -10vw;
+  background: radial-gradient(circle, var(--v2-glow-cyan), transparent 62%);
+  animation: v2-drift 28s var(--v2-ease) infinite;
+}
+.v2-aurora::after {
+  width: 56vw;
+  height: 56vw;
+  right: -12vw;
+  bottom: -16vw;
+  background: radial-gradient(circle, var(--v2-glow-violet), transparent 62%);
+  animation: v2-drift 34s var(--v2-ease) infinite reverse;
+}
+@keyframes v2-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(5vw, 4vh) scale(1.12); }
+  66% { transform: translate(-4vw, -3vh) scale(0.92); }
+}
+
+/* Fine engineered grid — add className="v2-grid" to any section bg layer */
+.v2-grid {
+  background-image:
+    linear-gradient(rgba(124, 58, 237, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124, 58, 237, 0.05) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, #000 30%, transparent 78%);
+}
+
+/* Faint scanlines overlay (z high, pointer-none) — optional global mood */
+.v2-scan {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 0.3;
+  background: repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 0 1px, transparent 1px 3px);
+}
+
+/* =====================================================================
+   3 · SECTION SHELL
+   Use .v2-section on every <section>. Inner content goes in .v2-wrap
+   for the consistent max-width + responsive gutters.
+   ===================================================================== */
+.v2-section {
+  position: relative;
+  z-index: 2;
+  padding-block: clamp(72px, 11vw, 150px);
+  color: var(--v2-ink);
+  font-family: var(--v2-font-display);
+}
+.v2-wrap {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: var(--v2-maxw);
+  margin-inline: auto;
+  padding-inline: clamp(20px, 5vw, 52px);
+}
+/* Section header cluster: eyebrow + title + sub, pre-spaced */
+.v2-head {
+  max-width: 760px;
+  margin-bottom: clamp(40px, 6vw, 64px);
+}
+.v2-head.is-center {
+  margin-inline: auto;
+  text-align: center;
+}
+
+/* =====================================================================
+   4 · TYPOGRAPHY PRIMITIVES
+   ===================================================================== */
+
+/* .v2-eyebrow — mono, uppercase, tracked, with a leading light bar */
+.v2-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--v2-font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--v2-cyan);
+}
+.v2-eyebrow::before {
+  content: "";
+  width: 26px;
+  height: 1px;
+  background: var(--v2-grad-line);
+}
+.v2-head.is-center .v2-eyebrow {
+  justify-content: center;
+}
+
+/* .v2-title — holographic gradient display heading */
+.v2-title {
+  font-family: var(--v2-font-display);
+  font-weight: 800;
+  font-size: clamp(2rem, 5.4vw, 4rem);
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  margin: 16px 0 18px;
+  background: var(--v2-grad-holo);
+  background-size: 220% 220%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: v2-holo 7s ease-in-out infinite;
+}
+/* Use .v2-title-plain when you want a solid-ink heading (no gradient) */
+.v2-title-plain {
+  font-family: var(--v2-font-display);
+  font-weight: 800;
+  font-size: clamp(2rem, 5.4vw, 4rem);
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  margin: 16px 0 18px;
+  color: var(--v2-ink);
+}
+/* Inline holographic accent inside a plain title: <span class="v2-grad"> */
+.v2-grad {
+  background: var(--v2-grad-accent);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+@keyframes v2-holo {
+  0%, 100% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+}
+
+/* .v2-sub — secondary supporting copy */
+.v2-sub {
+  font-family: var(--v2-font-display);
+  font-weight: 400;
+  color: var(--v2-muted);
+  font-size: clamp(1rem, 1.6vw, 1.18rem);
+  line-height: 1.6;
+  max-width: 620px;
+}
+.v2-head.is-center .v2-sub {
+  margin-inline: auto;
+}
+
+/* .v2-mono — utility for any inline mono/telemetry text */
+.v2-mono {
+  font-family: var(--v2-font-mono);
+  letter-spacing: 0.04em;
+}
+
+/* =====================================================================
+   5 · SURFACES — glass + cards
+   ===================================================================== */
+
+/* .v2-glass — depth glass: blurred translucent panel with hairline edge */
+.v2-glass {
+  background: var(--v2-glass);
+  backdrop-filter: blur(20px) saturate(125%);
+  -webkit-backdrop-filter: blur(20px) saturate(125%);
+  border: 1px solid var(--v2-line);
+  border-radius: var(--v2-r);
+}
+
+/* .v2-card — the workhorse content card (glass + inner depth + lift) */
+.v2-card {
+  position: relative;
+  border-radius: var(--v2-r);
+  padding: clamp(20px, 2.6vw, 30px);
+  background:
+    linear-gradient(180deg, var(--v2-glass-2), transparent 60%),
+    var(--v2-bg-2);
+  border: 1px solid var(--v2-line);
+  box-shadow: var(--v2-shadow-card);
+  overflow: hidden;
+  transition: transform 0.35s var(--v2-ease), border-color 0.35s var(--v2-ease),
+    box-shadow 0.35s var(--v2-ease);
+}
+.v2-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--v2-line-bright);
+  box-shadow: var(--v2-shadow-card), 0 0 36px -10px var(--v2-glow-cyan);
+}
+/* top hairline sheen — automatic */
+.v2-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--v2-line-bright), transparent);
+  opacity: 0.7;
+}
+
+/* =====================================================================
+   6 · NEON CONIC EDGE  (the velko "neo" trick, refined)
+   Add .v2-glow to any element with a border-radius to get an animated
+   rotating conic outline on hover. Add .is-always for a permanent slow
+   sweep. Set the hue with style={{ ['--v2-c' as any]: 'var(--v2-violet)' }}
+   ===================================================================== */
+.v2-glow {
+  position: relative;
+}
+.v2-glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--v2-a),
+    transparent 0%,
+    var(--v2-c, var(--v2-cyan)) 12%,
+    transparent 30%,
+    transparent 70%,
+    var(--v2-c, var(--v2-cyan)) 88%,
+    transparent 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+.v2-glow:hover::after {
+  opacity: 0.9;
+  animation: v2-spin-edge 4s linear infinite;
+}
+.v2-glow.is-always::after {
+  opacity: 0.5;
+  animation: v2-spin-edge 9s linear infinite;
+}
+@keyframes v2-spin-edge {
+  to { --v2-a: 360deg; }
+}
+
+/* =====================================================================
+   7 · BUTTONS
+   .v2-btn = base. Add .v2-btn-primary (filled cyan→violet) OR keep base
+   for the ghost/outline look. .is-lg for hero-scale.
+   ===================================================================== */
+.v2-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  border-radius: var(--v2-r-pill);
+  font-family: var(--v2-font-display);
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--v2-ink);
+  background: var(--v2-glass-2);
+  border: 1px solid var(--v2-line);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  isolation: isolate;
+  overflow: hidden;
+  transition: transform 0.3s var(--v2-ease), border-color 0.3s var(--v2-ease),
+    color 0.3s var(--v2-ease), box-shadow 0.3s var(--v2-ease);
+}
+.v2-btn:hover {
+  border-color: var(--v2-line-bright);
+  color: #fff;
+}
+.v2-btn:active {
+  transform: scale(0.97);
+}
+.v2-btn .v2-arrow {
+  transition: transform 0.3s var(--v2-ease);
+}
+.v2-btn:hover .v2-arrow {
+  transform: translateX(5px);
+}
+.v2-btn.is-lg {
+  padding: 18px 40px;
+  font-size: 16.5px;
+}
+
+/* primary — luminous fill, dark ink, violet shift on hover */
+.v2-btn-primary {
+  color: #04121a;
+  background: var(--v2-grad-accent);
+  border: none;
+  font-weight: 700;
+  box-shadow: 0 8px 32px -6px var(--v2-glow-cyan);
+}
+.v2-btn-primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(115deg, var(--v2-violet), var(--v2-cyan));
+  opacity: 0;
+  transition: opacity 0.35s var(--v2-ease);
+}
+.v2-btn-primary:hover {
+  color: #04121a;
+  box-shadow: 0 10px 44px -6px var(--v2-glow-cyan);
+}
+.v2-btn-primary:hover::after {
+  opacity: 1;
+}
+
+/* =====================================================================
+   8 · SMALL PARTS — status chip + divider + hairline tag
+   ===================================================================== */
+/* .v2-status — "online" pill with pulsing mint dot (telemetry) */
+.v2-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--v2-font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--v2-mint);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  border-radius: 7px;
+  padding: 4px 9px;
+}
+.v2-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--v2-mint);
+  box-shadow: 0 0 8px var(--v2-mint);
+  animation: v2-blink 1.4s ease-in-out infinite;
+}
+@keyframes v2-blink { 50% { opacity: 0.35; } }
+
+/* .v2-tag — accent-bordered mono label (for section corners / kickers) */
+.v2-tag {
+  font-family: var(--v2-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--v2-cyan);
+  border: 1px solid var(--v2-line-bright);
+  border-radius: 8px;
+  padding: 5px 10px;
+}
+
+/* .v2-divider — thin gradient rule between sections */
+.v2-divider {
+  height: 1px;
+  border: 0;
+  background: linear-gradient(90deg, transparent, var(--v2-line-bright), transparent);
+  opacity: 0.6;
+}
+
+/* =====================================================================
+   9 · ENTRANCE — .v2-reveal (staggered)
+   Default: elements start hidden + nudged down, then animate in when the
+   section agent toggles `.is-in` (via IntersectionObserver) OR immediately
+   if you add `.is-in` server-side. Stagger via inline `--d`.
+   A pure-CSS fallback (auto-play) runs if JS never adds .is-in.
+   ===================================================================== */
+.v2-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.8s var(--v2-ease), transform 0.8s var(--v2-ease);
+  transition-delay: var(--d, 0s);
+  will-change: opacity, transform;
+}
+.v2-reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+/* If no JS toggles .is-in within view, this keyframe still reveals it so
+   content is never stuck invisible. Section agents using IO can ignore. */
+@media (prefers-reduced-motion: no-preference) {
+  .v2-reveal {
+    animation: v2-reveal-fallback 0.01s linear 1.4s forwards;
+  }
+  .v2-reveal.is-in {
+    animation: none;
+  }
+}
+@keyframes v2-reveal-fallback {
+  to { opacity: 1; transform: none; }
+}
+
+/* =====================================================================
+   10 · ACCESSIBILITY — reduced motion kills all the fancy motion
+   ===================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .v2-aurora::before,
+  .v2-aurora::after,
+  .v2-title,
+  .v2-status::before,
+  .v2-glow::after,
+  .v2-glow.is-always::after {
+    animation: none !important;
+  }
+  .v2-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+  .v2-card,
+  .v2-btn {
+    transition: none !important;
+  }
+}

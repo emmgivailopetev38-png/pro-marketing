@@ -4,6 +4,7 @@ import { ParticleField } from "@/components/effects/ParticleField";
 import { HolographicText } from "@/components/effects/HolographicText";
 import { MagneticButton } from "@/components/effects/MagneticButton";
 import { HeroOrb } from "@/components/landing/HeroOrb";
+import { NeuralCore } from "./NeuralCore";
 import { openBookingPopup } from "@/lib/cal/embed";
 import { track } from "@/lib/analytics/track";
 import { AiAudit } from "./AiAudit";
@@ -18,6 +19,11 @@ export function HeroV2() {
         <div className="absolute left-[-12%] top-1/2 h-[78vh] w-[78vh] -translate-y-1/2">
           <HeroOrb />
         </div>
+      </div>
+
+      {/* Central signature visual — breathing neural brain */}
+      <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 z-[2] h-[72vh] w-[72vh] max-h-[760px] max-w-[760px] -translate-x-1/2 -translate-y-1/2 opacity-70">
+        <NeuralCore radius={1.35} nodeCount={240} spin={0.85} />
       </div>
 
       <div className="relative z-[3] mx-auto grid min-h-[100svh] max-w-6xl items-center gap-12 px-6 pt-32 pb-24 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:pt-28">
