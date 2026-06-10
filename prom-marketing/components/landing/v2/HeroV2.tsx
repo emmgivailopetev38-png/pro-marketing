@@ -22,7 +22,7 @@ export function HeroV2() {
       </div>
 
       {/* Central signature visual — breathing neural brain */}
-      <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 z-[2] h-[72vh] w-[72vh] max-h-[760px] max-w-[760px] -translate-x-1/2 -translate-y-1/2 opacity-70">
+      <div aria-hidden className="pointer-events-none absolute left-1/2 top-[40%] z-[2] h-[56vh] w-[56vh] max-h-[760px] max-w-[760px] -translate-x-1/2 -translate-y-1/2 opacity-50 sm:top-1/2 sm:h-[72vh] sm:w-[72vh] sm:opacity-70">
         <NeuralCore radius={1.35} nodeCount={240} spin={0.85} />
       </div>
 

@@ -79,6 +79,9 @@
   --v2-font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
+/* Mobile safety — never allow a horizontal scrollbar from decorative overflow */
+.v2-scope { overflow-x: hidden; max-width: 100vw; }
+
 /* =====================================================================
    2 · ATMOSPHERE  (optional full-bleed backdrop helpers)
    Drop <div className="v2-aurora" aria-hidden /> as the first child of a
