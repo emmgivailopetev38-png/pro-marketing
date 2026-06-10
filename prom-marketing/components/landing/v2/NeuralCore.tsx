@@ -16,7 +16,7 @@
    of animating (and never mounts the rAF loop).
    ===================================================================== */
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
@@ -175,14 +175,53 @@ export function NeuralCore({
   className,
 }: NeuralCoreProps) {
   const reduced = useReducedMotion();
+  const wrapRef = useRef<HTMLDivElement>(null);
+  // Default to the lightweight (no-WebGL) variant until we confirm a capable
+  // desktop — mobile/touch NEVER mounts a WebGL context (perf).
+  const [lite, setLite] = useState(true);
+  const [inView, setInView] = useState(false);
 
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 820px), (pointer: coarse)");
+    const apply = () => setLite(mq.matches);
+    apply();
+    mq.addEventListener?.("change", apply);
+    return () => mq.removeEventListener?.("change", apply);
+  }, []);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setInView(e.isIntersecting), {
+      rootMargin: "100px",
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  // Mobile / touch / reduced-motion → cheap CSS glow: zero WebGL, zero rAF.
+  if (lite || reduced) {
+    return (
+      <div ref={wrapRef} className={`absolute inset-0 ${className ?? ""}`} aria-hidden>
+        <div
+          className="absolute left-1/2 top-1/2 h-3/5 w-3/5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{
+            background: `radial-gradient(circle at 50% 45%, ${colorA}55, ${colorB}22 52%, transparent 70%)`,
+            filter: "blur(6px)",
+          }}
+        />
+      </div>
+    );
+  }
+
+  // Desktop in-view → WebGL core, PAUSED when scrolled off-screen, capped DPR.
   return (
-    <div className={`absolute inset-0 ${className ?? ""}`} aria-hidden>
+    <div ref={wrapRef} className={`absolute inset-0 ${className ?? ""}`} aria-hidden>
       <Canvas
         camera={{ position: [0, 0, 3.2], fov: 55 }}
-        gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-        dpr={[1, 2]}
-        frameloop={reduced ? "demand" : "always"}
+        gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
+        dpr={[1, 1.5]}
+        frameloop={inView ? "always" : "never"}
       >
         {/* soft fill so the dark side of nodes still glows faintly */}
         <ambientLight intensity={0.6} />
@@ -193,7 +232,7 @@ export function NeuralCore({
           colorB={colorB}
           lineColor={lineColor}
           spin={spin}
-          animate={!reduced}
+          animate={inView}
         />
       </Canvas>
     </div>

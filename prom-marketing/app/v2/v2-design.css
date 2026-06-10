@@ -208,12 +208,12 @@
   letter-spacing: -0.025em;
   margin: 16px 0 18px;
   background: var(--v2-grad-holo);
-  background-size: 220% 220%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
-  animation: v2-holo 7s ease-in-out infinite;
+  /* static gradient — animating background-position on every title forced
+     constant text repaints (big jank with many headings). */
 }
 /* Use .v2-title-plain when you want a solid-ink heading (no gradient) */
 .v2-title-plain {
