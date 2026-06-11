@@ -71,18 +71,32 @@ function synthesizeId(...parts: Array<string | null | undefined>): string {
   return "syn_" + createHash("sha256").update(joined).digest("hex").slice(0, 24);
 }
 
+/**
+ * Canonicalise a phone to BG E.164 (+359XXXXXXXXX) so the SAME number written in
+ * any format (0877…, 359877…, +359 877…, with spaces/dashes) dedups to one key.
+ */
+export function canonPhone(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  let d = String(raw).replace(/^p:/i, "").replace(/[^\d]/g, "");
+  if (!d) return null;
+  if (d.startsWith("00")) d = d.slice(2); // intl 00 prefix
+  if (/^0\d{8,9}$/.test(d)) d = "359" + d.slice(1); // national 0… → 359…
+  else if (d.length === 8 || d.length === 9) d = "359" + d; // bare national → +359
+  const e164 = "+" + d;
+  return /^\+\d{9,15}$/.test(e164) ? e164 : null;
+}
+
 export function normalizeLeadRow(row: CsvRow, sourceLabel: string): NormalizedLead | null {
   const r = lower(row);
 
   const name = pick(r, "full_name", "full name", "name", "име");
   const emailRaw = pick(r, "email", "email_address", "email address", "имейл");
-  const email = emailRaw && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailRaw) ? emailRaw : null;
-  // Meta's "Send to Google Sheets" prefixes phone with "p:" and form_id with
-  // "f:" (forces text formatting). Strip them, then validate it's a real phone
-  // so misaligned columns (campaign/ad IDs) don't turn into bogus contacts.
+  const emailValid = emailRaw && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailRaw) ? emailRaw : null;
+  const email = emailValid ? emailValid.toLowerCase() : null;
+  // Meta's "Send to Google Sheets" prefixes phone with "p:" (forces text). Strip
+  // it + canonicalise to +359 E.164 so the SAME number in any format dedups to one.
   const phoneRaw = pick(r, "phone_number", "phone number", "phone", "телефон");
-  const phoneClean = phoneRaw ? phoneRaw.replace(/^p:/i, "").replace(/[\s\-()]/g, "") : null;
-  const phone = phoneClean && /^\+?\d{9,14}$/.test(phoneClean) ? phoneClean : null;
+  const phone = canonPhone(phoneRaw);
   const createdRaw = pick(r, "created_time", "creation_time", "submit_time", "submitted_at", "created", "date added");
   const created = parseFlexibleDate(createdRaw);
 
@@ -93,9 +107,11 @@ export function normalizeLeadRow(row: CsvRow, sourceLabel: string): NormalizedLe
   const formName = pick(r, "form_name", "form name", "form");
   const formId = (pick(r, "form_id", "form id") ?? "").replace(/^f:/i, "") || null;
 
-  // Without a real lead id (Leads Center CSV doesn't include one), synthesise
-  // a deterministic key so re-uploading the same CSV doesn't duplicate rows.
-  const meta_lead_id = realId ?? synthesizeId(email, phone, createdRaw, formName);
+  // Stable identity: real Meta id if present, else a deterministic hash of the
+  // NORMALISED natural key (email | phone | ISO-created). No longer includes the
+  // form name or the raw date string — so a re-export (or a "…-copy" form) of the
+  // SAME lead yields the SAME id and can't duplicate the row.
+  const meta_lead_id = realId ?? synthesizeId(email, phone, created);
 
   return {
     meta_lead_id,
@@ -120,14 +136,29 @@ async function upsertLeads(
   if (leads.length === 0) return { inserted: 0, error: null };
 
   const supabase = createServiceClient();
-  const ids = leads.map((l) => l.meta_lead_id);
+  // Dedup by BOTH the lead id AND a normalised natural key (email|phone|created).
+  // The natural key is robust to id changes (e.g. Make re-issuing synthetic ids) —
+  // that id churn was the root cause of the duplicate-lead cascade.
   const { data: existing } = await supabase
     .from("meta_leads")
-    .select("meta_lead_id")
-    .in("meta_lead_id", ids);
-
-  const seen = new Set((existing ?? []).map((r) => r.meta_lead_id));
-  const fresh = leads.filter((l) => !seen.has(l.meta_lead_id));
+    .select("meta_lead_id, email, phone, created_time");
+  const naturalKey = (email: string | null, phone: string | null, created: string | null) =>
+    `${(email ?? "").toLowerCase().trim()}|${canonPhone(phone) ?? ""}|${created ?? ""}`;
+  const seenIds = new Set((existing ?? []).map((r) => r.meta_lead_id));
+  const seenKeys = new Set(
+    (existing ?? []).map((r) =>
+      naturalKey(
+        r.email as string | null,
+        r.phone as string | null,
+        r.created_time as string | null
+      )
+    )
+  );
+  const fresh = leads.filter(
+    (l) =>
+      !seenIds.has(l.meta_lead_id) &&
+      !seenKeys.has(naturalKey(l.email, l.phone, l.created_time))
+  );
   if (fresh.length === 0) return { inserted: 0, error: null };
 
   const rows = fresh.map((l) => ({
@@ -198,23 +229,27 @@ async function mirrorLeadsToContacts(leads: NormalizedLead[]): Promise<number> {
     const phone = lead.phone ?? null;
     if (!email && !phone) continue;
 
-    // Lookup existing
+    // Lookup existing — case-insensitive email, then phone; take the OLDEST match
+    // (the canonical survivor) and tolerate pre-existing duplicates (limit 1, no
+    // maybeSingle throw).
     let existing: { id: string; full_name: string | null; phone: string | null } | null = null;
     if (email) {
       const { data } = await supabase
         .from("contacts")
         .select("id, full_name, phone")
-        .eq("email", email)
-        .maybeSingle();
-      existing = data;
+        .ilike("email", email)
+        .order("created_at", { ascending: true })
+        .limit(1);
+      existing = data?.[0] ?? null;
     }
     if (!existing && phone) {
       const { data } = await supabase
         .from("contacts")
         .select("id, full_name, phone")
         .eq("phone", phone)
-        .maybeSingle();
-      existing = data;
+        .order("created_at", { ascending: true })
+        .limit(1);
+      existing = data?.[0] ?? null;
     }
 
     let contactId: string;
