@@ -269,7 +269,7 @@ export function ConversionFloats() {
         rel="noopener noreferrer"
         onClick={() => track("whatsapp_fab_click", {})}
         aria-label="Пиши ни в WhatsApp"
-        className="group fixed bottom-5 left-5 z-[110] inline-flex items-center gap-0 overflow-hidden rounded-[var(--v2-r-pill)] py-3.5 pl-3.5 pr-3.5 text-white shadow-[0_10px_30px_-8px_rgba(37,211,102,0.6)] transition-all duration-300 hover:pr-5 hover:shadow-[0_12px_38px_-6px_rgba(37,211,102,0.75)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25d366] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--v2-void)]"
+        className="group fixed bottom-[88px] left-5 z-[110] md:bottom-5 inline-flex items-center gap-0 overflow-hidden rounded-[var(--v2-r-pill)] py-3.5 pl-3.5 pr-3.5 text-white shadow-[0_10px_30px_-8px_rgba(37,211,102,0.6)] transition-all duration-300 hover:pr-5 hover:shadow-[0_12px_38px_-6px_rgba(37,211,102,0.75)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25d366] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--v2-void)]"
         style={{ background: "linear-gradient(150deg, #25d366, #1ebe5a)" }}
       >
         <MessageCircle className="h-[22px] w-[22px] shrink-0" />

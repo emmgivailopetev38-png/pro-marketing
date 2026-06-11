@@ -177,7 +177,7 @@ export function ChatWidget() {
         type="button"
         aria-label={open ? "Затвори чата" : "Отвори чата"}
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-5 right-5 z-[60] flex h-14 w-14 items-center justify-center rounded-full border border-cyan-500/40 bg-gradient-to-br from-cyan-500/95 to-violet-500/95 text-2xl shadow-[0_8px_30px_-8px_rgba(6,182,212,0.6)] transition hover:scale-105"
+        className="fixed bottom-[88px] right-5 z-[60] md:bottom-5 flex h-14 w-14 items-center justify-center rounded-full border border-cyan-500/40 bg-gradient-to-br from-cyan-500/95 to-violet-500/95 text-2xl shadow-[0_8px_30px_-8px_rgba(6,182,212,0.6)] transition hover:scale-105"
       >
         {open ? "×" : "💬"}
       </button>

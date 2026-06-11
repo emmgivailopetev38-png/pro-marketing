@@ -17,6 +17,18 @@ export function HeroV2() {
         <AuroraBackground intensity="intense" />
       </div>
       <ParticleField className="z-[1] hidden sm:block" />
+
+      {/* Mobile-only static depth wash — Aurora is off on phones, so give the
+          NeuralCore glow a rich dark backdrop. No animation, no blur (cheap). */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-0 max-w-full overflow-hidden sm:hidden"
+        style={{
+          background:
+            "radial-gradient(120vw 88vh at 50% 40%, rgba(34,211,238,0.20), transparent 58%), radial-gradient(95vw 70vh at 78% 86%, rgba(124,58,237,0.22), transparent 60%), var(--color-bg-void)",
+        }}
+      />
+
       <div className="absolute inset-0 z-[1] hidden opacity-40 lg:block">
         <div className="absolute left-[-12%] top-1/2 h-[78vh] w-[78vh] -translate-y-1/2">
           <HeroOrb />
@@ -24,7 +36,7 @@ export function HeroV2() {
       </div>
 
       {/* Central signature visual — breathing neural brain */}
-      <div aria-hidden className="pointer-events-none absolute left-1/2 top-[40%] z-[2] h-[56vh] w-[56vh] max-h-[760px] max-w-[760px] -translate-x-1/2 -translate-y-1/2 opacity-50 sm:top-1/2 sm:h-[72vh] sm:w-[72vh] sm:opacity-70">
+      <div aria-hidden className="pointer-events-none absolute left-1/2 top-[40%] z-[2] h-[66vh] w-[66vh] max-h-[760px] max-w-[100vw] -translate-x-1/2 -translate-y-1/2 opacity-[0.62] sm:top-1/2 sm:h-[72vh] sm:w-[72vh] sm:max-w-[760px] sm:opacity-70">
         <NeuralCore radius={1.35} nodeCount={240} spin={0.85} />
       </div>
 

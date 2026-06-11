@@ -1,13 +1,19 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
 export function SpotlightCursor() {
   const dotRef = useRef<HTMLDivElement | null>(null);
   const reduced = useReducedMotion();
+  const [coarse, setCoarse] = useState(false);
+
+  // Touch devices have no cursor — never mount the spotlight rAF loop there.
+  useEffect(() => {
+    setCoarse(window.matchMedia?.("(pointer: coarse)").matches ?? false);
+  }, []);
 
   useEffect(() => {
-    if (reduced) return;
+    if (reduced || coarse) return;
     const dot = dotRef.current;
     if (!dot) return;
 
@@ -31,9 +37,9 @@ export function SpotlightCursor() {
       window.removeEventListener("mousemove", onMove);
       cancelAnimationFrame(raf);
     };
-  }, [reduced]);
+  }, [reduced, coarse]);
 
-  if (reduced) return null;
+  if (reduced || coarse) return null;
 
   return (
     <div

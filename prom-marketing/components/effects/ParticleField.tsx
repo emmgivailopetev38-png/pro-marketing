@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
 interface Props {
@@ -11,9 +11,18 @@ interface Props {
 export function ParticleField({ density = 40, maxLinkDist = 140, className }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const reduced = useReducedMotion();
+  const [coarse, setCoarse] = useState(false);
+
+  // Mobile/touch: skip the O(n²) canvas loop entirely — it kept running every
+  // frame even while the field was visually hidden, stalling phones.
+  useEffect(() => {
+    setCoarse(
+      window.matchMedia?.("(pointer: coarse), (max-width: 820px)").matches ?? false
+    );
+  }, []);
 
   useEffect(() => {
-    if (reduced) return;
+    if (reduced || coarse) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -98,7 +107,9 @@ export function ParticleField({ density = 40, maxLinkDist = 140, className }: Pr
       canvas.removeEventListener("mousemove", onMove);
       canvas.removeEventListener("mouseleave", onLeave);
     };
-  }, [density, maxLinkDist, reduced]);
+  }, [density, maxLinkDist, reduced, coarse]);
+
+  if (reduced || coarse) return null;
 
   return (
     <canvas

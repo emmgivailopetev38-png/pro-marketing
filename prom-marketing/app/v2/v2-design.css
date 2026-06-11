@@ -101,6 +101,16 @@ html, body { overflow-x: hidden; max-width: 100%; }
   .v2-glow::after { display: none !important; }
 }
 
+/* Tiny phones (≤430px) — typography + spacing the audit flagged as oversized/
+   cramped. !important wins regardless of where the base rule sits in source. */
+@media (max-width: 430px) {
+  .v2-wrap { padding-inline: clamp(14px, 4.5vw, 22px) !important; }
+  .v2-title {
+    font-size: clamp(1.7rem, 7.5vw, 2.3rem) !important;
+    line-height: 1.14 !important;
+  }
+}
+
 /* =====================================================================
    2 · ATMOSPHERE  (optional full-bleed backdrop helpers)
    Drop <div className="v2-aurora" aria-hidden /> as the first child of a

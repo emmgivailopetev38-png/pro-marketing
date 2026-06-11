@@ -199,17 +199,68 @@ export function NeuralCore({
     return () => io.disconnect();
   }, []);
 
-  // Mobile / touch / reduced-motion → cheap CSS glow: zero WebGL, zero rAF.
+  // Mobile / touch / reduced-motion → luminous CSS orb: zero WebGL, zero rAF.
+  // Layered radial-gradients read as a lit sphere; only transform+opacity
+  // animate (GPU-composited), and that pulse is disabled when `reduced`.
   if (lite || reduced) {
     return (
       <div ref={wrapRef} className={`absolute inset-0 ${className ?? ""}`} aria-hidden>
+        <style>{`
+          @keyframes ncLiteBreathe {
+            0%, 100% { transform: translate(-50%, -50%) scale(1);    opacity: 0.94; }
+            50%      { transform: translate(-50%, -50%) scale(1.045); opacity: 1;    }
+          }
+        `}</style>
+        {/* outer halo — soft bloom that bleeds past the sphere edge */}
         <div
-          className="absolute left-1/2 top-1/2 h-3/5 w-3/5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+          className="absolute left-1/2 top-1/2 h-[82%] w-[82%] -translate-x-1/2 -translate-y-1/2 rounded-full"
           style={{
-            background: `radial-gradient(circle at 50% 45%, ${colorA}55, ${colorB}22 52%, transparent 70%)`,
-            filter: "blur(6px)",
+            background: `radial-gradient(circle at 50% 50%, ${colorA}33 0%, ${colorB}24 38%, transparent 72%)`,
+            filter: "blur(14px)",
           }}
         />
+        {/* the luminous sphere: bright core → mid glow → halo, + node hint */}
+        <div
+          className="absolute left-1/2 top-1/2 h-[60%] w-[60%] rounded-full"
+          style={{
+            transform: "translate(-50%, -50%)",
+            backgroundImage: [
+              // bright inner core (slightly high so it reads as top-lit)
+              `radial-gradient(circle at 50% 42%, ${colorA}d9 0%, ${colorA}99 16%, transparent 40%)`,
+              // mid body glow blending toward violet
+              `radial-gradient(circle at 50% 50%, ${colorB}66 24%, ${colorB}33 46%, transparent 66%)`,
+              // soft outer halo of the sphere itself, fading to transparent
+              `radial-gradient(circle at 50% 50%, ${colorA}3d 0%, transparent 70%)`,
+            ].join(", "),
+            boxShadow: `0 0 60px -4px ${colorA}80, 0 0 120px 8px ${colorB}4d, inset 0 0 50px -10px ${colorA}66`,
+            filter: "blur(2px)",
+            animation: reduced ? undefined : "ncLiteBreathe 6s ease-in-out infinite",
+            willChange: reduced ? undefined : "transform, opacity",
+          }}
+        >
+          {/* faint node / synapse structure — dotted grid, masked so edges fade */}
+          <div
+            className="absolute inset-0 rounded-full"
+            style={{
+              backgroundImage: `radial-gradient(${colorA}66 1px, transparent 1.6px)`,
+              backgroundSize: "13px 13px",
+              opacity: 0.5,
+              mixBlendMode: "screen",
+              WebkitMaskImage:
+                "radial-gradient(circle at 50% 50%, #000 30%, transparent 68%)",
+              maskImage:
+                "radial-gradient(circle at 50% 50%, #000 30%, transparent 68%)",
+            }}
+          />
+          {/* glossy top sheen — sells the spherical, lit-from-above read */}
+          <div
+            className="absolute inset-0 rounded-full"
+            style={{
+              backgroundImage: `radial-gradient(circle at 42% 30%, #ffffff70 0%, transparent 34%)`,
+              mixBlendMode: "screen",
+            }}
+          />
+        </div>
       </div>
     );
   }

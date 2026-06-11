@@ -28,7 +28,7 @@ export function TrustStripV2() {
         <div className="mt-12 grid items-center gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-14">
           {/* Left — the living AI core */}
           <div className="v2-reveal order-2 lg:order-1" style={{ ["--d" as string]: "0.05s" }}>
-            <div className="relative mx-auto aspect-square w-full max-w-[420px]">
+            <div className="relative mx-auto aspect-square w-full max-w-[300px] sm:max-w-[420px]">
               <div
                 aria-hidden
                 className="pointer-events-none absolute inset-[12%] rounded-full opacity-70 blur-3xl"

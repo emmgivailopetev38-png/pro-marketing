@@ -112,17 +112,6 @@ export function NavbarV2() {
             </span>
           </a>
           <a
-            href="tel:+359877399963"
-            aria-label="Обади се"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-white/5 md:hidden"
-            style={{
-              border: "1px solid var(--v2-line)",
-              color: "var(--v2-cyan)",
-            }}
-          >
-            <Phone className="h-4 w-4" />
-          </a>
-          <a
             href="#kontakti"
             onClick={() => track("cta_clicked", { location: "navbar", target: "contact_form" })}
             className="v2-btn hidden !px-4 !py-2 !text-sm md:inline-flex"
@@ -140,7 +129,7 @@ export function NavbarV2() {
               track("cta_clicked", { location: "navbar", target: "booking" });
               void openBookingPopup();
             }}
-            className="v2-btn v2-btn-primary hidden !px-4 !py-2 !text-sm md:inline-flex"
+            className="v2-btn v2-btn-primary inline-flex !px-3 !py-1.5 !text-xs md:!px-4 md:!py-2 md:!text-sm"
           >
             Запази среща
             <span aria-hidden className="v2-arrow">→</span>

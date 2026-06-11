@@ -7,6 +7,8 @@ export function useMagnetic<T extends HTMLElement>(strength = 0.35, radius = 60)
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    // Touch devices have no hover/cursor → skip the magnetic mousemove handler.
+    if (typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches) return;
     let frame: number | null = null;
 
     const onMove = (e: MouseEvent) => {
@@ -35,7 +37,7 @@ export function useMagnetic<T extends HTMLElement>(strength = 0.35, radius = 60)
       el.style.transform = "translate3d(0,0,0)";
     };
 
-    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mousemove", onMove, { passive: true });
     el.addEventListener("mouseleave", onLeave);
     el.style.transition = "transform 250ms cubic-bezier(0.22, 1, 0.36, 1)";
 
