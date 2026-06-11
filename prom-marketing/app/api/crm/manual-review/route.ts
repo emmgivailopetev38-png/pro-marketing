@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { checkHermesAuth } from "@/lib/crm/auth";
 import { manualReviewInputSchema, MANUAL_REVIEW_STATUSES } from "@/lib/crm/types";
 import { createManualReviewItem } from "@/lib/crm/repository";
+import { resolveManualReviewItem } from "@/lib/crm/list-read";
 import { createServiceClient } from "@/lib/supabase/service";
 
 export const dynamic = "force-dynamic";
@@ -78,4 +80,34 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
   }
   return NextResponse.json({ ok: true, id: result.id, created: result.created });
+}
+
+const resolveSchema = z.object({
+  id: z.string().uuid(),
+  status: z.enum(["resolved", "ignored"]),
+  note: z.string().trim().optional(),
+});
+
+/**
+ * PATCH /api/crm/manual-review — Hermes затваря item след решение.
+ * Body: { id, status: "resolved"|"ignored", note? } — note се добавя към
+ * описанието като „Резолюция (дата): …" и остава видима в админа.
+ */
+export async function PATCH(request: Request) {
+  if (!checkHermesAuth(request)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  const raw = await request.json().catch(() => null);
+  const parsed = resolveSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid payload", issues: parsed.error.issues }, { status: 400 });
+  }
+  const result = await resolveManualReviewItem(parsed.data);
+  if (result.error === "item not found") {
+    return NextResponse.json({ ok: false, error: result.error }, { status: 404 });
+  }
+  if (result.error) {
+    return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
+  }
+  return NextResponse.json({ ok: true, id: parsed.data.id, status: parsed.data.status });
 }

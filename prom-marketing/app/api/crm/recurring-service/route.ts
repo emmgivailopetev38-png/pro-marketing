@@ -1,9 +1,38 @@
 import { NextResponse } from "next/server";
 import { checkHermesAuth } from "@/lib/crm/auth";
-import { recurringServiceInputSchema } from "@/lib/crm/types";
+import { recurringServiceInputSchema, RECURRING_SERVICE_TYPES } from "@/lib/crm/types";
 import { upsertRecurringService } from "@/lib/crm/repository";
+import { clampLimit, parseOffset, parseCsv, parseBoolParam, listRecurringServices } from "@/lib/crm/list-read";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * GET /api/crm/recurring-service — списък абонаменти (GPS месечното фактуриране).
+ * ?service_type=gps&active=true&contact_id=…&limit=…&offset=…
+ */
+export async function GET(request: Request) {
+  if (!checkHermesAuth(request)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  const p = new URL(request.url).searchParams;
+  const serviceType = parseCsv(p.get("service_type"), RECURRING_SERVICE_TYPES);
+  if (serviceType?.length === 0) {
+    return NextResponse.json({ error: "Invalid service_type filter" }, { status: 400 });
+  }
+  const limit = clampLimit(p.get("limit"));
+  const offset = parseOffset(p.get("offset"));
+  const r = await listRecurringServices({
+    service_type: serviceType ?? undefined,
+    active: parseBoolParam(p.get("active")),
+    contact_id: p.get("contact_id") ?? undefined,
+    limit,
+    offset,
+  });
+  if (r.error) {
+    return NextResponse.json({ ok: false, error: r.error }, { status: 500 });
+  }
+  return NextResponse.json({ ok: true, total: r.total, count: r.items.length, limit, offset, items: r.items });
+}
 
 /**
  * POST /api/crm/recurring-service — upsert a recurring billing record
