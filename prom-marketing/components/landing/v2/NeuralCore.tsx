@@ -16,7 +16,7 @@
    of animating (and never mounts the rAF loop).
    ===================================================================== */
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
@@ -180,6 +180,49 @@ export function NeuralCore({
   // desktop — mobile/touch NEVER mounts a WebGL context (perf).
   const [lite, setLite] = useState(true);
   const [inView, setInView] = useState(false);
+  const uid = useId().replace(/:/g, "");
+
+  // Lite (mobile/touch/reduced) geometry: a Fibonacci sphere of nodes + near-
+  // neighbour synapse lines, projected to a 100×100 SVG. Cheap, computed once —
+  // renders as a razor-sharp neural lattice instead of a blurry CSS blob.
+  const liteGeo = useMemo(() => {
+    const N = Math.min(Math.max(Math.round(nodeCount * 0.5), 64), 100);
+    const cA = new THREE.Color(colorA);
+    const cB = new THREE.Color(colorB);
+    const golden = Math.PI * (3 - Math.sqrt(5));
+    const R = 43;
+    const raw: { x: number; y: number; z: number }[] = [];
+    const nodes: { sx: number; sy: number; z: number; color: string }[] = [];
+    for (let i = 0; i < N; i++) {
+      const y = 1 - (i / (N - 1)) * 2;
+      const rr = Math.sqrt(Math.max(0, 1 - y * y));
+      const t = golden * i;
+      const x = Math.cos(t) * rr;
+      const z = Math.sin(t) * rr;
+      raw.push({ x, y, z });
+      const c = cA.clone().lerp(cB, (y + 1) / 2);
+      nodes.push({ sx: 50 + x * R, sy: 50 - y * R, z, color: `#${c.getHexString()}` });
+    }
+    const lines: { x1: number; y1: number; x2: number; y2: number; o: number }[] = [];
+    const thr = 0.2;
+    for (let i = 0; i < N; i++) {
+      for (let j = i + 1; j < N; j++) {
+        const dx = raw[i].x - raw[j].x;
+        const dy = raw[i].y - raw[j].y;
+        const dz = raw[i].z - raw[j].z;
+        const d2 = dx * dx + dy * dy + dz * dz;
+        if (d2 < thr) {
+          const front = (raw[i].z + raw[j].z) / 2;
+          lines.push({
+            x1: nodes[i].sx, y1: nodes[i].sy, x2: nodes[j].sx, y2: nodes[j].sy,
+            o: 0.18 * (1 - d2 / thr) * (0.4 + 0.6 * ((front + 1) / 2)),
+          });
+        }
+      }
+    }
+    const order = nodes.map((n, idx) => ({ n, idx })).sort((a, b) => a.n.z - b.n.z);
+    return { lines, order };
+  }, [nodeCount, colorA, colorB]);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 820px), (pointer: coarse)");
@@ -199,68 +242,103 @@ export function NeuralCore({
     return () => io.disconnect();
   }, []);
 
-  // Mobile / touch / reduced-motion → luminous CSS orb: zero WebGL, zero rAF.
-  // Layered radial-gradients read as a lit sphere; only transform+opacity
-  // animate (GPU-composited), and that pulse is disabled when `reduced`.
+  // Mobile / touch / reduced-motion → crisp SVG neural sphere that's ALIVE:
+  // the lattice slowly turns + breathes, neurons fire (staggered opacity) and
+  // synapses light up — all cheap CSS keyframes (no WebGL, no rAF; the browser
+  // pauses paint while off-screen). Every motion is disabled when `reduced`.
   if (lite || reduced) {
     return (
       <div ref={wrapRef} className={`absolute inset-0 ${className ?? ""}`} aria-hidden>
         <style>{`
-          @keyframes ncLiteBreathe {
-            0%, 100% { transform: translate(-50%, -50%) scale(1);    opacity: 0.94; }
-            50%      { transform: translate(-50%, -50%) scale(1.045); opacity: 1;    }
+          @keyframes ncAlive_${uid} {
+            0%   { transform: rotate(0deg)   scale(0.99); }
+            50%  { transform: rotate(180deg) scale(1.025); }
+            100% { transform: rotate(360deg) scale(0.99); }
+          }
+          @keyframes ncFire_${uid} {
+            0%, 68%, 100% { opacity: 0.3; }
+            14%           { opacity: 1; }
+          }
+          @keyframes ncSyn_${uid} {
+            0%, 72%, 100% { stroke-opacity: 0.05; }
+            22%           { stroke-opacity: 0.85; }
           }
         `}</style>
-        {/* outer halo — soft bloom that bleeds past the sphere edge */}
-        <div
-          className="absolute left-1/2 top-1/2 h-[82%] w-[82%] -translate-x-1/2 -translate-y-1/2 rounded-full"
+        <svg
+          viewBox="0 0 100 100"
+          preserveAspectRatio="xMidYMid meet"
+          className="h-full w-full overflow-visible"
           style={{
-            background: `radial-gradient(circle at 50% 50%, ${colorA}33 0%, ${colorB}24 38%, transparent 72%)`,
-            filter: "blur(14px)",
-          }}
-        />
-        {/* the luminous sphere: bright core → mid glow → halo, + node hint */}
-        <div
-          className="absolute left-1/2 top-1/2 h-[60%] w-[60%] rounded-full"
-          style={{
-            transform: "translate(-50%, -50%)",
-            backgroundImage: [
-              // bright inner core (slightly high so it reads as top-lit)
-              `radial-gradient(circle at 50% 42%, ${colorA}d9 0%, ${colorA}99 16%, transparent 40%)`,
-              // mid body glow blending toward violet
-              `radial-gradient(circle at 50% 50%, ${colorB}66 24%, ${colorB}33 46%, transparent 66%)`,
-              // soft outer halo of the sphere itself, fading to transparent
-              `radial-gradient(circle at 50% 50%, ${colorA}3d 0%, transparent 70%)`,
-            ].join(", "),
-            boxShadow: `0 0 60px -4px ${colorA}80, 0 0 120px 8px ${colorB}4d, inset 0 0 50px -10px ${colorA}66`,
-            filter: "blur(2px)",
-            animation: reduced ? undefined : "ncLiteBreathe 6s ease-in-out infinite",
-            willChange: reduced ? undefined : "transform, opacity",
+            transformOrigin: "center",
+            animation: reduced ? undefined : `ncAlive_${uid} 22s ease-in-out infinite`,
+            filter: `drop-shadow(0 0 6px ${colorA}73) drop-shadow(0 0 16px ${colorB}45)`,
           }}
         >
-          {/* faint node / synapse structure — dotted grid, masked so edges fade */}
-          <div
-            className="absolute inset-0 rounded-full"
-            style={{
-              backgroundImage: `radial-gradient(${colorA}66 1px, transparent 1.6px)`,
-              backgroundSize: "13px 13px",
-              opacity: 0.5,
-              mixBlendMode: "screen",
-              WebkitMaskImage:
-                "radial-gradient(circle at 50% 50%, #000 30%, transparent 68%)",
-              maskImage:
-                "radial-gradient(circle at 50% 50%, #000 30%, transparent 68%)",
-            }}
-          />
-          {/* glossy top sheen — sells the spherical, lit-from-above read */}
-          <div
-            className="absolute inset-0 rounded-full"
-            style={{
-              backgroundImage: `radial-gradient(circle at 42% 30%, #ffffff70 0%, transparent 34%)`,
-              mixBlendMode: "screen",
-            }}
-          />
-        </div>
+          <defs>
+            <radialGradient id={`ncGlow_${uid}`} cx="50%" cy="46%" r="56%">
+              <stop offset="0%" stopColor={colorA} stopOpacity="0.5" />
+              <stop offset="36%" stopColor={colorB} stopOpacity="0.24" />
+              <stop offset="100%" stopColor={colorB} stopOpacity="0" />
+            </radialGradient>
+          </defs>
+
+          {/* volumetric glow behind the lattice */}
+          <circle cx="50" cy="48" r="43" fill={`url(#ncGlow_${uid})`} />
+
+          {/* synapse lines */}
+          <g stroke={lineColor} strokeLinecap="round">
+            {liteGeo.lines.map((l, i) => {
+              const fires = !reduced && i % 8 === 0;
+              return (
+                <line
+                  key={i}
+                  x1={l.x1}
+                  y1={l.y1}
+                  x2={l.x2}
+                  y2={l.y2}
+                  strokeWidth="0.25"
+                  strokeOpacity={l.o}
+                  style={
+                    fires
+                      ? { animation: `ncSyn_${uid} ${3 + (i % 5) * 0.6}s ease-in-out ${(i % 9) * 0.5}s infinite` }
+                      : undefined
+                  }
+                />
+              );
+            })}
+          </g>
+
+          {/* nodes painted back → front (front = larger, brighter, with a sheen) */}
+          {liteGeo.order.map(({ n, idx }, oi) => {
+            const depth = (n.z + 1) / 2;
+            const r = 0.55 + depth * 1.5;
+            const fires = !reduced && oi % 4 === 0 && depth > 0.35;
+            return (
+              <g key={idx} opacity={0.34 + depth * 0.66}>
+                <circle
+                  cx={n.sx}
+                  cy={n.sy}
+                  r={r}
+                  fill={n.color}
+                  style={
+                    fires
+                      ? { animation: `ncFire_${uid} ${2.6 + (oi % 6) * 0.5}s ease-in-out ${(oi % 11) * 0.4}s infinite` }
+                      : undefined
+                  }
+                />
+                {depth > 0.5 && (
+                  <circle
+                    cx={n.sx - r * 0.28}
+                    cy={n.sy - r * 0.28}
+                    r={r * 0.42}
+                    fill="#ffffff"
+                    opacity={0.9}
+                  />
+                )}
+              </g>
+            );
+          })}
+        </svg>
       </div>
     );
   }
