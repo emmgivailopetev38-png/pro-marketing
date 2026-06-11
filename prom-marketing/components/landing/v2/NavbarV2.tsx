@@ -114,7 +114,7 @@ export function NavbarV2() {
           <a
             href="#kontakti"
             onClick={() => track("cta_clicked", { location: "navbar", target: "contact_form" })}
-            className="v2-btn hidden !px-4 !py-2 !text-sm md:inline-flex"
+            className="v2-btn !hidden !px-4 !py-2 !text-sm md:!inline-flex"
             style={{
               borderColor: "var(--v2-line-bright)",
               color: "var(--v2-cyan)",
