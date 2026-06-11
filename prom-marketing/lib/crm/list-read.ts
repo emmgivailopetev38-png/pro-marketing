@@ -278,6 +278,51 @@ export async function listRecurringServices(
   };
 }
 
+// ── оферти и проекти (ERP Фаза 3) ──────────────────────────────────────────
+
+export async function listOffers(
+  opts: PageOpts & { status?: string[]; contact_id?: string; q?: string; from?: string; to?: string }
+): Promise<ListResult> {
+  const { rows, error } = await fetchAll("offers");
+  if (error) return { items: [], total: 0, error };
+  const filtered = rows.filter((r) => {
+    if (opts.status && !opts.status.includes(String(r.status))) return false;
+    if (opts.contact_id && r.contact_id !== opts.contact_id) return false;
+    if (opts.q && !textMatches(opts.q, [r.title, r.description, r.notes])) return false;
+    return inRange(r.created_at, opts.from, opts.to);
+  });
+  return {
+    ...paginate(sortByDateDesc(filtered, (r) => r.created_at), opts.limit, opts.offset),
+    error: null,
+  };
+}
+
+export async function listProjects(
+  opts: PageOpts & { status?: string[]; contact_id?: string; q?: string; from?: string; to?: string }
+): Promise<ListResult> {
+  const { rows, error } = await fetchAll("projects");
+  if (error) return { items: [], total: 0, error };
+  const filtered = rows.filter((r) => {
+    if (opts.status && !opts.status.includes(String(r.status))) return false;
+    if (opts.contact_id && r.contact_id !== opts.contact_id) return false;
+    if (opts.q && !textMatches(opts.q, [r.title, r.description, r.notes])) return false;
+    return inRange(r.created_at, opts.from, opts.to);
+  });
+  return {
+    ...paginate(sortByDateDesc(filtered, (r) => r.created_at), opts.limit, opts.offset),
+    error: null,
+  };
+}
+
+/** Задачите на проект, по sort_order. */
+export async function listProjectTasks(projectId: string): Promise<ListResult> {
+  const sb = createServiceClient();
+  const { data, error } = await sb.from("project_tasks").select("*").eq("project_id", projectId);
+  if (error) return { items: [], total: 0, error: error.message ?? "select failed" };
+  const items = ((data ?? []) as CrmRow[]).sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0));
+  return { items, total: items.length, error: null };
+}
+
 // ── resolve на ръчна проверка ──────────────────────────────────────────────
 
 /**

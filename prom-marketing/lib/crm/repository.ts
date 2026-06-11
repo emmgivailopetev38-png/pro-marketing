@@ -19,6 +19,11 @@ import type {
   ExpenseInput,
   DocumentInput,
   MetaAdsReportInput,
+  OfferInput,
+  ProjectInput,
+  OfferStatus,
+  ProjectStatus,
+  ProjectTaskStatus,
 } from "./types";
 
 type Sb = ReturnType<typeof createServiceClient>;
@@ -744,6 +749,224 @@ export async function upsertMetaAdsReport(input: MetaAdsReportInput): Promise<Up
     idempotency_key: `metareport:${data.id}`,
   }).catch(() => {});
   return { id: data.id, created: true, error: null };
+}
+
+// ── offers → projects (ERP Фаза 3) ──────────────────────────────────────────
+
+async function resolveContactId(sb: Sb, contactId?: string, email?: string): Promise<string | null> {
+  if (contactId) return contactId;
+  if (!email) return null;
+  const { data } = await sb.from("contacts").select("id").eq("email", email.toLowerCase()).maybeSingle();
+  return data ? (data.id as string) : null;
+}
+
+export async function upsertOffer(input: OfferInput): Promise<UpsertResult & { contact_id: string | null }> {
+  const sb = createServiceClient();
+  const contactId = await resolveContactId(sb, input.contact_id, input.client_email);
+
+  if (input.dedupe_key) {
+    const { data } = await sb.from("offers").select("id, contact_id").eq("dedupe_key", input.dedupe_key).maybeSingle();
+    if (data) return { id: data.id as string, created: false, error: null, contact_id: (data.contact_id as string | null) ?? null };
+  }
+
+  const fx = toEur(input.amount_gross, input.currency, input.fx_rate);
+  const { data, error } = await sb
+    .from("offers")
+    .insert({
+      contact_id: contactId,
+      title: input.title,
+      description: input.description ?? null,
+      amount_net: convertWith(input.amount_net, fx.fx_rate),
+      amount_gross: fx.amount_eur,
+      vat_amount: convertWith(input.vat_amount, fx.fx_rate),
+      currency: "EUR",
+      ...fxColumns(fx),
+      status: input.status ?? "draft",
+      sent_at: input.sent_at ?? null,
+      valid_until: input.valid_until ?? null,
+      url: input.url ?? null,
+      source: input.source,
+      notes: input.notes ?? null,
+      dedupe_key: input.dedupe_key ?? null,
+    })
+    .select("id")
+    .single();
+  if (error || !data) {
+    if (input.dedupe_key) {
+      const { data: again } = await sb.from("offers").select("id").eq("dedupe_key", input.dedupe_key).maybeSingle();
+      if (again) return { id: again.id as string, created: false, error: null, contact_id: contactId };
+    }
+    return { id: null, created: false, error: error?.message ?? "insert failed", contact_id: contactId };
+  }
+  if (contactId) {
+    await logActivity(sb, { contact_id: contactId, type: "offer_created", title: `Оферта: ${input.title}` }).catch(() => {});
+  }
+  await recordAutomationEvent({
+    event_type: "offer_created",
+    related_contact_id: contactId,
+    summary: `Оферта „${input.title}" · ${fx.amount_eur ?? "?"} EUR`,
+    idempotency_key: `offer:${data.id}`,
+  }).catch(() => {});
+  return { id: data.id as string, created: true, error: null, contact_id: contactId };
+}
+
+/**
+ * Смяна на статус на оферта. „accepted" автоматично създава проект от
+ * офертата (веднъж — повторно приемане връща същия проект).
+ */
+export async function setOfferStatus(args: {
+  id: string;
+  status: OfferStatus;
+}): Promise<{ error: string | null; project_id: string | null }> {
+  const sb = createServiceClient();
+  const { data: offer } = await sb.from("offers").select("*").eq("id", args.id).maybeSingle();
+  if (!offer) return { error: "offer not found", project_id: null };
+
+  const patch: Record<string, unknown> = { status: args.status };
+  if (args.status === "sent" && !offer.sent_at) patch.sent_at = new Date().toISOString();
+
+  let projectId: string | null = null;
+  if (args.status === "accepted") {
+    patch.accepted_at = (offer.accepted_at as string | null) ?? new Date().toISOString();
+    const { data: existing } = await sb.from("projects").select("id").eq("offer_id", args.id).maybeSingle();
+    if (existing) {
+      projectId = existing.id as string;
+    } else {
+      const { data: proj } = await sb
+        .from("projects")
+        .insert({
+          contact_id: (offer.contact_id as string | null) ?? null,
+          offer_id: args.id,
+          title: offer.title as string,
+          description: (offer.description as string | null) ?? null,
+          status: "planned",
+          amount_gross: (offer.amount_gross as number | null) ?? null,
+          currency: (offer.currency as string) ?? "EUR",
+          dedupe_key: `from-offer:${args.id}`,
+        })
+        .select("id")
+        .single();
+      projectId = (proj?.id as string | undefined) ?? null;
+      await recordAutomationEvent({
+        event_type: "offer_accepted",
+        related_contact_id: (offer.contact_id as string | null) ?? null,
+        summary: `Приета оферта „${offer.title}" → проект`,
+        idempotency_key: `offer-accept:${args.id}`,
+      }).catch(() => {});
+    }
+  }
+
+  await sb.from("offers").update(patch).eq("id", args.id);
+  return { error: null, project_id: projectId };
+}
+
+export async function upsertProject(input: ProjectInput): Promise<UpsertResult & { contact_id: string | null }> {
+  const sb = createServiceClient();
+  const contactId = await resolveContactId(sb, input.contact_id, input.client_email);
+
+  if (input.dedupe_key) {
+    const { data } = await sb.from("projects").select("id, contact_id").eq("dedupe_key", input.dedupe_key).maybeSingle();
+    if (data) return { id: data.id as string, created: false, error: null, contact_id: (data.contact_id as string | null) ?? null };
+  }
+
+  const fx = toEur(input.amount_gross, input.currency);
+  const { data, error } = await sb
+    .from("projects")
+    .insert({
+      contact_id: contactId,
+      offer_id: input.offer_id ?? null,
+      title: input.title,
+      description: input.description ?? null,
+      status: input.status ?? "planned",
+      amount_gross: fx.amount_eur,
+      currency: "EUR",
+      started_at: input.started_at ?? null,
+      due_date: input.due_date ?? null,
+      notes: input.notes ?? null,
+      dedupe_key: input.dedupe_key ?? null,
+    })
+    .select("id")
+    .single();
+  if (error || !data) {
+    if (input.dedupe_key) {
+      const { data: again } = await sb.from("projects").select("id").eq("dedupe_key", input.dedupe_key).maybeSingle();
+      if (again) return { id: again.id as string, created: false, error: null, contact_id: contactId };
+    }
+    return { id: null, created: false, error: error?.message ?? "insert failed", contact_id: contactId };
+  }
+
+  const tasks = input.tasks ?? [];
+  for (let i = 0; i < tasks.length; i++) {
+    await sb.from("project_tasks").insert({
+      project_id: data.id as string,
+      title: tasks[i].title,
+      status: "todo",
+      due_date: tasks[i].due_date ?? null,
+      sort_order: i,
+    });
+  }
+
+  if (contactId) {
+    await logActivity(sb, { contact_id: contactId, type: "project_created", title: `Проект: ${input.title}` }).catch(() => {});
+  }
+  await recordAutomationEvent({
+    event_type: "project_created",
+    related_contact_id: contactId,
+    summary: `Проект „${input.title}"${tasks.length ? ` · ${tasks.length} задачи` : ""}`,
+    idempotency_key: `project:${data.id}`,
+  }).catch(() => {});
+  return { id: data.id as string, created: true, error: null, contact_id: contactId };
+}
+
+export async function setProjectStatus(args: {
+  id: string;
+  status: ProjectStatus;
+}): Promise<{ error: string | null }> {
+  const sb = createServiceClient();
+  const { data: project } = await sb.from("projects").select("id, done_at").eq("id", args.id).maybeSingle();
+  if (!project) return { error: "project not found" };
+  const patch: Record<string, unknown> = { status: args.status };
+  if (args.status === "done") patch.done_at = (project.done_at as string | null) ?? new Date().toISOString();
+  await sb.from("projects").update(patch).eq("id", args.id);
+  return { error: null };
+}
+
+export async function addProjectTask(args: {
+  project_id: string;
+  title: string;
+  due_date?: string;
+}): Promise<{ id: string | null; error: string | null }> {
+  const sb = createServiceClient();
+  const { data: project } = await sb.from("projects").select("id").eq("id", args.project_id).maybeSingle();
+  if (!project) return { id: null, error: "project not found" };
+  const { data: existing } = await sb.from("project_tasks").select("sort_order").eq("project_id", args.project_id);
+  const next = ((existing ?? []) as Array<{ sort_order: number }>).reduce((m, t) => Math.max(m, Number(t.sort_order) + 1), 0);
+  const { data, error } = await sb
+    .from("project_tasks")
+    .insert({
+      project_id: args.project_id,
+      title: args.title,
+      status: "todo",
+      due_date: args.due_date ?? null,
+      sort_order: next,
+    })
+    .select("id")
+    .single();
+  if (error || !data) return { id: null, error: error?.message ?? "insert failed" };
+  return { id: data.id as string, error: null };
+}
+
+export async function setProjectTaskStatus(args: {
+  id: string;
+  status: ProjectTaskStatus;
+}): Promise<{ error: string | null }> {
+  const sb = createServiceClient();
+  const { data: task } = await sb.from("project_tasks").select("id, done_at").eq("id", args.id).maybeSingle();
+  if (!task) return { error: "task not found" };
+  const patch: Record<string, unknown> = { status: args.status };
+  if (args.status === "done") patch.done_at = (task.done_at as string | null) ?? new Date().toISOString();
+  await sb.from("project_tasks").update(patch).eq("id", args.id);
+  return { error: null };
 }
 
 // ── read summaries (for Hermes / daily reports) ──────────────────────────────

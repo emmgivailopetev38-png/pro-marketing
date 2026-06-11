@@ -12,6 +12,8 @@ import {
   Calendar,
   Inbox,
   Mail,
+  FileSignature,
+  Briefcase,
   BarChart3,
   Receipt,
   Wallet,
@@ -57,6 +59,8 @@ const LINK_GROUPS: LinkGroup[] = [
       { href: "/admin/bookings", label: "Срещи", icon: Calendar },
       { href: "/admin/leads", label: "Meta лидове", icon: Inbox },
       { href: "/admin/email", label: "Имейл", icon: Mail },
+      { href: "/admin/offers", label: "Оферти", icon: FileSignature },
+      { href: "/admin/projects", label: "Проекти", icon: Briefcase },
     ],
   },
   {

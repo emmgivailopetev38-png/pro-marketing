@@ -155,6 +155,46 @@ export const RECURRING_SERVICE_TYPE_LABEL: Record<string, string> = {
   other: "Друго",
 };
 
+export const OFFER_STATUS_LABEL: Record<string, string> = {
+  draft: "Чернова",
+  sent: "Изпратена",
+  viewed: "Видяна",
+  accepted: "Приета",
+  rejected: "Отказана",
+  expired: "Изтекла",
+};
+
+export const OFFER_STATUS_COLOR: Record<string, string> = {
+  draft: "#7da8cc",
+  sent: "#facc15",
+  viewed: "#06b6d4",
+  accepted: "#22c55e",
+  rejected: "#ef4444",
+  expired: "#9ca3af",
+};
+
+export const PROJECT_STATUS_LABEL: Record<string, string> = {
+  planned: "Планиран",
+  in_progress: "В работа",
+  waiting_client: "Чака клиента",
+  done: "Завършен",
+  cancelled: "Отказан",
+};
+
+export const PROJECT_STATUS_COLOR: Record<string, string> = {
+  planned: "#7da8cc",
+  in_progress: "#facc15",
+  waiting_client: "#fb923c",
+  done: "#22c55e",
+  cancelled: "#9ca3af",
+};
+
+export const PROJECT_TASK_STATUS_LABEL: Record<string, string> = {
+  todo: "Чака",
+  doing: "Работи се",
+  done: "Готова",
+};
+
 /** Format an amount with its currency, Bulgarian locale. */
 export function formatMoney(amount: number | null | undefined, currency = "EUR"): string {
   if (amount == null) return "—";

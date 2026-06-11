@@ -522,6 +522,115 @@ export interface MetaAdsReportRow {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// Offers → Projects (ERP Фаза 3: оферта → приемане → доставка)
+// ─────────────────────────────────────────────────────────────────────────
+export const OFFER_STATUSES = ["draft", "sent", "viewed", "accepted", "rejected", "expired"] as const;
+export type OfferStatus = (typeof OFFER_STATUSES)[number];
+
+export const PROJECT_STATUSES = ["planned", "in_progress", "waiting_client", "done", "cancelled"] as const;
+export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
+
+export const PROJECT_TASK_STATUSES = ["todo", "doing", "done"] as const;
+export type ProjectTaskStatus = (typeof PROJECT_TASK_STATUSES)[number];
+
+export const offerInputSchema = z.object({
+  contact_id: contactRef,
+  client_email: z.string().email().optional(),
+  client_name: z.string().trim().optional(),
+  title: z.string().trim().min(1),
+  description: z.string().optional(),
+  amount_net: moneyOptional,
+  amount_gross: moneyOptional,
+  vat_amount: moneyOptional,
+  currency: z.string().trim().default("EUR"),
+  /** Units of `currency` per 1 EUR (for non-pegged currencies). BGN auto-uses 1.95583. */
+  fx_rate: moneyOptional,
+  status: z.enum(OFFER_STATUSES).optional(),
+  sent_at: z.string().optional(),
+  valid_until: isoDate,
+  url: z.string().trim().optional(),
+  source: z.string().trim().default("manual"),
+  notes: z.string().optional(),
+  dedupe_key: z.string().trim().optional(),
+});
+export type OfferInput = z.infer<typeof offerInputSchema>;
+
+export const projectInputSchema = z.object({
+  contact_id: contactRef,
+  client_email: z.string().email().optional(),
+  offer_id: z.string().uuid().optional(),
+  title: z.string().trim().min(1),
+  description: z.string().optional(),
+  status: z.enum(PROJECT_STATUSES).optional(),
+  amount_gross: moneyOptional,
+  currency: z.string().trim().default("EUR"),
+  started_at: isoDate,
+  due_date: isoDate,
+  notes: z.string().optional(),
+  dedupe_key: z.string().trim().optional(),
+  /** Начални задачи при създаване. */
+  tasks: z
+    .array(z.object({ title: z.string().trim().min(1), due_date: isoDate }))
+    .optional(),
+});
+export type ProjectInput = z.infer<typeof projectInputSchema>;
+
+export interface OfferRow {
+  id: string;
+  contact_id: string | null;
+  title: string;
+  description: string | null;
+  amount_net: number | null;
+  amount_gross: number | null;
+  vat_amount: number | null;
+  currency: string;
+  original_amount: number | null;
+  original_currency: string | null;
+  fx_rate: number | null;
+  fx_source: string | null;
+  status: OfferStatus;
+  sent_at: string | null;
+  valid_until: string | null;
+  accepted_at: string | null;
+  url: string | null;
+  source: string;
+  notes: string | null;
+  dedupe_key: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectRow {
+  id: string;
+  contact_id: string | null;
+  offer_id: string | null;
+  title: string;
+  description: string | null;
+  status: ProjectStatus;
+  amount_gross: number | null;
+  currency: string;
+  started_at: string | null;
+  due_date: string | null;
+  done_at: string | null;
+  notes: string | null;
+  dedupe_key: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectTaskRow {
+  id: string;
+  project_id: string;
+  title: string;
+  status: ProjectTaskStatus;
+  due_date: string | null;
+  sort_order: number;
+  done_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // GPS module (operations)
 // ─────────────────────────────────────────────────────────────────────────
 export const GPS_DEVICE_STATUSES = ["active", "paused", "removed", "moved"] as const;
