@@ -382,6 +382,10 @@ export const expenseInputSchema = z.object({
   document_id: z.string().uuid().optional(),
   notes: z.string().optional(),
   dedupe_key: z.string().trim().optional(),
+  /** Лична покупка на собственика през фирмата — не е бизнес разход, не влиза в печалба/ДДС. */
+  is_personal: z.boolean().optional(),
+  /** С какво е платено (банка/карта/кеш) — само за справка. */
+  paid_by: z.string().trim().optional(),
 });
 export type ExpenseInput = z.infer<typeof expenseInputSchema>;
 
@@ -408,6 +412,8 @@ export interface ExpenseRow {
   document_id: string | null;
   notes: string | null;
   dedupe_key: string | null;
+  is_personal: boolean;
+  paid_by: string | null;
   created_at: string;
   updated_at: string;
 }

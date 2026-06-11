@@ -1,6 +1,13 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { evaluatePaymentMatch, invoiceStatusAfterPayment, type MatchConfidence } from "./match";
 import { toEur, convertWith, fxColumns } from "./fx";
+import {
+  resolvePeriod,
+  computeAccountingMetrics,
+  type InvoiceLike,
+  type PaymentLike,
+  type ExpenseLike,
+} from "./accounting-metrics";
 import type {
   ActivityInput,
   InvoiceInput,
@@ -604,6 +611,8 @@ export async function upsertExpense(input: ExpenseInput): Promise<UpsertResult> 
       document_id: input.document_id ?? null,
       notes: input.notes ?? null,
       dedupe_key: input.dedupe_key ?? null,
+      is_personal: input.is_personal ?? false,
+      paid_by: input.paid_by ?? null,
     })
     .select("id")
     .single();
@@ -615,7 +624,7 @@ export async function upsertExpense(input: ExpenseInput): Promise<UpsertResult> 
   await recordAutomationEvent({
     event_type: "expense_recorded",
     related_contact_id: input.contact_id ?? null,
-    summary: `Разход ${fx.amount_eur ?? "?"} EUR · ${input.supplier_name ?? input.category}`,
+    summary: `${input.is_personal ? "Лична покупка" : "Разход"} ${fx.amount_eur ?? "?"} EUR · ${input.supplier_name ?? input.category}`,
     idempotency_key: `expense:${data.id}`,
   }).catch(() => {});
   return { id: data.id, created: true, error: null };
@@ -738,49 +747,47 @@ export async function upsertMetaAdsReport(input: MetaAdsReportInput): Promise<Up
 }
 
 // ── read summaries (for Hermes / daily reports) ──────────────────────────────
-function monthIndex(iso: string | null | undefined): number | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  return d.getFullYear() * 12 + d.getMonth();
-}
 
-export async function getAccountingSummary(): Promise<Record<string, unknown>> {
+/**
+ * Счетоводно резюме за период (подразбиране: текущ месец). Агрегатите идват
+ * от lib/crm/accounting-metrics (единственият източник на истина) — ДДС,
+ * касова/начислена печалба, лични покупки и разбивка по категории.
+ * Старите ключове (revenue_expected, expenses, profit…) остават като алиаси,
+ * за да не се чупят съществуващите Hermes отчети.
+ */
+export async function getAccountingSummary(opts?: {
+  period?: string;
+  from?: string;
+  to?: string;
+}): Promise<Record<string, unknown>> {
   const sb = createServiceClient();
   const now = new Date();
-  const cur = now.getFullYear() * 12 + now.getMonth();
-  const UNPAID = ["sent", "awaiting_payment", "partially_paid", "overdue"];
 
   const [{ data: inv }, { data: pay }, { data: exp }] = await Promise.all([
-    sb.from("invoices").select("status, amount_gross, issue_date, due_date"),
+    sb.from("invoices").select("status, amount_gross, amount_net, vat_amount, issue_date, due_date"),
     sb.from("payments").select("amount, paid_at, created_at, match_status"),
-    sb.from("expenses").select("amount_gross, status, expense_date"),
+    sb.from("expenses").select("amount_gross, amount_net, vat_amount, category, status, expense_date, created_at, is_personal"),
   ]);
-  const invoices = (inv ?? []) as Array<{ status: string; amount_gross: number | null; issue_date: string | null; due_date: string | null }>;
-  const payments = (pay ?? []) as Array<{ amount: number | null; paid_at: string | null; created_at: string; match_status: string }>;
-  const expenses = (exp ?? []) as Array<{ amount_gross: number | null; status: string; expense_date: string | null }>;
 
-  const revenueExpected = invoices
-    .filter((i) => monthIndex(i.issue_date) === cur && !["cancelled", "excluded"].includes(i.status))
-    .reduce((s, i) => s + (Number(i.amount_gross) || 0), 0);
-  const paymentsReceived = payments
-    .filter((p) => p.match_status !== "ignored" && monthIndex(p.paid_at ?? p.created_at) === cur)
-    .reduce((s, p) => s + (Number(p.amount) || 0), 0);
-  const unpaidList = invoices.filter((i) => UNPAID.includes(i.status));
-  const unpaidTotal = unpaidList.reduce((s, i) => s + (Number(i.amount_gross) || 0), 0);
-  const overdueCount = unpaidList.filter((i) => i.due_date && new Date(i.due_date) < now).length;
-  const expensesThisMonth = expenses
-    .filter((e) => monthIndex(e.expense_date) === cur && e.status !== "cancelled")
-    .reduce((s, e) => s + (Number(e.amount_gross) || 0), 0);
+  const period = resolvePeriod({ period: opts?.period, from: opts?.from, to: opts?.to, now });
+  const m = computeAccountingMetrics({
+    invoices: (inv ?? []) as InvoiceLike[],
+    payments: (pay ?? []) as PaymentLike[],
+    expenses: (exp ?? []) as ExpenseLike[],
+    period,
+    now,
+  });
 
   return {
+    ...m,
+    // ── легаси алиаси (Hermes дневни отчети) ──
     month: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
-    revenue_expected: revenueExpected,
-    payments_received: paymentsReceived,
-    expenses: expensesThisMonth,
-    profit: Number((paymentsReceived - expensesThisMonth).toFixed(2)),
-    unpaid_invoices_count: unpaidList.length,
-    unpaid_invoices_total: unpaidTotal,
-    overdue_invoices_count: overdueCount,
+    revenue_expected: m.revenue_accrued,
+    expenses: m.business_expenses_gross,
+    profit: m.profit_cash,
+    unpaid_invoices_count: m.unpaid.count,
+    unpaid_invoices_total: m.unpaid.gross_total,
+    overdue_invoices_count: m.unpaid.overdue_count,
     currency: "EUR",
   };
 }

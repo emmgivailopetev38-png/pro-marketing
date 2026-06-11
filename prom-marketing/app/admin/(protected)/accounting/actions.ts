@@ -218,6 +218,8 @@ export async function createExpenseAction(formData: FormData) {
       ? (statusRaw as (typeof EXPENSE_STATUSES)[number])
       : "unpaid";
 
+  // Личните покупки нямат приспадаемо ДДС — каквото и да е въведено, го нулираме.
+  const isPersonal = formData.has("is_personal");
   const res = await upsertExpense({
     supplier_name: str(formData.get("supplier_name")),
     category,
@@ -225,12 +227,14 @@ export async function createExpenseAction(formData: FormData) {
     invoice_number: str(formData.get("invoice_number")),
     amount_net: num(formData.get("amount_net")),
     amount_gross: num(formData.get("amount_gross")),
-    vat_amount: num(formData.get("vat_amount")),
+    vat_amount: isPersonal ? undefined : num(formData.get("vat_amount")),
     currency: str(formData.get("currency")) ?? "EUR",
     expense_date: str(formData.get("expense_date")),
     due_date: str(formData.get("due_date")),
     status,
     source: "manual",
+    is_personal: isPersonal,
+    paid_by: str(formData.get("paid_by")),
   });
   if (res.error) throw new Error(res.error);
   revalidateAccounting();
