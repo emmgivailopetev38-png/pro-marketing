@@ -1,10 +1,42 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { checkHermesAuth } from "@/lib/crm/auth";
 import { recurringServiceInputSchema, RECURRING_SERVICE_TYPES } from "@/lib/crm/types";
-import { upsertRecurringService } from "@/lib/crm/repository";
+import { upsertRecurringService, updateRecurringService } from "@/lib/crm/repository";
 import { clampLimit, parseOffset, parseCsv, parseBoolParam, listRecurringServices } from "@/lib/crm/list-read";
 
 export const dynamic = "force-dynamic";
+
+const recurringPatchSchema = z.object({
+  id: z.string().uuid(),
+  active: z.boolean().optional(),
+  excluded_from_auto_send: z.boolean().optional(),
+  excluded_reason: z.string().trim().optional(),
+  amount: z.coerce.number().optional(),
+  billing_day: z.coerce.number().int().min(1).max(31).optional(),
+  notes: z.string().optional(),
+  ended_at: z.string().optional(),
+});
+
+/** PATCH /api/crm/recurring-service — пауза/изключване/корекция на абонамент. */
+export async function PATCH(request: Request) {
+  if (!checkHermesAuth(request)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  const raw = await request.json().catch(() => null);
+  const parsed = recurringPatchSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid payload", issues: parsed.error.issues }, { status: 400 });
+  }
+  const result = await updateRecurringService(parsed.data);
+  if (result.error === "recurring service not found") {
+    return NextResponse.json({ ok: false, error: result.error }, { status: 404 });
+  }
+  if (result.error) {
+    return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
+  }
+  return NextResponse.json({ ok: true, id: parsed.data.id });
+}
 
 /**
  * GET /api/crm/recurring-service — списък абонаменти (GPS месечното фактуриране).

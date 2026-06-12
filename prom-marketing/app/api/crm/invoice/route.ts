@@ -1,10 +1,42 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { checkHermesAuth } from "@/lib/crm/auth";
 import { invoiceInputSchema, INVOICE_STATUSES } from "@/lib/crm/types";
-import { upsertInvoice } from "@/lib/crm/repository";
+import { upsertInvoice, setInvoiceStatus } from "@/lib/crm/repository";
 import { clampLimit, parseOffset, parseCsv, listInvoices } from "@/lib/crm/list-read";
 
 export const dynamic = "force-dynamic";
+
+const invoicePatchSchema = z.object({
+  id: z.string().uuid(),
+  status: z.enum(INVOICE_STATUSES),
+  /** Защо — влиза в бележките и в журнала (одитна следа). */
+  reason: z.string().trim().optional(),
+});
+
+/**
+ * PATCH /api/crm/invoice — корекция на статус (анулиране на дубликат и т.н.).
+ * „Платена" по правило минава през match-payment; това е за административни
+ * корекции и всичко се логва в automation_events.
+ */
+export async function PATCH(request: Request) {
+  if (!checkHermesAuth(request)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  const raw = await request.json().catch(() => null);
+  const parsed = invoicePatchSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid payload", issues: parsed.error.issues }, { status: 400 });
+  }
+  const result = await setInvoiceStatus(parsed.data);
+  if (result.error === "invoice not found") {
+    return NextResponse.json({ ok: false, error: result.error }, { status: 404 });
+  }
+  if (result.error) {
+    return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
+  }
+  return NextResponse.json({ ok: true, id: parsed.data.id, status: parsed.data.status });
+}
 
 /**
  * GET /api/crm/invoice — списък/търсене за Hermes.

@@ -4,7 +4,15 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { ContactDetail } from "@/components/admin/clients/ContactDetail";
 import { ContactLedger } from "@/components/admin/clients/ContactLedger";
 import type { ActivityRow, ContactRow } from "@/lib/contacts/types";
-import type { InvoiceRow, PaymentRow, ManualReviewRow } from "@/lib/crm/types";
+import type {
+  InvoiceRow,
+  PaymentRow,
+  ManualReviewRow,
+  OfferRow,
+  ProjectRow,
+  ProjectTaskRow,
+  RecurringServiceRow,
+} from "@/lib/crm/types";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +27,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     { data: invoices },
     { data: payments },
     { data: reviews },
+    { data: offers },
+    { data: projects },
+    { data: recurring },
   ] = await Promise.all([
     supabase.from("contacts").select("*").eq("id", id).maybeSingle(),
     supabase
@@ -35,9 +46,18 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       .eq("related_contact_id", id)
       .in("status", ["open", "needs_user", "blocked"])
       .order("created_at", { ascending: false }),
+    supabase.from("offers").select("*").eq("contact_id", id).order("created_at", { ascending: false }),
+    supabase.from("projects").select("*").eq("contact_id", id).order("created_at", { ascending: false }),
+    supabase.from("recurring_services").select("*").eq("contact_id", id).order("created_at", { ascending: false }),
   ]);
 
   if (!contact) notFound();
+
+  // Задачите на проектите на този контакт (за прогрес x/y).
+  const projectIds = ((projects ?? []) as ProjectRow[]).map((p) => p.id);
+  const { data: tasks } = projectIds.length
+    ? await supabase.from("project_tasks").select("*").in("project_id", projectIds)
+    : { data: [] as ProjectTaskRow[] };
 
   return (
     <div className="px-4 py-8 md:px-10 md:py-12">
@@ -56,6 +76,10 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           invoices={(invoices ?? []) as InvoiceRow[]}
           payments={(payments ?? []) as PaymentRow[]}
           reviews={(reviews ?? []) as ManualReviewRow[]}
+          offers={(offers ?? []) as OfferRow[]}
+          projects={(projects ?? []) as ProjectRow[]}
+          tasks={(tasks ?? []) as ProjectTaskRow[]}
+          recurring={(recurring ?? []) as RecurringServiceRow[]}
         />
       </div>
     </div>

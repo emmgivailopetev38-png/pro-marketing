@@ -133,6 +133,19 @@ export default async function AdminDashboard() {
     supabase.from("recurring_services").select("active, amount, currency, billing_period"),
   ]);
 
+  // Доставка: оферти + проекти (връзката продажба → изпълнение).
+  const [{ data: offersData }, { data: projectsData }] = await Promise.all([
+    supabase.from("offers").select("status, amount_gross, valid_until"),
+    supabase.from("projects").select("status, due_date, amount_gross"),
+  ]);
+  const offersAll = (offersData ?? []) as Array<{ status: string; amount_gross: number | null; valid_until: string | null }>;
+  const projectsAll = (projectsData ?? []) as Array<{ status: string; due_date: string | null; amount_gross: number | null }>;
+  const openOffers = offersAll.filter((o) => o.status === "sent" || o.status === "viewed");
+  const openOffersSum = openOffers.reduce((s, o) => s + (Number(o.amount_gross) || 0), 0);
+  const activeProjects = projectsAll.filter((p) => ["planned", "in_progress", "waiting_client"].includes(p.status));
+  const activeProjectsSum = activeProjects.reduce((s, p) => s + (Number(p.amount_gross) || 0), 0);
+  const lateProjects = activeProjects.filter((p) => p.due_date && new Date(p.due_date) < new Date()).length;
+
   const allContacts = (contactsRes.data ?? []) as ContactRow[];
   const active = allContacts.filter((c) => c.stage !== "lost");
   const allActivities = (activitiesRes.data ?? []) as Array<{ activity_type: string; occurred_at: string; contact_id: string }>;
@@ -402,6 +415,17 @@ export default async function AdminDashboard() {
             <KpiCard label="Оферта изпратена" value={offerSentCount} hint="чакат решение" color="#facc15" href="/admin/follow-up" />
             <KpiCard label="Презентация изпратена" value={presentationSentCount} hint="чакат фийдбек" color="#ec4899" href="/admin/follow-up" />
             <KpiCard label="Чакаме плащане" value={awaitingPaymentCount} hint="неплатени фактури" color="#06b6d4" href="/admin/invoices" />
+          </div>
+        </section>
+
+        {/* ─── Доставка (оферти → проекти) ─────────────────────────────── */}
+        <section>
+          <h2 className="hud mb-3">Доставка</h2>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <KpiCard label="Отворени оферти" value={openOffers.length} hint={formatMoney(openOffersSum)} color="#facc15" href="/admin/offers" />
+            <KpiCard label="Активни проекти" value={activeProjects.length} hint={formatMoney(activeProjectsSum)} color="#06b6d4" href="/admin/projects" />
+            <KpiCard label="Закъсняващи проекти" value={lateProjects} hint="минал краен срок" color={lateProjects > 0 ? "#ef4444" : "#22c55e"} href="/admin/projects" />
+            <KpiCard label="Приети оферти" value={offersAll.filter((o) => o.status === "accepted").length} hint="станали проекти" color="#22c55e" href="/admin/offers" />
           </div>
         </section>
 

@@ -82,16 +82,20 @@ export async function POST(request: Request) {
   return NextResponse.json({ ok: true, id: result.id, created: result.created });
 }
 
-const resolveSchema = z.object({
-  id: z.string().uuid(),
-  status: z.enum(["resolved", "ignored"]),
-  note: z.string().trim().optional(),
-});
+const resolveSchema = z
+  .object({
+    id: z.string().uuid().optional(),
+    /** Bulk: до 100 наведнъж (за чистене на спам наводнения). */
+    ids: z.array(z.string().uuid()).min(1).max(100).optional(),
+    status: z.enum(["resolved", "ignored"]),
+    note: z.string().trim().optional(),
+  })
+  .refine((v) => v.id || v.ids?.length, { message: "id or ids required" });
 
 /**
- * PATCH /api/crm/manual-review — Hermes затваря item след решение.
- * Body: { id, status: "resolved"|"ignored", note? } — note се добавя към
- * описанието като „Резолюция (дата): …" и остава видима в админа.
+ * PATCH /api/crm/manual-review — Hermes затваря item(и) след решение.
+ * Body: { id | ids[], status: "resolved"|"ignored", note? } — note се добавя
+ * към описанието като „Резолюция (дата): …" и остава видима в админа.
  */
 export async function PATCH(request: Request) {
   if (!checkHermesAuth(request)) {
@@ -102,12 +106,25 @@ export async function PATCH(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid payload", issues: parsed.error.issues }, { status: 400 });
   }
-  const result = await resolveManualReviewItem(parsed.data);
+  const { id, ids, status, note } = parsed.data;
+
+  if (ids?.length) {
+    const results = await Promise.all(ids.map((one) => resolveManualReviewItem({ id: one, status, note })));
+    const failed = ids.filter((_, i) => results[i].error);
+    return NextResponse.json({
+      ok: failed.length === 0,
+      status,
+      resolved: ids.length - failed.length,
+      failed,
+    });
+  }
+
+  const result = await resolveManualReviewItem({ id: id as string, status, note });
   if (result.error === "item not found") {
     return NextResponse.json({ ok: false, error: result.error }, { status: 404 });
   }
   if (result.error) {
     return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
   }
-  return NextResponse.json({ ok: true, id: parsed.data.id, status: parsed.data.status });
+  return NextResponse.json({ ok: true, id, status });
 }

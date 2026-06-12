@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { evaluatePaymentMatch, invoiceStatusAfterPayment, type MatchConfidence } from "./match";
 import { toEur, convertWith, fxColumns } from "./fx";
+import { INVOICE_STATUSES, type InvoiceStatus } from "./types";
 import {
   resolvePeriod,
   computeAccountingMetrics,
@@ -749,6 +750,116 @@ export async function upsertMetaAdsReport(input: MetaAdsReportInput): Promise<Up
     idempotency_key: `metareport:${data.id}`,
   }).catch(() => {});
   return { id: data.id, created: true, error: null };
+}
+
+// ── корекции (PATCH ръцете на агентите) ─────────────────────────────────────
+
+const CONTACT_PATCH_FIELDS = [
+  "full_name",
+  "company",
+  "phone",
+  "email",
+  "notes",
+  "deal_value_eur",
+  "stage",
+  "followup_status",
+  "next_followup_at",
+] as const;
+
+/**
+ * Частична корекция на контакт (Hermes/админ). Пипа САМО подадените полета,
+ * нормализира имейла и оставя активност като одитна следа.
+ */
+export async function updateContact(args: {
+  id: string;
+  full_name?: string;
+  company?: string;
+  phone?: string;
+  email?: string;
+  notes?: string;
+  deal_value_eur?: number;
+  stage?: string;
+  followup_status?: string;
+  next_followup_at?: string;
+}): Promise<{ error: string | null }> {
+  const sb = createServiceClient();
+  const { data: contact } = await sb.from("contacts").select("id").eq("id", args.id).maybeSingle();
+  if (!contact) return { error: "contact not found" };
+
+  const patch: Record<string, unknown> = {};
+  for (const key of CONTACT_PATCH_FIELDS) {
+    if (args[key] !== undefined) patch[key] = key === "email" ? String(args[key]).toLowerCase() : args[key];
+  }
+  if (Object.keys(patch).length === 0) return { error: null };
+
+  const { error } = await sb.from("contacts").update(patch).eq("id", args.id);
+  if (error) return { error: error.message ?? "update failed" };
+
+  await logActivity(sb, {
+    contact_id: args.id,
+    type: "note",
+    title: `Корекция: ${Object.keys(patch).join(", ")}`,
+  }).catch(() => {});
+  return { error: null };
+}
+
+/**
+ * Корекция на статус на фактура (анулиране на дубликат, връщане в чернова…).
+ * ЗАБЕЛЕЖКА: „платена" по правило става през match-payment; този PATCH е за
+ * административни корекции и затова логва automation event + бележка защо.
+ */
+export async function setInvoiceStatus(args: {
+  id: string;
+  status: InvoiceStatus;
+  reason?: string;
+}): Promise<{ error: string | null }> {
+  const sb = createServiceClient();
+  if (!INVOICE_STATUSES.includes(args.status)) return { error: "invalid status" };
+  const { data: invoice } = await sb.from("invoices").select("id, invoice_number, notes, contact_id").eq("id", args.id).maybeSingle();
+  if (!invoice) return { error: "invoice not found" };
+
+  const patch: Record<string, unknown> = { status: args.status };
+  if (args.reason?.trim()) {
+    const existing = (invoice as { notes?: string | null }).notes;
+    patch.notes = `${existing ? existing + "\n\n" : ""}Статус → ${args.status}: ${args.reason.trim()}`;
+  }
+  const { error } = await sb.from("invoices").update(patch).eq("id", args.id);
+  if (error) return { error: error.message ?? "update failed" };
+
+  await recordAutomationEvent({
+    event_type: "invoice_status_corrected",
+    related_invoice_id: args.id,
+    related_contact_id: ((invoice as { contact_id?: string | null }).contact_id as string | null) ?? null,
+    summary: `Фактура ${(invoice as { invoice_number?: string | null }).invoice_number ?? args.id} → ${args.status}${args.reason ? ` (${args.reason})` : ""}`,
+    idempotency_key: `invoice-status:${args.id}:${args.status}:${new Date().toISOString().slice(0, 10)}`,
+  }).catch(() => {});
+  return { error: null };
+}
+
+/** Пауза/изключване/корекция на абонамент (GPS и др.). */
+export async function updateRecurringService(args: {
+  id: string;
+  active?: boolean;
+  excluded_from_auto_send?: boolean;
+  excluded_reason?: string;
+  amount?: number;
+  billing_day?: number;
+  notes?: string;
+  ended_at?: string;
+}): Promise<{ error: string | null }> {
+  const sb = createServiceClient();
+  const { data: row } = await sb.from("recurring_services").select("id").eq("id", args.id).maybeSingle();
+  if (!row) return { error: "recurring service not found" };
+
+  const patch: Record<string, unknown> = {};
+  for (const key of ["active", "excluded_from_auto_send", "excluded_reason", "amount", "billing_day", "notes", "ended_at"] as const) {
+    if (args[key] !== undefined) patch[key] = args[key];
+  }
+  if (Object.keys(patch).length === 0) return { error: null };
+
+  const { error } = await sb.from("recurring_services").update(patch).eq("id", args.id);
+  if (error) return { error: error.message ?? "update failed" };
+  return { error: null };
 }
 
 // ── offers → projects (ERP Фаза 3) ──────────────────────────────────────────

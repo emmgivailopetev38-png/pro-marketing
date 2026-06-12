@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import type { ManualReviewRow } from "@/lib/crm/types";
 import { ManualReviewQueue, type ReviewItem } from "@/components/admin/ManualReviewQueue";
+import { bulkIgnoreEmailNoiseAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -36,14 +37,33 @@ export default async function ManualReviewPage() {
     invoice_number: r.related_invoice_id ? invoiceNo.get(r.related_invoice_id) ?? null : null,
   }));
 
+  // Кандидати за масово почистване (спам/неясни имейли от Пощальона).
+  const emailNoiseCount = rows.filter(
+    (r) => ["email_parse_error", "ambiguous_pdf"].includes(r.type) && ["open", "needs_user"].includes(r.status)
+  ).length;
+
   return (
     <div className="space-y-6 p-6 md:p-10">
       <header className="cc-panel cc-panel-accent overflow-hidden p-6">
-        <p className="hud text-[var(--color-accent-cyan)]">ProMarketing · Счетоводство</p>
-        <h1 className="cc-title mt-2 font-display text-4xl font-bold">Ръчна проверка</h1>
-        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-          {items.length} активни · неща, за които Hermes не е сигурен.
-        </p>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="hud text-[var(--color-accent-cyan)]">ProMarketing · Счетоводство</p>
+            <h1 className="cc-title mt-2 font-display text-4xl font-bold">Ръчна проверка</h1>
+            <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+              {items.length} активни · неща, за които Hermes не е сигурен.
+            </p>
+          </div>
+          {emailNoiseCount > 0 && (
+            <form action={bulkIgnoreEmailNoiseAction}>
+              <button
+                type="submit"
+                className="rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-300 transition hover:bg-amber-500/20"
+              >
+                🧹 Игнорирай спам/неясни имейли · {emailNoiseCount}
+              </button>
+            </form>
+          )}
+        </div>
       </header>
 
       <ManualReviewQueue items={items} />

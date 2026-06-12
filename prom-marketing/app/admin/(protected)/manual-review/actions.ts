@@ -62,6 +62,37 @@ export async function matchToContactByEmail(formData: FormData) {
   revalidatePath("/admin");
 }
 
+/**
+ * Масово игнориране на спам наводнението: затваря всички отворени items от
+ * тип email_parse_error / ambiguous_pdf (неясни/спам имейли от Пощальона).
+ * Бележка с дата остава като одитна следа във всеки запис.
+ */
+export async function bulkIgnoreEmailNoiseAction() {
+  await requireAdmin();
+  const svc = createServiceClient();
+  const { data } = await svc
+    .from("manual_review_items")
+    .select("id, description")
+    .in("status", ["open", "needs_user"])
+    .in("type", ["email_parse_error", "ambiguous_pdf"]);
+
+  const rows = (data ?? []) as Array<{ id: string; description: string | null }>;
+  const stamp = new Date().toISOString();
+  for (const row of rows) {
+    await svc
+      .from("manual_review_items")
+      .update({
+        status: "ignored",
+        resolved_at: stamp,
+        description: `${row.description ? row.description + "\n\n" : ""}Резолюция (${stamp.slice(0, 10)}): масово почистване — спам/неясни имейли (bulk от админа).`,
+      })
+      .eq("id", row.id);
+  }
+
+  revalidatePath("/admin/manual-review");
+  revalidatePath("/admin");
+}
+
 /** Schedule a follow-up call on the linked contact (+2 days) and resolve. */
 export async function createFollowupFromItem(formData: FormData) {
   const adminEmail = await requireAdmin();
