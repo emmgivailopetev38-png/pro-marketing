@@ -862,6 +862,115 @@ export async function updateRecurringService(args: {
   return { error: null };
 }
 
+// ── правилни данни: view beacon + merge на дубликати ────────────────────────
+
+/**
+ * View beacon от /oferta/* страниците: изпратена оферта сама минава „viewed".
+ * Никога не деградира по-напреднал статус (accepted/rejected остават).
+ */
+export async function markOfferViewed(path: string): Promise<{ marked: boolean }> {
+  const sb = createServiceClient();
+  const needle = path.toLowerCase().replace(/\/+$/, "");
+  if (!needle.startsWith("/oferta/")) return { marked: false };
+
+  const { data } = await sb.from("offers").select("*");
+  const offers = (data ?? []) as Array<{ id: string; url: string | null; status: string; contact_id: string | null; title: string }>;
+  const hit = offers.find((o) => o.url && o.url.toLowerCase().replace(/\/+$/, "").endsWith(needle) && o.status === "sent");
+  if (!hit) return { marked: false };
+
+  await sb.from("offers").update({ status: "viewed" }).eq("id", hit.id);
+  if (hit.contact_id) {
+    await logActivity(sb, {
+      contact_id: hit.contact_id,
+      type: "note",
+      title: `Офертата „${hit.title}" е отворена 👀`,
+    }).catch(() => {});
+  }
+  await recordAutomationEvent({
+    event_type: "offer_viewed",
+    related_contact_id: hit.contact_id ?? null,
+    summary: `Оферта „${hit.title}" видяна (${path})`,
+    idempotency_key: `offer-viewed:${hit.id}`,
+  }).catch(() => {});
+  return { marked: true };
+}
+
+/** Таблици с връзка към contacts — пълният списък за merge. */
+const CONTACT_FK_TABLES: Array<{ table: string; column: string }> = [
+  { table: "contact_activities", column: "contact_id" },
+  { table: "contact_files", column: "contact_id" },
+  { table: "invoices", column: "contact_id" },
+  { table: "payments", column: "contact_id" },
+  { table: "expenses", column: "contact_id" },
+  { table: "documents", column: "contact_id" },
+  { table: "recurring_services", column: "contact_id" },
+  { table: "offers", column: "contact_id" },
+  { table: "projects", column: "contact_id" },
+  { table: "gps_devices", column: "contact_id" },
+  { table: "gps_events", column: "contact_id" },
+  { table: "manual_review_items", column: "related_contact_id" },
+  { table: "automation_events", column: "related_contact_id" },
+];
+
+/** Полета, които се попълват от дубликата САМО ако оцеляващият ги няма. */
+const CONTACT_FILL_FIELDS = ["full_name", "phone", "company", "notes", "deal_value_eur", "next_followup_at"] as const;
+
+/**
+ * Слива дубликат в оцеляващ контакт: премества всички 13 връзки, попълва
+ * празните полета на оцеляващия, трие дубликата и оставя одитна следа.
+ * Имейлът на оцеляващия НЕ се пипа (уникален ключ) — този на дубликата се
+ * записва в merge бележката, за да не се губи информация.
+ */
+export async function mergeContacts(args: {
+  survivor_id: string;
+  duplicate_id: string;
+}): Promise<{ error: string | null }> {
+  if (args.survivor_id === args.duplicate_id) return { error: "cannot merge into self" };
+  const sb = createServiceClient();
+
+  const { data: survivor } = await sb.from("contacts").select("*").eq("id", args.survivor_id).maybeSingle();
+  if (!survivor) return { error: "survivor not found" };
+  const { data: dup } = await sb.from("contacts").select("*").eq("id", args.duplicate_id).maybeSingle();
+  if (!dup) return { error: "duplicate not found" };
+
+  // 1) Премести всички връзки.
+  for (const fk of CONTACT_FK_TABLES) {
+    await sb.from(fk.table).update({ [fk.column]: args.survivor_id }).eq(fk.column, args.duplicate_id);
+  }
+
+  // 2) Попълни празните полета на оцеляващия от дубликата.
+  const fills: Record<string, unknown> = {};
+  for (const f of CONTACT_FILL_FIELDS) {
+    const sv = (survivor as Record<string, unknown>)[f];
+    const dv = (dup as Record<string, unknown>)[f];
+    if ((sv === null || sv === undefined || sv === "") && dv !== null && dv !== undefined && dv !== "") fills[f] = dv;
+  }
+
+  // 3) Изтрий дубликата (преди update-а — заради уникалния email).
+  await sb.from("contacts").delete().eq("id", args.duplicate_id);
+  if (Object.keys(fills).length > 0) {
+    await sb.from("contacts").update(fills).eq("id", args.survivor_id);
+  }
+
+  // 4) Одитна следа.
+  const dupRec = dup as { full_name?: string | null; email?: string | null; phone?: string | null };
+  await logActivity(sb, {
+    contact_id: args.survivor_id,
+    type: "note",
+    title: `Слят дубликат: ${dupRec.full_name ?? dupRec.email ?? args.duplicate_id}`,
+    body: [dupRec.email && `имейл на дубликата: ${dupRec.email}`, dupRec.phone && `телефон: ${dupRec.phone}`]
+      .filter(Boolean)
+      .join("\n") || null,
+  }).catch(() => {});
+  await recordAutomationEvent({
+    event_type: "contact_merged",
+    related_contact_id: args.survivor_id,
+    summary: `Слят дубликат ${dupRec.email ?? args.duplicate_id} → ${args.survivor_id}`,
+    idempotency_key: `merge:${args.duplicate_id}`,
+  }).catch(() => {});
+  return { error: null };
+}
+
 // ── offers → projects (ERP Фаза 3) ──────────────────────────────────────────
 
 async function resolveContactId(sb: Sb, contactId?: string, email?: string): Promise<string | null> {
@@ -922,21 +1031,23 @@ export async function upsertOffer(input: OfferInput): Promise<UpsertResult & { c
 }
 
 /**
- * Смяна на статус на оферта. „accepted" автоматично създава проект от
- * офертата (веднъж — повторно приемане връща същия проект).
+ * Смяна на статус на оферта. „accepted" автоматично създава проект И чернова
+ * фактура от офертата (веднъж — повторно приемане връща съществуващите).
+ * Черновата носи offer_id/project_id, за да е затворен кръгът пари↔доставка.
  */
 export async function setOfferStatus(args: {
   id: string;
   status: OfferStatus;
-}): Promise<{ error: string | null; project_id: string | null }> {
+}): Promise<{ error: string | null; project_id: string | null; invoice_id: string | null }> {
   const sb = createServiceClient();
   const { data: offer } = await sb.from("offers").select("*").eq("id", args.id).maybeSingle();
-  if (!offer) return { error: "offer not found", project_id: null };
+  if (!offer) return { error: "offer not found", project_id: null, invoice_id: null };
 
   const patch: Record<string, unknown> = { status: args.status };
   if (args.status === "sent" && !offer.sent_at) patch.sent_at = new Date().toISOString();
 
   let projectId: string | null = null;
+  let invoiceId: string | null = null;
   if (args.status === "accepted") {
     patch.accepted_at = (offer.accepted_at as string | null) ?? new Date().toISOString();
     const { data: existing } = await sb.from("projects").select("id").eq("offer_id", args.id).maybeSingle();
@@ -961,14 +1072,41 @@ export async function setOfferStatus(args: {
       await recordAutomationEvent({
         event_type: "offer_accepted",
         related_contact_id: (offer.contact_id as string | null) ?? null,
-        summary: `Приета оферта „${offer.title}" → проект`,
+        summary: `Приета оферта „${offer.title}" → проект + чернова фактура`,
         idempotency_key: `offer-accept:${args.id}`,
       }).catch(() => {});
+    }
+
+    // Чернова фактура (веднъж) — Ивайло/Счетоводителят само я преглежда и праща.
+    const { data: existingInv } = await sb.from("invoices").select("id").eq("offer_id", args.id).maybeSingle();
+    if (existingInv) {
+      invoiceId = existingInv.id as string;
+    } else {
+      const { data: inv } = await sb
+        .from("invoices")
+        .insert({
+          contact_id: (offer.contact_id as string | null) ?? null,
+          offer_id: args.id,
+          project_id: projectId,
+          invoice_type: "invoice",
+          status: "draft",
+          amount_net: (offer.amount_net as number | null) ?? null,
+          vat_amount: (offer.vat_amount as number | null) ?? null,
+          amount_gross: (offer.amount_gross as number | null) ?? null,
+          currency: (offer.currency as string) ?? "EUR",
+          service_type: null,
+          source: "hermes",
+          notes: `Чернова от приета оферта „${offer.title}"`,
+          dedupe_key: `from-offer:${args.id}`,
+        })
+        .select("id")
+        .single();
+      invoiceId = (inv?.id as string | undefined) ?? null;
     }
   }
 
   await sb.from("offers").update(patch).eq("id", args.id);
-  return { error: null, project_id: projectId };
+  return { error: null, project_id: projectId, invoice_id: invoiceId };
 }
 
 export async function upsertProject(input: ProjectInput): Promise<UpsertResult & { contact_id: string | null }> {

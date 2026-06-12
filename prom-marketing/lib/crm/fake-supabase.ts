@@ -7,6 +7,7 @@
  *   from(t).select(cols).eq(c,v)[.eq()...][.contains(c,obj)].maybeSingle()/.single()
  *   from(t).insert(row).select(cols).single()      (also bare: await insert(row))
  *   from(t).update(patch).eq(c,v)                  (awaited)
+ *   from(t).delete().eq(c,v)                       (awaited)
  */
 
 type Row = Record<string, unknown>;
@@ -19,7 +20,7 @@ function genId(): string {
 
 class Query implements PromiseLike<{ data: unknown; error: unknown }> {
   private filters: Array<(r: Row) => boolean> = [];
-  private mode: "select" | "update" | "insert" | "none" = "none";
+  private mode: "select" | "update" | "insert" | "delete" | "none" = "none";
   private patch?: Row;
   private inserted?: Row;
 
@@ -89,6 +90,11 @@ class Query implements PromiseLike<{ data: unknown; error: unknown }> {
     return this;
   }
 
+  delete(): this {
+    this.mode = "delete";
+    return this;
+  }
+
   async maybeSingle(): Promise<{ data: Row | null; error: null }> {
     if (this.mode === "insert") return { data: this.inserted ?? null, error: null };
     return { data: this.matched()[0] ?? null, error: null };
@@ -107,6 +113,10 @@ class Query implements PromiseLike<{ data: unknown; error: unknown }> {
     let result: { data: unknown; error: unknown };
     if (this.mode === "update") {
       for (const r of this.matched()) Object.assign(r, this.patch);
+      result = { data: null, error: null };
+    } else if (this.mode === "delete") {
+      const keep = this.rows().filter((r) => !this.filters.every((f) => f(r)));
+      this.store[this.table] = keep;
       result = { data: null, error: null };
     } else if (this.mode === "insert") {
       result = { data: this.inserted, error: null };
