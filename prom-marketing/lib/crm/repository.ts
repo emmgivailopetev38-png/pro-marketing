@@ -2,6 +2,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { evaluatePaymentMatch, invoiceStatusAfterPayment, type MatchConfidence } from "./match";
 import { toEur, convertWith, fxColumns } from "./fx";
 import { INVOICE_STATUSES, type InvoiceStatus } from "./types";
+import { tgNotify } from "@/lib/notifications/telegram";
 import {
   resolvePeriod,
   computeAccountingMetrics,
@@ -364,6 +365,7 @@ export async function createManualReviewItem(input: ManualReviewInput): Promise<
     if (again) return { id: again.id, created: false, error: null };
     return { id: null, created: false, error: error?.message ?? "insert failed" };
   }
+  if (input.severity === "high") void tgNotify.reviewNeeded(input.title);
   return { id: data.id, created: true, error: null };
 }
 
@@ -475,6 +477,10 @@ export async function matchPayment(input: MatchPaymentInput): Promise<MatchPayme
         contact_id: contactId,
       })
       .eq("id", payment.id);
+    void tgNotify.paymentMatched(
+      `${payment.amount} ${(payment.currency as string) ?? "EUR"}`,
+      (invoice.invoice_number as string | null) ?? invoiceId
+    );
 
     if (contactId) {
       await logActivity(sb, {
@@ -879,7 +885,10 @@ export async function markOfferViewed(path: string): Promise<{ marked: boolean }
   if (!hit) return { marked: false };
 
   await sb.from("offers").update({ status: "viewed" }).eq("id", hit.id);
+  let contactName: string | null = null;
   if (hit.contact_id) {
+    const { data: c } = await sb.from("contacts").select("full_name, company").eq("id", hit.contact_id).maybeSingle();
+    contactName = (c?.full_name as string | null) ?? (c?.company as string | null) ?? null;
     await logActivity(sb, {
       contact_id: hit.contact_id,
       type: "note",
@@ -892,6 +901,7 @@ export async function markOfferViewed(path: string): Promise<{ marked: boolean }
     summary: `Оферта „${hit.title}" видяна (${path})`,
     idempotency_key: `offer-viewed:${hit.id}`,
   }).catch(() => {});
+  void tgNotify.offerViewed(hit.title, contactName, hit.contact_id);
   return { marked: true };
 }
 
@@ -1075,6 +1085,7 @@ export async function setOfferStatus(args: {
         summary: `Приета оферта „${offer.title}" → проект + чернова фактура`,
         idempotency_key: `offer-accept:${args.id}`,
       }).catch(() => {});
+      void tgNotify.offerAccepted(offer.title as string, (offer.contact_id as string | null) ?? null);
     }
 
     // Чернова фактура (веднъж) — Ивайло/Счетоводителят само я преглежда и праща.
