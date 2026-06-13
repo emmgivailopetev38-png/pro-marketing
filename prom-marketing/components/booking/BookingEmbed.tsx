@@ -31,10 +31,14 @@ export function BookingEmbed() {
   }, []);
 
   return (
+    // Cal сам преоразмерява iframe-а до съдържанието си (auto-resize), а
+    // СТРАНИЦАТА скролва — никакъв вложен скрол-капан на телефон. На мобилно
+    // Cal минава в подреден (stacked) изглед автоматично; minHeight пази от
+    // колапс докато зарежда.
     <Cal
       namespace="booking-inline"
       calLink={`${USERNAME}/${SLUG}`}
-      style={{ width: "100%", height: "720px", overflow: "scroll" }}
+      style={{ width: "100%", height: "auto", minHeight: "560px", overflow: "visible" }}
       config={{ layout: "month_view", theme: "dark" }}
     />
   );
