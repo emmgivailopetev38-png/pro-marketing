@@ -22,6 +22,7 @@ const NAV = [
   { href: "#services", label: "Услуги" },
   { href: "#process", label: "Процес" },
   { href: "#industries", label: "За кого" },
+  { href: "/demo", label: "Живо демо" },
   { href: "#faq", label: "Въпроси" },
   { href: "#kontakti", label: "Контакти" },
 ];

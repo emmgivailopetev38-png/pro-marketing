@@ -212,6 +212,7 @@ function useInterval(cb: () => void, delay: number | null) {
 
 export default function DemoPage() {
   const reduce = useReducedMotion();
+  const [mounted, setMounted] = useState(false);
   const [booted, setBooted] = useState(false);
   const [view, setView] = useState<ViewKey>("overview");
 
@@ -236,6 +237,8 @@ export default function DemoPage() {
     setToast(msg);
     window.setTimeout(() => setToast(null), 2600);
   }, []);
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (reduce) { setBooted(true); return; }
@@ -343,6 +346,21 @@ export default function DemoPage() {
     setCampaigns((cs) => cs.map((c) => c.id === id ? { ...c, active: !c.active } : c));
   }, []);
 
+  if (!mounted) {
+    return (
+      <div className="d-root">
+        <style>{CSS}</style>
+        <div className="d-boot">
+          <div className="d-boot-inner">
+            <div className="d-boot-logo">ProMarketing<span style={{ color: "var(--d-cyan)" }}> OS</span></div>
+            <div className="d-boot-bar"><div className="d-boot-fill" style={{ width: "20%" }} /></div>
+            <div className="d-boot-text">Зареждам Хермес и 16-те агента…</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="d-root">
       <style>{CSS}</style>
@@ -378,8 +396,8 @@ export default function DemoPage() {
         </nav>
 
         <main className="d-main">
-          <AnimatePresence mode="wait">
-            <motion.div key={view} initial={reduce ? false : { opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={reduce ? undefined : { opacity: 0, y: -10 }} transition={{ duration: 0.3, ease: [0.2, 0.7, 0.2, 1] }}>
+          <div className="d-view-swap">
+            <motion.div key={view} initial={reduce ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, ease: [0.2, 0.7, 0.2, 1] }}>
               {view === "overview" && <Overview kpi={kpi} feed={feed} running={running} loads={loads} onAllOn={allOn} onAllOff={allOff} go={setView} />}
               {view === "hermes" && <HermesConsole kpi={kpi} pushFeed={pushFeed} flashToast={flashToast} />}
               {view === "agents" && <AgentsView running={running} loads={loads} toggle={toggleAgent} onAllOn={allOn} onAllOff={allOff} />}
@@ -392,7 +410,7 @@ export default function DemoPage() {
               {view === "pipeline" && <Pipeline leads={leads} advance={advanceLead} addLead={() => { addLead(); flashToast("Нов лийд добавен"); }} />}
               {view === "analytics" && <Analytics kpi={kpi} />}
             </motion.div>
-          </AnimatePresence>
+          </div>
         </main>
 
         <aside className="d-feed">
