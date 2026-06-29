@@ -188,8 +188,8 @@ export default function ModelPage() {
             </div>
           </div>
           <div className="m-concept-note">
-            <div className="m-note-line"><span style={{ color: "var(--m-cyan)" }}>●</span> Базата = сладоледът: правим я еднакво добре всеки път.</div>
-            <div className="m-note-line"><span style={{ color: "var(--m-violet)" }}>●</span> Add-ons = екстрите отгоре: каквото клиентът поиска, срещу доплащане.</div>
+            <div className="m-note-line"><span style={{ color: "var(--m-cyan)" }}>●</span> Базата е доказан стандарт — изграждаме я еднакво безупречно за всеки клиент.</div>
+            <div className="m-note-line"><span style={{ color: "var(--m-violet)" }}>●</span> Add-ons са персонализирано надграждане — спрямо нуждите на клиента, срещу доплащане.</div>
           </div>
         </Reveal>
       </section>
