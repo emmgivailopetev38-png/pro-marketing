@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { BRANDS, type BrandKey } from "@/components/brands";
 
 /* ============================================================================
    VerticalDemo — конфигуруем демо-двигател за един бранш (темплейт на живо).
@@ -20,6 +21,7 @@ type Config = {
   autos: Auto[];
   studio: "content" | "shop" | "crm";
   studioTitle: string;
+  brands: BrandKey[];
 };
 
 const CONFIGS: Record<Vertical, Config> = {
@@ -44,6 +46,7 @@ const CONFIGS: Record<Vertical, Config> = {
       { key: "leads", name: "Лийдове на едно място", icon: "◈", desc: "Нито една възможност изпусната", feed: ["Запитване за реклама записано", "Гореща оферта маркирана", "Партньорство в проследяване"] },
     ],
     studio: "content", studioTitle: "Студио за съдържание",
+    brands: ["instagram", "facebook", "tiktok", "youtube", "messenger", "gmail", "meta"],
   },
   shop: {
     accent: "#ef5da8", accent2: "#f0c560",
@@ -66,6 +69,7 @@ const CONFIGS: Record<Vertical, Config> = {
       { key: "content", name: "Авто-съдържание за продукти", icon: "▷", desc: "Описания и визии автоматично", feed: ["Описание на продукт генерирано", "Продуктово видео готово", "Банер за промоция създаден"] },
     ],
     studio: "shop", studioTitle: "Поръчки на живо + съдържание",
+    brands: ["facebook", "instagram", "tiktok", "google", "whatsapp", "gmail", "meta"],
   },
   b2b: {
     accent: "#f0c560", accent2: "#2dd4d8",
@@ -89,6 +93,7 @@ const CONFIGS: Record<Vertical, Config> = {
       { key: "it", name: "IT / интеграции", icon: "✦", desc: "Свързваме каквото ползвате", feed: ["Интеграция с счетоводство", "Данни синхронизирани", "Бекъп завършен"] },
     ],
     studio: "crm", studioTitle: "CRM поток на живо",
+    brands: ["linkedin", "google", "googleads", "gmail", "facebook", "telegram", "meta"],
   },
 };
 
@@ -195,6 +200,11 @@ export function VerticalDemo({ vertical }: { vertical: Vertical }) {
         <div className="vd-eyebrow">{cfg.eyebrow}</div>
         <h1 className="vd-h1">{cfg.headline} <span className="vd-grad">{cfg.headlineAccent}</span></h1>
         <p className="vd-sub">{cfg.sub}</p>
+        <div className="vd-brands">
+          {cfg.brands.map((k) => { const b = BRANDS[k]; const Icon = b.Icon; return (
+            <span className="vd-brand" key={k} title={b.name} style={{ "--bc": b.color } as React.CSSProperties}><Icon /></span>
+          ); })}
+        </div>
 
         <div className="vd-kpis">
           {cfg.kpis.map((k, i) => (
@@ -336,6 +346,9 @@ const CSS = `
 .vd-h1{font-family:var(--d-display);font-weight:800;font-size:clamp(28px,5vw,50px);line-height:1.08;letter-spacing:-.02em;margin:0;}
 .vd-grad{background:linear-gradient(100deg,var(--ac),var(--ac2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
 .vd-sub{color:var(--d-dim);font-size:clamp(14px,1.6vw,17px);line-height:1.6;max-width:600px;margin:18px 0 0;}
+.vd-brands{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;}
+.vd-brand{display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:11px;font-size:20px;color:var(--bc);border:1px solid color-mix(in srgb,var(--bc) 38%,transparent);background:color-mix(in srgb,var(--bc) 12%,transparent);transition:.16s;}
+.vd-brand:hover{transform:translateY(-3px);box-shadow:0 0 20px color-mix(in srgb,var(--bc) 35%,transparent);}
 
 .vd-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin:28px 0 22px;}
 .vd-kpi{border:1px solid var(--d-line);border-radius:13px;background:var(--d-panel);padding:14px;border-top:2px solid var(--ac);}

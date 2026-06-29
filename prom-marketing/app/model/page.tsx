@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
+import { BRANDS, type BrandKey } from "@/components/brands";
 
 /* ============================================================================
    ProMarketing — Продуктов модел (темплейт рамка по браншове)
@@ -54,6 +55,8 @@ const NAMES = [
   { t: "ProMarketing Vertical OS", rec: false },
   { t: "Plug & Grow Systems", rec: false },
 ];
+
+const CONNECT: BrandKey[] = ["facebook", "instagram", "tiktok", "linkedin", "youtube", "messenger", "whatsapp", "viber", "telegram", "gmail", "google", "googleads", "meta"];
 
 const ARCH = [
   { k: "01", t: "Core Engine · Ядро", d: "Стабилната, доказана основа — една за всички.", c: "var(--m-cyan)" },
@@ -189,6 +192,21 @@ export default function ModelPage() {
             <div className="m-note-line"><span style={{ color: "var(--m-violet)" }}>●</span> Add-ons = екстрите отгоре: каквото клиентът поиска, срещу доплащане.</div>
           </div>
         </Reveal>
+      </section>
+
+      {/* СВЪРЗВАМЕ — брандови икони */}
+      <section className="m-section">
+        <SectionHead eyebrow="ВСИЧКИ КАНАЛИ · ЕДНА СИСТЕМА" title={<>Свързваме <span className="m-grad">всичко</span> в едно ядро.</>} sub="Реклами, съобщения, поща, форми и обаждания — всичко влиза автоматично в системата." />
+        <div className="m-connect">
+          {CONNECT.map((k, i) => { const b = BRANDS[k]; const Icon = b.Icon; return (
+            <Reveal key={k} delay={Math.min(i * 0.03, 0.3)}>
+              <div className="m-conn" style={{ "--bc": b.color } as React.CSSProperties}>
+                <span className="m-conn-ic"><Icon /></span>
+                <span className="m-conn-n">{b.name}</span>
+              </div>
+            </Reveal>
+          ); })}
+        </div>
       </section>
 
       {/* АРХИТЕКТУРА */}
@@ -428,6 +446,13 @@ const CSS = `
 .m-slab-sub{color:var(--m-dim);font-size:13px;line-height:1.5;margin-top:5px;}
 .m-concept-note{display:flex;flex-direction:column;gap:12px;}
 .m-note-line{font-size:14.5px;line-height:1.55;color:var(--m-dim);}
+
+/* connect / brands */
+.m-connect{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:12px;}
+.m-conn{display:flex;flex-direction:column;align-items:center;gap:10px;border:1px solid var(--m-line);border-radius:14px;background:var(--m-panel);padding:18px 10px;transition:.18s;}
+.m-conn:hover{border-color:color-mix(in srgb,var(--bc) 60%,transparent);box-shadow:0 0 28px color-mix(in srgb,var(--bc) 30%,transparent);transform:translateY(-3px);}
+.m-conn-ic{display:flex;align-items:center;justify-content:center;width:50px;height:50px;border-radius:50%;font-size:25px;color:var(--bc);border:1px solid color-mix(in srgb,var(--bc) 38%,transparent);background:color-mix(in srgb,var(--bc) 11%,transparent);}
+.m-conn-n{font-size:12px;color:var(--m-dim);font-weight:600;}
 
 /* architecture */
 .m-arch{display:flex;flex-direction:column;gap:10px;}

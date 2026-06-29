@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { BRANDS, type BrandKey } from "@/components/brands";
 
 /* ============================================================================
    ProMarketing OS — живо интерактивно демо (2050)
@@ -67,22 +68,24 @@ const KPIS: { key: KpiKey; label: string; color: string; prefix?: string; suffix
   { key: "hours", label: "Спестени часове", color: "#2dd4bf", start: 2180 },
 ];
 
-const CHANNELS = [
-  { name: "Facebook", color: "#3b82f6", desc: "Реклами · страница · Messenger" },
-  { name: "Instagram", color: "#ec4899", desc: "Реклами · DM · публикации" },
-  { name: "TikTok", color: "#22d3ee", desc: "Видеа · Lead форми" },
-  { name: "LinkedIn", color: "#38bdf8", desc: "B2B · публикации" },
-  { name: "YouTube", color: "#fb7185", desc: "Видеа · Shorts" },
-  { name: "Messenger", color: "#6366f1", desc: "Авто-отговори 24/7" },
-  { name: "WhatsApp", color: "#34d399", desc: "Съобщения · известия" },
-  { name: "Viber", color: "#8b5cf6", desc: "Кампании · съобщения" },
-  { name: "Gmail / Имейл", color: "#fbbf24", desc: "Четене + отговори · Пощальон" },
-  { name: "Telegram", color: "#38bdf8", desc: "Контрол + гласови команди" },
-  { name: "Meta Ads", color: "#3b82f6", desc: "Кампании · Lead Ads → CRM" },
-  { name: "Google", color: "#22d3ee", desc: "Календар · Ads · форми" },
+const CHANNELS: { name: string; color: string; desc: string; brand?: BrandKey }[] = [
+  { name: "Facebook", color: "#1877F2", desc: "Реклами · страница · Messenger", brand: "facebook" },
+  { name: "Instagram", color: "#E1306C", desc: "Реклами · DM · публикации", brand: "instagram" },
+  { name: "TikTok", color: "#22d3ee", desc: "Видеа · Lead форми", brand: "tiktok" },
+  { name: "LinkedIn", color: "#0A66C2", desc: "B2B · публикации", brand: "linkedin" },
+  { name: "YouTube", color: "#FF0000", desc: "Видеа · Shorts", brand: "youtube" },
+  { name: "Messenger", color: "#0084FF", desc: "Авто-отговори 24/7", brand: "messenger" },
+  { name: "WhatsApp", color: "#25D366", desc: "Съобщения · известия", brand: "whatsapp" },
+  { name: "Viber", color: "#7360F2", desc: "Кампании · съобщения", brand: "viber" },
+  { name: "Gmail / Имейл", color: "#EA4335", desc: "Четене + отговори · Пощальон", brand: "gmail" },
+  { name: "Telegram", color: "#26A5E4", desc: "Контрол + гласови команди", brand: "telegram" },
+  { name: "Meta Ads", color: "#0866FF", desc: "Кампании · Lead Ads → CRM", brand: "meta" },
+  { name: "Google", color: "#4285F4", desc: "Календар · Ads · форми", brand: "google" },
   { name: "Уебсайт форми", color: "#2dd4bf", desc: "Запитвания → CRM" },
   { name: "Cal.com", color: "#a78bfa", desc: "Резервации → CRM" },
 ];
+
+function BrandMark({ k }: { k: BrandKey }) { const Icon = BRANDS[k].Icon; return <Icon />; }
 
 const VIDEO_STAGES = ["Анализ на темата", "Сценарий", "Кадри (AI)", "Глас зад кадър", "Музика", "Монтаж", "Рендиране"];
 const VIDEO_IDEAS = ["Промо на нов продукт", "Отзив на доволен клиент", "Преди / след", "Оферта на седмицата", "Зад кулисите", "Бърз съвет (Reels)"];
@@ -477,7 +480,7 @@ function Overview({ kpi, feed, running, loads, onAllOn, onAllOff, go }: {
         <div className="d-strip-pills">
           {CHANNELS.map((c) => (
             <span key={c.name} className="d-strip-pill" style={{ borderColor: `${c.color}55` }}>
-              <span className="d-strip-dot" style={{ background: c.color }} />{c.name}
+              {c.brand ? <span className="d-strip-ic" style={{ color: c.color }}><BrandMark k={c.brand} /></span> : <span className="d-strip-dot" style={{ background: c.color }} />}{c.name}
             </span>
           ))}
         </div>
@@ -663,7 +666,7 @@ function ChannelsView() {
         {CHANNELS.map((c) => (
           <motion.div key={c.name} className="d-channel" whileHover={{ y: -3 }} transition={{ type: "spring", stiffness: 300, damping: 22 }}>
             <div className="d-channel-top">
-              <span className="d-channel-ico" style={{ color: c.color, borderColor: `${c.color}55` }}>{c.name.charAt(0)}</span>
+              <span className="d-channel-ico" style={{ color: c.color, borderColor: `${c.color}55` }}>{c.brand ? <BrandMark k={c.brand} /> : c.name.charAt(0)}</span>
               <span className="d-channel-on" style={{ color: c.color }}><span className="d-state-dot" style={{ background: c.color }} /> свързан</span>
             </div>
             <div className="d-channel-name">{c.name}</div>
@@ -1154,6 +1157,7 @@ const CSS = `
 .d-strip-pills{display:flex;flex-wrap:wrap;gap:7px;flex:1;}
 .d-strip-pill{display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:20px;border:1px solid var(--d-line);font-size:12px;color:var(--d-dim);}
 .d-strip-dot{width:6px;height:6px;border-radius:50%;}
+.d-strip-ic{display:inline-flex;align-items:center;font-size:13px;}
 
 .d-two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
 .d-card{border:1px solid var(--d-line);border-radius:16px;background:var(--d-panel);padding:18px;}
