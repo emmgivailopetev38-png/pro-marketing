@@ -1,19 +1,27 @@
 "use client";
 /* =====================================================================
    WebinarLanding — лендинг на безплатното обучение „AI Машината за
-   Клиенти”. Строен в "2050 / Luminescent Depth" езика на сайта, с
-   пълния арсенал ефекти (Aurora, Particles, Holographic, Tilt,
-   Magnetic, Reveal). Една цел на страницата: записване във формата.
+   Клиенти”. v2: по-свежа палитра (изумрудено/тюркоаз + златни trust
+   акценти върху тъмната основа), реална снимка на водещия с ефекти,
+   анимирана визуализация на автоматизацията (жива фуния) и осезаем
+   мокъп на подаръка. Една цел: записване във формата.
 
    Съдържанието (дата, теми, бонуси, подарък) идва от
    lib/webinar/config.ts — тук няма хардкоднати оферти.
    ===================================================================== */
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import {
+  BadgeCheck,
+  Bot,
   CalendarDays,
   Check,
   ChevronDown,
+  CreditCard,
+  FileText,
   Gift,
+  Megaphone,
+  MessageSquareText,
   MonitorPlay,
   Rocket,
   ShieldCheck,
@@ -56,9 +64,9 @@ function Countdown({ targetISO }: { targetISO: string }) {
       {cells.map(([v, label]) => (
         <div
           key={label}
-          className="min-w-[64px] rounded-2xl border border-cyan-400/25 bg-[rgba(7,10,22,0.7)] px-3 py-2 text-center backdrop-blur-md"
+          className="min-w-[64px] rounded-2xl border border-emerald-300/30 bg-[rgba(7,16,18,0.75)] px-3 py-2 text-center backdrop-blur-md"
         >
-          <div className="font-mono text-2xl font-bold text-cyan-300 tabular-nums">
+          <div className="font-mono text-2xl font-bold text-emerald-300 tabular-nums">
             {String(v).padStart(2, "0")}
           </div>
           <div className="mt-0.5 text-[10px] uppercase tracking-[0.2em] text-slate-400">{label}</div>
@@ -94,7 +102,7 @@ function RegisterForm({ location }: { location: string }) {
   }
 
   const input =
-    "w-full rounded-xl border border-white/10 bg-[rgba(255,255,255,0.04)] px-4 py-3.5 text-[15px] text-white placeholder:text-slate-500 outline-none transition focus:border-cyan-400/60 focus:bg-[rgba(34,211,238,0.05)]";
+    "w-full rounded-xl border border-white/10 bg-[rgba(255,255,255,0.05)] px-4 py-3.5 text-[15px] text-white placeholder:text-slate-500 outline-none transition focus:border-emerald-300/60 focus:bg-[rgba(52,211,153,0.06)]";
 
   return (
     <form onSubmit={submit} className="space-y-3">
@@ -126,7 +134,7 @@ function RegisterForm({ location }: { location: string }) {
         <button
           type="submit"
           disabled={state === "sending"}
-          className="group flex w-full items-center justify-center gap-2.5 rounded-full bg-[var(--color-accent-cyan)] px-7 py-4 text-base font-bold text-[var(--color-bg-void)] shadow-[0_0_44px_rgba(34,211,238,0.4)] transition hover:shadow-[0_0_70px_rgba(34,211,238,0.65)] disabled:opacity-60"
+          className="wb-cta group flex w-full items-center justify-center gap-2.5 rounded-full px-7 py-4 text-base font-bold text-[#062018] disabled:opacity-60"
         >
           {state === "sending" ? "Запазваме мястото ти…" : "Запази безплатното си място"}
           <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
@@ -136,9 +144,111 @@ function RegisterForm({ location }: { location: string }) {
         <p className="text-sm text-rose-400">Нещо се обърка — опитай пак или ни пиши на сайта.</p>
       )}
       <p className="flex items-center justify-center gap-1.5 text-xs text-slate-500">
-        <ShieldCheck className="h-3.5 w-3.5" /> Без спам. Само обучението, подаръкът и напомняне.
+        <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" /> Без спам. Само обучението, подаръкът и напомняне.
       </p>
     </form>
+  );
+}
+
+/* ── Жива визуализация: фунията на автопилот ──────────────────────── */
+const FLOW_STEPS = [
+  { icon: Megaphone, label: "Реклама", sub: "AI креативи", color: "#34d399" },
+  { icon: Users, label: "Лийд", sub: "форма / чат", color: "#22d3ee" },
+  { icon: Bot, label: "AI разговор", sub: "за 8 секунди", color: "#a78bfa" },
+  { icon: FileText, label: "Оферта", sub: "до 24 часа", color: "#fbbf24" },
+  { icon: CreditCard, label: "Продажба", sub: "с 1 линк", color: "#34d399" },
+];
+
+function FlowViz() {
+  return (
+    <div className="relative overflow-hidden rounded-[28px] border border-emerald-300/20 bg-[linear-gradient(150deg,rgba(52,211,153,0.07),rgba(34,211,238,0.05)_45%,rgba(124,58,237,0.07))] p-7 md:p-10">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full"
+        style={{ background: "radial-gradient(circle, rgba(52,211,153,0.25), transparent 70%)" }}
+      />
+      <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-emerald-300">
+        Живата система · това изграждаме заедно
+      </p>
+      <h3 className="mt-2 text-xl font-bold text-white md:text-2xl">
+        От реклама до пари в сметката — без ръчна работа
+      </h3>
+
+      <div className="relative mt-8">
+        {/* линията с пулса */}
+        <div className="absolute left-0 right-0 top-[26px] hidden h-[2px] bg-gradient-to-r from-emerald-400/50 via-cyan-400/50 to-violet-400/50 md:block">
+          <span className="wb-pulse-dot" />
+          <span className="wb-pulse-dot" style={{ animationDelay: "2s" }} />
+        </div>
+        <div className="grid gap-5 md:grid-cols-5">
+          {FLOW_STEPS.map((s2, i) => (
+            <div key={s2.label} className="relative flex flex-col items-center text-center">
+              <div
+                className="wb-node relative z-[1] flex h-[52px] w-[52px] items-center justify-center rounded-2xl border backdrop-blur-sm"
+                style={{
+                  borderColor: `${s2.color}55`,
+                  background: `${s2.color}14`,
+                  boxShadow: `0 0 24px ${s2.color}33`,
+                  animationDelay: `${i * 0.35}s`,
+                }}
+              >
+                <s2.icon className="h-6 w-6" style={{ color: s2.color }} />
+              </div>
+              <p className="mt-3 text-[15px] font-bold text-white">{s2.label}</p>
+              <p className="text-xs text-slate-400">{s2.sub}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <p className="mt-8 flex items-center gap-2 text-sm text-slate-300">
+        <BadgeCheck className="h-4.5 w-4.5 shrink-0 text-emerald-300" style={{ height: 18, width: 18 }} />
+        Всяка стъпка я виждаш на живо на обучението — в система, която работи за реални български бизнеси.
+      </p>
+    </div>
+  );
+}
+
+/* ── Мокъп на подаръка: осезаеми PDF страници ─────────────────────── */
+function GiftViz() {
+  const pages = [
+    { t: "7-дневен план", lines: 6 },
+    { t: "25 промпта", lines: 8 },
+    { t: "Чеклист ×10", lines: 7 },
+    { t: "Шаблон фуния", lines: 5 },
+  ];
+  return (
+    <div className="relative mx-auto flex h-[280px] w-full max-w-md items-end justify-center">
+      {pages.map((p, i) => (
+        <div
+          key={p.t}
+          className="wb-page absolute bottom-2 w-[150px] rounded-xl border border-amber-200/25 bg-[linear-gradient(170deg,#fffdf5,#f4ead2)] p-3 shadow-[0_18px_50px_rgba(0,0,0,0.5)]"
+          style={{
+            left: `${8 + i * 21}%`,
+            transform: `rotate(${(i - 1.5) * 7}deg)`,
+            zIndex: i,
+            animationDelay: `${i * 0.6}s`,
+          }}
+        >
+          <div className="mb-2 flex items-center gap-1.5">
+            <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
+            <span className="text-[9px] font-bold uppercase tracking-wider text-[#5b4a1e]">{p.t}</span>
+          </div>
+          {Array.from({ length: p.lines }).map((_, li) => (
+            <div
+              key={li}
+              className="mb-1.5 h-1.5 rounded-full bg-[#d9c99a]"
+              style={{ width: `${88 - ((li * 17) % 40)}%` }}
+            />
+          ))}
+          <div className="mt-2 h-6 rounded-md bg-[linear-gradient(90deg,#0e7490,#0f766e)] opacity-80" />
+        </div>
+      ))}
+      {/* стойност бадж */}
+      <div className="wb-float absolute -top-1 right-2 z-10 rounded-full border border-amber-300/50 bg-[linear-gradient(135deg,#fbbf24,#f59e0b)] px-4 py-2 text-sm font-black text-[#3d2a00] shadow-[0_0_40px_rgba(251,191,36,0.45)]">
+        Стойност 90 € · 0 лв. за теб
+      </div>
+    </div>
   );
 }
 
@@ -149,11 +259,11 @@ function Faq({ q, a }: { q: string; a: string }) {
     <button
       type="button"
       onClick={() => setOpen((o) => !o)}
-      className="w-full rounded-2xl border border-white/10 bg-[rgba(255,255,255,0.03)] px-5 py-4 text-left transition hover:border-cyan-400/30"
+      className="w-full rounded-2xl border border-white/10 bg-[rgba(255,255,255,0.03)] px-5 py-4 text-left transition hover:border-emerald-300/35"
     >
       <span className="flex items-center justify-between gap-4 text-[15px] font-semibold text-white">
         {q}
-        <ChevronDown className={`h-4 w-4 shrink-0 text-cyan-300 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={`h-4 w-4 shrink-0 text-emerald-300 transition-transform ${open ? "rotate-180" : ""}`} />
       </span>
       {open && <span className="mt-2 block text-sm leading-relaxed text-slate-400">{a}</span>}
     </button>
@@ -183,6 +293,12 @@ const FAQS = [
   },
 ];
 
+const HOST_CHIPS = [
+  { icon: Users, text: "30+ бизнеса на автопилот" },
+  { icon: Bot, text: "AI отговор за 8 секунди" },
+  { icon: BadgeCheck, text: "Живи системи, реални числа" },
+];
+
 export function WebinarLanding() {
   const dateLabel = webinarDateLabel();
   const bonusTotal = WEBINAR.bonuses.reduce((sum, b) => sum + parseInt(b.value), 0);
@@ -198,20 +314,29 @@ export function WebinarLanding() {
           <AuroraBackground intensity="intense" />
         </div>
         <ParticleField className="z-[1] hidden sm:block" />
+        {/* свеж изумруден воал върху аурората */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-[1]"
+          style={{
+            background:
+              "radial-gradient(90vw 70vh at 18% 12%, rgba(52,211,153,0.14), transparent 55%), radial-gradient(80vw 60vh at 85% 85%, rgba(251,191,36,0.07), transparent 60%)",
+          }}
+        />
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 z-0 sm:hidden"
           style={{
             background:
-              "radial-gradient(120vw 88vh at 50% 30%, rgba(34,211,238,0.18), transparent 58%), radial-gradient(95vw 70vh at 80% 90%, rgba(124,58,237,0.2), transparent 60%), var(--color-bg-void)",
+              "radial-gradient(120vw 88vh at 50% 30%, rgba(52,211,153,0.16), transparent 58%), radial-gradient(95vw 70vh at 80% 90%, rgba(34,211,238,0.16), transparent 60%), var(--color-bg-void)",
           }}
         />
 
         <div className="relative z-[2] mx-auto grid max-w-6xl items-center gap-12 px-6 pb-20 pt-24 lg:grid-cols-[1.05fr_0.95fr] lg:pt-28">
           {/* Ляво — посланието */}
           <div>
-            <span className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-cyan-400/30 bg-[rgba(34,211,238,0.06)] px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.22em] text-cyan-300">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-300 shadow-[0_0_8px_rgba(34,211,238,0.9)]" />
+            <span className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-emerald-300/40 bg-[rgba(52,211,153,0.08)] px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.22em] text-emerald-300">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
               Безплатно онлайн обучение · на живо в Zoom
             </span>
 
@@ -219,7 +344,7 @@ export function WebinarLanding() {
               <HolographicText>{WEBINAR.title}</HolographicText>
               <br />
               <span className="text-white">— реклами, продажби и обслужване</span>{" "}
-              <span className="font-light text-slate-300">на пълен автопилот.</span>
+              <span className="wb-gradient-text font-light">на пълен автопилот.</span>
             </h1>
 
             <p className="mt-6 max-w-xl text-base text-slate-300 md:text-lg">{WEBINAR.subtitle}</p>
@@ -227,7 +352,9 @@ export function WebinarLanding() {
             <ul className="mt-7 space-y-2.5">
               {WEBINAR.secrets.map((sec) => (
                 <li key={sec.n} className="flex items-start gap-3 text-[15px] text-slate-200">
-                  <Check className="mt-0.5 h-4.5 w-4.5 shrink-0 text-cyan-300" style={{ height: 18, width: 18 }} />
+                  <span className="mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-emerald-400/15">
+                    <Check className="h-3 w-3 text-emerald-300" />
+                  </span>
                   <span>
                     <strong className="text-white">{sec.title}</strong>
                   </span>
@@ -235,16 +362,34 @@ export function WebinarLanding() {
               ))}
             </ul>
 
-            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-slate-400">
+            {/* Водещият — мини визитка за доверие */}
+            <div className="mt-8 flex items-center gap-4 rounded-2xl border border-white/10 bg-[rgba(255,255,255,0.04)] p-3.5 pr-5 backdrop-blur-sm md:max-w-md">
+              <span className="wb-avatar-ring relative block h-14 w-14 shrink-0 overflow-hidden rounded-full">
+                <Image
+                  src="/images/ivailo/IMG_7309.jpeg"
+                  alt="Ивайло Петев — водещ на обучението"
+                  fill
+                  sizes="56px"
+                  priority
+                  className="object-cover"
+                />
+              </span>
+              <div className="text-sm">
+                <p className="font-bold text-white">Води: {WEBINAR.host.name}</p>
+                <p className="text-slate-400">{WEBINAR.host.role}</p>
+              </div>
+            </div>
+
+            <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-slate-400">
               <span className="inline-flex items-center gap-2">
-                <CalendarDays className="h-4 w-4 text-cyan-300" />
+                <CalendarDays className="h-4 w-4 text-emerald-300" />
                 {dateLabel ?? "Датата се обявява скоро — запиши се за ранен достъп"}
               </span>
               <span className="inline-flex items-center gap-2">
-                <MonitorPlay className="h-4 w-4 text-cyan-300" /> Zoom · {WEBINAR.durationMinutes} мин
+                <MonitorPlay className="h-4 w-4 text-emerald-300" /> Zoom · {WEBINAR.durationMinutes} мин
               </span>
               <span className="inline-flex items-center gap-2">
-                <Users className="h-4 w-4 text-cyan-300" /> Местата са ограничени
+                <Users className="h-4 w-4 text-emerald-300" /> Местата са ограничени
               </span>
             </div>
 
@@ -260,18 +405,24 @@ export function WebinarLanding() {
             <TiltCard className="w-full max-w-md" maxTiltDeg={4}>
               <div
                 id="zapis"
-                className="relative overflow-hidden rounded-3xl border border-cyan-400/25 bg-[rgba(7,10,22,0.82)] p-6 shadow-[0_0_80px_-20px_rgba(34,211,238,0.45)] backdrop-blur-xl md:p-8"
+                className="relative overflow-hidden rounded-3xl border border-emerald-300/30 bg-[rgba(6,14,15,0.85)] p-6 shadow-[0_0_80px_-18px_rgba(52,211,153,0.5)] backdrop-blur-xl md:p-8"
               >
                 <div
                   aria-hidden
                   className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full"
-                  style={{ background: "radial-gradient(circle, rgba(34,211,238,0.22), transparent 70%)" }}
+                  style={{ background: "radial-gradient(circle, rgba(52,211,153,0.25), transparent 70%)" }}
                 />
-                <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-cyan-300">
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute -left-16 -bottom-16 h-40 w-40 rounded-full"
+                  style={{ background: "radial-gradient(circle, rgba(251,191,36,0.14), transparent 70%)" }}
+                />
+                <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-emerald-300">
                   Запази мястото си
                 </p>
                 <h2 className="mt-2 text-2xl font-bold leading-snug">
-                  Влез безплатно + вземи <span className="text-cyan-300">подарък за 90 €</span> веднага
+                  Влез безплатно + вземи{" "}
+                  <span className="wb-gold-text">подарък за 90 €</span> веднага
                 </h2>
                 <p className="mt-2 mb-5 text-sm text-slate-400">
                   „{GIFT.title}” пристига на имейла ти секунди след записването — още преди обучението.
@@ -281,7 +432,7 @@ export function WebinarLanding() {
             </TiltCard>
 
             <div className="mt-4 flex items-center justify-center gap-3 text-sm text-slate-500 lg:max-w-md">
-              <span className="flex text-cyan-300">
+              <span className="flex text-amber-300">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Star key={i} className="h-4 w-4 fill-current" />
                 ))}
@@ -301,7 +452,7 @@ export function WebinarLanding() {
       {/* ── КАКВО ЩЕ НАУЧИШ ─────────────────────────────────────────── */}
       <section className="relative mx-auto max-w-6xl px-6 py-20">
         <SectionReveal>
-          <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-cyan-300">На живо · стъпка по стъпка</p>
+          <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-emerald-300">На живо · стъпка по стъпка</p>
           <h2 className="mt-3 max-w-2xl text-3xl font-bold leading-tight md:text-4xl">
             4-те системи, които показваме <HolographicText>отвътре</HolographicText>
           </h2>
@@ -314,10 +465,10 @@ export function WebinarLanding() {
           {WEBINAR.secrets.map((sec, i) => (
             <SectionReveal key={sec.n} delay={i * 90}>
               <TiltCard className="h-full">
-                <div className="group h-full rounded-3xl border border-white/10 bg-[rgba(255,255,255,0.03)] p-7 transition hover:border-cyan-400/35">
+                <div className="group h-full rounded-3xl border border-white/10 bg-[rgba(255,255,255,0.03)] p-7 transition hover:border-emerald-300/40 hover:bg-[rgba(52,211,153,0.04)]">
                   <div className="mb-4 flex items-center gap-3">
-                    <span className="font-mono text-sm font-bold text-cyan-300/80">{sec.n}</span>
-                    <span className="h-px flex-1 bg-gradient-to-r from-cyan-400/40 to-transparent" />
+                    <span className="font-mono text-sm font-bold text-emerald-300/90">{sec.n}</span>
+                    <span className="h-px flex-1 bg-gradient-to-r from-emerald-300/40 to-transparent" />
                   </div>
                   <h3 className="text-lg font-bold text-white">{sec.title}</h3>
                   <p className="mt-2.5 text-[15px] leading-relaxed text-slate-400">{sec.body}</p>
@@ -326,35 +477,45 @@ export function WebinarLanding() {
             </SectionReveal>
           ))}
         </div>
+
+        {/* Живата фуния */}
+        <SectionReveal delay={120}>
+          <div className="mt-10">
+            <FlowViz />
+          </div>
+        </SectionReveal>
       </section>
 
       {/* ── ПОДАРЪКЪТ ────────────────────────────────────────────────── */}
       <section className="relative mx-auto max-w-6xl px-6 py-14">
         <SectionReveal>
-          <div className="relative overflow-hidden rounded-[28px] border border-violet-400/25 bg-[linear-gradient(135deg,rgba(124,58,237,0.14),rgba(34,211,238,0.07))] p-8 md:p-12">
+          <div className="relative overflow-hidden rounded-[28px] border border-amber-300/25 bg-[linear-gradient(135deg,rgba(251,191,36,0.09),rgba(52,211,153,0.06)_60%,rgba(34,211,238,0.05))] p-8 md:p-12">
             <div
               aria-hidden
               className="pointer-events-none absolute -left-24 -top-24 h-64 w-64 rounded-full"
-              style={{ background: "radial-gradient(circle, rgba(124,58,237,0.3), transparent 70%)" }}
+              style={{ background: "radial-gradient(circle, rgba(251,191,36,0.22), transparent 70%)" }}
             />
-            <div className="relative grid items-center gap-8 md:grid-cols-[auto_1fr]">
-              <div className="flex h-20 w-20 items-center justify-center rounded-3xl border border-violet-300/30 bg-[rgba(124,58,237,0.18)] shadow-[0_0_50px_rgba(124,58,237,0.35)]">
-                <Gift className="h-9 w-9 text-violet-200" />
-              </div>
+            <div className="relative grid items-center gap-10 md:grid-cols-2">
               <div>
-                <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-violet-300">
-                  Подарък веднага след записване · стойност 90 €
+                <p className="inline-flex items-center gap-2 rounded-full border border-amber-300/40 bg-[rgba(251,191,36,0.12)] px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.24em] text-amber-300">
+                  <Gift className="h-3.5 w-3.5" /> Подарък веднага след записване
                 </p>
-                <h2 className="mt-2 text-2xl font-bold md:text-3xl">„{GIFT.title}” — още преди обучението</h2>
-                <ul className="mt-4 grid gap-2.5 sm:grid-cols-2">
+                <h2 className="mt-4 text-2xl font-bold md:text-3xl">
+                  „{GIFT.title}” — <span className="wb-gold-text">още преди обучението</span>
+                </h2>
+                <ul className="mt-5 space-y-3">
                   {GIFT.bullets.map((b) => (
-                    <li key={b} className="flex items-start gap-2.5 text-[15px] text-slate-300">
-                      <Sparkles className="mt-1 h-4 w-4 shrink-0 text-violet-300" />
+                    <li key={b} className="flex items-start gap-2.5 text-[15px] text-slate-200">
+                      <Sparkles className="mt-1 h-4 w-4 shrink-0 text-amber-300" />
                       {b}
                     </li>
                   ))}
                 </ul>
+                <p className="mt-5 text-sm text-slate-400">
+                  Реални инструменти, с които започваш още днес — не брошура.
+                </p>
               </div>
+              <GiftViz />
             </div>
           </div>
         </SectionReveal>
@@ -363,17 +524,24 @@ export function WebinarLanding() {
       {/* ── БОНУСИ ЗА КРАЯ ───────────────────────────────────────────── */}
       <section className="relative mx-auto max-w-6xl px-6 py-14">
         <SectionReveal>
-          <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-cyan-300">Само за оставащите до края</p>
+          <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-amber-300">Само за оставащите до края</p>
           <h2 className="mt-3 text-3xl font-bold md:text-4xl">
-            Бонуси за <span className="text-cyan-300">{bonusTotal}+ €</span> — на живо
+            Бонуси за <span className="wb-gold-text">{bonusTotal}+ €</span> — раздават се на живо
           </h2>
         </SectionReveal>
         <div className="mt-8 grid gap-5 md:grid-cols-3">
           {WEBINAR.bonuses.map((b, i) => (
             <SectionReveal key={b.title} delay={i * 90}>
-              <div className="h-full rounded-3xl border border-white/10 bg-[rgba(255,255,255,0.03)] p-6 transition hover:border-cyan-400/35">
-                <p className="font-mono text-sm font-bold text-cyan-300">{b.value}</p>
-                <p className="mt-2 text-[15px] font-semibold leading-snug text-white">{b.title}</p>
+              <div className="group relative h-full overflow-hidden rounded-3xl border border-white/10 bg-[rgba(255,255,255,0.03)] p-6 transition hover:border-amber-300/45">
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full opacity-0 transition-opacity group-hover:opacity-100"
+                  style={{ background: "radial-gradient(circle, rgba(251,191,36,0.2), transparent 70%)" }}
+                />
+                <p className="inline-block rounded-full bg-[linear-gradient(135deg,#fbbf24,#f59e0b)] px-3 py-1 font-mono text-sm font-black text-[#3d2a00]">
+                  {b.value}
+                </p>
+                <p className="mt-3 text-[15px] font-semibold leading-snug text-white">{b.title}</p>
               </div>
             </SectionReveal>
           ))}
@@ -383,27 +551,84 @@ export function WebinarLanding() {
       {/* ── ВОДЕЩИЯТ ─────────────────────────────────────────────────── */}
       <section className="relative mx-auto max-w-6xl px-6 py-16">
         <SectionReveal>
-          <div className="grid items-center gap-10 rounded-[28px] border border-white/10 bg-[rgba(255,255,255,0.02)] p-8 md:grid-cols-[1fr_1.4fr] md:p-12">
-            <div>
-              <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-cyan-400/40 bg-[rgba(34,211,238,0.08)] font-display text-3xl font-bold text-cyan-300 shadow-[0_0_60px_rgba(34,211,238,0.3)]">
-                ИП
+          <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[rgba(255,255,255,0.02)] p-8 md:p-12">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0"
+              style={{
+                background:
+                  "radial-gradient(60vw 40vh at 85% 15%, rgba(52,211,153,0.08), transparent 60%)",
+              }}
+            />
+            <div className="relative grid items-center gap-10 md:grid-cols-[0.9fr_1.1fr]">
+              {/* Снимката с ефекти */}
+              <div className="relative mx-auto w-full max-w-[380px]">
+                <div className="wb-photo-ring relative overflow-hidden rounded-[24px]">
+                  <Image
+                    src="/images/ivailo/IMG_7309.jpeg"
+                    alt="Ивайло Петев · основател на ProMarketing и водещ на обучението"
+                    width={760}
+                    height={950}
+                    sizes="(min-width: 768px) 380px, 90vw"
+                    loading="eager"
+                    className="block h-auto w-full object-cover"
+                    style={{ aspectRatio: "4/5" }}
+                  />
+                  {/* тониращ воал за връзка с палитрата */}
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0"
+                    style={{
+                      background:
+                        "linear-gradient(to top, rgba(3,8,8,0.55), transparent 45%), linear-gradient(120deg, rgba(52,211,153,0.10), transparent 50%)",
+                    }}
+                  />
+                </div>
+                {/* плаващи чипове за доверие */}
+                <div className="wb-float absolute -left-3 top-6 hidden rounded-full border border-emerald-300/40 bg-[rgba(6,20,16,0.9)] px-3.5 py-2 text-xs font-semibold text-emerald-200 backdrop-blur md:block">
+                  ✓ 30+ бизнеса на автопилот
+                </div>
+                <div
+                  className="wb-float absolute -right-3 bottom-16 hidden rounded-full border border-amber-300/40 bg-[rgba(24,16,2,0.9)] px-3.5 py-2 text-xs font-semibold text-amber-200 backdrop-blur md:block"
+                  style={{ animationDelay: "1.4s" }}
+                >
+                  ⚡ AI отговор за 8 секунди
+                </div>
               </div>
-              <h2 className="mt-5 text-2xl font-bold">{WEBINAR.host.name}</h2>
-              <p className="mt-1.5 text-[15px] text-slate-400">{WEBINAR.host.role}</p>
-            </div>
-            <div className="space-y-4 text-[15px] leading-relaxed text-slate-300">
-              <p>
-                Изграждам AI системи, които <strong className="text-white">в момента продават и обслужват</strong> за
-                30+ български бизнеса — онлайн магазини, услуги, B2B. Не преподавам чужди слайдове: показвам
-                собствените ни работещи системи, с реални числа.
-              </p>
-              <p>
-                На обучението ще видиш на живо и нашето{" "}
-                <a href="/demo" className="font-semibold text-cyan-300 underline decoration-cyan-400/40 underline-offset-4 hover:decoration-cyan-300">
-                  интерактивно демо
-                </a>{" "}
-                — AI командният център, който даваме на клиентите си.
-              </p>
+
+              <div>
+                <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-emerald-300">Твоят водещ</p>
+                <h2 className="mt-2 text-3xl font-bold">{WEBINAR.host.name}</h2>
+                <p className="mt-1.5 text-[15px] text-slate-400">{WEBINAR.host.role}</p>
+                <div className="mt-6 space-y-4 text-[15px] leading-relaxed text-slate-300">
+                  <p>
+                    Изграждам AI системи, които <strong className="text-white">в момента продават и обслужват</strong>{" "}
+                    за 30+ български бизнеса — онлайн магазини, услуги, B2B. Не преподавам чужди слайдове: показвам
+                    собствените ни работещи системи, с реални числа.
+                  </p>
+                  <p>
+                    На обучението ще видиш на живо и нашето{" "}
+                    <a
+                      href="/demo"
+                      className="font-semibold text-emerald-300 underline decoration-emerald-300/40 underline-offset-4 hover:decoration-emerald-300"
+                    >
+                      интерактивно демо
+                    </a>{" "}
+                    — AI командният център, който даваме на клиентите си.
+                  </p>
+                </div>
+                <div className="mt-6 flex flex-wrap gap-2.5">
+                  {HOST_CHIPS.map((chip) => (
+                    <span
+                      key={chip.text}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-[rgba(255,255,255,0.04)] px-3.5 py-2 text-sm text-slate-200"
+                    >
+                      <chip.icon className="h-4 w-4 text-emerald-300" />
+                      {chip.text}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </SectionReveal>
@@ -418,13 +643,13 @@ export function WebinarLanding() {
           {[
             { icon: Rocket, t: "1 · Записваш се (30 секунди)", b: "Име и имейл. Подаръкът „AI Стартов Пакет” пристига веднага." },
             { icon: CalendarDays, t: "2 · Получаваш Zoom линка и напомняне", b: dateLabel ? `Обучението е ${dateLabel}. Линкът и напомняне идват по имейл.` : "Щом датата се обяви, я получаваш първи — със Zoom линка и напомняне." },
-            { icon: MonitorPlay, t: `3 · ${WEBINAR.durationMinutes} минути на живо`, b: "4-те системи отвътре + отговори на твоите въпроси в реално време." },
+            { icon: MessageSquareText, t: `3 · ${WEBINAR.durationMinutes} минути на живо`, b: "4-те системи отвътре + отговори на твоите въпроси в реално време." },
             { icon: Gift, t: "4 · Бонусите в края", b: `Награди за ${bonusTotal}+ € само за присъстващите до края — включително безплатен AI одит на твоя бизнес.` },
           ].map((step, i) => (
             <SectionReveal key={step.t} delay={i * 80}>
-              <div className="flex items-start gap-5 rounded-3xl border border-white/10 bg-[rgba(255,255,255,0.03)] p-6">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/30 bg-[rgba(34,211,238,0.08)]">
-                  <step.icon className="h-5 w-5 text-cyan-300" />
+              <div className="flex items-start gap-5 rounded-3xl border border-white/10 bg-[rgba(255,255,255,0.03)] p-6 transition hover:border-emerald-300/30">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-emerald-300/35 bg-[rgba(52,211,153,0.09)]">
+                  <step.icon className="h-5 w-5 text-emerald-300" />
                 </div>
                 <div>
                   <h3 className="font-bold text-white">{step.t}</h3>
@@ -453,6 +678,14 @@ export function WebinarLanding() {
         <div className="hidden sm:block">
           <AuroraBackground intensity="normal" />
         </div>
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-[1]"
+          style={{
+            background:
+              "radial-gradient(70vw 50vh at 50% 60%, rgba(52,211,153,0.10), transparent 60%)",
+          }}
+        />
         <div className="relative z-[2] mx-auto max-w-xl text-center">
           <SectionReveal>
             <h2 className="text-3xl font-bold leading-tight md:text-4xl">
@@ -466,7 +699,7 @@ export function WebinarLanding() {
                 : "Запиши се сега — датата се обявява скоро и ще я получиш първи."}
             </p>
           </SectionReveal>
-          <div className="mx-auto mt-8 max-w-md rounded-3xl border border-cyan-400/25 bg-[rgba(7,10,22,0.82)] p-6 text-left shadow-[0_0_80px_-20px_rgba(34,211,238,0.45)] backdrop-blur-xl md:p-8">
+          <div className="mx-auto mt-8 max-w-md rounded-3xl border border-emerald-300/30 bg-[rgba(6,14,15,0.85)] p-6 text-left shadow-[0_0_80px_-18px_rgba(52,211,153,0.5)] backdrop-blur-xl md:p-8">
             <RegisterForm location="final" />
           </div>
           <p className="mt-8 text-xs text-slate-600">
@@ -480,10 +713,83 @@ export function WebinarLanding() {
       <a
         href="#zapis"
         onClick={() => track("cta_clicked", { location: "webinar_sticky", target: "register" })}
-        className="fixed inset-x-4 bottom-4 z-40 flex items-center justify-center gap-2 rounded-full bg-[var(--color-accent-cyan)] px-6 py-3.5 text-[15px] font-bold text-[var(--color-bg-void)] shadow-[0_8px_40px_rgba(34,211,238,0.5)] md:hidden"
+        className="wb-cta fixed inset-x-4 bottom-4 z-40 flex items-center justify-center gap-2 rounded-full px-6 py-3.5 text-[15px] font-bold text-[#062018] md:hidden"
       >
         Запази безплатното си място →
       </a>
+
+      {/* ── Стилове на страницата (свежата палитра + анимации) ──────── */}
+      <style>{`
+        .wb-cta {
+          background: linear-gradient(120deg, #34d399, #22d3ee 55%, #34d399);
+          background-size: 200% 100%;
+          box-shadow: 0 0 44px rgba(52, 211, 153, 0.45);
+          transition: box-shadow .3s, background-position .6s;
+        }
+        .wb-cta:hover {
+          background-position: 100% 0;
+          box-shadow: 0 0 70px rgba(52, 211, 153, 0.7);
+        }
+        .wb-gradient-text {
+          background: linear-gradient(120deg, #6ee7b7, #22d3ee);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+        }
+        .wb-gold-text {
+          background: linear-gradient(120deg, #fde68a, #f59e0b);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+        }
+        .wb-avatar-ring::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: 9999px;
+          border: 2px solid rgba(52, 211, 153, 0.7);
+          box-shadow: 0 0 18px rgba(52, 211, 153, 0.45);
+        }
+        .wb-photo-ring {
+          border: 1px solid rgba(52, 211, 153, 0.35);
+          box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 24px 80px -18px rgba(52, 211, 153, 0.35);
+        }
+        .wb-node { animation: wbBreath 3.2s ease-in-out infinite; }
+        @keyframes wbBreath {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-6px); }
+        }
+        .wb-pulse-dot {
+          position: absolute;
+          top: -4px;
+          left: 0;
+          height: 10px;
+          width: 10px;
+          border-radius: 9999px;
+          background: #6ee7b7;
+          box-shadow: 0 0 16px rgba(110, 231, 183, 0.9);
+          animation: wbTravel 4s linear infinite;
+        }
+        @keyframes wbTravel {
+          0% { left: 0%; opacity: 0; }
+          8% { opacity: 1; }
+          92% { opacity: 1; }
+          100% { left: 100%; opacity: 0; }
+        }
+        .wb-float { animation: wbFloat 4.5s ease-in-out infinite; }
+        @keyframes wbFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+        }
+        .wb-page { animation: wbPage 5s ease-in-out infinite; }
+        @keyframes wbPage {
+          0%, 100% { bottom: 8px; }
+          50% { bottom: 16px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .wb-node, .wb-pulse-dot, .wb-float, .wb-page { animation: none; }
+        }
+      `}</style>
     </div>
   );
 }
