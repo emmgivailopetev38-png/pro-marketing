@@ -308,6 +308,15 @@ export function WebinarLanding() {
       <ScrollProgress />
       <SpotlightCursor />
 
+      {/* ── Топ-бар с датата (като при големите уебинари) ───────────── */}
+      <div className="relative z-[5] border-b border-emerald-300/20 bg-[linear-gradient(90deg,rgba(6,24,18,0.95),rgba(8,20,24,0.95))] px-4 py-2.5 text-center backdrop-blur">
+        <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-300 md:text-xs">
+          {dateLabel
+            ? `🔴 На живо · ${dateLabel} · пред твоя компютър, телефон или таблет`
+            : "⚡ Датата се обявява всеки момент — записаните я получават първи, с подарък за 90 €"}
+        </p>
+      </div>
+
       {/* ── HERO ─────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden">
         <div className="hidden sm:block">
@@ -348,6 +357,16 @@ export function WebinarLanding() {
             </h1>
 
             <p className="mt-6 max-w-xl text-base text-slate-300 md:text-lg">{WEBINAR.subtitle}</p>
+
+            {/* възражения-килъри (по модела на топ уебинарите) */}
+            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-300">
+              {["Без техничарски умения", "Без нает екип", "Без месеци проба-грешка"].map((t) => (
+                <span key={t} className="inline-flex items-center gap-1.5">
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-rose-500/20 text-[10px] font-black text-rose-400">✕</span>
+                  {t}
+                </span>
+              ))}
+            </div>
 
             <ul className="mt-7 space-y-2.5">
               {WEBINAR.secrets.map((sec) => (
