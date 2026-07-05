@@ -57,6 +57,14 @@ export function CheckoutButton({
         {state === "loading" ? "Отваряме плащането…" : children}
       </button>
       {notice && <p className="mt-3 text-sm text-amber-400">{notice}</p>}
+      <p className="mt-3 max-w-md text-xs leading-relaxed text-slate-500">
+        С продължаването приемаш{" "}
+        <a href="/usloviya-kursove" target="_blank" className="underline underline-offset-2 hover:text-slate-300">
+          Общите условия за онлайн курсове
+        </a>{" "}
+        и се съгласяваш с незабавен достъп до цифровото съдържание. Важи нашата 14-дневна
+        гаранция „връщане на парите".
+      </p>
     </div>
   );
 }

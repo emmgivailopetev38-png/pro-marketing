@@ -166,7 +166,10 @@ export default function KursPage() {
           </Link>
         </div>
         <p className="mt-10 text-center text-xs text-slate-600">
-          ProMarketing · promarketing.pw · <Link href="/terms" className="underline underline-offset-2">Условия</Link>
+          ProMarketing · promarketing.pw ·{" "}
+          <Link href="/usloviya-kursove" className="underline underline-offset-2">Условия за курсове</Link> ·{" "}
+          <Link href="/terms" className="underline underline-offset-2">Общи условия</Link> ·{" "}
+          <Link href="/privacy" className="underline underline-offset-2">Поверителност</Link>
         </p>
       </section>
     </main>

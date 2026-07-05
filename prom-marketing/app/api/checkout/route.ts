@@ -52,6 +52,12 @@ export async function POST(request: Request) {
       customer_email: parsed.data.email,
       metadata: { product: parsed.data.product },
       allow_promotion_codes: true,
+      custom_text: {
+        submit: {
+          message:
+            "С плащането приемаш Общите условия за онлайн курсове (promarketing.pw/usloviya-kursove) и даваш изрично съгласие за незабавен достъп до цифровото съдържание. Важи 14-дневна гаранция за връщане на парите.",
+        },
+      },
       success_url: `${SITE}${product.successPath}${product.successPath.includes("?") ? "&" : "?"}session_id={CHECKOUT_SESSION_ID}&product=${parsed.data.product}`,
       cancel_url: `${SITE}${product.cancelPath}`,
     });
