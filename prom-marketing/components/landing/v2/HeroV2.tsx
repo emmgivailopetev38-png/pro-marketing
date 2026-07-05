@@ -8,7 +8,7 @@ import { NeuralCore } from "./NeuralCore";
 import { openBookingPopup } from "@/lib/cal/embed";
 import { track } from "@/lib/analytics/track";
 import { AiAudit } from "./AiAudit";
-import { Star, Phone } from "lucide-react";
+import { Star, Phone, Play } from "lucide-react";
 
 export function HeroV2() {
   return (
@@ -73,6 +73,26 @@ export function HeroV2() {
                 Запази безплатна консултация
                 <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
               </button>
+            </MagneticButton>
+            <MagneticButton>
+              <a
+                href="/demo"
+                onClick={() => track("cta_clicked", { location: "hero_v2", target: "demo" })}
+                className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full border border-[var(--color-accent-cyan)]/60 bg-[rgba(34,211,238,0.05)] px-7 py-4 text-base font-semibold text-[var(--color-accent-cyan)] backdrop-blur-sm transition hover:border-[var(--color-accent-cyan)] hover:shadow-[0_0_50px_rgba(34,211,238,0.35)]"
+              >
+                {/* пробягващ блик по бутона */}
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-[rgba(34,211,238,0.22)] to-transparent transition-transform duration-700 group-hover:translate-x-full"
+                />
+                <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-accent-cyan)] text-[var(--color-bg-void)] shadow-[0_0_18px_rgba(34,211,238,0.8)]">
+                  <Play className="ml-0.5 h-3.5 w-3.5 fill-current" />
+                </span>
+                <span className="relative">
+                  Гледай живото демо
+                  <span className="ml-2 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--color-accent-cyan)] align-middle shadow-[0_0_8px_rgba(34,211,238,0.9)]" />
+                </span>
+              </a>
             </MagneticButton>
             <a href="tel:+359877399963" onClick={() => track("cta_clicked", { location: "hero_v2", target: "call" })} className="inline-flex items-center gap-2 rounded-full border-2 border-[var(--color-accent-cyan)] px-6 py-3.5 text-base font-semibold text-[var(--color-accent-cyan)] transition hover:bg-[var(--color-accent-cyan)]/[0.06]">
               <Phone className="h-4 w-4" /> 0877 399 963
