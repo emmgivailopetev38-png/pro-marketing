@@ -47,6 +47,18 @@ export default function BookingPage() {
           <BookingEmbed />
         </div>
 
+        {/* Fallback — ако вграденият календар не се зареди (блокери, бавна мрежа) */}
+        <div className="mt-4 text-center">
+          <a
+            href="https://cal.com/ivailo-petev-h8t28v/consultation"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-full border border-cyan-400/40 px-6 py-3 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-400/10"
+          >
+            Календарът не се вижда? Отвори го директно →
+          </a>
+        </div>
+
         <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
           <Card title="30 минути" body="Достатъчно за дълбок разговор, не за повърхностно представяне." />
           <Card title="Без презентации" body="Не сме тук да продаваме. Тук сме да разберем дали ще си помогнем." />
