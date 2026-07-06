@@ -45,8 +45,9 @@ export default function WebinarThankYouPage() {
             <p className="flex items-start gap-3">
               <Mail className="mt-0.5 h-5 w-5 shrink-0 text-cyan-300" />
               <span>
-                Провери пощата си (и папка „Спам/Промоции”) — изпратихме ти потвърждение
-                {WEBINAR.zoomJoinUrl ? " със Zoom линка" : ""} и подаръка.
+                Провери пощата си (и папка „Спам/Промоции”) — изпратихме ти потвърждение и
+                подаръците. <strong className="text-white">Zoom линкът пристига 1 час преди старта</strong> —
+                така всички влизаме заедно.
               </span>
             </p>
             <p className="flex items-start gap-3">

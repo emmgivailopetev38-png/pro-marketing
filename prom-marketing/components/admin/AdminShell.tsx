@@ -6,6 +6,7 @@ import {
   Menu,
   X,
   LayoutDashboard,
+  Orbit,
   Sparkles,
   Lightbulb,
   Users,
@@ -50,6 +51,7 @@ const LINK_GROUPS: LinkGroup[] = [
     label: "Команден център",
     items: [
       { href: "/admin", label: "Преглед", icon: LayoutDashboard },
+      { href: "/admin/deck", label: "Командна палуба", icon: Orbit },
       { href: "/admin/new-leads", label: "Нови лидове", icon: Sparkles },
       { href: "/admin/insights", label: "Оптимизация", icon: Lightbulb },
     ],

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CheckCircle2, Crown, Mail } from "lucide-react";
 import { CheckoutButton } from "@/components/webinar/CheckoutButton";
+import { PurchasePixel } from "@/components/webinar/PurchasePixel";
 import { OFFERS } from "@/lib/webinar/config";
 
 export const metadata: Metadata = {
@@ -18,15 +19,16 @@ export const metadata: Metadata = {
 export default async function KursUspehPage({
   searchParams,
 }: {
-  searchParams: Promise<{ stage?: string }>;
+  searchParams: Promise<{ stage?: string; product?: string; session_id?: string }>;
 }) {
-  const { stage } = await searchParams;
+  const { stage, product, session_id } = await searchParams;
   const isMentorship = stage === "mentorship";
   const m = OFFERS.mentorship;
   const saving = m.priceEur - m.upgradePriceEur;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[var(--color-bg-void)] px-6 py-20 text-white">
+      <PurchasePixel product={product} sessionId={session_id} />
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0"

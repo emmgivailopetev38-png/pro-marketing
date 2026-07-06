@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { track } from "@/lib/analytics/track";
+import { track as pixelTrack } from "@/lib/meta/pixel-client";
 import type { CheckoutProductId } from "@/lib/stripe/products";
 
 /**
@@ -25,6 +26,7 @@ export function CheckoutButton({
     setState("loading");
     setNotice(null);
     track("checkout_clicked", { product });
+    pixelTrack("InitiateCheckout", { params: { content_name: product, currency: "EUR" } });
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",

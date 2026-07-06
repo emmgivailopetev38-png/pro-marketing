@@ -24,6 +24,7 @@ const NAV = [
   { href: "#industries", label: "За кого" },
   { href: "/demo", label: "Живо демо" },
   { href: "/webinar", label: "Безплатно обучение" },
+  { href: "/magazin", label: "Магазин" },
   { href: "#faq", label: "Въпроси" },
   { href: "#kontakti", label: "Контакти" },
 ];

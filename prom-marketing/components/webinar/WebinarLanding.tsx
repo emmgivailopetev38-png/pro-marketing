@@ -38,6 +38,7 @@ import { TiltCard } from "@/components/effects/TiltCard";
 import { ScrollProgress } from "@/components/effects/ScrollProgress";
 import { SpotlightCursor } from "@/components/effects/SpotlightCursor";
 import { track } from "@/lib/analytics/track";
+import { track as pixelTrack } from "@/lib/meta/pixel-client";
 import { WEBINAR, GIFT, webinarDateLabel } from "@/lib/webinar/config";
 
 /* ── Обратно броене (рендира се само при обявена дата) ─────────────── */
@@ -95,6 +96,7 @@ function RegisterForm({ location }: { location: string }) {
         body: JSON.stringify({ full_name: name, email, phone }),
       });
       if (!res.ok) throw new Error("bad status");
+      pixelTrack("Lead", { params: { content_name: "webinar_registration" } });
       window.location.href = "/webinar/registriran";
     } catch {
       setState("error");

@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Sparkles, Calendar, Inbox, Mail, Megaphone, Target,
   BarChart3, Receipt, SearchCheck, Calculator, Repeat, Satellite, FolderOpen,
   LineChart, Share2, Bot, MessageCircle, Clapperboard, PieChart, Activity, Bell,
-  AlertTriangle, CheckCircle2, Star, Phone, Clock, ExternalLink, type LucideIcon,
+  AlertTriangle, CheckCircle2, Star, Phone, Clock, ExternalLink, Orbit, type LucideIcon,
 } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/service";
 import {
@@ -386,7 +386,8 @@ export default async function AdminDashboard() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Link href="/admin/clients" className="cc-btn cc-btn-primary"><Users className="h-4 w-4" strokeWidth={2} /> Всички клиенти</Link>
+              <Link href="/admin/deck" className="cc-btn cc-btn-primary"><Orbit className="h-4 w-4" strokeWidth={2} /> Командна палуба</Link>
+              <Link href="/admin/clients" className="cc-btn"><Users className="h-4 w-4" strokeWidth={1.75} /> Всички клиенти</Link>
               <Link href="/admin/bookings" className="cc-btn"><Calendar className="h-4 w-4" strokeWidth={1.75} /> Срещи · {upcomingBookings.length}</Link>
             </div>
           </div>

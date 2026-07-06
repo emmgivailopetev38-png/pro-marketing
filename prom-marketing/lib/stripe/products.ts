@@ -34,6 +34,14 @@ export const CHECKOUT_PRODUCTS = {
     successPath: "/kurs/uspeh?stage=mentorship",
     cancelPath: "/kurs/uspeh",
   },
+  "trading-mentorship": {
+    name: "Трейдинг Агент · Менторство 1-на-1 · 4 месеца",
+    description:
+      "16 лични сесии: твоята стратегия → правила → бектест → демо → изпълнение. Изграждаш собствен трейдинг агент.",
+    priceEur: 2000,
+    successPath: "/kurs/uspeh?stage=mentorship",
+    cancelPath: "/trading",
+  },
 } as const;
 
 export type CheckoutProductId = keyof typeof CHECKOUT_PRODUCTS;

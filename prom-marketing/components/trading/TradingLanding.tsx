@@ -24,6 +24,7 @@ import { SectionReveal } from "@/components/effects/SectionReveal";
 import { TiltCard } from "@/components/effects/TiltCard";
 import { ScrollProgress } from "@/components/effects/ScrollProgress";
 import { track } from "@/lib/analytics/track";
+import { track as pixelTrack } from "@/lib/meta/pixel-client";
 import { TRADING, TRADING_DISCLAIMER } from "@/lib/trading/config";
 
 /* ── Формата: име + имейл + телефон (call-first) ───────────────────── */
@@ -45,6 +46,7 @@ function BookForm({ location }: { location: string }) {
         body: JSON.stringify({ full_name: name, email, phone }),
       });
       if (!res.ok) throw new Error("bad status");
+      pixelTrack("Lead", { params: { content_name: "trading_book" } });
       window.location.href = "/trading/blagodaria";
     } catch {
       setState("error");

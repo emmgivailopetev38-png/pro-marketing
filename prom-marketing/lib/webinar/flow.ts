@@ -30,18 +30,27 @@ export interface FlowStage {
   text: (name: string) => string;
 }
 
-function zoomBlock(): { html: string; text: string } {
+/**
+ * Линкът за влизане се разкрива САМО в стъпката 1 час преди старта —
+ * така никой не влиза дни по-рано. Всички по-ранни стъпки казват кога идва.
+ */
+function zoomJoin(): { html: string; text: string } {
   if (WEBINAR.zoomJoinUrl) {
     return {
-      html: `<p>🔗 Влизаш от тук: <a href="${WEBINAR.zoomJoinUrl}"><strong>${WEBINAR.zoomJoinUrl}</strong></a></p>`,
-      text: `Zoom линк: ${WEBINAR.zoomJoinUrl}`,
+      html: `<p>🔗 Влизаш от тук: <a href="${WEBINAR.zoomJoinUrl}"><strong>${WEBINAR.zoomJoinUrl}</strong></a><br/><em>Линкът работи от началния час — има чакалня, пускаме всички точно в началото.</em></p>`,
+      text: `Zoom линк: ${WEBINAR.zoomJoinUrl} (работи от началния час, има чакалня)`,
     };
   }
   return {
-    html: `<p>🔗 Zoom линкът пристига в отделен имейл преди старта.</p>`,
-    text: "Zoom линкът пристига в отделен имейл преди старта.",
+    html: `<p>🔗 Zoom линкът пристига в отделен имейл точно преди старта.</p>`,
+    text: "Zoom линкът пристига в отделен имейл точно преди старта.",
   };
 }
+
+const zoomComing = {
+  html: `<p>🔗 Zoom линкът пристига на този имейл <strong>1 час преди старта</strong> — пази пощата си.</p>`,
+  text: "Zoom линкът пристига на този имейл 1 час преди старта.",
+};
 
 function wrap(inner: string): string {
   return `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.65;color:#0d1221;max-width:560px;">${inner}
@@ -50,7 +59,7 @@ function wrap(inner: string): string {
 
 export function buildStages(): FlowStage[] {
   const date = webinarDateLabel() ?? "";
-  const zoom = zoomBlock();
+  const zoom = zoomJoin();
   const c = OFFERS.course;
 
   return [
@@ -65,9 +74,9 @@ export function buildStages(): FlowStage[] {
 <p>Ще минем през 4 системи, показани отвътре:</p>
 <ul>${WEBINAR.secrets.map((s) => `<li><strong>${escapeHtml(s.title)}</strong></li>`).join("")}</ul>
 <p>💡 Дотогава: отвори подаръка си „${GIFT.title}” и мини през Ден 1 — така на обучението ще ти е в пъти по-полезно. <a href="${SITE}${GIFT.pdfPath}">Свали го пак от тук</a>.</p>
-${zoom.html}`),
+${zoomComing.html}`),
       text: (name) =>
-        `Здравей, ${name},\n\nСлед 3 дни — ${date} — се виждаме на живо в Zoom за „${WEBINAR.title}”.\n\nДотогава: мини през Ден 1 от подаръка „${GIFT.title}”: ${SITE}${GIFT.pdfPath}\n${zoom.text}`,
+        `Здравей, ${name},\n\nСлед 3 дни — ${date} — се виждаме на живо в Zoom за „${WEBINAR.title}”.\n\nДотогава: мини през Ден 1 от подаръка „${GIFT.title}”: ${SITE}${GIFT.pdfPath}\n${zoomComing.text}`,
     },
     {
       id: "reminder_1d",
@@ -78,10 +87,24 @@ ${zoom.html}`),
         wrap(`<p>Здравей, ${escapeHtml(name)},</p>
 <p><strong>Утре е!</strong> ${escapeHtml(date)} — на живо в Zoom, ${WEBINAR.durationMinutes} минути.</p>
 <p>Запиши си го в календара сега — бонусите в края (стойност 540+ €) са само за присъстващите на живо, включително безплатният AI одит на твоя бизнес.</p>
-${zoom.html}
+${zoomComing.html}
 <p>До утре!</p>`),
       text: (name) =>
-        `Здравей, ${name},\n\nУтре е! ${date} — на живо в Zoom, ${WEBINAR.durationMinutes} минути.\nБонусите в края са само за присъстващите на живо.\n${zoom.text}\n\nДо утре!`,
+        `Здравей, ${name},\n\nУтре е! ${date} — на живо в Zoom, ${WEBINAR.durationMinutes} минути.\nБонусите в края са само за присъстващите на живо.\n${zoomComing.text}\n\nДо утре!`,
+    },
+    {
+      id: "reminder_dayof",
+      offsetMinutes: -9 * 60,
+      sendUntilMinutes: -2 * 60,
+      subject: `🔥 ДНЕС в ${date.split(" ").slice(-1)[0] || "19:00"} ч. — ${WEBINAR.title}`,
+      html: (name) =>
+        wrap(`<p>Здравей, ${escapeHtml(name)},</p>
+<p><strong>Днес е денят!</strong> Започваме точно в ${escapeHtml(date.split(" ").slice(-1)[0] || "19:00")} ч. — ${WEBINAR.durationMinutes} минути на живo, 4 системи отвътре, бонуси за 540+ € в края.</p>
+<p>✅ Приготви си: тихо място, зареден лаптоп/телефон, нещо за писане.</p>
+${zoomComing.html}
+<p>До довечера!</p>`),
+      text: (name) =>
+        `Здравей, ${name},\n\nДнес е денят! Започваме точно в ${date.split(" ").slice(-1)[0] || "19:00"} ч.\nПриготви си тихо място и нещо за писане.\n${zoomComing.text}\n\nДо довечера!`,
     },
     {
       id: "reminder_1h",

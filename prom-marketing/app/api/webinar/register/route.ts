@@ -94,9 +94,9 @@ export async function POST(request: Request) {
   const dateLine = webinarDateLabel()
     ? `<p>📅 <strong>${escapeHtml(webinarDateLabel()!)}</strong> · онлайн в Zoom</p>`
     : `<p>📅 Датата се обявява всеки момент — ще я получиш <strong>първи на този имейл</strong>, заедно със Zoom линка.</p>`;
-  const zoomLine = WEBINAR.zoomJoinUrl
-    ? `<p>🔗 Твоят Zoom линк: <a href="${WEBINAR.zoomJoinUrl}">${WEBINAR.zoomJoinUrl}</a><br/><em>Запази този имейл — с него влизаш.</em></p>`
-    : "";
+  // Zoom линкът НЕ се праща тук — пристига по имейл 1 час преди старта
+  // (Webinar Flow, стъпка reminder_1h). Така никой не влиза предварително.
+  const zoomLine = `<p>🔗 <strong>Zoom линкът пристига на този имейл 1 час преди старта.</strong> Пази пощата си в деня на обучението.</p>`;
 
   sendEmail({
     to: email,
@@ -121,8 +121,7 @@ ${zoomLine}
     text: `Здравей, ${full_name},
 
 Мястото ти за „${WEBINAR.title}” е запазено.
-${webinarDateLabel() ? `Дата: ${webinarDateLabel()} (Zoom)` : "Датата се обявява скоро — ще я получиш първи на този имейл."}
-${WEBINAR.zoomJoinUrl ? `Zoom линк: ${WEBINAR.zoomJoinUrl}` : ""}
+${webinarDateLabel() ? `Дата: ${webinarDateLabel()} (Zoom). Линкът пристига 1 час преди старта.` : "Датата се обявява скоро — ще я получиш първи на този имейл."}
 
 Подарък №1 „${GIFT.title}”: ${SITE}${GIFT.pdfPath}
 Подарък №2 „${GIFT2.title}”: ${SITE}${GIFT2.pdfPath}
