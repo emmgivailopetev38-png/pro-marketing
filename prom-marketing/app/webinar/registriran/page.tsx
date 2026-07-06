@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CalendarDays, CheckCircle2, Download, Mail, MonitorPlay } from "lucide-react";
-import { WEBINAR, GIFT, webinarDateLabel } from "@/lib/webinar/config";
+import { WEBINAR, GIFT, GIFT2, webinarDateLabel } from "@/lib/webinar/config";
 
 export const metadata: Metadata = {
   title: `Записан си! — ${WEBINAR.title} | ProMarketing`,
@@ -60,7 +60,7 @@ export default function WebinarThankYouPage() {
 
           <div className="mt-8 rounded-2xl border border-violet-400/30 bg-[rgba(124,58,237,0.1)] p-6">
             <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-violet-300">
-              Подаръкът ти · стойност 90 €
+              Подарък №1 · стойност 90 €
             </p>
             <h2 className="mt-1.5 text-lg font-bold">„{GIFT.title}”</h2>
             <p className="mt-1 text-sm text-slate-400">
@@ -72,6 +72,21 @@ export default function WebinarThankYouPage() {
             >
               <Download className="h-4.5 w-4.5" style={{ height: 18, width: 18 }} />
               Свали пакета (PDF)
+            </a>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-amber-400/30 bg-[rgba(245,158,11,0.08)] p-6">
+            <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-amber-300">
+              Подарък №2 · бонус презентация
+            </p>
+            <h2 className="mt-1.5 text-lg font-bold">„{GIFT2.title}”</h2>
+            <p className="mt-1 text-sm text-slate-400">{GIFT2.tagline}</p>
+            <a
+              href={GIFT2.pdfPath}
+              className="mt-4 inline-flex items-center gap-2.5 rounded-full bg-[linear-gradient(135deg,#fbbf24,#f59e0b)] px-6 py-3 font-bold text-[#3d2a00] shadow-[0_0_40px_rgba(251,191,36,0.35)] transition hover:shadow-[0_0_60px_rgba(251,191,36,0.55)]"
+            >
+              <Download className="h-4.5 w-4.5" style={{ height: 18, width: 18 }} />
+              Свали презентацията (PDF)
             </a>
           </div>
 

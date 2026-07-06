@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/resend";
 import { escapeHtml } from "@/lib/email/escape";
-import { WEBINAR, GIFT, webinarDateLabel } from "@/lib/webinar/config";
+import { WEBINAR, GIFT, GIFT2, webinarDateLabel } from "@/lib/webinar/config";
 
 export const dynamic = "force-dynamic";
 
@@ -107,9 +107,14 @@ export async function POST(request: Request) {
 ${dateLine}
 ${zoomLine}
 <div style="margin:22px 0;padding:18px 20px;border:2px solid #06b6d4;border-radius:12px;background:#f0fdff;">
-<p style="margin:0 0 8px;"><strong>🎁 Подаръкът ти: „${GIFT.title}”</strong></p>
+<p style="margin:0 0 8px;"><strong>🎁 Подарък №1: „${GIFT.title}”</strong></p>
 <p style="margin:0 0 12px;color:#334;">${GIFT.bullets.map((b) => `• ${escapeHtml(b)}`).join("<br/>")}</p>
 <p style="margin:0;"><a href="${SITE}${GIFT.pdfPath}" style="display:inline-block;background:#06b6d4;color:#03121a;font-weight:bold;padding:11px 22px;border-radius:999px;text-decoration:none;">Свали пакета (PDF) →</a></p>
+</div>
+<div style="margin:22px 0;padding:18px 20px;border:2px solid #f59e0b;border-radius:12px;background:#fffbeb;">
+<p style="margin:0 0 8px;"><strong>🎁 Подарък №2: „${GIFT2.title}”</strong></p>
+<p style="margin:0 0 12px;color:#334;">${GIFT2.bullets.map((b) => `• ${escapeHtml(b)}`).join("<br/>")}</p>
+<p style="margin:0;"><a href="${SITE}${GIFT2.pdfPath}" style="display:inline-block;background:#f59e0b;color:#3d2a00;font-weight:bold;padding:11px 22px;border-radius:999px;text-decoration:none;">Свали презентацията (PDF) →</a></p>
 </div>
 <p>До скоро на живо,<br/><strong>${WEBINAR.host.name}</strong><br/>${WEBINAR.host.role}</p>
 </div>`,
@@ -119,7 +124,8 @@ ${zoomLine}
 ${webinarDateLabel() ? `Дата: ${webinarDateLabel()} (Zoom)` : "Датата се обявява скоро — ще я получиш първи на този имейл."}
 ${WEBINAR.zoomJoinUrl ? `Zoom линк: ${WEBINAR.zoomJoinUrl}` : ""}
 
-Подаръкът ти „${GIFT.title}”: ${SITE}${GIFT.pdfPath}
+Подарък №1 „${GIFT.title}”: ${SITE}${GIFT.pdfPath}
+Подарък №2 „${GIFT2.title}”: ${SITE}${GIFT2.pdfPath}
 
 До скоро,
 ${WEBINAR.host.name}`,
