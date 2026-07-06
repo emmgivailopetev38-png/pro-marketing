@@ -4,6 +4,7 @@ import "./v2-design.css";
 import { NavbarV2 } from "@/components/landing/v2/NavbarV2";
 import { HeroV2 } from "@/components/landing/v2/HeroV2";
 import { TrustStripV2 } from "@/components/landing/v2/TrustStripV2";
+import { QuickAccessV2 } from "@/components/landing/v2/QuickAccessV2";
 import { ConversionFloats } from "@/components/landing/v2/ConversionFloats";
 import { SpotlightCursor } from "@/components/effects/SpotlightCursor";
 import { ScrollProgress } from "@/components/effects/ScrollProgress";
@@ -37,6 +38,7 @@ export default function HomePageV2() {
       <main data-v2>
         <HeroV2 />
         <TrustStripV2 />
+        <QuickAccessV2 />
         <ServicesV2 />
         <LiveDashboardsV2 />
         <CRMShowcaseV2 />

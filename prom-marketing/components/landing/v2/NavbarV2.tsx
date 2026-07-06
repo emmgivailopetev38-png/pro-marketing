@@ -25,6 +25,7 @@ const NAV = [
   { href: "/demo", label: "Живо демо" },
   { href: "/webinar", label: "Безплатно обучение" },
   { href: "/magazin", label: "Магазин" },
+  { href: "/trading", label: "Трейдинг" },
   { href: "#faq", label: "Въпроси" },
   { href: "#kontakti", label: "Контакти" },
 ];
