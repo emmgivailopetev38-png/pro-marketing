@@ -34,6 +34,14 @@ export const CHECKOUT_PRODUCTS = {
     successPath: "/kurs/uspeh?stage=mentorship",
     cancelPath: "/kurs/uspeh",
   },
+  "mentorship-webinar": {
+    name: `${OFFERS.mentorship.name} · Уебинар оферта −30%`,
+    description:
+      "Пълното ниво за участници в обучението: курсът + 16 лични 1-на-1 сесии. Специална цена, валидна 48 часа след уебинара.",
+    priceEur: OFFERS.mentorship.webinarPriceEur,
+    successPath: "/kurs/uspeh?stage=mentorship",
+    cancelPath: "/webinar/oferta",
+  },
   "trading-mentorship": {
     name: "Трейдинг Агент · Менторство 1-на-1 · 4 месеца",
     description:

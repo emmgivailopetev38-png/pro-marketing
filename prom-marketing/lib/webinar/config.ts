@@ -112,9 +112,14 @@ export const OFFERS = {
     priceEur: 2000,
     /** Купилите курса получават кредит: доплащат разликата. */
     upgradePriceEur: 1500,
+    /** „Пълното ниво” за гледалите уебинара: курс + менторство с −30%. Само 48ч. */
+    webinarPriceEur: 1400,
     url: "/mentor",
   },
 } as const;
+
+/** Часове валидност на уебинар офертата след края на събитието. */
+export const WEBINAR_OFFER_HOURS = 48;
 
 export type OfferId = keyof typeof OFFERS;
 

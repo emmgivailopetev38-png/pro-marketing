@@ -122,30 +122,39 @@ ${zoom.html}
       id: "followup_offer",
       offsetMinutes: 3 * 60,
       sendUntilMinutes: 24 * 60,
-      subject: `Записът от днес + офертата за участници (${c.webinarPriceEur} € вместо ${c.priceEur} €)`,
+      subject: `🎁 Офертите от обучението: курсът за ${c.webinarPriceEur} € + пълното ниво с −30% (48 часа)`,
       html: (name) =>
         wrap(`<p>Здравей, ${escapeHtml(name)},</p>
-<p>Благодаря, че беше на „${WEBINAR.title}”! (А ако не успя — ето най-важното.)</p>
-<p>Показахме как реклами, продажби и обслужване работят на автопилот — и отворихме записванията за <strong>„${c.name}”</strong>: 30-дневния курс, с който изграждаш системата сам, с всички наши шаблони.</p>
-<p>Като участник имаш специална цена: <strong>${c.webinarPriceEur} € вместо ${c.priceEur} €</strong> — валидна 48 часа.</p>
-<p><a href="${SITE}${c.url}" style="display:inline-block;background:#06b6d4;color:#03121a;font-weight:bold;padding:12px 24px;border-radius:999px;text-decoration:none;">Виж курса и се запиши →</a></p>
-<p style="color:#667;font-size:13px;">14-дневна гаранция: не ти хареса — връщаме парите, без въпроси.</p>`),
+<p>Благодаря, че беше на „${WEBINAR.title}”! (А ако не успя — ето най-важното от края.)</p>
+<p>Само за участници, валидно <strong>48 часа</strong>:</p>
+<div style="margin:16px 0;padding:16px 18px;border:2px solid #06b6d4;border-radius:12px;background:#f0fdff;">
+<p style="margin:0;"><strong>Ниво 1 · „${c.name}”</strong> — 30-дневният курс с всички шаблони<br/>
+<span style="color:#889;text-decoration:line-through;">${c.priceEur} €</span> <strong style="font-size:19px;">${c.webinarPriceEur} €</strong></p>
+</div>
+<div style="margin:16px 0;padding:16px 18px;border:2px solid #f59e0b;border-radius:12px;background:#fffbeb;">
+<p style="margin:0;"><strong>Ниво 2 · Пълното ниво</strong> — курсът + 16 лични 1-на-1 сесии с мен (4 месеца)<br/>
+<span style="color:#889;text-decoration:line-through;">${OFFERS.mentorship.priceEur} €</span> <strong style="font-size:19px;">${OFFERS.mentorship.webinarPriceEur} €</strong> <span style="color:#0a7a4b;font-weight:bold;">(−30%, спестяваш ${OFFERS.mentorship.priceEur - OFFERS.mentorship.webinarPriceEur} €)</span></p>
+</div>
+<p><a href="${SITE}/webinar/oferta" style="display:inline-block;background:#06b6d4;color:#03121a;font-weight:bold;padding:12px 26px;border-radius:999px;text-decoration:none;">Виж офертите и избери нивото си →</a></p>
+<p style="color:#667;font-size:13px;">14-дневна гаранция „връщане на парите” и за двете нива. Бонусите от уебинара са включени.</p>`),
       text: (name) =>
-        `Здравей, ${name},\n\nБлагодаря, че беше на „${WEBINAR.title}”!\n\nКато участник имаш специална цена за курса „${c.name}”: ${c.webinarPriceEur} € вместо ${c.priceEur} € — валидна 48 часа.\n\n${SITE}${c.url}\n\n14-дневна гаранция.`,
+        `Здравей, ${name},\n\nБлагодаря, че беше на „${WEBINAR.title}”! Офертите за участници (48 часа):\n\nНиво 1 · Курсът „${c.name}”: ${c.webinarPriceEur} € (вместо ${c.priceEur} €)\nНиво 2 · Пълното ниво (курс + 16 лични сесии 1-на-1): ${OFFERS.mentorship.webinarPriceEur} € (вместо ${OFFERS.mentorship.priceEur} €, −30%)\n\nИзбери тук: ${SITE}/webinar/oferta\n\n14-дневна гаранция и за двете.`,
     },
     {
       id: "lastchance_24h",
       offsetMinutes: 27 * 60,
       sendUntilMinutes: 48 * 60,
-      subject: `Последни часове на уебинар цената (${c.webinarPriceEur} €)`,
+      subject: `⏳ Последни часове: −30% на пълното ниво и курсът за ${c.webinarPriceEur} €`,
       html: (name) =>
         wrap(`<p>Здравей, ${escapeHtml(name)},</p>
-<p>Кратко напомняне: специалната цена за участници в уебинара — <strong>${c.webinarPriceEur} € вместо ${c.priceEur} €</strong> за „${c.name}” — изтича довечера.</p>
+<p>Кратко напомняне — уебинар цените изтичат довечера:</p>
+<p>• Курсът „${c.name}”: <strong>${c.webinarPriceEur} €</strong> (вместо ${c.priceEur} €)<br/>
+• Пълното ниво (курс + 16 лични сесии 1-на-1): <strong>${OFFERS.mentorship.webinarPriceEur} €</strong> (вместо ${OFFERS.mentorship.priceEur} €, −30%)</p>
 <p>Ако на обучението си каза „това ми трябва” — сега е моментът:</p>
-<p><a href="${SITE}${c.url}" style="display:inline-block;background:#06b6d4;color:#03121a;font-weight:bold;padding:12px 24px;border-radius:999px;text-decoration:none;">Записвам се на уебинар цената →</a></p>
-<p>Въпрос преди това? Просто отговори на този имейл.</p>`),
+<p><a href="${SITE}/webinar/oferta" style="display:inline-block;background:#f59e0b;color:#3d2a00;font-weight:bold;padding:12px 26px;border-radius:999px;text-decoration:none;">Хващам офертата преди края →</a></p>
+<p>Въпрос преди това? Просто отговори на този имейл — аз чета отговорите.</p>`),
       text: (name) =>
-        `Здравей, ${name},\n\nСпециалната цена ${c.webinarPriceEur} € (вместо ${c.priceEur} €) за „${c.name}” изтича довечера.\n\n${SITE}${c.url}\n\nВъпрос? Отговори на този имейл.`,
+        `Здравей, ${name},\n\nУебинар цените изтичат довечера:\n• Курсът: ${c.webinarPriceEur} € (вместо ${c.priceEur} €)\n• Пълното ниво (курс + менторство 1-на-1): ${OFFERS.mentorship.webinarPriceEur} € (вместо ${OFFERS.mentorship.priceEur} €, −30%)\n\n${SITE}/webinar/oferta\n\nВъпрос? Отговори на този имейл.`,
     },
   ];
 }
