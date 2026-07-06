@@ -105,6 +105,23 @@ export function HeroV2() {
             </span>
             <span>30+ български бизнеса · отговор за секунди</span>
           </div>
+
+          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+            <a
+              href="/magazin"
+              onClick={() => track("cta_clicked", { location: "hero_v2", target: "store" })}
+              className="font-semibold text-[var(--color-accent-cyan)] underline decoration-[var(--color-accent-cyan)]/40 underline-offset-4 transition hover:decoration-[var(--color-accent-cyan)]"
+            >
+              🛒 Разгледай магазина — курсове, агенти и системи →
+            </a>
+            <a
+              href="/webinar"
+              onClick={() => track("cta_clicked", { location: "hero_v2", target: "webinar" })}
+              className="font-semibold text-emerald-300 underline decoration-emerald-300/40 underline-offset-4 transition hover:decoration-emerald-300"
+            >
+              🎓 Безплатно обучение · 23 юли →
+            </a>
+          </div>
         </div>
 
         {/* Right — interactive AI audit (the conversion centerpiece) */}

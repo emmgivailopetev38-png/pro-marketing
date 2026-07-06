@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { CheckoutButton } from "@/components/webinar/CheckoutButton";
 import { SectionReveal } from "@/components/effects/SectionReveal";
+import { AgentChatViz, DashboardViz, LevelsViz } from "@/components/store/StoreViz";
 import { OFFERS } from "@/lib/webinar/config";
 
 export const metadata: Metadata = {
@@ -236,6 +237,12 @@ export default function MagazinPage() {
           title="Работници, които не спят"
           sub="Чат, глас и трейдинг — агентът поема повтарящата се работа. Цените „от” са ориентир; финализираме заедно според обема."
         />
+        <SectionReveal>
+          <div className="mb-8 grid gap-5 md:grid-cols-2">
+            <AgentChatViz />
+            <DashboardViz />
+          </div>
+        </SectionReveal>
         <div className="grid gap-6 lg:grid-cols-3">
           {AGENTS.map((a, i) => (
             <SectionReveal key={a.name} delay={i * 80}>
@@ -272,6 +279,11 @@ export default function MagazinPage() {
           title="Ние строим — ти управляваш"
           sub="Всяко ниво надгражда предишното. Започваш откъдето ти трябва; детайлите са на /plan."
         />
+        <SectionReveal>
+          <div className="mb-8 max-w-2xl">
+            <LevelsViz />
+          </div>
+        </SectionReveal>
         <div className="grid gap-5 md:grid-cols-2">
           {LEVELS.map((l, i) => {
             const cm = COLOR_MAP[l.color];

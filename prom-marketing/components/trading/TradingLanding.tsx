@@ -23,6 +23,7 @@ import {
 import { SectionReveal } from "@/components/effects/SectionReveal";
 import { TiltCard } from "@/components/effects/TiltCard";
 import { ScrollProgress } from "@/components/effects/ScrollProgress";
+import { TradingViz } from "@/components/trading/TradingViz";
 import { track } from "@/lib/analytics/track";
 import { track as pixelTrack } from "@/lib/meta/pixel-client";
 import { TRADING, TRADING_DISCLAIMER } from "@/lib/trading/config";
@@ -247,6 +248,13 @@ export function TradingLanding() {
             </div>
           </SectionReveal>
         </div>
+      </section>
+
+      {/* ЖИВАТА ПЛАТФОРМА */}
+      <section className="mx-auto max-w-6xl px-6 py-6">
+        <SectionReveal>
+          <TradingViz />
+        </SectionReveal>
       </section>
 
       {/* ПРОЦЕСЪТ */}
