@@ -19,6 +19,7 @@ import {
 import { CheckoutButton } from "@/components/webinar/CheckoutButton";
 import { SectionReveal } from "@/components/effects/SectionReveal";
 import { AgentChatViz, DashboardViz, LevelsViz } from "@/components/store/StoreViz";
+import { OrderDialog } from "@/components/store/OrderDialog";
 import { OFFERS } from "@/lib/webinar/config";
 
 export const metadata: Metadata = {
@@ -254,16 +255,19 @@ export default function MagazinPage() {
                   {a.price}
                   {a.approx && <span className="ml-2 align-middle text-xs font-normal text-slate-500">ориентир</span>}
                 </p>
-                <div className="mt-4">
+                <div className="mt-4 space-y-2.5">
                   {"buy" in a && a.buy ? (
                     <CheckoutButton product={a.buy}>Запази мястото си →</CheckoutButton>
                   ) : (
-                    <Link
-                      href="/booking"
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-full border-2 border-violet-300/50 px-6 py-3.5 font-semibold text-violet-200 transition hover:bg-violet-400/10"
-                    >
-                      Запази разговор →
-                    </Link>
+                    <>
+                      <OrderDialog service={`${a.name} (${a.price})`} />
+                      <Link
+                        href="/booking"
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-slate-300 transition hover:border-violet-300/50 hover:text-violet-200"
+                      >
+                        Или първо разговор →
+                      </Link>
+                    </>
                   )}
                 </div>
               </div>
@@ -308,6 +312,13 @@ export default function MagazinPage() {
                       <span className={`font-mono text-xl font-bold ${cm.text}`}>{l.price}</span>
                     </div>
                     <p className="mt-1.5 text-sm text-slate-300">{l.desc}</p>
+                    <div className="mt-4">
+                      <OrderDialog
+                        service={`${l.lvl} · ${l.name} (${l.price})`}
+                        buttonLabel="Поръчай нивото"
+                        className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/[0.06] px-5 py-2.5 text-sm font-bold text-white transition hover:border-cyan-400/50 hover:bg-cyan-400/10"
+                      />
+                    </div>
                   </div>
                 </div>
               </SectionReveal>
@@ -343,12 +354,11 @@ export default function MagazinPage() {
                   >
                     Виж живото демо →
                   </Link>
-                  <Link
-                    href="/booking"
-                    className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-slate-300 transition hover:border-cyan-400/40 hover:text-cyan-300"
-                  >
-                    Разговор за цена
-                  </Link>
+                  <OrderDialog
+                    service={v.name}
+                    buttonLabel="Поръчай пакета"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-slate-300 transition hover:border-cyan-400/40 hover:text-cyan-300"
+                  />
                 </div>
               </div>
             </SectionReveal>
