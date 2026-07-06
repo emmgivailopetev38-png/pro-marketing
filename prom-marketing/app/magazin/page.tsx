@@ -305,11 +305,11 @@ export default function MagazinPage() {
                   <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border ${cm.border} bg-black/30`}>
                     <l.icon className={`h-5.5 w-5.5 ${cm.text}`} style={{ height: 22, width: 22 }} />
                   </div>
-                  <div className="flex-1">
+                  <div className="min-w-0 flex-1">
                     <p className={`font-mono text-[10px] uppercase tracking-[0.24em] ${cm.text}`}>{l.lvl}</p>
                     <div className="mt-1 flex flex-wrap items-baseline justify-between gap-2">
-                      <h3 className="pr-16 font-bold text-white">{l.name}</h3>
-                      <span className={`font-mono text-xl font-bold ${cm.text}`}>{l.price}</span>
+                      <h3 className="break-words pr-2 font-bold text-white sm:pr-16">{l.name}</h3>
+                      <span className={`whitespace-nowrap font-mono text-xl font-bold ${cm.text}`}>{l.price}</span>
                     </div>
                     <p className="mt-1.5 text-sm text-slate-300">{l.desc}</p>
                     <div className="mt-4">
