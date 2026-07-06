@@ -131,7 +131,7 @@ function Flow({ boxes, color }: { boxes: Array<[string, string]>; color: string 
     <View style={s.flowRow}>
       {boxes.map(([label, sub], i) => (
         <View key={label} style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-          {i > 0 && <Text style={s.flowArrow}>→</Text>}
+          {i > 0 && <Text style={s.flowArrow}>»</Text>}
           <View style={{ ...s.flowBox, borderColor: color, backgroundColor: `${color}0D` }}>
             <Text style={{ ...s.flowLabel, color }}>{label}</Text>
             <Text style={s.flowSub}>{sub}</Text>
@@ -161,10 +161,10 @@ export function WebinarBuilderDocument() {
           </Text>
 
           {[
-            ["① Твоят AI агент", "Отговаря на клиенти, квалифицира и записва срещи — 24/7.", C.emerald],
-            ["② Реклами с глас", "Диктуваш идеята — AI я превръща в готова кампания.", C.cyan],
-            ["③ Трейдинг агент (образователно)", "Архитектурата на автоматизирана стратегия — и рисковете ѝ.", C.violet],
-            ["④ Дашборд и сайт с код", "Собствени системи без ограниченията на конструкторите.", C.amber],
+            ["1 · Твоят AI агент", "Отговаря на клиенти, квалифицира и записва срещи — 24/7.", C.emerald],
+            ["2 · Реклами с глас", "Диктуваш идеята — AI я превръща в готова кампания.", C.cyan],
+            ["3 · Трейдинг агент (образователно)", "Архитектурата на автоматизирана стратегия — и рисковете ѝ.", C.violet],
+            ["4 · Дашборд и сайт с код", "Собствени системи без ограниченията на конструкторите.", C.amber],
           ].map(([t, b, color]) => (
             <View key={t as string} style={{ ...s.stepCard, borderLeftColor: color as string }} wrap={false}>
               <Text style={s.stepTitle}>{t}</Text>
@@ -173,7 +173,7 @@ export function WebinarBuilderDocument() {
           ))}
 
           <Text style={{ ...s.lead, marginTop: 12 }}>
-            📅 На живо: четвъртък, 23 юли, 19:00 ч. в Zoom. Линкът е в имейла ти. Бонусите в
+            На живо: четвъртък, 23 юли, 19:00 ч. в Zoom. Линкът е в имейла ти. Бонусите в
             края са само за присъстващите.
           </Text>
         </View>
@@ -185,7 +185,7 @@ export function WebinarBuilderDocument() {
         <View style={s.topBar} />
         <View style={s.body}>
           <Brand />
-          <Text style={s.sectionTitle}>① Как да си създадеш AI агент</Text>
+          <Text style={s.sectionTitle}>1 · Как да си създадеш AI агент</Text>
           <Text style={s.sectionSub}>
             AI агентът не е „чатбот с готови отговори” — той разбира въпроса, отговаря на
             естествен български и изпълнява следваща стъпка (запис на среща, оферта, CRM запис).
@@ -226,7 +226,7 @@ export function WebinarBuilderDocument() {
         <View style={s.topBar} />
         <View style={s.body}>
           <Brand />
-          <Text style={s.sectionTitle}>② Реклами с глас — от диктовка до кампания</Text>
+          <Text style={s.sectionTitle}>2 · Реклами с глас — от диктовка до кампания</Text>
           <Text style={s.sectionSub}>
             Най-бързият работен поток за реклами през 2026: говориш, AI пише, ти одобряваш.
             Без празен лист, без дизайнер, без чакане.
@@ -267,7 +267,7 @@ export function WebinarBuilderDocument() {
         <View style={s.topBar} />
         <View style={s.body}>
           <Brand />
-          <Text style={s.sectionTitle}>③ Трейдинг агент — архитектурата (образователно)</Text>
+          <Text style={s.sectionTitle}>3 · Трейдинг агент — архитектурата (образователно)</Text>
           <Text style={s.sectionSub}>
             Как изглежда автоматизирана търговска система отвътре — същите AI умения от
             предишните страници, приложени към пазарни данни. Това е инженерна карта, не
@@ -299,7 +299,7 @@ export function WebinarBuilderDocument() {
 
           <View style={s.warnBox}>
             <Text style={s.warnText}>
-              ⚠️ Важно: Търговията с финансови инструменти носи реален риск от загуба на целия
+              Важно: Търговията с финансови инструменти носи реален риск от загуба на целия
               вложен капитал. Автоматизацията не премахва риска — ускорява и печалбите, И
               загубите. Нищо тук не е финансов или инвестиционен съвет; това е техническо
               образование. Никога не търгувай с пари, които не можеш да си позволиш да загубиш.
@@ -314,7 +314,7 @@ export function WebinarBuilderDocument() {
         <View style={s.topBar} />
         <View style={s.body}>
           <Brand />
-          <Text style={s.sectionTitle}>④ Собствен дашборд и сайт — с код, без ограничения</Text>
+          <Text style={s.sectionTitle}>4 · Собствен дашборд и сайт — с код, без ограничения</Text>
           <Text style={s.sectionSub}>
             Конструкторите (Wix, Shopify темплейти) са добри до първото „не може”. С AI вече не
             ти трябва да си програмист, за да имаш собствен код — трябва ти да знаеш какво искаш.
