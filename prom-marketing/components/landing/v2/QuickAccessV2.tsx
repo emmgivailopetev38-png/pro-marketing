@@ -4,21 +4,24 @@
    и да е тръгнал клиентът, оттук стига до всичко с 1 клик — демо,
    магазин, безплатното обучение, трейдинг агента и консултация.
    ===================================================================== */
-import { MonitorPlay, ShoppingBag, GraduationCap, LineChart, Calendar } from "lucide-react";
+import { MonitorPlay, ShoppingBag, GraduationCap, LineChart, Calendar, Bot, FlaskConical, CandlestickChart } from "lucide-react";
 import { track } from "@/lib/analytics/track";
 import { openBookingPopup } from "@/lib/cal/embed";
 
 const ITEMS = [
-  { icon: MonitorPlay, label: "Живо демо", sub: "виж системата отвътре", href: "/demo", color: "#22d3ee" },
+  { icon: Bot, label: "Jarvis", sub: "асистентът от бъдещето", href: "/jarvis", color: "#22d3ee" },
+  { icon: FlaskConical, label: "Стратегии на живо", sub: "72 стратегии в тест", href: "/strategii", color: "#34d399" },
+  { icon: CandlestickChart, label: "AI Трейдинг", sub: "ботовете на живо", href: "/ai-trading", color: "#a78bfa" },
+  { icon: MonitorPlay, label: "Живо демо", sub: "виж системата отвътре", href: "/demo", color: "#67e8f9" },
   { icon: GraduationCap, label: "Безплатно обучение", sub: "23 юли · 19:00 · Zoom", href: "/webinar", color: "#34d399" },
   { icon: ShoppingBag, label: "Магазин", sub: "курсове · агенти · системи", href: "/magazin", color: "#fbbf24" },
-  { icon: LineChart, label: "Трейдинг агент", sub: "безплатна книга", href: "/trading", color: "#a78bfa" },
+  { icon: LineChart, label: "Трейдинг книга", sub: "безплатна книга", href: "/trading", color: "#d946ef" },
 ];
 
 export function QuickAccessV2() {
   return (
     <section aria-label="Бърз достъп" className="relative z-[2] mx-auto max-w-6xl px-6 py-10">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {ITEMS.map((it) => (
           <a
             key={it.href}

@@ -107,23 +107,53 @@ export function FooterV2() {
             </h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <a className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" href="#services">
-                  Услуги
+                <a className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" href="/jarvis">
+                  Jarvis
                 </a>
               </li>
               <li>
-                <a className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" href="#crm">
-                  CRM
+                <a className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" href="/strategii">
+                  Лаборатория за стратегии
                 </a>
               </li>
               <li>
-                <a className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" href="#industries">
-                  За кого
+                <a className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" href="/ai-trading">
+                  AI Трейдинг ботове
                 </a>
               </li>
               <li>
-                <a className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" href="#faq">
-                  Въпроси
+                <a className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" href="/demo">
+                  Живо демо
+                </a>
+              </li>
+              <li>
+                <a className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" href="/plan">
+                  План и цени
+                </a>
+              </li>
+              <li>
+                <a className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" href="/model">
+                  Продуктов модел
+                </a>
+              </li>
+              <li>
+                <a className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" href="/webinar">
+                  Безплатно обучение
+                </a>
+              </li>
+              <li>
+                <a className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" href="/magazin">
+                  Магазин
+                </a>
+              </li>
+              <li>
+                <a className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" href="/trading">
+                  Трейдинг книга
+                </a>
+              </li>
+              <li>
+                <a className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" href="/partneri">
+                  Партньори
                 </a>
               </li>
             </ul>

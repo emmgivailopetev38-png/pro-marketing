@@ -5,6 +5,8 @@ import { NavbarV2 } from "@/components/landing/v2/NavbarV2";
 import { HeroV2 } from "@/components/landing/v2/HeroV2";
 import { TrustStripV2 } from "@/components/landing/v2/TrustStripV2";
 import { QuickAccessV2 } from "@/components/landing/v2/QuickAccessV2";
+import { JarvisSpotlightV2 } from "@/components/landing/v2/JarvisSpotlightV2";
+import { LiveLabsV2 } from "@/components/landing/v2/LiveLabsV2";
 import { ConversionFloats } from "@/components/landing/v2/ConversionFloats";
 import { SpotlightCursor } from "@/components/effects/SpotlightCursor";
 import { ScrollProgress } from "@/components/effects/ScrollProgress";
@@ -39,6 +41,8 @@ export default function HomePageV2() {
         <HeroV2 />
         <TrustStripV2 />
         <QuickAccessV2 />
+        <JarvisSpotlightV2 />
+        <LiveLabsV2 />
         <ServicesV2 />
         <LiveDashboardsV2 />
         <CRMShowcaseV2 />
