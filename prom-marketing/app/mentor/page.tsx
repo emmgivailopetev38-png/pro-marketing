@@ -420,7 +420,7 @@ export default function MentorPage() {
               <span aria-hidden>→</span>
             </Link>
             <a
-              href="mailto:ivailopetev38@gmail.com"
+              href="mailto:emmgivailopetev38@gmail.com"
               className="inline-flex items-center gap-2 rounded-full border px-8 py-4 text-sm uppercase tracking-[0.15em] text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-violet-bright)] hover:text-[var(--color-violet-bright)]"
               style={{ borderColor: "var(--color-border-default)" }}
             >
