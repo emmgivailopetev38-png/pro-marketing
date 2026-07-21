@@ -556,7 +556,7 @@ export default function VelkoPage() {
               📞 +359 877 399 963
             </a>
             <a
-              href="mailto:ivailopetev38@gmail.com?subject=Партньорство%20ProMarketing"
+              href="mailto:emmgivailopetev38@gmail.com?subject=Партньорство%20ProMarketing"
               className="inline-flex items-center gap-2 rounded-full border px-8 py-4 text-sm uppercase tracking-[0.15em] text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-gold-bright)] hover:text-[var(--color-gold-bright)]"
               style={{ borderColor: "var(--color-border-default)" }}
             >
