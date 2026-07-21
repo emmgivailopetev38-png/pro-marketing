@@ -285,7 +285,7 @@ export default function TeodorOfertaPage() {
               „ПроМаркетинг" ЕООД · Ивайло Петев — управител
             </p>
             <p className="mt-2 font-[family-name:var(--font-mono)] text-xs text-[var(--color-text-tertiary)]">
-              ivailopetev38@gmail.com · promarketing.pw
+              emmgivailopetev38@gmail.com · promarketing.pw
             </p>
           </div>
         </div>
