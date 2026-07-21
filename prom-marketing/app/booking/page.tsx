@@ -72,10 +72,10 @@ export default function BookingPage() {
           <p className="mt-3 text-sm text-[#a5b0c8]">
             Пиши на{" "}
             <a
-              href="mailto:ivailopetev38@gmail.com"
+              href="mailto:emmgivailopetev38@gmail.com"
               className="text-cyan-300 hover:underline"
             >
-              ivailopetev38@gmail.com
+              emmgivailopetev38@gmail.com
             </a>{" "}
             или се обади на{" "}
             <a href="tel:+359877399963" className="text-cyan-300 hover:underline">
