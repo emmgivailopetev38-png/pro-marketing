@@ -1110,7 +1110,7 @@ export default function TasteOfBulgariaPage() {
 
           <div className="flex flex-wrap justify-center gap-4">
             <a
-              href="mailto:ivailopetev38@gmail.com?subject=Taste of Bulgaria · Старт"
+              href="mailto:emmgivailopetev38@gmail.com?subject=Taste of Bulgaria · Старт"
               className="inline-flex items-center gap-2 rounded-full border-2 px-8 py-4 text-sm font-bold uppercase tracking-[0.15em] transition-colors"
               style={{
                 borderColor: "var(--color-orange-bright)",
