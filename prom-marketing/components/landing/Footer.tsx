@@ -65,9 +65,9 @@ export function Footer() {
               <li>
                 <a
                   className="text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)]"
-                  href="mailto:ivailopetev38@gmail.com"
+                  href="mailto:emmgivailopetev38@gmail.com"
                 >
-                  ivailopetev38@gmail.com
+                  emmgivailopetev38@gmail.com
                 </a>
               </li>
               <li className="text-[var(--color-text-secondary)]">Пловдив, България</li>
