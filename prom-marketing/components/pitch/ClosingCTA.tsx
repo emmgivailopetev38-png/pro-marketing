@@ -64,11 +64,11 @@ export function ClosingCTA() {
                 <span className="font-mono">0877 399 963</span>
               </a>
               <a
-                href="mailto:ivailopetev38@gmail.com"
+                href="mailto:emmgivailopetev38@gmail.com"
                 className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-default)] px-5 py-3 text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-accent-cyan)] hover:text-[var(--color-accent-cyan)]"
               >
                 <Mail className="h-4 w-4" />
-                ivailopetev38@gmail.com
+                emmgivailopetev38@gmail.com
               </a>
             </div>
 
