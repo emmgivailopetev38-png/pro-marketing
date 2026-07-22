@@ -114,13 +114,6 @@ export function HeroV2() {
             >
               🛒 Разгледай магазина — курсове, агенти и системи →
             </a>
-            <a
-              href="/webinar"
-              onClick={() => track("cta_clicked", { location: "hero_v2", target: "webinar" })}
-              className="font-semibold text-emerald-300 underline decoration-emerald-300/40 underline-offset-4 transition hover:decoration-emerald-300"
-            >
-              🎓 Безплатно обучение · 23 юли →
-            </a>
           </div>
         </div>
 
