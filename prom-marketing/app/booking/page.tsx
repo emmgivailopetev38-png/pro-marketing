@@ -50,7 +50,7 @@ export default function BookingPage() {
         {/* Fallback — ако вграденият календар не се зареди (блокери, бавна мрежа) */}
         <div className="mt-4 text-center">
           <a
-            href="https://cal.com/ivailo-petev-h8t28v/consultation"
+            href="https://cal.com/promarketing/consultation"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-full border border-cyan-400/40 px-6 py-3 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-400/10"
