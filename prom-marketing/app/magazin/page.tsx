@@ -181,24 +181,6 @@ export default function MagazinPage() {
           sub="Започваш веднага след плащане. 14-дневна гаранция „връщане на парите” за курсовете."
         />
         <div className="grid gap-6 lg:grid-cols-3">
-          <SectionReveal>
-            <div className="flex h-full flex-col rounded-3xl border border-emerald-400/30 bg-[rgba(52,211,153,0.06)] p-7">
-              <MonitorPlay className="h-8 w-8 text-emerald-300" />
-              <h3 className="mt-4 text-xl font-bold">Безплатно обучение · 23 юли</h3>
-              <p className="mt-2 flex-1 text-[15px] text-slate-300">
-                „AI Машината за Клиенти” — 90 минути на живо в Zoom: 4-те системи отвътре + 2
-                подаръка при записване (стойност 140+ €).
-              </p>
-              <p className="mt-5 text-4xl font-bold text-emerald-300">0 €</p>
-              <p className="mb-5 mt-1 text-xs text-slate-500">На живо · местата са ограничени</p>
-              <Link
-                href="/webinar"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-400 px-7 py-4 font-bold text-[#062018] shadow-[0_0_44px_rgba(52,211,153,0.4)] transition hover:shadow-[0_0_70px_rgba(52,211,153,0.65)]"
-              >
-                Запази си място →
-              </Link>
-            </div>
-          </SectionReveal>
 
           <SectionReveal delay={80}>
             <div className="flex h-full flex-col rounded-3xl border border-cyan-400/30 bg-[linear-gradient(160deg,rgba(34,211,238,0.09),rgba(124,58,237,0.05))] p-7">
