@@ -1,7 +1,7 @@
 import { SectionReveal } from "@/components/effects/SectionReveal";
 import { TiltCard } from "@/components/effects/TiltCard";
 import { NeuralCore } from "@/components/landing/v2/NeuralCore";
-import { ShoppingBag, Home, UtensilsCrossed, Stethoscope, Scale, Dumbbell, Briefcase } from "lucide-react";
+import { ShoppingBag, Home, UtensilsCrossed, Stethoscope, Scale, Dumbbell, Briefcase, ShieldCheck } from "lucide-react";
 
 const INDUSTRIES = [
   { icon: ShoppingBag, name: "Е-търговия", use: "Автоматичен ретаргетинг и AI обслужване на клиенти", tag: "RETAIL" },
@@ -10,7 +10,7 @@ const INDUSTRIES = [
   { icon: Stethoscope, name: "Медицински клиники", use: "Записване на часове и проследяване на пациенти", tag: "MEDICAL" },
   { icon: Scale, name: "Юристи", use: "Първоначална консултация и документи", tag: "LEGAL" },
   { icon: Dumbbell, name: "Фитнес и студия", use: "Резервации, задържане, абонаменти", tag: "FITNESS" },
-  { icon: Briefcase, name: "B2B услуги", use: "Развиване на лидове и предложения", tag: "B2B" },
+  { icon: Briefcase, name: "B2B услуги", use: "Развиване на лидове и предложения", tag: "B2B" }, { icon: ShieldCheck, name: "Киберсигурност", use: "Квалификация на запитвания, автоматични одити и отчети за клиенти", tag: "CYBER" },
 ];
 
 export function IndustriesV2() {
@@ -30,7 +30,7 @@ export function IndustriesV2() {
                 Подходящо за всеки бизнес, който иска повече
               </h2>
               <p className="v2-sub">
-                Един AI екип. Седем индустрии. Всяка — със собствен сценарий за повече клиенти.
+                Един AI екип. Осем индустрии. Всяка — със собствен сценарий за повече клиенти.
               </p>
             </div>
           </SectionReveal>
