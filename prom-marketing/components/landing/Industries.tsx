@@ -1,6 +1,6 @@
 import { SectionReveal } from "@/components/effects/SectionReveal";
 import { TiltCard } from "@/components/effects/TiltCard";
-import { ShoppingBag, Home, UtensilsCrossed, Stethoscope, Scale, Dumbbell, Briefcase } from "lucide-react";
+import { ShoppingBag, Home, UtensilsCrossed, Stethoscope, Scale, Dumbbell, Briefcase, ShieldCheck } from "lucide-react";
 
 const INDUSTRIES = [
   { icon: ShoppingBag, name: "Е-търговия", use: "Автоматичен ретаргетинг и AI обслужване на клиенти" },
@@ -9,7 +9,7 @@ const INDUSTRIES = [
   { icon: Stethoscope, name: "Медицински клиники", use: "Записване на часове и проследяване на пациенти" },
   { icon: Scale, name: "Юристи", use: "Първоначална консултация и документи" },
   { icon: Dumbbell, name: "Фитнес и студия", use: "Резервации, задържане, абонаменти" },
-  { icon: Briefcase, name: "B2B услуги", use: "Развиване на лидове и предложения" },
+  { icon: Briefcase, name: "B2B услуги", use: "Развиване на лидове и предложения" }, { icon: ShieldCheck, name: "Киберсигурност", use: "Квалификация на запитвания, автоматични одити и отчети за клиенти" },
 ];
 
 export function Industries() {
