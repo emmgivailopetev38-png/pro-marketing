@@ -135,7 +135,7 @@ const TIERS = [
   {
     badge: "Phase 1",
     title: "Базов",
-    price: "3 800 €",
+    price: "По запитване",
     priceSub: "без ДДС",
     timeline: "30-45 дни",
     color: "var(--color-text-secondary)",
@@ -154,7 +154,7 @@ const TIERS = [
   {
     badge: "Phase 1 + 2",
     title: "Разширен",
-    price: "4 900 €",
+    price: "По запитване",
     priceSub: "без ДДС",
     timeline: "45-60 дни",
     color: "var(--color-gold)",
@@ -173,7 +173,7 @@ const TIERS = [
   {
     badge: "Всички фази",
     title: "Пълен",
-    price: "6 000 €",
+    price: "По запитване",
     priceSub: "без ДДС",
     timeline: "60 дни",
     color: "var(--color-gold-bright)",
@@ -195,7 +195,7 @@ const RECURRING = [
   {
     badge: "Поддръжка",
     title: "Месечна поддръжка и развитие",
-    price: "300 – 400 €",
+    price: "По запитване",
     priceSub: "на месец · без ДДС · включва хостинг и сигурност",
     color: "var(--color-gold)",
     features: [
@@ -1151,7 +1151,7 @@ export default function GoldenKeyPage() {
           </div>
 
           <p className="mt-10 text-center text-xs text-[var(--color-text-tertiary)]">
-            Възможна е почасова поддръжка вместо абонамент (50 €/час), но абонаментът е по-изгоден за активен бизнес.
+            Възможна е почасова поддръжка вместо абонамент (по запитване), но абонаментът е по-изгоден за активен бизнес.
           </p>
         </div>
       </section>
