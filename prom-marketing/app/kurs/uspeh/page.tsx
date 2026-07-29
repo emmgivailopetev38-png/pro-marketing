@@ -66,11 +66,11 @@ export default async function KursUspehPage({
               <Crown className="h-3.5 w-3.5" /> Еднократна оферта · само за купилите курса
             </p>
             <h2 className="mt-4 text-2xl font-bold leading-snug">
-              Ъпгрейд към „{m.name}” с кредит от {saving} €
+              Ъпгрейд към „{m.name}” с кредит от курса
             </h2>
             <p className="mt-3 text-[15px] leading-relaxed text-slate-300">
-              {m.tagline} Вместо {m.priceEur} € — доплащаш{" "}
-              <strong className="text-violet-200">{m.upgradePriceEur} €</strong>, защото курсът ти се
+              {m.tagline} Доплащаш само{" "}
+              <strong className="text-violet-200">разликата</strong>, защото курсът ти се
               признава като кредит. Тази цена се предлага само на тази страница.
             </p>
             <ul className="mt-5 space-y-2 text-[15px] text-slate-300">
@@ -80,7 +80,7 @@ export default async function KursUspehPage({
             </ul>
             <div className="mt-7">
               <CheckoutButton product="mentorship-upgrade">
-                Взимам ъпгрейда · {m.upgradePriceEur} € вместо {m.priceEur} €
+                Взимам ъпгрейда
               </CheckoutButton>
             </div>
             <p className="mt-4 text-sm text-slate-500">
