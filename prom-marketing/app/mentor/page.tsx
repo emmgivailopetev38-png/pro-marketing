@@ -161,7 +161,7 @@ export default function MentorPage() {
                 background: "rgba(139, 92, 246, 0.10)",
               }}
             >
-              💎 Виж цената
+              💎 Виж условията
               <span aria-hidden>↓</span>
             </a>
             <a
@@ -308,7 +308,7 @@ export default function MentorPage() {
             Инвестиция
           </p>
           <h2 className="mb-16 text-center font-[family-name:var(--font-editorial)] text-[clamp(32px,5vw,56px)] font-extrabold leading-[1.05]">
-            <span className="text-[var(--color-violet-bright)]">2 000 €</span> за 4 месеца.
+            <span className="text-[var(--color-violet-bright)]">По запитване</span> за 4 месеца.
           </h2>
 
           <div
@@ -320,7 +320,7 @@ export default function MentorPage() {
           >
             <div className="mb-8 text-center">
               <p className="font-[family-name:var(--font-editorial)] text-6xl font-extrabold text-[var(--color-text-primary)] md:text-7xl">
-                2 000 €
+                По запитване
               </p>
               <p className="mt-2 font-mono text-xs uppercase tracking-[0.3em] text-[var(--color-text-tertiary)]">
                 без ДДС · за цялата 4-месечна програма
@@ -338,7 +338,7 @@ export default function MentorPage() {
                 Условие на плащане
               </p>
               <p className="mt-2 font-[family-name:var(--font-editorial)] text-2xl font-bold text-[var(--color-text-primary)]">
-                Еднократно · 2 000 €
+                Еднократно · По запитване
               </p>
               <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
                 Цялата сума се заплаща при стартиране на програмата.
