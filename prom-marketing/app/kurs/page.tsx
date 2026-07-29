@@ -86,7 +86,7 @@ export default function KursPage() {
             всички шаблони, за да я изградиш сам за 30 дни.
           </p>
           <div className="mt-9 flex flex-col items-center gap-4">
-            <CheckoutButton product="course">Запиши се · {c.priceEur} €</CheckoutButton>
+            <CheckoutButton product="course">Запиши се</CheckoutButton>
             <p className="flex items-center gap-2 text-sm text-slate-500">
               <ShieldCheck className="h-4 w-4" /> 14-дневна гаранция: не ти хареса — връщаме парите.
             </p>
@@ -133,18 +133,18 @@ export default function KursPage() {
             <div>
               <p className="font-mono text-xs uppercase tracking-[0.24em] text-cyan-300">Инвестиция</p>
               <p className="mt-3 text-5xl font-bold">
-                {c.priceEur} €
+                По запитване
               </p>
               <p className="mt-2 text-sm text-slate-400">
-                Еднократно · достъп завинаги. Участниците в уебинара получават специална цена от{" "}
-                <strong className="text-cyan-300">{c.webinarPriceEur} €</strong> — обявена на живо.
+                Еднократно · достъп завинаги.{" "}
+                
               </p>
               <p className="mt-4 flex items-center gap-2 text-sm text-slate-400">
                 <Clock3 className="h-4 w-4 text-cyan-300" /> Една спестена оперативна седмица покрива курса.
               </p>
             </div>
             <div className="mt-8">
-              <CheckoutButton product="course">Купи курса · {c.priceEur} €</CheckoutButton>
+              <CheckoutButton product="course">Купи курса</CheckoutButton>
             </div>
           </div>
         </div>
