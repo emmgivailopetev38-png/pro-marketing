@@ -167,7 +167,7 @@ export default function PlanPage() {
             <div className="pl-out">Получаваш: сигурна основа, готова за растеж.</div>
             <div className="pl-meta">
               <span className="pl-time">⏱ 3–4 седмици</span>
-              <span className="pl-price">€2 200</span>
+              <span className="pl-price">По запитване</span>
             </div>
           </motion.article>
 
@@ -200,7 +200,7 @@ export default function PlanPage() {
             <div className="pl-out">Получаваш: повече сделки, нулево изпускане.</div>
             <div className="pl-meta">
               <span className="pl-time">⏱ 2–3 седмици</span>
-              <span className="pl-price">€2 900</span>
+              <span className="pl-price">По запитване</span>
             </div>
           </motion.article>
 
@@ -234,7 +234,7 @@ export default function PlanPage() {
             <div className="pl-out">Получаваш: растеж без да наемаш екип.</div>
             <div className="pl-meta">
               <span className="pl-time">⏱ 1–2 седмици</span>
-              <span className="pl-price">€3 600</span>
+              <span className="pl-price">По запитване</span>
             </div>
           </motion.article>
         </section>
@@ -253,10 +253,10 @@ export default function PlanPage() {
             <div className="pl-flag pl-flag-cy">★ най-изгодно</div>
             <div className="pl-top">
               <b>Пълна платформа</b>
-              <span className="pl-pp">€7 400</span>
+              <span className="pl-pp">По запитване</span>
             </div>
             <p className="pl-pd">
-              И трите фази — система от край до край. <em>Спестяваш €1 300.</em>
+              И трите фази — система от край до край.
             </p>
             <div className="pl-team">
               🤖 <b>6</b> AI · 👤 <b>до 10</b> служителя
@@ -277,7 +277,7 @@ export default function PlanPage() {
             <div className="pl-flag">✦ премиум</div>
             <div className="pl-top">
               <b>Премиум</b>
-              <span className="pl-pp pl-g">от €12 000</span>
+              <span className="pl-pp pl-g">По запитване</span>
             </div>
             <p className="pl-pd">За по-сериозен бизнес — изцяло по поръчка.</p>
             <div className="pl-team">
@@ -326,7 +326,7 @@ export default function PlanPage() {
           >
             <h3 className="pl-pn">Базов</h3>
             <div className="pl-pr">
-              €149<small>/мес</small>
+              По запитване
             </div>
             <ul className="pl-feats">
               <li>
@@ -349,7 +349,7 @@ export default function PlanPage() {
             <div className="pl-pop">Най-избиран</div>
             <h3 className="pl-pn">Про</h3>
             <div className="pl-pr">
-              €199<small>/мес</small>
+              По запитване
             </div>
             <ul className="pl-feats">
               <li>
@@ -371,7 +371,7 @@ export default function PlanPage() {
           >
             <h3 className="pl-pn">Премиум</h3>
             <div className="pl-pr">
-              €299<small>/мес</small>
+              По запитване
             </div>
             <ul className="pl-feats">
               <li>
@@ -389,7 +389,7 @@ export default function PlanPage() {
         {/* ===== FOOTER ===== */}
         <motion.footer className="pl-foot" {...rise(reduced)}>
           <div className="pl-terms">
-            🎟️ extra тикет <b>€20</b> · 📅 годишно <b>−2 месеца</b> · ☁️ платформи включени ·
+            🎟️ extra тикет <b>по запитване</b> · 📅 годишно <b>−2 месеца</b> · ☁️ платформи включени ·
             💳 изработка: депозит <b>50 / 50</b>
           </div>
           <Link className="pl-cta" href="/booking">
