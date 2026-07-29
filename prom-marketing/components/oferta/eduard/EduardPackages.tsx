@@ -162,21 +162,21 @@ export function EduardPackages() {
                 <div className="mt-8">
                   {pkg.originalPrice && (
                     <p className="font-[family-name:var(--font-mono)] text-sm text-[var(--color-text-tertiary)] line-through">
-                      {formatEur(pkg.originalPrice)}
+
                     </p>
                   )}
                   <p
                     className="font-[family-name:var(--font-editorial)] text-5xl font-extrabold leading-none"
                     style={{ color: pkg.highlight ? "var(--color-accent-cyan)" : "var(--color-text-primary)" }}
                   >
-                    {formatEur(pkg.price)}
+                    По запитване
                   </p>
                   {pkg.discount && (
                     <p
                       className="mt-1 font-[family-name:var(--font-mono)] text-xs"
                       style={{ color: pkg.tagColor }}
                     >
-                      Спестяваш {formatEur((pkg.originalPrice ?? 0) - pkg.price)} ({pkg.discount}%)
+                      Пакетна отстъпка ({pkg.discount}%)
                     </p>
                   )}
                 </div>
@@ -238,13 +238,13 @@ export function EduardPackages() {
                 className="font-[family-name:var(--font-editorial)] text-6xl font-extrabold leading-none md:text-7xl"
                 style={{ color: "var(--color-accent-cyan)" }}
               >
-                {formatEur(TOTAL_ALL)}
+                По запитване
               </p>
               <p
                 className="mt-2 font-[family-name:var(--font-mono)] text-xs"
                 style={{ color: "var(--color-accent-violet)" }}
               >
-                Спестяваш общо {formatEur(2000 * 3 - TOTAL_ALL)} спрямо редовна цена
+                Пакетна отстъпка при трите заедно
               </p>
             </div>
           </div>
