@@ -4,9 +4,9 @@ import { bg } from "date-fns/locale";
 const today = format(new Date(), "d MMMM yyyy", { locale: bg });
 
 const TIERS = [
-  { label: "Ателие за Съдържание", price: "2 000 €", tag: "Стартово" },
-  { label: "Автоматизация + Чат Ботове", price: "1 700 €", tag: "–15%" },
-  { label: "Финансова Автоматизация", price: "1 445 €", tag: "–15%" },
+  { label: "Ателие за Съдържание", price: "По запитване", tag: "Стартово" },
+  { label: "Автоматизация + Чат Ботове", price: "По запитване", tag: "Пакет" },
+  { label: "Финансова Автоматизация", price: "По запитване", tag: "Пакет" },
 ];
 
 export function EduardHero() {
