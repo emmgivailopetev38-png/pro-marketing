@@ -297,7 +297,7 @@ export function TradingLanding() {
               </ul>
               <div className="rounded-2xl border border-white/10 bg-[rgba(0,0,0,0.3)] p-6 text-center">
                 <p className="font-mono text-xs uppercase tracking-[0.22em] text-slate-400">Инвестиция</p>
-                <p className="mt-2 text-4xl font-bold">{m.priceEur} €</p>
+                <p className="mt-2 text-4xl font-bold">По запитване</p>
                 <p className="mt-1 text-sm text-slate-400">{m.months} месеца · 16 лични сесии</p>
                 <a
                   href="#kniga"
