@@ -592,7 +592,7 @@ export default function Antoan09Page() {
                 className="font-[family-name:var(--font-editorial)] text-4xl font-extrabold md:text-5xl"
                 style={{ color: "var(--color-red-bright)" }}
               >
-                1 800 €
+                По запитване
               </span>
               <span className="text-xs text-[var(--color-text-tertiary)]">без ДДС</span>
             </div>
@@ -644,7 +644,7 @@ export default function Antoan09Page() {
                 className="font-[family-name:var(--font-editorial)] text-3xl font-extrabold md:text-4xl"
                 style={{ color: "#22c55e" }}
               >
-                180 €
+                По запитване
               </span>
               <span className="text-xs text-[var(--color-text-tertiary)]">без ДДС</span>
             </div>
