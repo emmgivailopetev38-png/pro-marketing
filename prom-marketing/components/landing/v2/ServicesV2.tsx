@@ -6,7 +6,9 @@ import {
   Filter,
   Sparkles,
   LayoutDashboard,
-  Code2,
+    Code2,
+  Megaphone,
+  Globe,
 } from "lucide-react";
 import { LiveChatFeed } from "@/components/landing/LiveChatFeed";
 import { NeuralCore } from "@/components/landing/v2/NeuralCore";
@@ -76,6 +78,8 @@ const SERVICES: Service[] = [
     title: "Генериране на съдържание",
     body: "Блог постове, продуктови описания, социални публикации — на твоя глас, в твоето темпо.",
   },
+  { icon: Megaphone, title: "Маркетинг", body: "Meta и Google реклами, фунии за продажби и месечни отчети — водим ти клиенти, не просто импресии." },
+  { icon: Globe, title: "Изработка на уебсайт", body: "Бърз и модерен сайт с вградени форми и CRM — превръща посетителите в клиенти." },
 ];
 
 export function ServicesV2() {
@@ -99,7 +103,7 @@ export function ServicesV2() {
             }}
             lang="bg"
           >
-            Осем начина да автоматизираш бизнеса си
+            Десет начина да автоматизираш бизнеса си
           </h2>
           <p className="v2-sub v2-reveal" style={{ ["--d" as string]: "0.12s" }}>
             От готови чат агенти до{" "}
