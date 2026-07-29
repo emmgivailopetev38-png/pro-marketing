@@ -85,7 +85,7 @@ export async function POST(request: Request) {
     contact_id: contactId,
     activity_type: "trading_book_download",
     title: "📕 Свали книгата „Трейдинг Агентът” (trading фуния)",
-    body: "Call-first фуния: очаква обаждане/съобщение до 24ч. Цел: квалификация за менторството (4 м, 2000 €). DFY (500–1000 €/стратегия) се предлага само в разговора, ако менторството не пасва.",
+        body: "Call-first фуния: очаква обаждане/съобщение до 24ч. Цел: квалификация за менторството (4 м). DFY се предлага само в разговора, ако менторството не е подходящо.",
     created_by: "website",
     metadata: { full_name, email, phone, funnel: "trading" },
   });
