@@ -17,13 +17,13 @@ export const WEBINAR = {
    * страницата показва „очаквай дата” и събира ранни записвания.
    * Пример: "2026-07-21T19:00:00+03:00"
    */
-  dateISO: "2026-07-23T19:00:00+03:00" as string | null,
+  dateISO: null as string | null,
 
   /** Човешки текст при обявена дата (пада до автоматичен формат, ако е null). */
   dateLabel: null as string | null,
 
   /** Zoom линк — изпраща се по имейл СЛЕД записване. null = още няма стая. */
-  zoomJoinUrl: "https://us05web.zoom.us/j/81437850677?pwd=6eZab2cjUZAPVfkI6ca1rBs7Le6FLK.1" as string | null,
+  zoomJoinUrl: null as string | null,
 
   /** Продължителност, за календарния файл и очакванията. */
   durationMinutes: 90,
