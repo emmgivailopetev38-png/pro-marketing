@@ -40,7 +40,7 @@ export const CHECKOUT_PRODUCTS = {
       "Пълното ниво за участници в обучението: курсът + 16 лични 1-на-1 сесии. Специална цена, валидна 48 часа след уебинара.",
     priceEur: OFFERS.mentorship.webinarPriceEur,
     successPath: "/kurs/uspeh?stage=mentorship",
-    cancelPath: "/webinar/oferta",
+        cancelPath: "/kurs",
   },
   "trading-mentorship": {
     name: "Трейдинг Агент · Менторство 1-на-1 · 4 месеца",
