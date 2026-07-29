@@ -40,7 +40,7 @@ const LEVELS = [
     icon: Bot,
     lvl: "Ниво 1",
     name: "CRM Основата",
-    price: "2 200 €",
+    price: "По запитване",
     desc: "CRM ядро, контакти, AI лийд капта от сайта и Meta. Достъпът, с който всичко започва.",
     color: "cyan",
   },
@@ -48,7 +48,7 @@ const LEVELS = [
     icon: Rocket,
     lvl: "Ниво 2",
     name: "CRM + AI Автопилот",
-    price: "2 900 €",
+    price: "По запитване",
     desc: "AI агенти за чат и имейл, автоматичен follow-up, оферти, напомняния — продажбите тръгват сами.",
     color: "violet",
   },
@@ -56,7 +56,7 @@ const LEVELS = [
     icon: Megaphone,
     lvl: "Ниво 3",
     name: "CRM + Реклами и Мащаб",
-    price: "3 600 €",
+    price: "По запитване",
     desc: "Управление на реклами, аналитика, AI отчети и оптимизация — пълният команден център.",
     color: "amber",
   },
@@ -64,8 +64,8 @@ const LEVELS = [
     icon: Wrench,
     lvl: "Всичко",
     name: "Уебсайт + CRM + Реклами + Цялата автоматизация",
-    price: "7 400 €",
-    desc: "Трите нива заедно + уебсайтът — от първата реклама до автоматичната продажба. Спестяваш 1 300 €.",
+    price: "По запитване",
+    desc: "Трите нива заедно + уебсайтът — от първата реклама до автоматичната продажба.",
     color: "emerald",
     featured: true,
   },
@@ -75,21 +75,21 @@ const AGENTS = [
   {
     icon: Bot,
     name: "AI Чат Агент",
-    price: "от 490 €",
+    price: "По запитване",
     approx: true,
     desc: "Отговаря на клиентите ти в сайта, Messenger и Instagram за секунди — 24/7, на естествен български. Внедряване до 7 дни.",
   },
   {
     icon: Headphones,
     name: "AI Гласов Агент",
-    price: "от 990 €",
+    price: "По запитване",
     approx: true,
     desc: "Поема обаждания и гласови съобщения: отговаря, записва часове, потвърждава поръчки и звъни за напомняния — с човешки глас.",
   },
   {
     icon: LineChart,
     name: "Трейдинг Агент · обучение 1-на-1",
-    price: "2 000 €",
+    price: "По запитване",
     buy: "trading-mentorship" as const,
     desc: "4 месеца, 16 лични сесии: стратегия, правила, бектест, демо — собствен агент, който разбираш и притежаваш.",
   },
@@ -117,9 +117,9 @@ const VERTICALS = [
 ];
 
 const SUPPORT = [
-  { name: "Поддръжка S", price: "149 €/мес", desc: "Мониторинг, дребни корекции, месечен отчет." },
-  { name: "Поддръжка M", price: "199 €/мес", desc: "S + нови автоматизации всеки месец + приоритет." },
-  { name: "Поддръжка L", price: "299 €/мес", desc: "M + управление на рекламите + тримесечна стратегия." },
+  { name: "Поддръжка S", price: "По запитване", desc: "Мониторинг, дребни корекции, месечен отчет." },
+  { name: "Поддръжка M", price: "По запитване", desc: "S + нови автоматизации всеки месец + приоритет." },
+  { name: "Поддръжка L", price: "По запитване", desc: "M + управление на рекламите + тримесечна стратегия." },
 ];
 
 const COLOR_MAP: Record<string, { border: string; text: string; bg: string }> = {
@@ -190,7 +190,7 @@ export default function MagazinPage() {
                 30-дневен курс: оферта, фуния, реклами, AI агенти, автоматични продажби — с всички
                 наши шаблони и живи Q&A сесии.
               </p>
-              <p className="mt-5 text-4xl font-bold">{c.priceEur} €</p>
+              <p className="mt-5 text-4xl font-bold">По запитване</p>
               <p className="mb-5 mt-1 text-xs text-slate-500">Еднократно · достъп завинаги</p>
               <CheckoutButton product="course">Купи курса →</CheckoutButton>
             </div>
@@ -203,9 +203,9 @@ export default function MagazinPage() {
               <p className="mt-2 flex-1 text-[15px] text-slate-300">
                 {m.tagline} Изграждаме твоята AI система за клиенти заедно — до резултат.
               </p>
-              <p className="mt-5 text-4xl font-bold">{m.priceEur} €</p>
+              <p className="mt-5 text-4xl font-bold">По запитване</p>
               <p className="mb-5 mt-1 text-xs text-slate-500">
-                4 месеца · 16 сесии · купилите курса доплащат {m.upgradePriceEur} €
+                4 месеца · 16 сесии
               </p>
               <CheckoutButton product="mentorship">Запази мястото си →</CheckoutButton>
             </div>
@@ -309,8 +309,8 @@ export default function MagazinPage() {
         </div>
         <SectionReveal delay={120}>
           <div className="mt-6 rounded-2xl border border-white/10 bg-[rgba(255,255,255,0.03)] p-5 text-center text-sm text-slate-400">
-            Искаш само <strong className="text-white">уебсайт + CRM</strong> без рекламите? Ориентир от{" "}
-            <strong className="text-cyan-300">2 900 €</strong> — казваме точна цена след 15-минутния разговор.
+            Искаш само <strong className="text-white">уебсайт + CRM</strong> без рекламите?{" "}
+            <strong className="text-cyan-300">По запитване</strong> — казваме точна цена след 15-минутния разговор.
           </div>
         </SectionReveal>
       </section>
