@@ -140,7 +140,7 @@ const WHY = [
 const TIERS = [
   {
     name: "Phase 1 · Базов",
-    price: "3 000 €",
+    price: "По запитване",
     suffix: "еднократно · без ДДС",
     badge: "Договорено по телефона",
     highlight: true,
@@ -268,7 +268,7 @@ export default function TasteOfBulgariaPage() {
               className="inline-flex items-center gap-2 rounded-full border px-6 py-3 text-sm uppercase tracking-[0.15em] text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-orange-bright)] hover:text-[var(--color-orange-bright)]"
               style={{ borderColor: "var(--color-border-default)" }}
             >
-              💎 Phase 1 · 3 000 €
+              💎 Phase 1 · по запитване
             </a>
             <a
               href="#modules"
