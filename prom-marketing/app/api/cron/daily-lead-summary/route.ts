@@ -19,7 +19,7 @@ export const maxDuration = 60;
  *      - 7-day offer follow-up reminders (auto-logs a note on each contact)
  *      - Overdue follow-ups
  *      - Pipeline snapshot
- *   3. Emails the report to ivailopetev38@gmail.com (via EMAIL_REPLY_TO env)
+ *   3. Emails the report to emmgivailopetev38@gmail.com (via EMAIL_REPLY_TO env)
  *
  * Auth: Vercel cron sends `Authorization: Bearer ${CRON_SECRET}` automatically.
  */
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
   const report = await buildDailyCrmReport();
 
   // 3. Send the report to the user's Gmail
-  const recipient = process.env.EMAIL_REPLY_TO || "ivailopetev38@gmail.com";
+  const recipient = process.env.EMAIL_REPLY_TO || "emmgivailopetev38@gmail.com";
 
   const emailResult = await sendEmail({
     to: recipient,
