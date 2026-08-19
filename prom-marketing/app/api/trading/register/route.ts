@@ -115,7 +115,7 @@ ${TRADING_DISCLAIMER}`,
   }).catch(() => {});
 
   // Известие към админа — това е call-first лийд, звъни се!
-  const adminTo = (process.env.ALLOWED_ADMIN_EMAILS ?? "ivailopetev38@gmail.com")
+  const adminTo = (process.env.ALLOWED_ADMIN_EMAILS ?? "emmgivailopetev38@gmail.com")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean)[0];
