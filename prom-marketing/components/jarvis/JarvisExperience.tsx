@@ -22,7 +22,7 @@ import {
   ArrowRight,
   CheckCircle2,
 } from "lucide-react";
-import { NeuralCore } from "@/components/landing/v2/NeuralCore";
+import { NeuralCoreLazy } from "@/components/landing/v2/NeuralCoreLazy";
 import { openBookingPopup } from "@/lib/cal/embed";
 import { track } from "@/lib/analytics/track";
 
@@ -149,7 +149,7 @@ export function JarvisExperience() {
       <section className="v2-section !pb-10 !pt-8" aria-label="Jarvis — герой">
         <div className="v2-wrap text-center">
           <div className="relative mx-auto h-64 w-64 md:h-80 md:w-80">
-            <NeuralCore radius={1.4} nodeCount={260} spin={0.9} />
+            <NeuralCoreLazy radius={1.4} nodeCount={260} spin={0.9} />
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <Bot className="h-10 w-10" style={{ color: "var(--v2-cyan)", filter: "drop-shadow(0 0 14px var(--v2-glow-cyan))" }} />
             </div>
