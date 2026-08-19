@@ -21,7 +21,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { NeuralCore } from "@/components/landing/v2/NeuralCore";
+import { NeuralCoreLazy } from "@/components/landing/v2/NeuralCoreLazy";
 
 const QA = [
   {
@@ -98,7 +98,7 @@ export function FAQV2() {
               style={{ ["--d" as string]: "0.12s" }}
               aria-hidden
             >
-              <NeuralCore nodeCount={160} radius={1.2} spin={0.8} />
+              <NeuralCoreLazy nodeCount={160} radius={1.2} spin={0.8} />
             </div>
           </div>
 

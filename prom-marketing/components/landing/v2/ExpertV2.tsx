@@ -15,7 +15,7 @@
    ===================================================================== */
 import Image from "next/image";
 import { SectionReveal } from "@/components/effects/SectionReveal";
-import { NeuralCore } from "@/components/landing/v2/NeuralCore";
+import { NeuralCoreLazy } from "@/components/landing/v2/NeuralCoreLazy";
 import { Calendar, Mail, Phone, MapPin } from "lucide-react";
 
 const CREDENTIALS = [
@@ -70,7 +70,7 @@ export function ExpertV2() {
                 aria-hidden
                 className="pointer-events-none absolute -inset-10 -z-[1] opacity-70"
               >
-                <NeuralCore nodeCount={170} radius={1.25} spin={0.8} />
+                <NeuralCoreLazy nodeCount={170} radius={1.25} spin={0.8} />
               </div>
 
               {/* Photo container — depth glass + rotating neon conic edge (violet) */}

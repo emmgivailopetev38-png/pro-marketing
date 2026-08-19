@@ -11,7 +11,7 @@ import {
   Globe,
 } from "lucide-react";
 import { LiveChatFeed } from "@/components/landing/LiveChatFeed";
-import { NeuralCore } from "@/components/landing/v2/NeuralCore";
+import { NeuralCoreLazy } from "@/components/landing/v2/NeuralCoreLazy";
 
 /* =====================================================================
    ServicesV2 — the original Services section, redrawn in the "2050"
@@ -136,7 +136,7 @@ export function ServicesV2() {
                   {s.feature && (
                     <div aria-hidden className="pointer-events-none absolute inset-0">
                       <div className="absolute right-[-6%] top-[-10%] h-[80%] w-[55%] opacity-60">
-                        <NeuralCore radius={1.15} nodeCount={170} spin={0.7} />
+                        <NeuralCoreLazy radius={1.15} nodeCount={170} spin={0.7} />
                       </div>
                       <div
                         className="absolute inset-0"

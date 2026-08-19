@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Phone, Mail, User, MessageSquare, Send, Loader2, Check, Building2 } from "lucide-react";
 import { track } from "@/lib/analytics/track";
-import { NeuralCore } from "@/components/landing/v2/NeuralCore";
+import { NeuralCoreLazy } from "@/components/landing/v2/NeuralCoreLazy";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
@@ -68,7 +68,7 @@ export function QuickLeadFormV2() {
 
             {/* Signature core — sits under the pitch, atmospheric */}
             <div className="relative mt-10 hidden h-[260px] w-full max-w-md overflow-hidden rounded-[var(--v2-r)] md:block">
-              <NeuralCore radius={1.15} nodeCount={200} spin={0.8} />
+              <NeuralCoreLazy radius={1.15} nodeCount={200} spin={0.8} />
             </div>
 
             <div className="mt-8 space-y-3 text-sm">

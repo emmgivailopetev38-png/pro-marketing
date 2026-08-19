@@ -15,7 +15,7 @@
    ===================================================================== */
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { NeuralCore } from "@/components/landing/v2/NeuralCore";
+import { NeuralCoreLazy } from "@/components/landing/v2/NeuralCoreLazy";
 
 interface Slide {
   id: string;
@@ -797,7 +797,7 @@ export function CRMShowcaseV2() {
               aria-hidden
               className="pointer-events-none absolute -right-16 -top-20 h-72 w-72 opacity-40"
             >
-              <NeuralCore radius={1.2} nodeCount={160} spin={0.6} />
+              <NeuralCoreLazy radius={1.2} nodeCount={160} spin={0.6} />
             </div>
 
             {/* Browser-style chrome */}

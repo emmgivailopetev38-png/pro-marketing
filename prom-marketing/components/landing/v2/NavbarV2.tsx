@@ -31,7 +31,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Logo } from "../Logo";
-import { NeuralCore } from "./NeuralCore";
+import { NeuralCoreLazy } from "./NeuralCoreLazy";
 import { openBookingPopup } from "@/lib/cal/embed";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics/track";
@@ -293,7 +293,7 @@ export function NavbarV2() {
             aria-hidden
             className="pointer-events-none absolute left-1/2 top-[38%] h-[120vw] w-[120vw] -translate-x-1/2 -translate-y-1/2 opacity-[0.35]"
           >
-            <NeuralCore radius={1.5} nodeCount={180} spin={0.6} />
+            <NeuralCoreLazy radius={1.5} nodeCount={180} spin={0.6} />
           </div>
           <div className="v2-aurora" aria-hidden />
 

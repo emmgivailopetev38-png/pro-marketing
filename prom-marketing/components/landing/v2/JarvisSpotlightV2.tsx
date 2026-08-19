@@ -7,7 +7,7 @@
    ===================================================================== */
 import { useEffect, useRef, useState } from "react";
 import { Bot, ArrowRight, Zap } from "lucide-react";
-import { NeuralCore } from "./NeuralCore";
+import { NeuralCoreLazy } from "./NeuralCoreLazy";
 import { track } from "@/lib/analytics/track";
 
 const TASKS = [
@@ -65,7 +65,7 @@ export function JarvisSpotlightV2() {
         >
           {/* Living core */}
           <div className="relative mx-auto h-56 w-56 md:h-80 md:w-80">
-            <NeuralCore radius={1.35} nodeCount={220} spin={0.8} />
+            <NeuralCoreLazy radius={1.35} nodeCount={220} spin={0.8} />
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <span
                 className="v2-mono rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.3em]"

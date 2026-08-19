@@ -1,5 +1,5 @@
 import { CounterRamp } from "@/components/effects/CounterRamp";
-import { NeuralCore } from "@/components/landing/v2/NeuralCore";
+import { NeuralCoreLazy } from "@/components/landing/v2/NeuralCoreLazy";
 
 /* =====================================================================
    TrustStripV2 — the original TrustStrip, redrawn in the "2050" language.
@@ -37,7 +37,7 @@ export function TrustStripV2() {
                     "radial-gradient(circle, var(--v2-glow-cyan) 0%, transparent 62%)",
                 }}
               />
-              <NeuralCore radius={1.25} nodeCount={200} />
+              <NeuralCoreLazy radius={1.25} nodeCount={200} />
             </div>
 
             <div className="mt-4 flex items-center justify-center gap-3">

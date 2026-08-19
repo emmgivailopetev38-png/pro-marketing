@@ -18,7 +18,7 @@
    ===================================================================== */
 import { useEffect } from "react";
 import { MagneticButton } from "@/components/effects/MagneticButton";
-import { NeuralCore } from "@/components/landing/v2/NeuralCore";
+import { NeuralCoreLazy } from "@/components/landing/v2/NeuralCoreLazy";
 import { openBookingPopup, CAL_LINK } from "@/lib/cal/embed";
 
 export function FinalCTAV2() {
@@ -55,7 +55,7 @@ export function FinalCTAV2() {
         }}
         aria-hidden
       >
-        <NeuralCore nodeCount={200} radius={1.3} spin={0.9} />
+        <NeuralCoreLazy nodeCount={200} radius={1.3} spin={0.9} />
       </div>
 
       <div className="v2-wrap">

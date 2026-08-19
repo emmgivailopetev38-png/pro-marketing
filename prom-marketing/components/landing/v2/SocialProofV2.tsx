@@ -13,7 +13,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CounterRamp } from "@/components/effects/CounterRamp";
 import { SectionReveal } from "@/components/effects/SectionReveal";
-import { NeuralCore } from "@/components/landing/v2/NeuralCore";
+import { NeuralCoreLazy } from "@/components/landing/v2/NeuralCoreLazy";
 
 /* ---- Брояч-метрики ---------------------------------------------------- */
 const STATS: {
@@ -238,7 +238,7 @@ export function SocialProofV2() {
                       "radial-gradient(circle, var(--v2-glow-cyan) 0%, transparent 62%)",
                   }}
                 />
-                <NeuralCore radius={1.2} nodeCount={150} spin={0.7} />
+                <NeuralCoreLazy radius={1.2} nodeCount={150} spin={0.7} />
               </div>
               <p className="mt-4 text-sm font-semibold text-[var(--v2-ink)]">
                 Един AI мозък. Десетки бизнеси.

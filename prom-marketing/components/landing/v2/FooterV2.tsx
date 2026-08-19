@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/landing/Logo";
-import { NeuralCore } from "@/components/landing/v2/NeuralCore";
+import { NeuralCoreLazy } from "@/components/landing/v2/NeuralCoreLazy";
 
 /* =====================================================================
    FooterV2 — the original Footer, redrawn in the "2050" "Luminescent
@@ -41,7 +41,7 @@ export function FooterV2() {
             aria-hidden
             className="pointer-events-none absolute -right-20 -top-24 h-80 w-80 opacity-30"
           >
-            <NeuralCore radius={1.2} nodeCount={160} spin={0.6} />
+            <NeuralCoreLazy radius={1.2} nodeCount={160} spin={0.6} />
           </div>
 
           <div className="relative z-[1]">

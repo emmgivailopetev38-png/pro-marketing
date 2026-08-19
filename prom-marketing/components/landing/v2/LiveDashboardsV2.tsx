@@ -10,7 +10,7 @@
    (useState / useEffect), exactly like the original.
    ===================================================================== */
 import { useEffect, useState } from "react";
-import { NeuralCore } from "@/components/landing/v2/NeuralCore";
+import { NeuralCoreLazy } from "@/components/landing/v2/NeuralCoreLazy";
 
 const AGENTS = [
   { name: "Сара", role: "Продажби", task: "Анализира 14 нови лида", status: "working", color: "var(--v2-cyan)" },
@@ -102,7 +102,7 @@ export function LiveDashboardsV2() {
                 aria-hidden
                 className="pointer-events-none absolute -right-12 -top-16 h-64 w-64 opacity-50"
               >
-                <NeuralCore radius={1.15} nodeCount={170} spin={0.7} />
+                <NeuralCoreLazy radius={1.15} nodeCount={170} spin={0.7} />
               </div>
 
               <div className="relative mb-6 flex items-center justify-between">
