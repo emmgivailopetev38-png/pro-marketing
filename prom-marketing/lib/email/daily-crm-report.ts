@@ -11,6 +11,16 @@ interface ContactBrief {
   next_followup_at: string | null;
 }
 
+interface BookingBrief {
+  id: string;
+  attendee_name: string;
+  attendee_email: string;
+  attendee_phone: string | null;
+  scheduled_at: string;
+  status: string;
+  meeting_url: string | null;
+}
+
 interface ActivitySummary {
   contact_id: string;
   activity_type: string;
@@ -30,9 +40,12 @@ const HOST = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "https://pr
 export async function buildDailyCrmReport() {
   const supabase = createServiceClient();
   const now = new Date();
-  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
+  // Calendar yesterday (00:00–24:00) — NOT a rolling "now - 24h". The old
+  // version had no upper bound, and because booking activities are stored with
+  // occurred_at = the meeting time, every FUTURE meeting was counted as "вчера".
+  const yesterday = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
   const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
   const sevenDaysAgoStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   sevenDaysAgoStart.setHours(0, 0, 0, 0);
@@ -43,6 +56,7 @@ export async function buildDailyCrmReport() {
     .from("contact_activities")
     .select("contact_id, activity_type, title, occurred_at")
     .gte("occurred_at", yesterday.toISOString())
+    .lt("occurred_at", todayStart.toISOString())
     .order("occurred_at", { ascending: false });
 
   const yesterdayActs = (yesterdayActsRaw ?? []) as ActivitySummary[];
@@ -60,6 +74,20 @@ export async function buildDailyCrmReport() {
     .lt("next_followup_at", tomorrowStart.toISOString())
     .neq("stage", "lost")
     .order("next_followup_at", { ascending: true });
+
+  // --- 2b. Today's real Cal.com meetings ---
+  // The Cal.com webhook upserts bookings into `bookings`. The report used to
+  // read only contacts.next_followup_at, so actual booked meetings were
+  // invisible and the email always said "0 срещи".
+  const { data: todayBookingsRaw } = await supabase
+    .from("bookings")
+    .select("id, attendee_name, attendee_email, attendee_phone, scheduled_at, status, meeting_url")
+    .gte("scheduled_at", todayStart.toISOString())
+    .lt("scheduled_at", tomorrowStart.toISOString())
+    .neq("status", "cancelled")
+    .order("scheduled_at", { ascending: true });
+
+  const todayBookings = (todayBookingsRaw ?? []) as BookingBrief[];
 
   // --- 3. Overdue follow-ups ---
   const { data: overdueFollowups } = await supabase
@@ -148,7 +176,8 @@ export async function buildDailyCrmReport() {
   });
 
   const totalYesterday = yesterdayActs.length;
-  const subject = `☀️ CRM отчет · ${now.toLocaleDateString("bg-BG", { day: "2-digit", month: "short" })} · ${(todayFollowups?.length ?? 0)} срещи, ${reminders.length} напомняния`;
+  const todayCount = (todayFollowups?.length ?? 0) + todayBookings.length;
+  const subject = `☀️ CRM отчет · ${now.toLocaleDateString("bg-BG", { day: "2-digit", month: "short" })} · ${todayCount} срещи, ${reminders.length} напомняния`;
 
   let html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#0d1221;max-width:680px">
   <h1 style="font-size:24px;margin:0 0 4px;color:#0066cc">☀️ Добро утро, Ивайло!</h1>
@@ -169,17 +198,27 @@ export async function buildDailyCrmReport() {
   </div>
 
   <!-- Today's plan -->
-  <div style="background:${(todayFollowups?.length ?? 0) > 0 ? "#e6f7e6" : "#f5f7fa"};border-radius:8px;padding:18px;margin-bottom:18px">
-    <h2 style="margin:0 0 10px;font-size:16px;color:#22a722">📅 Днес · ${todayFollowups?.length ?? 0} срещи / разговори</h2>
+  <div style="background:${todayCount > 0 ? "#e6f7e6" : "#f5f7fa"};border-radius:8px;padding:18px;margin-bottom:18px">
+    <h2 style="margin:0 0 10px;font-size:16px;color:#22a722">📅 Днес · ${todayCount} срещи / разговори</h2>
+    ${
+      todayBookings.length > 0
+        ? `<ul style="margin:0 0 10px;padding-left:20px">${todayBookings
+            .map(
+              (b) => `<li style="margin-bottom:6px">📅 <strong>${formatTime(b.scheduled_at)}</strong> · ${b.attendee_name}${b.status === "rescheduled" ? ` <span style="color:#b45309">(преместена)</span>` : ""}${b.attendee_phone ? ` · <a href="tel:${b.attendee_phone}" style="color:#22a722">${b.attendee_phone}</a>` : ""}${b.meeting_url ? ` · <a href="${b.meeting_url}" style="color:#0066cc">Влез в срещата →</a>` : ""}</li>`
+            )
+            .join("")}</ul>`
+        : ""
+    }
     ${
       (todayFollowups?.length ?? 0) > 0
         ? `<ul style="margin:0;padding-left:20px">${(todayFollowups ?? [])
             .map(
-              (c) => `<li style="margin-bottom:6px"><strong>${formatTime(c.next_followup_at!)}</strong> · <a href="${HOST}/admin/clients/${c.id}" style="color:#0066cc">${c.full_name ?? "—"}</a>${c.company ? ` <span style="color:#666">(${c.company})</span>` : ""}</li>`
+              (c) => `<li style="margin-bottom:6px">📞 <strong>${formatTime(c.next_followup_at!)}</strong> · <a href="${HOST}/admin/clients/${c.id}" style="color:#0066cc">${c.full_name ?? "—"}</a>${c.company ? ` <span style="color:#666">(${c.company})</span>` : ""}</li>`
             )
             .join("")}</ul>`
-        : `<p style="margin:0;color:#666">Празно. Време за хладен outreach или follow-up.</p>`
+        : ""
     }
+    ${todayCount === 0 ? `<p style="margin:0;color:#666">Празно. Време за хладен outreach или follow-up.</p>` : ""}
   </div>`;
 
   // 7-day reminders
@@ -245,8 +284,9 @@ ${Array.from(actsByType.entries())
   .map(([t, c]) => `  ${activityLabel(t)}: ${c}`)
   .join("\n")}
 
-📅 ДНЕС · ${todayFollowups?.length ?? 0} срещи
-${(todayFollowups ?? []).map((c) => `  ${formatTime(c.next_followup_at!)} · ${c.full_name}${c.company ? ` (${c.company})` : ""}`).join("\n")}
+📅 ДНЕС · ${todayCount} срещи
+${todayBookings.map((b) => `  📅 ${formatTime(b.scheduled_at)} · ${b.attendee_name}${b.status === "rescheduled" ? " (преместена)" : ""}${b.attendee_phone ? ` · ${b.attendee_phone}` : ""}`).join("\n")}
+${(todayFollowups ?? []).map((c) => `  📞 ${formatTime(c.next_followup_at!)} · ${c.full_name}${c.company ? ` (${c.company})` : ""}`).join("\n")}
 
 ${
   reminders.length > 0
@@ -272,6 +312,7 @@ ${pipelineOrder.map((s) => `  ${stageLabel(s)}: ${byStage.get(s) ?? 0}`).join("\
     stats: {
       yesterdayActivities: totalYesterday,
       todayFollowups: todayFollowups?.length ?? 0,
+      todayBookings: todayBookings.length,
       overdueFollowups: overdueFollowups?.length ?? 0,
       sevenDayReminders: reminders.length,
     },
