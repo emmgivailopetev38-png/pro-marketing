@@ -105,20 +105,39 @@ export default async function AdminDashboard() {
 
   // Auto-promote stale confirmed bookings → completed (also covers the admin
   // overview when nobody opened /admin/bookings recently).
-  await supabase
+  //
+  // The write must still land BEFORE the bookings read, or the dashboard would
+  // show a meeting that already happened as "confirmed". But nothing else on
+  // this page depends on it, so instead of awaiting it up front — which put a
+  // full Frankfurt round-trip in front of every other query — it is chained
+  // only to the bookings read and runs alongside the rest.
+  const bookingsPromise = supabase
     .from("bookings")
     .update({ status: "completed", updated_at: nowIso })
     .eq("status", "confirmed")
-    .lt("scheduled_at", nowIso);
+    .lt("scheduled_at", nowIso)
+    .then(() =>
+      supabase
+        .from("bookings")
+        .select("id, status, scheduled_at, attendee_name, attendee_email, business, meeting_url")
+    );
 
-  const [contactsRes, activitiesRes, bookingsRes, metaLeadsRes, invoicesRes, manualReviewRes, paymentsRes, expensesRes, metaReportsRes, gpsRes, recurringRes] = await Promise.all([
-    supabase.from("contacts").select("*").order("updated_at", { ascending: false }),
+  const [contactsRes, activitiesRes, bookingsRes, metaLeadsRes, invoicesRes, manualReviewRes, paymentsRes, expensesRes, metaReportsRes, gpsRes, recurringRes, offersRes, projectsRes] = await Promise.all([
+    // Беше select("*") — теглеше и `notes` (свободен текст, може да е дълъг),
+    // `phone` и `source_ref` за ВСЕКИ контакт, при положение че таблото не
+    // пипа нито едно от тях. Списъкът долу са точно колоните, които се ползват.
+    supabase
+      .from("contacts")
+      .select(
+        "id, full_name, email, company, stage, source, deal_value_eur, next_followup_at, followup_status, last_heard_from_at, created_at, updated_at"
+      )
+      .order("updated_at", { ascending: false }),
     supabase
       .from("contact_activities")
       .select("activity_type, occurred_at, contact_id")
       .gte("occurred_at", sixtyAgo)
       .order("occurred_at", { ascending: false }),
-    supabase.from("bookings").select("id, status, scheduled_at, attendee_name, attendee_email, business, meeting_url"),
+    bookingsPromise,
     supabase.from("meta_leads").select("id, processed, created_at"),
     supabase.from("invoices").select("id, status, amount_gross, due_date, issue_date, contact_id, invoice_type, service_type, currency"),
     supabase.from("manual_review_items").select("id").in("status", ["open", "needs_user", "blocked"]),
@@ -131,15 +150,15 @@ export default async function AdminDashboard() {
       .order("report_date", { ascending: false }),
     supabase.from("gps_devices").select("status, monthly_fee, currency"),
     supabase.from("recurring_services").select("active, amount, currency, billing_period"),
-  ]);
-
-  // Доставка: оферти + проекти (връзката продажба → изпълнение).
-  const [{ data: offersData }, { data: projectsData }] = await Promise.all([
+    // Доставка: оферти + проекти (връзката продажба → изпълнение). Тези две
+    // бяха в отделен, ВТОРИ Promise.all след първия — цяла излишна обиколка до
+    // Франкфурт, при положение че не зависят от нищо в първия.
     supabase.from("offers").select("status, amount_gross, valid_until"),
     supabase.from("projects").select("status, due_date, amount_gross"),
   ]);
-  const offersAll = (offersData ?? []) as Array<{ status: string; amount_gross: number | null; valid_until: string | null }>;
-  const projectsAll = (projectsData ?? []) as Array<{ status: string; due_date: string | null; amount_gross: number | null }>;
+
+  const offersAll = (offersRes.data ?? []) as Array<{ status: string; amount_gross: number | null; valid_until: string | null }>;
+  const projectsAll = (projectsRes.data ?? []) as Array<{ status: string; due_date: string | null; amount_gross: number | null }>;
   const openOffers = offersAll.filter((o) => o.status === "sent" || o.status === "viewed");
   const openOffersSum = openOffers.reduce((s, o) => s + (Number(o.amount_gross) || 0), 0);
   const activeProjects = projectsAll.filter((p) => ["planned", "in_progress", "waiting_client"].includes(p.status));
