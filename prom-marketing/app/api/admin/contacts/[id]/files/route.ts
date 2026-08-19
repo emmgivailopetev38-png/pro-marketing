@@ -74,7 +74,7 @@ export async function POST(
 
   const category = (form.get("category") as string) || "other";
   const description = (form.get("description") as string) || null;
-  const uploadedBy = (form.get("uploaded_by") as string) || "ivailopetev38@gmail.com";
+  const uploadedBy = (form.get("uploaded_by") as string) || "emmgivailopetev38@gmail.com";
 
   const sb = createServiceClient();
 
