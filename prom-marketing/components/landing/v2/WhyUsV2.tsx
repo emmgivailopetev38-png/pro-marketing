@@ -10,7 +10,7 @@
    ===================================================================== */
 import { SectionReveal } from "@/components/effects/SectionReveal";
 import { TiltCard } from "@/components/effects/TiltCard";
-import { NeuralCore } from "@/components/landing/v2/NeuralCore";
+import { NeuralCoreLazy } from "@/components/landing/v2/NeuralCoreLazy";
 import { Zap, Wand2, ShieldCheck } from "lucide-react";
 
 const POINTS = [
@@ -55,7 +55,7 @@ export function WhyUsV2() {
               className="relative mx-auto hidden h-[300px] w-[300px] shrink-0 lg:block"
               aria-hidden
             >
-              <NeuralCore nodeCount={180} radius={1.25} spin={0.85} />
+              <NeuralCoreLazy nodeCount={180} radius={1.25} spin={0.85} />
             </div>
           </SectionReveal>
         </div>

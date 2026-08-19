@@ -8,7 +8,7 @@
    total-hero as the signature centerpiece.
    ===================================================================== */
 import { useEffect, useRef, useState } from "react";
-import { NeuralCore } from "@/components/landing/v2/NeuralCore";
+import { NeuralCoreLazy } from "@/components/landing/v2/NeuralCoreLazy";
 
 interface PainPoint {
   icon: string;
@@ -310,7 +310,7 @@ export function PainPointsV2() {
             className="pointer-events-none absolute -right-10 -top-16 h-[420px] w-[420px] opacity-60 md:right-0 md:opacity-70"
             aria-hidden
           >
-            <NeuralCore nodeCount={180} radius={1.25} spin={0.7} />
+            <NeuralCoreLazy nodeCount={180} radius={1.25} spin={0.7} />
           </div>
 
           <div className="relative grid grid-cols-1 gap-8 md:grid-cols-[1fr_auto] md:items-center md:gap-12">

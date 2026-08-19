@@ -15,7 +15,7 @@
    наблюдателя. ВСИЧКИ имена/фирми са ИЗМИСЛЕНИ — никога реални клиенти.
    ===================================================================== */
 import { useEffect, useRef } from "react";
-import { NeuralCore } from "@/components/landing/v2/NeuralCore";
+import { NeuralCoreLazy } from "@/components/landing/v2/NeuralCoreLazy";
 
 interface Testimonial {
   initials: string;
@@ -168,7 +168,7 @@ export function TestimonialsV2() {
             style={{ ["--d" as never]: "0.12s" }}
             aria-hidden
           >
-            <NeuralCore nodeCount={170} radius={1.25} spin={0.8} />
+            <NeuralCoreLazy nodeCount={170} radius={1.25} spin={0.8} />
           </div>
         </div>
 
