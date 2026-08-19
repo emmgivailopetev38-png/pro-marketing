@@ -58,6 +58,7 @@ export const MANUAL_REVIEW_TYPE_LABEL: Record<string, string> = {
   bank_statement_error: "Грешка в извлечение",
   duplicate_invoice: "Дублирана фактура",
   recurring_billing_issue: "Проблем с абонамент",
+  voice_approval: "Заявка по глас",
 };
 
 export const SEVERITY_COLOR: Record<string, string> = {

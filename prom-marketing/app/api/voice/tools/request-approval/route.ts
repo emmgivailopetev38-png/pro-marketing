@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { checkVoiceAuth } from "@/lib/voice/auth";
 import { createManualReviewItem } from "@/lib/crm/repository";
+import { sendTelegram } from "@/lib/notifications/telegram";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,13 @@ const SEVERITY: Record<(typeof ACTIONS)[number], "low" | "medium" | "high"> = {
   payment: "high", // пари
   other: "low",
 };
+
+const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.promarketing.pw";
+
+/** Telegram чете HTML — име на клиент с < или & би счупило съобщението. */
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
 
 const LABEL: Record<(typeof ACTIONS)[number], string> = {
   send_email: "имейл",
@@ -93,6 +101,17 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { ok: false, spoken: "Не успях да запиша заявката. Пробвай пак след малко." },
         { status: 200 }
+      );
+    }
+
+    // Гласът се ползва в движение — известието трябва да стигне до телефона,
+    // а не да чака Ивайло да отвори CRM-а. repository праща Telegram само при
+    // severity=high; за гласовите заявки го правим винаги, защото те са по
+    // определение неща, които човекът е поискал току-що и чака отговор.
+    if (SEVERITY[action] !== "high") {
+      void sendTelegram(
+        `🎙 По телефона поиска: <b>${escapeHtml(label)}</b>${target ? ` — ${escapeHtml(target)}` : ""}\n${escapeHtml(summary)}\n\nНищо не е тръгнало.`,
+        { buttons: [{ text: "Одобри или откажи", url: `${SITE}/admin/manual-review` }] }
       );
     }
 
