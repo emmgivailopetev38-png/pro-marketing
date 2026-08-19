@@ -276,7 +276,7 @@ export function NavbarV2() {
             aria-label="Отвори меню"
             aria-expanded={open}
             onClick={() => setOpen(true)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-white/5 md:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-white/5 md:hidden"
             style={{ color: "var(--v2-ink)" }}
           >
             <Menu className="h-5 w-5" />

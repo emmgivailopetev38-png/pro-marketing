@@ -844,10 +844,14 @@ export function CRMShowcaseV2() {
               key={s.id}
               type="button"
               onClick={() => goTo(i)}
-              className="group relative flex-1 overflow-hidden rounded-full bg-white/[0.04]"
+              /* Лентата е висока 4px — това е ненатискаемо с пръст. Тук слагаме
+                 py-5 за 44px зона за натискане и -my-5, за да не се измести
+                 нищо визуално. overflow/фонът слизат във вътрешния span,
+                 иначе overflow-hidden отрязваше уголемената зона. */
+              className="group relative -my-5 flex-1 py-5"
               aria-label={`Слайд ${i + 1}`}
             >
-              <span className="block h-1 w-full">
+              <span className="block h-1 w-full overflow-hidden rounded-full bg-white/[0.04]">
                 {i === active && !paused && (
                   <motion.span
                     key={`bar-${active}`}
