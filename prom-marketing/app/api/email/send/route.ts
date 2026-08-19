@@ -31,7 +31,7 @@ function ownerAddresses(): Set<string> {
   return new Set(
     [
       process.env.EMAIL_REPLY_TO,
-      "ivailopetev38@gmail.com",
+      "emmgivailopetev38@gmail.com",
       "ivailo@promarketing.pw",
       ...(process.env.ALLOWED_ADMIN_EMAILS ?? "").split(","),
     ]
@@ -69,7 +69,7 @@ function checkBearer(request: Request): { email: string } | null {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean)[0];
-  return { email: adminEmail || "ivailopetev38@gmail.com" };
+  return { email: adminEmail || "emmgivailopetev38@gmail.com" };
 }
 
 export async function POST(request: Request) {
