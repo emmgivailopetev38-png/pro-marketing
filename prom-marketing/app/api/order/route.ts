@@ -117,7 +117,7 @@ export async function POST(request: Request) {
   }).catch(() => {});
 
   // Горещо известие към админа.
-  const adminTo = (process.env.ALLOWED_ADMIN_EMAILS ?? "ivailopetev38@gmail.com")
+  const adminTo = (process.env.ALLOWED_ADMIN_EMAILS ?? "emmgivailopetev38@gmail.com")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean)[0];
