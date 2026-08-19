@@ -74,7 +74,7 @@ export async function GET(request: Request) {
   const fresh = untouched.filter((l) => now - new Date(l.created_at).getTime() < dayMs);
   const older = untouched.filter((l) => now - new Date(l.created_at).getTime() >= dayMs);
 
-  const recipient = process.env.EMAIL_REPLY_TO || "ivailopetev38@gmail.com";
+  const recipient = process.env.EMAIL_REPLY_TO || "emmgivailopetev38@gmail.com";
 
   if (untouched.length === 0) {
     return NextResponse.json({ ok: true, message: "No untouched leads", total: 0 });
