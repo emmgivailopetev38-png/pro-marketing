@@ -1,24 +1,48 @@
 "use client";
-import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 
-const ShaderOrb = dynamic(
-  () => import("@/components/effects/ShaderOrb").then((m) => m.ShaderOrb),
-  { ssr: false, loading: () => null }
-);
-
+/**
+ * ShaderOrb is WebGL (its own GL context + rAF) and drags in three, which is
+ * an 871 KB chunk. It is desktop-only by design: on a phone it is never
+ * rendered at all.
+ *
+ * It used to be pulled in with next/dynamic. That code-splits, but because
+ * HeroV2 imports this component statically and the hero is above the fold,
+ * Next emitted the dynamic chunk as an eager <script async> in the initial
+ * HTML — so every phone downloaded and parsed all 871 KB of three for an orb
+ * it would never draw.
+ *
+ * A plain runtime import() inside the effect keeps the same split without the
+ * preload: the chunk is requested only once the media query has actually
+ * matched, i.e. only on a real desktop.
+ */
 export function HeroOrb() {
-  // ShaderOrb is WebGL (its own GL context + rAF). It was hidden on < lg via
-  // CSS, but still mounted and ran on phones/tablets. Only mount it on a real
-  // desktop (fine pointer, ≥ lg) so mobile pays absolutely nothing for it.
-  const [show, setShow] = useState(false);
+  const [Orb, setOrb] = useState<ComponentType | null>(null);
+
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1024px) and (pointer: fine)");
-    const apply = () => setShow(mq.matches);
-    apply();
-    mq.addEventListener?.("change", apply);
-    return () => mq.removeEventListener?.("change", apply);
+    let cancelled = false;
+
+    const load = () => {
+      // Only fetch on a desktop, and only once.
+      if (!mq.matches || cancelled) return;
+      import("@/components/effects/ShaderOrb")
+        .then((m) => {
+          if (!cancelled) setOrb(() => m.ShaderOrb);
+        })
+        .catch(() => {
+          // A failed decorative chunk must never break the hero.
+        });
+    };
+
+    load();
+    // Covers a tablet rotating into desktop width, or an external mouse.
+    mq.addEventListener?.("change", load);
+    return () => {
+      cancelled = true;
+      mq.removeEventListener?.("change", load);
+    };
   }, []);
-  if (!show) return null;
-  return <ShaderOrb />;
+
+  return Orb ? <Orb /> : null;
 }
