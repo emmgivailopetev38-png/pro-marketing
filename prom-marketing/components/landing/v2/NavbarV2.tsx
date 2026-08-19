@@ -134,7 +134,7 @@ export function NavbarV2() {
     >
       <nav
         className={cn(
-          "v2-glow flex w-full max-w-6xl items-center justify-between rounded-full px-5 py-2.5 transition-all duration-300",
+          "v2-glow flex w-full max-w-6xl items-center justify-between gap-2 rounded-full px-3 py-2.5 transition-all duration-300 sm:px-4 md:px-5",
           scrolled || explore
             ? "border shadow-[0_0_40px_-8px_var(--v2-glow-cyan)]"
             : "border border-transparent bg-transparent"
@@ -150,7 +150,7 @@ export function NavbarV2() {
             : undefined
         }
       >
-        <a href="/" aria-label="ProMarketing начало">
+        <a href="/" aria-label="ProMarketing начало" className="min-w-0 shrink">
           <Logo />
         </a>
         <ul
@@ -241,7 +241,7 @@ export function NavbarV2() {
             )}
           </li>
         </ul>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <a
             href="tel:+359877399963"
             aria-label="Обади се: 0877 399 963"
@@ -262,9 +262,13 @@ export function NavbarV2() {
               track("cta_clicked", { location: "navbar", target: "booking" });
               void openBookingPopup();
             }}
-            className="v2-btn v2-btn-primary inline-flex !px-3 !py-1.5 !text-xs md:!px-4 md:!py-2 md:!text-sm"
+            className="v2-btn v2-btn-primary inline-flex !px-3 !py-2.5 !text-xs md:!px-4 md:!py-2 md:!text-sm"
           >
-            Запази среща
+            {/* Кратък надпис под sm — точно тези ~50px липсваха на логото.
+                py-2.5 вместо py-1.5: беше висок 28px, под минимума от 44px
+                за цел, която се натиска с пръст. */}
+            <span className="sm:hidden">Среща</span>
+            <span className="hidden sm:inline">Запази среща</span>
             <span aria-hidden className="v2-arrow">→</span>
           </button>
           <button
