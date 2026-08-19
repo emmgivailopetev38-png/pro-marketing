@@ -7,7 +7,7 @@ type Sb = ReturnType<typeof createServiceClient>;
 
 /** Where replies land — the owner's active inbox. */
 function replyToAddress(): string {
-  return process.env.EMAIL_REPLY_TO || "ivailopetev38@gmail.com";
+  return process.env.EMAIL_REPLY_TO || "emmgivailopetev38@gmail.com";
 }
 
 export interface WelcomeArgs {
