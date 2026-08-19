@@ -201,7 +201,7 @@ async function processLead(leadgenId: string, formId: string | null) {
   }
 
   // Notify admin (fire-and-forget)
-  const adminTo = (process.env.ALLOWED_ADMIN_EMAILS ?? "ivailopetev38@gmail.com")
+  const adminTo = (process.env.ALLOWED_ADMIN_EMAILS ?? "emmgivailopetev38@gmail.com")
     .split(",").map((s) => s.trim()).filter(Boolean)[0];
   if (adminTo) {
     sendEmail({
