@@ -162,7 +162,7 @@ export function Antoan09PresentationDocument() {
             <View style={s.footerCol}>
               <Text style={s.footerBold}>„ПроМаркетинг" ЕООД</Text>
               <Text>Ивайло Петев · управител</Text>
-              <Text>ivailopetev38@gmail.com</Text>
+              <Text>emmgivailopetev38@gmail.com</Text>
               <Text>+359 877 399 963</Text>
             </View>
             <View style={[s.footerCol, { textAlign: "right" }]}>
