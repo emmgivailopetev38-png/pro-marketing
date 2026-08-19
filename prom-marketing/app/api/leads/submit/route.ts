@@ -120,14 +120,20 @@ export async function POST(request: Request) {
     });
   }
 
-  // Notify admin (fire-and-forget — don't fail the form if email is down).
-  const adminTo = (process.env.ALLOWED_ADMIN_EMAILS ?? "ivailopetev38@gmail.com")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean)[0];
+  // Notify admin. Awaited on purpose: fire-and-forget dropped notifications,
+  // because the serverless function is frozen as soon as the response returns
+  // and the pending send never flushed. sendEmail never throws (it returns
+  // { error }), so awaiting it cannot break the form.
+  // Recipient falls back to EMAIL_REPLY_TO (the var the crons use and that is
+  // known-good) instead of the old, dead Gmail address.
+  const adminTo =
+    (process.env.ALLOWED_ADMIN_EMAILS ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)[0] || process.env.EMAIL_REPLY_TO?.trim() || "";
 
   if (adminTo) {
-    sendEmail({
+    const notify = await sendEmail({
       to: adminTo,
       subject: `🚀 Нов lead от сайта · ${full_name}`,
       html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#0d1221;">
@@ -148,7 +154,12 @@ ${message ? `<tr><td style="padding:4px 12px 4px 0;color:#777;vertical-align:top
 Телефон: ${phone}${company_activity ? `\nФирма/дейност: ${company_activity}` : ""}${message ? `\n\nСъобщение:\n${message}` : ""}
 
 CRM: https://promarketing.pw/admin/clients/${contactId}`,
-    }).catch(() => {});
+    });
+    if (notify.error) {
+      console.error("[leads/submit] admin notification failed:", notify.error);
+    }
+  } else {
+    console.error("[leads/submit] no admin recipient configured (ALLOWED_ADMIN_EMAILS / EMAIL_REPLY_TO)");
   }
 
   return NextResponse.json({ ok: true });
