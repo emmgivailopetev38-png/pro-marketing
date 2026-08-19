@@ -355,6 +355,7 @@ export async function createManualReviewItem(input: ManualReviewInput): Promise<
       severity: input.severity,
       status: "open",
       dedupe_key: dedupe,
+      payload: input.payload ?? null,
     })
     .select("id")
     .single();

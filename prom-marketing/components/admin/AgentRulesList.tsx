@@ -11,6 +11,7 @@ const SCOPE_LABEL: Record<AgentRuleScope, string> = {
   ads: "Рекламен",
   auditor: "Одитор",
   all: "Всички",
+  voice: "Глас",
 };
 const SCOPE_COLOR: Record<string, string> = {
   postalion: "#22d3ee",
@@ -18,6 +19,7 @@ const SCOPE_COLOR: Record<string, string> = {
   sales: "#a78bfa",
   ads: "#fb923c",
   auditor: "#34d399",
+  voice: "#f472b6",
   all: "#7da8cc",
 };
 const inputCls =

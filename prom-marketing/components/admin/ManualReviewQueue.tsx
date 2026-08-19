@@ -27,6 +27,7 @@ const SCOPE_LABEL: Record<AgentRuleScope, string> = {
   ads: "Рекламен",
   auditor: "Одитор",
   all: "Всички",
+  voice: "Глас",
 };
 
 /**

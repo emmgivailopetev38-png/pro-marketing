@@ -71,6 +71,8 @@ export const MANUAL_REVIEW_TYPES = [
   "bank_statement_error",
   "duplicate_invoice",
   "recurring_billing_issue",
+  // Гласовият агент иска одобрение за необратимо действие (имейл, реклама, триене).
+  "voice_approval",
 ] as const;
 export const SEVERITIES = ["low", "medium", "high"] as const;
 export const MANUAL_REVIEW_STATUSES = ["open", "resolved", "ignored", "needs_user", "blocked"] as const;
@@ -197,6 +199,8 @@ export const manualReviewInputSchema = z.object({
   related_payment_id: z.string().uuid().optional(),
   severity: z.enum(SEVERITIES).default("medium"),
   dedupe_key: z.string().trim().optional(),
+  // Какво точно да се изпълни при одобрение. Пълни се само от voice_approval.
+  payload: z.record(z.string(), z.unknown()).optional(),
 });
 export type ManualReviewInput = z.infer<typeof manualReviewInputSchema>;
 
@@ -684,7 +688,7 @@ export interface InsightRow {
 // ─────────────────────────────────────────────────────────────────────────
 // Agent rules — „уроци" за AI работниците (учебният цикъл от UI)
 // ─────────────────────────────────────────────────────────────────────────
-export const AGENT_RULE_SCOPES = ["postalion", "accountant", "sales", "ads", "auditor", "all"] as const;
+export const AGENT_RULE_SCOPES = ["postalion", "accountant", "sales", "ads", "auditor", "all", "voice"] as const;
 export type AgentRuleScope = (typeof AGENT_RULE_SCOPES)[number];
 
 export const agentRuleInputSchema = z.object({
