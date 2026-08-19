@@ -131,7 +131,7 @@ ${WEBINAR.host.name}`,
   }).catch(() => {});
 
   // Известие към админа (fire-and-forget).
-  const adminTo = (process.env.ALLOWED_ADMIN_EMAILS ?? "ivailopetev38@gmail.com")
+  const adminTo = (process.env.ALLOWED_ADMIN_EMAILS ?? "emmgivailopetev38@gmail.com")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean)[0];
