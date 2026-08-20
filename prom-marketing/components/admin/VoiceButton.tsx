@@ -16,7 +16,7 @@ const WIDGET_SRC = "https://unpkg.com/@elevenlabs/convai-widget-embed";
 
 type State = "idle" | "loading" | "ready" | "error";
 
-export function VoiceButton() {
+export function VoiceButton({ agent, label }: { agent?: "demo"; label?: string } = {}) {
   const [state, setState] = useState<State>("idle");
   const [message, setMessage] = useState<string>("");
   const holder = useRef<HTMLDivElement>(null);
@@ -36,7 +36,9 @@ export function VoiceButton() {
     setState("loading");
     setMessage("");
     try {
-      const res = await fetch("/api/voice/session", { cache: "no-store" });
+      const res = await fetch(agent === "demo" ? "/api/voice/session?agent=demo" : "/api/voice/session", {
+        cache: "no-store",
+      });
       const data = (await res.json()) as { signed_url?: string; error?: string; detail?: string };
 
       if (!res.ok || !data.signed_url) {
@@ -87,7 +89,7 @@ export function VoiceButton() {
           }}
         >
           {state === "loading" ? <Loader2 size={20} className="animate-spin" /> : <Mic size={20} />}
-          {state === "loading" ? "Свързвам…" : state === "error" ? "Опитай пак" : "Говори с агента"}
+          {state === "loading" ? "Свързвам…" : state === "error" ? "Опитай пак" : (label ?? "Говори с агента")}
         </button>
       )}
 

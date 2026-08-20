@@ -16,14 +16,23 @@ export const dynamic = "force-dynamic";
  * може да говори с CRM-а — затова минаваме през подписан адрес, който живее
  * само няколко минути и се издава единствено на влязъл админ.
  */
-export async function GET() {
+/** Демо агентът за клиентски срещи — без инструменти, без достъп до CRM-а. */
+const DEMO_AGENT_ID = "agent_3601m0fwfrjwey6bgdfrkf1qa5d0";
+
+export async function GET(request: Request) {
   const cookieStore = await cookies();
   if (!verifySession(cookieStore.get(ADMIN_COOKIE)?.value ?? null)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // ?agent=demo дава безопасния агент за показване пред клиент.
+  // Всичко друго дава личния, който вижда CRM-а.
+  const wantsDemo = new URL(request.url).searchParams.get("agent") === "demo";
+
   const apiKey = process.env.ELEVENLABS_API_KEY;
-  const agentId = process.env.ELEVENLABS_AGENT_ID;
+  const agentId = wantsDemo
+    ? (process.env.ELEVENLABS_DEMO_AGENT_ID ?? DEMO_AGENT_ID)
+    : process.env.ELEVENLABS_AGENT_ID;
   if (!apiKey || !agentId) {
     return NextResponse.json(
       { error: "not_configured", detail: "Липсват ELEVENLABS_API_KEY или ELEVENLABS_AGENT_ID." },
