@@ -25,6 +25,15 @@ const FILTERS: Array<{ key: FilterKey; label: string }> = [
   { key: "photo", label: "Снимки" },
 ];
 
+/**
+ * Пътищата, започващи с `/`, `~` или `C:\`, са по файловата система на сървъра,
+ * а не ключове в бъкета — такъв файл няма как да се свали от таблото.
+ */
+function fileIsReachable(path: string | null | undefined): boolean {
+  if (!path) return false;
+  return !(path.startsWith("/") || path.startsWith("~") || /^[A-Za-z]:[\\/]/.test(path));
+}
+
 export function DocumentsTable({ rows }: { rows: DocRow[] }) {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [search, setSearch] = useState("");
@@ -109,6 +118,22 @@ export function DocumentsTable({ rows }: { rows: DocRow[] }) {
                 {r.invoice_number && <span>🧾 {r.invoice_number}</span>}
                 <span>{formatDate(r.created_at)}</span>
                 <span>{r.source}</span>
+                {fileIsReachable(r.storage_path) ? (
+                  <a
+                    href={`/api/admin/documents/${r.id}/download`}
+                    className="hover:text-[var(--color-accent-cyan)]"
+                    title={r.file_name ?? undefined}
+                  >
+                    ⬇ Свали
+                  </a>
+                ) : (
+                  <span
+                    className="text-[var(--color-accent-amber,#d9a441)]"
+                    title="Записан е път по диска на сървъра, а не файл в хранилището. Качи го наново през /api/crm/document с file_base64."
+                  >
+                    ⚠ файлът не е в хранилището
+                  </span>
+                )}
               </div>
             </div>
             <span
