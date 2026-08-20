@@ -399,3 +399,98 @@ export async function resolveManualReviewItem(args: {
   if (error) return { error: error.message ?? "update failed" };
   return { error: null };
 }
+
+// ── срещи ──────────────────────────────────────────────────────────────────
+
+/**
+ * Срещите, които досега Hermes изобщо не виждаше — таблица `bookings` се
+ * пълнеше само от Cal.com webhook-а и от админ таблото.
+ * `when=upcoming|past|today` е удобство върху scheduled_at.
+ */
+export async function listBookings(
+  opts: PageOpts & {
+    status?: string[];
+    when?: "upcoming" | "past" | "today";
+    q?: string;
+    from?: string;
+    to?: string;
+  }
+): Promise<ListResult> {
+  const { rows, error } = await fetchAll("bookings");
+  if (error) return { items: [], total: 0, error };
+
+  const now = Date.now();
+  const dayStart = new Date();
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(dayStart);
+  dayEnd.setDate(dayEnd.getDate() + 1);
+
+  const filtered = rows.filter((r) => {
+    if (opts.status && !opts.status.includes(String(r.status))) return false;
+    if (opts.q && !textMatches(opts.q, [r.attendee_name, r.attendee_email, r.business, r.automation_goal]))
+      return false;
+    const at = ts(r.scheduled_at);
+    if (opts.when === "upcoming" && (at === null || at < now)) return false;
+    if (opts.when === "past" && (at === null || at >= now)) return false;
+    if (opts.when === "today" && (at === null || at < dayStart.getTime() || at >= dayEnd.getTime()))
+      return false;
+    return inRange(r.scheduled_at, opts.from, opts.to);
+  });
+
+  // Предстоящите се четат отпред назад, миналите — отзад напред.
+  const sorted =
+    opts.when === "upcoming"
+      ? filtered.slice().sort((a, b) => (ts(a.scheduled_at) ?? 0) - (ts(b.scheduled_at) ?? 0))
+      : sortByDateDesc(filtered, (r) => r.scheduled_at);
+
+  return { ...paginate(sorted, opts.limit, opts.offset), error: null };
+}
+
+// ── активности (лента през всички контакти) ────────────────────────────────
+
+/**
+ * Досега активностите се четяха само през профила на един контакт.
+ * Това е лентата „какво се случи“ през целия CRM.
+ */
+export async function listActivities(
+  opts: PageOpts & {
+    contact_id?: string;
+    activity_type?: string[];
+    created_by?: string;
+    q?: string;
+    from?: string;
+    to?: string;
+  }
+): Promise<ListResult> {
+  const { rows, error } = await fetchAll("contact_activities");
+  if (error) return { items: [], total: 0, error };
+  const filtered = rows.filter((r) => {
+    if (opts.contact_id && r.contact_id !== opts.contact_id) return false;
+    if (opts.activity_type && !opts.activity_type.includes(String(r.activity_type))) return false;
+    if (opts.created_by && String(r.created_by ?? "") !== opts.created_by) return false;
+    if (opts.q && !textMatches(opts.q, [r.title, r.body])) return false;
+    return inRange(r.occurred_at ?? r.created_at, opts.from, opts.to);
+  });
+  return {
+    ...paginate(sortByDateDesc(filtered, (r) => r.occurred_at ?? r.created_at), opts.limit, opts.offset),
+    error: null,
+  };
+}
+
+// ── отчети за Meta рекламите ───────────────────────────────────────────────
+
+/** Hermes ги пишеше, но не можеше да ги прочете обратно. */
+export async function listMetaAdsReports(
+  opts: PageOpts & { campaign?: string; from?: string; to?: string }
+): Promise<ListResult> {
+  const { rows, error } = await fetchAll("meta_ads_reports");
+  if (error) return { items: [], total: 0, error };
+  const filtered = rows.filter((r) => {
+    if (opts.campaign && !textMatches(opts.campaign, [r.campaign])) return false;
+    return inRange(r.report_date, opts.from, opts.to);
+  });
+  return {
+    ...paginate(sortByDateDesc(filtered, (r) => r.report_date), opts.limit, opts.offset),
+    error: null,
+  };
+}

@@ -1492,3 +1492,143 @@ export async function getSalesSummary(): Promise<Record<string, unknown>> {
     ready_to_close: contacts.filter((c) => c.followup_status === "ready_to_close").length,
   };
 }
+
+// ── срещи ────────────────────────────────────────────────────────────────────
+
+/**
+ * Записва среща, уговорена извън Cal.com — по телефона, на място, по имейл.
+ * Cal.com пълни същата таблица през webhook-а си, затова ключът `cal_booking_id`
+ * тук получава префикс `manual:`, за да не се блъснат двата източника.
+ * Идемпотентно по този ключ.
+ */
+export async function upsertBooking(input: {
+  cal_booking_id?: string;
+  attendee_name: string;
+  attendee_email: string;
+  attendee_phone?: string;
+  scheduled_at: string;
+  duration_minutes?: number;
+  status?: string;
+  business?: string;
+  automation_goal?: string;
+  timeline?: string;
+  meeting_url?: string;
+  services_interested?: unknown;
+  notes?: string;
+}): Promise<{ id: string | null; created: boolean; error: string | null }> {
+  const sb = createServiceClient();
+
+  const when = new Date(input.scheduled_at);
+  if (Number.isNaN(when.getTime())) return { id: null, created: false, error: "невалидна дата" };
+
+  const key =
+    input.cal_booking_id?.trim() ||
+    `manual:${when.toISOString().slice(0, 16)}:${input.attendee_email.trim().toLowerCase()}`;
+
+  const { data: existing } = await sb
+    .from("bookings")
+    .select("id")
+    .eq("cal_booking_id", key)
+    .maybeSingle();
+
+  const payload: Record<string, unknown> = {
+    cal_booking_id: key,
+    attendee_name: input.attendee_name.trim(),
+    attendee_email: input.attendee_email.trim().toLowerCase(),
+    attendee_phone: input.attendee_phone?.trim() ?? null,
+    scheduled_at: when.toISOString(),
+    duration_minutes: input.duration_minutes ?? 60,
+    status: input.status ?? "accepted",
+    business: input.business?.trim() ?? null,
+    automation_goal: input.automation_goal?.trim() ?? null,
+    timeline: input.timeline?.trim() ?? null,
+    meeting_url: input.meeting_url?.trim() ?? null,
+    services_interested: input.services_interested ?? null,
+    raw_payload: { source: "hermes", notes: input.notes ?? null },
+    updated_at: new Date().toISOString(),
+  };
+
+  if (existing) {
+    const { error } = await sb.from("bookings").update(payload).eq("id", existing.id);
+    if (error) return { id: existing.id, created: false, error: error.message ?? "update failed" };
+    return { id: existing.id, created: false, error: null };
+  }
+
+  const { data, error } = await sb.from("bookings").insert(payload).select("id").single();
+  if (error || !data) {
+    return { id: null, created: false, error: error?.message ?? "insert failed" };
+  }
+
+  // Срещата се отразява и в картона на контакта, ако го има по имейл или телефон.
+  const { data: contact } = await sb
+    .from("contacts")
+    .select("id")
+    .eq("email", payload.attendee_email as string)
+    .maybeSingle();
+  if (contact) {
+    await logActivity(sb, {
+      contact_id: contact.id,
+      type: "meeting",
+      title: `Среща · ${when.toISOString().slice(0, 10)}`,
+      body: input.notes ?? null,
+      occurred_at: when.toISOString(),
+      metadata: { booking_id: data.id, meeting_url: payload.meeting_url, source: "hermes" },
+    }).catch(() => {});
+  }
+
+  await recordAutomationEvent({
+    event_type: "booking_created",
+    related_contact_id: (contact?.id as string | undefined) ?? null,
+    summary: `Среща с ${payload.attendee_name} на ${when.toISOString().slice(0, 16)}`,
+    idempotency_key: `booking:${data.id}`,
+  }).catch(() => {});
+
+  return { id: data.id, created: true, error: null };
+}
+
+/** Мести час, отменя или потвърждава вече записана среща. */
+export async function updateBooking(args: {
+  id: string;
+  scheduled_at?: string;
+  duration_minutes?: number;
+  status?: string;
+  meeting_url?: string;
+  notes?: string;
+}): Promise<{ error: string | null }> {
+  const sb = createServiceClient();
+  const { data: row } = await sb
+    .from("bookings")
+    .select("id, scheduled_at, status, raw_payload")
+    .eq("id", args.id)
+    .maybeSingle();
+  if (!row) return { error: "booking not found" };
+
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (args.scheduled_at) {
+    const when = new Date(args.scheduled_at);
+    if (Number.isNaN(when.getTime())) return { error: "невалидна дата" };
+    patch.scheduled_at = when.toISOString();
+  }
+  if (args.duration_minutes !== undefined) patch.duration_minutes = args.duration_minutes;
+  if (args.status) patch.status = args.status;
+  if (args.meeting_url !== undefined) patch.meeting_url = args.meeting_url;
+  if (args.notes) {
+    const raw = ((row as { raw_payload?: Record<string, unknown> }).raw_payload ?? {}) as Record<string, unknown>;
+    patch.raw_payload = { ...raw, notes: args.notes };
+  }
+  if (Object.keys(patch).length === 1) return { error: null };
+
+  const { error } = await sb.from("bookings").update(patch).eq("id", args.id);
+  if (error) return { error: error.message ?? "update failed" };
+
+  await recordAutomationEvent({
+    event_type: "booking_updated",
+    summary:
+      `Среща ${args.id.slice(0, 8)} → ` +
+      [args.status, patch.scheduled_at ? String(patch.scheduled_at).slice(0, 16) : null]
+        .filter(Boolean)
+        .join(", "),
+    idempotency_key: `booking-upd:${args.id}:${Date.now()}`,
+  }).catch(() => {});
+  return { error: null };
+}
