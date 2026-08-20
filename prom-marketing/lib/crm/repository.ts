@@ -2,6 +2,14 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { evaluatePaymentMatch, invoiceStatusAfterPayment, type MatchConfidence } from "./match";
 import { toEur, convertWith, fxColumns } from "./fx";
 import { INVOICE_STATUSES, type InvoiceStatus } from "./types";
+import {
+  MAX_DOC_BYTES,
+  buildDocumentKey,
+  decodeBase64,
+  isLocalPath,
+  removeDocumentBlob,
+  uploadDocumentBlob,
+} from "./storage";
 import { tgNotify } from "@/lib/notifications/telegram";
 import {
   resolvePeriod,
@@ -647,7 +655,9 @@ export async function upsertExpense(input: ExpenseInput): Promise<UpsertResult> 
 }
 
 // ── documents ────────────────────────────────────────────────────────────────
-export async function upsertDocument(input: DocumentInput): Promise<UpsertResult & { contact_id: string | null }> {
+export async function upsertDocument(
+  input: DocumentInput
+): Promise<UpsertResult & { contact_id: string | null; warning?: string | null }> {
   const sb = createServiceClient();
 
   let contactId = input.contact_id ?? null;
@@ -668,6 +678,39 @@ export async function upsertDocument(input: DocumentInput): Promise<UpsertResult
   const linked = !!(contactId || input.invoice_id || input.payment_id || input.expense_id);
   const matchStatus = input.match_status ?? (linked ? "matched" : "unmatched");
 
+  // Съдържанието на файла отива в бъкета; в базата стои само ключът към него.
+  // Без това качване документът е само ред в таблица — файл за сваляне няма.
+  let storagePath = input.storage_path ?? null;
+  let sizeBytes = input.size_bytes ?? null;
+  let mimeType = input.mime_type ?? null;
+  let uploadedKey: string | null = null;
+  let warning: string | null = null;
+
+  if (input.file_base64) {
+    const { buf, mime } = decodeBase64(input.file_base64);
+    if (buf.length === 0) {
+      return { id: null, created: false, error: "file_base64 не се разчита", contact_id: contactId };
+    }
+    if (buf.length > MAX_DOC_BYTES) {
+      return { id: null, created: false, error: "файлът е над 50 MB", contact_id: contactId };
+    }
+    mimeType = mimeType ?? mime;
+    const key = buildDocumentKey(contactId, input.file_name ?? input.title ?? null);
+    const { error: upErr } = await uploadDocumentBlob({ key, buf, mimeType });
+    if (upErr) {
+      return { id: null, created: false, error: `качване: ${upErr}`, contact_id: contactId };
+    }
+    uploadedKey = key;
+    storagePath = key;
+    sizeBytes = buf.length;
+  } else if (isLocalPath(storagePath)) {
+    // Стар навик: път по диска на VPS-а. Записваме го, за да не се губи следата,
+    // но казваме ясно, че такъв файл не се сваля от CRM-а.
+    warning =
+      "storage_path е път по файловата система — файлът няма да се сваля от CRM-а. " +
+      "Изпрати съдържанието във file_base64, за да влезе в хранилището.";
+  }
+
   const { data, error } = await sb
     .from("documents")
     .insert({
@@ -678,9 +721,9 @@ export async function upsertDocument(input: DocumentInput): Promise<UpsertResult
       doc_type: input.doc_type,
       title: input.title ?? null,
       file_name: input.file_name ?? null,
-      storage_path: input.storage_path ?? null,
-      mime_type: input.mime_type ?? null,
-      size_bytes: input.size_bytes ?? null,
+      storage_path: storagePath,
+      mime_type: mimeType,
+      size_bytes: sizeBytes,
       ocr_text: input.ocr_text ?? null,
       extracted: input.extracted ?? null,
       match_status: matchStatus,
@@ -693,6 +736,8 @@ export async function upsertDocument(input: DocumentInput): Promise<UpsertResult
     .select("id")
     .single();
   if (error || !data) {
+    // Качихме файл, но редът не влезе — не оставяй сирак в бъкета.
+    if (uploadedKey) await removeDocumentBlob(uploadedKey);
     return { id: null, created: false, error: error?.message ?? "insert failed", contact_id: contactId };
   }
 
@@ -715,7 +760,7 @@ export async function upsertDocument(input: DocumentInput): Promise<UpsertResult
     idempotency_key: `doc:${data.id}`,
   }).catch(() => {});
 
-  return { id: data.id, created: true, error: null, contact_id: contactId };
+  return { id: data.id, created: true, error: null, contact_id: contactId, warning };
 }
 
 // ── meta ads reports ─────────────────────────────────────────────────────────
@@ -793,7 +838,11 @@ export async function updateContact(args: {
   next_followup_at?: string;
 }): Promise<{ error: string | null }> {
   const sb = createServiceClient();
-  const { data: contact } = await sb.from("contacts").select("id").eq("id", args.id).maybeSingle();
+  const { data: contact } = await sb
+    .from("contacts")
+    .select(["id", ...CONTACT_PATCH_FIELDS].join(", "))
+    .eq("id", args.id)
+    .maybeSingle();
   if (!contact) return { error: "contact not found" };
 
   const patch: Record<string, unknown> = {};
@@ -802,13 +851,38 @@ export async function updateContact(args: {
   }
   if (Object.keys(patch).length === 0) return { error: null };
 
+  // Одитната следа трябва да казва ОТ КАКВО НА КАКВО, не само кое поле е пипнато —
+  // иначе после няма как да се провери дали корекцията е била вярна.
+  const prevRow = contact as unknown as Record<string, unknown>;
+  const before: Record<string, unknown> = {};
+  const after: Record<string, unknown> = {};
+  const lines: string[] = [];
+  const show = (v: unknown, max: number) => {
+    if (v === null || v === undefined || v === "") return "(празно)";
+    const s = String(v).replace(/\s+/g, " ").trim();
+    return s.length > max ? `${s.slice(0, max)}…` : s;
+  };
+  const changed: string[] = [];
+  for (const key of Object.keys(patch)) {
+    const prev = prevRow[key] ?? null;
+    const next = patch[key];
+    if (String(prev ?? "") === String(next ?? "")) continue; // без промяна — не го брой
+    changed.push(key);
+    before[key] = typeof prev === "string" ? show(prev, 500) : prev;
+    after[key] = typeof next === "string" ? show(next, 500) : next;
+    lines.push(`${key}: ${show(prev, 160)} → ${show(next, 160)}`);
+  }
+  if (changed.length === 0) return { error: null };
+
   const { error } = await sb.from("contacts").update(patch).eq("id", args.id);
   if (error) return { error: error.message ?? "update failed" };
 
   await logActivity(sb, {
     contact_id: args.id,
     type: "note",
-    title: `Корекция: ${Object.keys(patch).join(", ")}`,
+    title: `Корекция: ${changed.join(", ")}`,
+    body: lines.join("\n"),
+    metadata: { before, after, fields: changed },
   }).catch(() => {});
   return { error: null };
 }

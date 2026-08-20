@@ -446,6 +446,13 @@ export const documentInputSchema = z.object({
   doc_type: z.enum(DOC_TYPES).default("other"),
   title: z.string().trim().optional(),
   file_name: z.string().trim().optional(),
+  /**
+   * Съдържанието на файла, base64 (приема се и `data:<mime>;base64,…`).
+   * Когато е подадено, файлът се качва в бъкета `crm-documents` и
+   * `storage_path` се презаписва с ключа му — това е правилният начин.
+   * Без него в базата остава само запис, но файл за сваляне няма.
+   */
+  file_base64: z.string().min(1).optional(),
   storage_path: z.string().trim().optional(),
   mime_type: z.string().trim().optional(),
   size_bytes: z.coerce.number().int().optional(),
