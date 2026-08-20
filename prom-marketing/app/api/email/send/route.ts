@@ -55,16 +55,19 @@ async function requireAdmin() {
 }
 
 function checkBearer(request: Request): { email: string } | null {
-  const expected = process.env.INTERNAL_SEND_TOKEN;
-  if (!expected) return null;
+  const expectedTokens = [process.env.INTERNAL_SEND_TOKEN, process.env.HERMES_API_TOKEN].filter(
+    (token): token is string => Boolean(token)
+  );
+  if (expectedTokens.length === 0) return null;
   const header = request.headers.get("authorization") ?? "";
   const prefix = "Bearer ";
   if (!header.startsWith(prefix)) return null;
-  const provided = header.slice(prefix.length);
-  const a = Buffer.from(provided);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length) return null;
-  if (!timingSafeEqual(a, b)) return null;
+  const provided = Buffer.from(header.slice(prefix.length));
+  const valid = expectedTokens.some((expected) => {
+    const candidate = Buffer.from(expected);
+    return provided.length === candidate.length && timingSafeEqual(provided, candidate);
+  });
+  if (!valid) return null;
   const adminEmail = (process.env.ALLOWED_ADMIN_EMAILS ?? "")
     .split(",")
     .map((s) => s.trim())
