@@ -24,6 +24,8 @@ const bodySchema = z.object({
   attachments: z.array(attachmentSchema).max(10).optional(),
   /** Required for token (Hermes) sends to non-owner recipients — explicit human approval. */
   approved: z.boolean().optional(),
+  /** Keep the existing CRM sales stage while still logging the sent email. */
+  preserveStage: z.boolean().optional(),
 });
 
 /** Owner inboxes — token callers may always send here (previews), no approval needed. */
@@ -138,7 +140,7 @@ export async function POST(request: Request) {
           email: to,
           source: "email",
           source_ref: result.id,
-          bump_stage_to: "contacted",
+          ...(parsed.data.preserveStage ? {} : { bump_stage_to: "contacted" as const }),
           activity: {
             type: "email_sent",
             title: `Изпратен имейл: ${parsed.data.subject}`,

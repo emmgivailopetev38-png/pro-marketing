@@ -18,7 +18,7 @@ vi.mock("@/lib/contacts/repository", () => ({
 
 import { POST } from "./route";
 
-function request(token: string, approved?: boolean, to = "client@example.com") {
+function request(token: string, approved?: boolean, to = "client@example.com", preserveStage?: boolean) {
   return new Request("https://example.com/api/email/send", {
     method: "POST",
     headers: {
@@ -31,6 +31,7 @@ function request(token: string, approved?: boolean, to = "client@example.com") {
       text: "Message",
       replyTo: "owner@example.com",
       approved,
+      preserveStage,
     }),
   });
 }
@@ -77,6 +78,14 @@ describe("POST /api/email/send bearer auth", () => {
 
     expect(response.status).toBe(200);
     expect(m.sendEmail).toHaveBeenCalledOnce();
+  });
+
+  it("can log the send without changing the existing CRM stage", async () => {
+    const response = await POST(request("hermes-token", true, "client@example.com", true));
+
+    expect(response.status).toBe(200);
+    expect(m.upsertContactAndLog).toHaveBeenCalledOnce();
+    expect(m.upsertContactAndLog.mock.calls[0][0]).not.toHaveProperty("bump_stage_to");
   });
 
   it("keeps the approval interlock for external recipients", async () => {
