@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { ADMIN_COOKIE, verifySession } from "@/lib/admin/session";
+import { getPageAccessToken, META_PAGE_ID } from "@/lib/meta/page-token";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export const dynamic = "force-dynamic";
  * през ничии ръце. Заключено зад админската бисквитка.
  */
 
-const PAGE_ID = process.env.META_PAGE_ID || "106080979260944"; // Pro Marketing LTD
+const PAGE_ID = META_PAGE_ID;
 const GRAPH = "https://graph.facebook.com/v22.0";
 
 export async function GET(request: Request) {
@@ -29,13 +30,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const token = process.env.META_PAGE_ACCESS_TOKEN;
-  if (!token) {
-    return NextResponse.json(
-      { error: "META_PAGE_ACCESS_TOKEN липсва във Vercel" },
-      { status: 500 }
-    );
+  // Системният токен не става за subscribed_apps — вади се page токен.
+  const tok = await getPageAccessToken();
+  if (!tok.ok) {
+    return NextResponse.json({ error: tok.error }, { status: 500 });
   }
+  const token = tok.token;
 
   const action = new URL(request.url).searchParams.get("action");
 
@@ -62,6 +62,7 @@ export async function GET(request: Request) {
         subscribed: body,
         potvurdeno: state?.data ?? state,
         page_id: PAGE_ID,
+        page_token_izvleche_se: tok.derived,
       });
     }
 
@@ -79,6 +80,7 @@ export async function GET(request: Request) {
       stranicata_e_abonirana_za_leadgen: leadgen,
       apps,
       graph_status: res.status,
+      page_token_izvleche_se: tok.derived,
     });
   } catch (e) {
     return NextResponse.json(

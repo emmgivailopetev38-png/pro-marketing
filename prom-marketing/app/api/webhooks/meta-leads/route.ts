@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/resend";
 import { LEAD_SEQUENCE, sendSequenceStep } from "@/lib/email/lead-sequence";
+import { getPageAccessToken } from "@/lib/meta/page-token";
 import { escapeHtml } from "@/lib/email/escape";
 
 export const dynamic = "force-dynamic";
@@ -88,7 +89,9 @@ function extractField(fieldData: MetaLeadFieldData[], names: string[]): string |
 
 // --- Process one lead: dedup, insert/update contact, log activity, notify ---
 async function processLead(leadgenId: string, formId: string | null) {
-  const pageAccessToken = process.env.META_PAGE_ACCESS_TOKEN;
+  // Конфигурираният токен е СИСТЕМЕН; Graph иска page токен за лийдовете.
+  const tok = await getPageAccessToken();
+  const pageAccessToken = tok.ok ? tok.token : null;
   if (!pageAccessToken) {
     console.error("[meta-leads] META_PAGE_ACCESS_TOKEN missing");
     return { ok: false, error: "missing_token" };
