@@ -29,6 +29,7 @@ interface FollowUp {
   company: string | null;
   stage: string;
   next_followup_at: string;
+  last_heard_from_at: string | null;
 }
 
 interface LeadToCall {
@@ -86,14 +87,21 @@ export async function GET(request: Request) {
 
   const { data: followupRows } = await supabase
     .from("contacts")
-    .select("id, full_name, phone, email, company, stage, next_followup_at")
+    .select("id, full_name, phone, email, company, stage, next_followup_at, last_heard_from_at")
     .not("next_followup_at", "is", null)
     .lte("next_followup_at", todayEnd.toISOString())
     .not("stage", "in", "(won,lost)")
     .order("next_followup_at", { ascending: true })
     .limit(50);
 
-  const followups = (followupRows ?? []) as FollowUp[];
+  // Ако вече си се чул с човека СЛЕД датата, за която си се сетил да го звъннеш,
+  // напомнянето си е свършило работата — иначе „Обадихме се" не пипа датата и
+  // контактът стои просрочен завинаги, докато имейлът не стане шум.
+  const followups = ((followupRows ?? []) as FollowUp[]).filter(
+    (f) =>
+      !f.last_heard_from_at ||
+      new Date(f.last_heard_from_at) < new Date(f.next_followup_at)
+  );
 
   // Последната човешка активност — за да си спомниш какво си обещал.
   const lastTouch = new Map<string, { title: string; occurred_at: string }>();
