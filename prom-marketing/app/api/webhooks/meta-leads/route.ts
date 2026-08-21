@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/resend";
-import { sendWelcomeEmail } from "@/lib/email/welcome";
+import { LEAD_SEQUENCE, sendSequenceStep } from "@/lib/email/lead-sequence";
 import { escapeHtml } from "@/lib/email/escape";
 
 export const dynamic = "force-dynamic";
@@ -193,11 +193,19 @@ async function processLead(leadgenId: string, formId: string | null) {
     created_by: "meta_webhook",
   });
 
-  // --- Auto-welcome email to the lead (idempotent; new contacts only) ---
-  // Изключва се с META_AUTO_WELCOME=false. Един общ template с website формата.
+  // --- Първата стъпка от продажбената поредица (идемпотентна; само нови) ---
+  // Старият пасивен welcome („получихме запитването, ще се чуем") не продаваше
+  // нищо. Сега тръгва стъпка 1: лично написано, с една конкретна следваща
+  // стъпка. Изключва се с META_AUTO_WELCOME=false.
   const autoWelcomeEnabled = process.env.META_AUTO_WELCOME !== "false";
   if (!existing && emailLower && autoWelcomeEnabled) {
-    await sendWelcomeEmail({ supabase, contactId, to: emailLower, fullName, source: "meta_lead" });
+    await sendSequenceStep({
+      supabase,
+      contactId,
+      to: emailLower,
+      fullName,
+      step: LEAD_SEQUENCE[0],
+    }).catch(() => {});
   }
 
   // Notify admin (fire-and-forget)

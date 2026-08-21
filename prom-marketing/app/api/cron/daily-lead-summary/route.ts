@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { runLeadSequence } from "@/lib/email/lead-sequence";
+import { createServiceClient } from "@/lib/supabase/service";
 import { syncAllSources } from "@/lib/leads/import";
 import { sendEmail } from "@/lib/email/resend";
 import { buildDailyCrmReport } from "@/lib/email/daily-crm-report";
@@ -20,6 +22,8 @@ export const maxDuration = 60;
  *      - Overdue follow-ups
  *      - Pipeline snapshot
  *   3. Emails the report to emmgivailopetev38@gmail.com (via EMAIL_REPLY_TO env)
+ *   4. Дава един такт на продажбената поредица към новите лийдове
+ *      (`runLeadSequence`) — тук е, защото Hobby дава само 2 крона.
  *
  * Auth: Vercel cron sends `Authorization: Bearer ${CRON_SECRET}` automatically.
  */
@@ -39,6 +43,16 @@ export async function GET(request: Request) {
   // 2. Build the comprehensive CRM report (includes 7-day reminders)
   const report = await buildDailyCrmReport();
 
+  // 2b. Продажбената поредица към лийдовете — един такт на ден.
+  // Живее тук, защото Vercel Hobby дава 2 крона и двата са заети. Никога не
+  // бива да събори отчета, затова е в try/catch.
+  let sequence: Awaited<ReturnType<typeof runLeadSequence>> | { error: string };
+  try {
+    sequence = await runLeadSequence(createServiceClient());
+  } catch (e) {
+    sequence = { error: e instanceof Error ? e.message : "unknown" };
+  }
+
   // 3. Send the report to the user's Gmail
   const recipient = process.env.EMAIL_REPLY_TO || "emmgivailopetev38@gmail.com";
 
@@ -56,6 +70,7 @@ export async function GET(request: Request) {
       mirrored: syncResult.mirroredToContacts,
     },
     report: report.stats,
+    sequence,
     email: {
       to: recipient,
       id: emailResult.id,
