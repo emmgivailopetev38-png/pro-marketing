@@ -11,13 +11,25 @@ export const maxDuration = 30;
  * Triggered daily at 06:00 UTC (≈ 9:00 AM Sofia summer / 8:00 AM winter).
  *
  * What it does:
- *   Извежда списък с НЕОБРАБОТЕНИ лидове за обаждане днес:
- *     - Лидове в stage='lead' без никакъв човешки контакт (call/email/note/meeting)
- *     - Подредени по дата на влизане (най-нови най-горе)
+ *   1. ОБЕЩАНИ ОБАЖДАНИЯ — контакти с `next_followup_at` до края на днес,
+ *      които не са won/lost. Разделени на просрочени и за днес. Това е
+ *      главната секция: тези хора вече чакат обаждане.
+ *   2. НЕОБРАБОТЕНИ ЛИДОВЕ — stage='lead' без никакъв човешки контакт
+ *      (call/email/note/meeting), подредени най-нови най-горе.
  *
  * Auth: Vercel cron сysteme sends `Authorization: Bearer ${CRON_SECRET}`.
  * Може и ръчно с INTERNAL_SEND_TOKEN за тестване.
  */
+
+interface FollowUp {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  email: string | null;
+  company: string | null;
+  stage: string;
+  next_followup_at: string;
+}
 
 interface LeadToCall {
   id: string;
@@ -66,7 +78,48 @@ export async function GET(request: Request) {
     contactedIds = new Set((contactedActs ?? []).map((a) => a.contact_id));
   }
 
-  const untouched = allLeads.filter((l) => !contactedIds.has(l.id));
+  // ── Обещани обаждания: next_followup_at е настъпил ────────────────────────
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+
+  const { data: followupRows } = await supabase
+    .from("contacts")
+    .select("id, full_name, phone, email, company, stage, next_followup_at")
+    .not("next_followup_at", "is", null)
+    .lte("next_followup_at", todayEnd.toISOString())
+    .not("stage", "in", "(won,lost)")
+    .order("next_followup_at", { ascending: true })
+    .limit(50);
+
+  const followups = (followupRows ?? []) as FollowUp[];
+
+  // Последната човешка активност — за да си спомниш какво си обещал.
+  const lastTouch = new Map<string, { title: string; occurred_at: string }>();
+  if (followups.length > 0) {
+    const { data: acts } = await supabase
+      .from("contact_activities")
+      .select("contact_id, title, occurred_at")
+      .in(
+        "contact_id",
+        followups.map((f) => f.id)
+      )
+      .in("activity_type", ["call", "email_sent", "meeting", "note"])
+      .order("occurred_at", { ascending: false });
+    for (const a of acts ?? []) {
+      if (!lastTouch.has(a.contact_id)) {
+        lastTouch.set(a.contact_id, { title: a.title, occurred_at: a.occurred_at });
+      }
+    }
+  }
+
+  const overdue = followups.filter((f) => new Date(f.next_followup_at) < todayStart);
+  const dueToday = followups.filter((f) => new Date(f.next_followup_at) >= todayStart);
+
+  // Лид с насрочено чуване вече е в секциите горе — не го повтаряме долу.
+  const followupIds = new Set(followups.map((f) => f.id));
+  const untouched = allLeads.filter((l) => !contactedIds.has(l.id) && !followupIds.has(l.id));
 
   // Категории: нови (последни 24ч) vs по-стари
   const now = Date.now();
@@ -76,8 +129,8 @@ export async function GET(request: Request) {
 
   const recipient = process.env.EMAIL_REPLY_TO || "emmgivailopetev38@gmail.com";
 
-  if (untouched.length === 0) {
-    return NextResponse.json({ ok: true, message: "No untouched leads", total: 0 });
+  if (untouched.length === 0 && followups.length === 0) {
+    return NextResponse.json({ ok: true, message: "Nothing to call today", total: 0 });
   }
 
   const dateStr = new Date().toLocaleDateString("bg-BG", {
@@ -86,11 +139,24 @@ export async function GET(request: Request) {
     month: "long",
   });
 
-  const subject = `📞 ${untouched.length} ${untouched.length === 1 ? "лид чака" : "лида чакат"} обаждане — ${new Date().toLocaleDateString("bg-BG", { day: "2-digit", month: "short" })}`;
+  const dayShort = new Date().toLocaleDateString("bg-BG", { day: "2-digit", month: "short" });
+  const subjectParts: string[] = [];
+  if (followups.length > 0) {
+    subjectParts.push(
+      `${followups.length} за чуване${overdue.length > 0 ? ` (${overdue.length} просрочени)` : ""}`
+    );
+  }
+  if (untouched.length > 0) {
+    subjectParts.push(`${untouched.length} ${untouched.length === 1 ? "нов лид" : "нови лида"}`);
+  }
+  const subject = `📞 ${subjectParts.join(" · ")} — ${dayShort}`;
 
   const html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#0d1221;max-width:680px">
-  <h1 style="font-size:22px;margin:0 0 4px;color:#facc15">📞 Лиди за обаждане днес</h1>
+  <h1 style="font-size:22px;margin:0 0 4px;color:#facc15">📞 За обаждане днес</h1>
   <p style="color:#666;margin:0 0 24px">${dateStr} · 9:00 AM Sofia</p>
+
+  ${followupBlock(overdue, "⚠️ ПРОСРОЧЕНИ · обещал си да се чуете", "#fee2e2", "#dc2626", "#991b1b", lastTouch)}
+  ${followupBlock(dueToday, "🗓️ ЗА ДНЕС · обещани обаждания", "#e0f2fe", "#0284c7", "#075985", lastTouch)}
 
   ${
     fresh.length > 0
@@ -133,15 +199,27 @@ export async function GET(request: Request) {
   </p>
 
   <p style="margin-top:24px;padding:12px;background:#f0f9ff;border-radius:6px;font-size:12px;color:#0c4a6e">
-    💡 <strong>След като звъннеш:</strong> отбележи в CRM-а с „📞 Разговор" — така лидът няма да го виждаш утре в този списък.
+    💡 <strong>След като звъннеш:</strong> отбележи в CRM-а с „📞 Разговор" и сложи нова дата за следващо чуване. Без нова дата контактът изпада от този списък; с дата се връща точно тогава.
   </p>
 
   <p style="text-align:center;color:#999;font-size:10px;margin:24px 0 0">Автоматичен отчет · 9:00 AM Sofia · ProMarketing CRM</p>
 </div>`;
 
-  const text = `📞 ${untouched.length} лиди за обаждане днес — ${dateStr}
+  const fuText = (list: FollowUp[], label: string) =>
+    list.length > 0
+      ? `${label} · ${list.length}\n${list
+          .map(
+            (f) =>
+              `  • ${f.full_name ?? "—"} · ${f.phone ?? f.email ?? "—"} · ${stageLabel(f.stage)} · за ${formatDue(f.next_followup_at)}${
+                lastTouch.get(f.id) ? ` · последно: ${lastTouch.get(f.id)!.title}` : ""
+              }`
+          )
+          .join("\n")}\n\n`
+      : "";
 
-${
+  const text = `📞 За обаждане днес — ${dateStr}
+
+${fuText(overdue, "⚠️ ПРОСРОЧЕНИ")}${fuText(dueToday, "🗓️ ЗА ДНЕС")}${
   fresh.length > 0
     ? `🔥 НОВИ · последните 24ч · ${fresh.length}\n${fresh.map((l) => `  • ${l.full_name ?? "—"}${l.company ? ` (${l.company})` : ""} · ${l.phone ?? l.email ?? "—"} · ${formatRelative(l.created_at)}`).join("\n")}\n\n`
     : ""
@@ -190,4 +268,58 @@ function sourceLabel(s: string): string {
     manual: "Ръчно",
   };
   return map[s] ?? s;
+}
+
+const STAGE_LABELS: Record<string, string> = {
+  lead: "Нов лид",
+  contacted: "Осъществен контакт",
+  discovery: "Проучване",
+  presentation_sent: "Изпратена презентация",
+  offer_sent: "Изпратена оферта",
+  negotiating: "Преговори",
+};
+
+function stageLabel(s: string): string {
+  return STAGE_LABELS[s] ?? s;
+}
+
+/** „днес" / „вчера" / „преди 3 дни" за настъпила дата на следващо чуване. */
+function formatDue(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const day = new Date(d);
+  day.setHours(0, 0, 0, 0);
+  const days = Math.round((today.getTime() - day.getTime()) / (1000 * 60 * 60 * 24));
+  if (days <= 0) return "днес";
+  if (days === 1) return "вчера";
+  if (days < 7) return `преди ${days} дни`;
+  return d.toLocaleDateString("bg-BG", { day: "2-digit", month: "short" });
+}
+
+/** Един блок с обещани обаждания — просрочени или за днес. */
+function followupBlock(
+  list: FollowUp[],
+  heading: string,
+  bg: string,
+  accent: string,
+  headingColor: string,
+  lastTouch: Map<string, { title: string; occurred_at: string }>
+): string {
+  if (list.length === 0) return "";
+  return `<div style="background:${bg};border-left:4px solid ${accent};border-radius:8px;padding:18px;margin-bottom:18px">
+    <h2 style="margin:0 0 12px;font-size:16px;color:${headingColor}">${heading} · ${list.length}</h2>
+    ${list
+      .slice(0, 20)
+      .map((f) => {
+        const touch = lastTouch.get(f.id);
+        return `<div style="background:white;border-radius:6px;padding:10px;margin-bottom:6px">
+      <p style="margin:0;font-weight:bold"><a href="${HOST}/admin/clients/${f.id}" style="color:#0066cc;text-decoration:none">${f.full_name ?? "—"}</a>${f.company ? ` <span style="color:#666;font-weight:normal">· ${f.company}</span>` : ""} <span style="font-weight:normal;font-size:11px;color:#666">· ${stageLabel(f.stage)}</span></p>
+      <p style="margin:4px 0 0;font-size:12px">${f.phone ? `📞 <a href="tel:${f.phone}" style="color:#22a722">${f.phone}</a>` : ""}${f.email ? `${f.phone ? " · " : ""}<a href="mailto:${f.email}" style="color:#0066cc">${f.email}</a>` : ""}</p>
+      <p style="margin:2px 0 0;font-size:11px;color:#888">за ${formatDue(f.next_followup_at)}${touch ? ` · последно: ${touch.title} (${formatRelative(touch.occurred_at)})` : ""}</p>
+    </div>`;
+      })
+      .join("")}
+    ${list.length > 20 ? `<p style="margin:8px 0 0;font-size:11px;color:#888">... и още ${list.length - 20}. <a href="${HOST}/admin/follow-up" style="color:#0066cc">Виж всички</a></p>` : ""}
+  </div>`;
 }
