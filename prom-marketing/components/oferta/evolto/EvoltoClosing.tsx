@@ -68,7 +68,7 @@ export function EvoltoClosing() {
               <span className="font-[family-name:var(--font-mono)]">+359 877 399 963</span>
             </a>
             <a
-              href="mailto:ivailopetev38@gmail.com?subject=Evolto%20×%20ProMarketing%20demo"
+              href="mailto:emmgivailopetev38@gmail.com?subject=Evolto%20×%20ProMarketing%20demo"
               className="inline-flex items-center gap-2 rounded-full border px-6 py-3 text-sm text-[var(--color-text-primary)] transition-colors"
               style={{
                 borderColor: "var(--color-border-bright)",
@@ -76,7 +76,7 @@ export function EvoltoClosing() {
               }}
             >
               <Mail className="h-4 w-4" style={{ color: "var(--color-solar-gold)" }} />
-              ivailopetev38@gmail.com
+              emmgivailopetev38@gmail.com
             </a>
           </div>
         </div>

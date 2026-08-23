@@ -61,10 +61,10 @@ const CONTACTS: readonly ContactLink[] = [
   },
   {
     id: "email",
-    href: "mailto:ivailopetev38@gmail.com?subject=AI%20CRM%20система",
+    href: "mailto:emmgivailopetev38@gmail.com?subject=AI%20CRM%20система",
     glyph: "✉",
     kicker: "пиши ни",
-    value: "ivailopetev38@gmail.com",
+    value: "emmgivailopetev38@gmail.com",
     accent: AMBER,
   },
 ] as const;
@@ -78,7 +78,7 @@ const READY_ITEMS: readonly ReadyItem[] = [
 const FOOTER_PARTS: readonly string[] = [
   "„ПроМаркетинг“ ЕООД",
   "Ивайло Петев — управител",
-  "ivailopetev38@gmail.com",
+  "emmgivailopetev38@gmail.com",
   "promarketing.pw",
 ] as const;
 

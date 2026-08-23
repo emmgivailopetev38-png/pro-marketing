@@ -62,12 +62,12 @@ export function EduardClosing() {
               <span className="font-[family-name:var(--font-mono)]">+359 877 399 963</span>
             </a>
             <a
-              href="mailto:ivailopetev38@gmail.com?subject=Оферта%20AI%20Автоматизация%20ProMarketing"
+              href="mailto:emmgivailopetev38@gmail.com?subject=Оферта%20AI%20Автоматизация%20ProMarketing"
               className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-bright)] px-6 py-3 text-sm text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-accent-cyan)]"
               style={{ background: "rgba(0,212,255,0.05)" }}
             >
               <Mail className="h-4 w-4" style={{ color: "var(--color-accent-cyan)" }} />
-              ivailopetev38@gmail.com
+              emmgivailopetev38@gmail.com
             </a>
           </div>
         </div>
