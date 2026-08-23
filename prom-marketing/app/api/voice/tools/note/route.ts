@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { checkVoiceAuth } from "@/lib/voice/auth";
+import { guardVoice } from "@/lib/voice/guard";
 import { recordActivity } from "@/lib/crm/repository";
 import { CONTACT_STAGES } from "@/lib/contacts/types";
 
@@ -30,17 +30,15 @@ const schema = z
   .refine((v) => v.contact_id || v.phone, { message: "contact_id или phone" });
 
 export async function POST(request: Request) {
-  const auth = checkVoiceAuth(request);
-  if (!auth.ok) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
   let body: unknown;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ ok: false, spoken: "Не разбрах." }, { status: 200 });
   }
+
+  const guard = guardVoice(request, body);
+  if (!guard.ok) return NextResponse.json(guard.body, { status: guard.status });
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {

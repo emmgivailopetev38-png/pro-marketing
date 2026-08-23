@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { checkVoiceAuth } from "@/lib/voice/auth";
+import { guardVoice } from "@/lib/voice/guard";
 import { buildVoiceBrief } from "@/lib/voice/brief";
 
 export const dynamic = "force-dynamic";
@@ -12,10 +12,8 @@ export const dynamic = "force-dynamic";
  * готово изречение, което агентът чете, вместо да съчинява числа сам.
  */
 export async function GET(request: Request) {
-  const auth = checkVoiceAuth(request);
-  if (!auth.ok) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const guard = guardVoice(request);
+  if (!guard.ok) return NextResponse.json(guard.body, { status: guard.status });
   try {
     const brief = await buildVoiceBrief();
     return NextResponse.json({ ok: true, ...brief });

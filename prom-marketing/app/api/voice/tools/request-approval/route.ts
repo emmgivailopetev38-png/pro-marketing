@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { checkVoiceAuth } from "@/lib/voice/auth";
+import { guardVoice } from "@/lib/voice/guard";
 import { createManualReviewItem } from "@/lib/crm/repository";
 import { sendTelegram } from "@/lib/notifications/telegram";
 
@@ -59,17 +59,15 @@ const LABEL: Record<(typeof ACTIONS)[number], string> = {
 };
 
 export async function POST(request: Request) {
-  const auth = checkVoiceAuth(request);
-  if (!auth.ok) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
   let body: unknown;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ ok: false, spoken: "Не разбрах заявката." }, { status: 200 });
   }
+
+  const guard = guardVoice(request, body);
+  if (!guard.ok) return NextResponse.json(guard.body, { status: guard.status });
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
