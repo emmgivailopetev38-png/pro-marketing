@@ -182,11 +182,11 @@ export function ExpertV2() {
                   Запази 30-мин разговор
                 </a>
                 <a
-                  href="mailto:ivailopetev38@gmail.com"
+                  href="mailto:emmgivailopetev38@gmail.com"
                   className="inline-flex items-center gap-2 text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-cyan)]"
                 >
                   <Mail className="h-4 w-4" />
-                  ivailopetev38@gmail.com
+                  emmgivailopetev38@gmail.com
                 </a>
                 <a
                   href="tel:+359877399963"

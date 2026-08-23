@@ -89,9 +89,9 @@ export function FooterV2() {
               <li>
                 <a
                   className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]"
-                  href="mailto:ivailopetev38@gmail.com"
+                  href="mailto:emmgivailopetev38@gmail.com"
                 >
-                  ivailopetev38@gmail.com
+                  emmgivailopetev38@gmail.com
                 </a>
               </li>
               <li className="text-[var(--v2-muted)]">Пловдив, България</li>

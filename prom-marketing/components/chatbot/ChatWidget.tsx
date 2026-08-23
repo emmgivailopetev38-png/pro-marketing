@@ -108,7 +108,7 @@ export function ChatWidget() {
             {
               id: `e-${Date.now()}`,
               role: "assistant",
-              content: "Опа — нещо не се получи. Опитай след малко или ми пиши на ivailopetev38@gmail.com",
+              content: "Опа — нещо не се получи. Опитай след малко или ми пиши на emmgivailopetev38@gmail.com",
             },
           ]);
           return;
