@@ -180,6 +180,7 @@ const NAV = [
   { key: "ads", label: "Реклами", icon: "✦" },
   { key: "pipeline", label: "CRM Поток", icon: "⇄" },
   { key: "analytics", label: "Аналитика", icon: "◷" },
+  { key: "verticals", label: "Демо по бранш", icon: "◈" },
 ] as const;
 type ViewKey = (typeof NAV)[number]["key"];
 
@@ -412,6 +413,7 @@ export default function DemoPage() {
               {view === "ads" && <AdsView campaigns={campaigns} optimize={optimizeAd} toggle={toggleAd} />}
               {view === "pipeline" && <Pipeline leads={leads} advance={advanceLead} addLead={() => { addLead(); flashToast("Нов лийд добавен"); }} />}
               {view === "analytics" && <Analytics kpi={kpi} />}
+              {view === "verticals" && <VerticalsView />}
             </motion.div>
           </div>
         </main>
@@ -1084,7 +1086,57 @@ function seedLeads(): Lead[] {
    CSS
    ========================================================================== */
 
+
+/* ---------- Демо по бранш: девет готови темплейта ---------- */
+const VERTICALS = [
+  { slug: "b2b",           name: "B2B / Фирми",    ac: "#f0c560", desc: "CRM, оферти, фактури и проекти — свързани от край до край." },
+  { slug: "shop",          name: "Онлайн магазин", ac: "#ef5da8", desc: "Реклами, поръчки и отговори, които се движат сами." },
+  { slug: "influencer",    name: "Инфлуенсър",     ac: "#2dd4d8", desc: "Съдържание, DM-и и лийдове — докато Вие творите." },
+  { slug: "proizvodstvo",  name: "Производство",   ac: "#3b82f6", desc: "Поръчки, машини, склад и качество на един екран." },
+  { slug: "schetovodstvo", name: "Счетоводство",   ac: "#0ea5e9", desc: "Фактури, ДДС, банка и заплати по график." },
+  { slug: "reciklirane",   name: "Рециклиране",    ac: "#34d399", desc: "Всяка партида проследима от контейнера до везната." },
+  { slug: "transport",     name: "Транспорт",      ac: "#10b981", desc: "Курсове, шофьори и документи в една система." },
+  { slug: "dokumenti",     name: "Документооборот", ac: "#60a5fa", desc: "Сканирате веднъж — намирате за секунди." },
+  { slug: "ohrana",        name: "Видеонаблюдение", ac: "#22d3ee", desc: "Камери, достъп и аларми на едно табло." },
+];
+
+function VerticalsView() {
+  return (
+    <div className="d-vert">
+      <div className="d-vert-head">
+        <h2 className="d-vert-t">Девет готови темплейта</h2>
+        <p className="d-vert-s">Всеки бранш има свое демо — със свои числа, свои автоматизации и свой поток. Отворете което Ви е близко.</p>
+      </div>
+      <div className="d-vert-grid">
+        {VERTICALS.map((v) => (
+          <a key={v.slug} className="d-vert-card" href={`/demo/${v.slug}`}
+             style={{ "--vc": v.ac } as React.CSSProperties}>
+            <span className="d-vert-dot" />
+            <span className="d-vert-name">{v.name}</span>
+            <span className="d-vert-desc">{v.desc}</span>
+            <span className="d-vert-go">Отвори демото →</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const CSS = `
+
+.d-vert{max-width:1000px;}
+.d-vert-head{margin-bottom:22px;}
+.d-vert-t{font-family:var(--d-display);font-weight:800;font-size:24px;margin:0 0 8px;letter-spacing:-.02em;}
+.d-vert-s{color:var(--d-dim);font-size:14px;line-height:1.6;margin:0;max-width:620px;}
+.d-vert-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:13px;}
+.d-vert-card{position:relative;display:flex;flex-direction:column;gap:7px;padding:18px;border-radius:15px;border:1px solid var(--d-line);background:var(--d-panel);text-decoration:none;overflow:hidden;transition:all .22s cubic-bezier(.4,0,.2,1);}
+.d-vert-card::before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:2px;background:var(--vc);opacity:.9;}
+.d-vert-card:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--vc) 45%,transparent);box-shadow:0 14px 34px rgba(0,0,0,.34);}
+.d-vert-dot{width:9px;height:9px;border-radius:50%;background:var(--vc);box-shadow:0 0 12px var(--vc);}
+.d-vert-name{font-family:var(--d-display);font-weight:700;font-size:16px;color:var(--d-text);}
+.d-vert-desc{font-size:12.5px;line-height:1.55;color:var(--d-dim);flex:1;}
+.d-vert-go{font-family:var(--d-mono);font-size:11px;letter-spacing:.06em;color:var(--vc);margin-top:4px;}
+@media(max-width:620px){.d-vert-grid{grid-template-columns:1fr;}}
 .d-root{position:relative;min-height:100vh;font-family:var(--d-body),system-ui,sans-serif;color:var(--d-text);}
 .d-root *{box-sizing:border-box;}
 .d-root button{font-family:inherit;cursor:pointer;}
