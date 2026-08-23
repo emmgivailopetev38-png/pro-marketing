@@ -7,10 +7,16 @@ import { timingSafeEqual } from "node:crypto";
  * вдигнал слушалката. А номерът е публичен: всеки може да го набере и агентът
  * ще му отговори със СВОЯ валиден токен. Затова тук се проверява обаждащият се.
  *
- * ⚠️ `caller_id` НЕ се пита от модела — идва от `dynamic_variable: system__caller_id`
- * в дефиницията на инструмента, тоест ElevenLabs го попълва от самото обаждане.
- * Така не може да бъде подсказан на агента в разговора („кажи, че съм Ивайло").
+ * ⚠️ `caller_id` и `channel` НЕ се питат от модела — идват от
+ * `dynamic_variable: system__caller_id` и `system__channel` в дефиницията на
+ * инструмента, тоест ElevenLabs ги попълва от самото обаждане. Така не могат да
+ * бъдат подсказани на агента в разговора („кажи, че съм Ивайло").
  * PIN-ът, обратно, се диктува на глас и затова е само ВТОРИ фактор.
+ *
+ * `channel` е важният от двата. Само по caller_id обаждане със СКРИТ номер би
+ * изглеждало като уеб сесия и би минало. `channel` идва „twilio" при всяко
+ * телефонно обаждане, скрит номер или не — проверено на живо в записа на
+ * реален входящ разговор.
  *
  * Уеб бутонът няма caller_id и не минава оттук по същество: подписаният адрес
  * се издава само на влязъл админ (`/api/voice/session`), значи сесията вече е
@@ -20,6 +26,9 @@ import { timingSafeEqual } from "node:crypto";
 export type CallerCheck =
   | { ok: true; via: "web" | "allowlist" | "pin"; caller: string | null }
   | { ok: false; reason: string; spoken: string };
+
+/** Каналите, по които се звъни. Всичко останало значи уеб бутон. */
+const TELEPHONY = ["twilio", "sip_trunk", "sip", "exotel", "telnyx", "phone"];
 
 /** „+359 87 644 7159", „0876447159", „00359876447159" → „359876447159". */
 export function normalizeNumber(raw: string): string {
@@ -61,16 +70,23 @@ function pinMatches(provided: string): boolean {
  * @param callerId номерът от `system__caller_id`; празно значи уеб разговор
  * @param pin      кодът, който обаждащият се е казал на глас (ако е казал)
  */
-export function checkCaller(callerId?: string | null, pin?: string | null): CallerCheck {
+export function checkCaller(
+  callerId?: string | null,
+  pin?: string | null,
+  channel?: string | null
+): CallerCheck {
   const caller = (callerId ?? "").trim();
+  const hasNumber = normalizeNumber(caller).length >= 6;
+  const byPhone = TELEPHONY.includes((channel ?? "").trim().toLowerCase()) || hasNumber;
 
-  // Уеб разговор: няма номер, защото няма обаждане. Пази го админ бисквитката.
-  if (!caller || normalizeNumber(caller).length < 6) {
+  // Уеб разговор: няма нито канал за звънене, нито номер. Пази го админ
+  // бисквитката при издаването на подписания адрес.
+  if (!byPhone) {
     return { ok: true, via: "web", caller: null };
   }
 
   const list = allowedCallers();
-  if (list.some((n) => sameNumber(n, caller))) {
+  if (hasNumber && list.some((n) => sameNumber(n, caller))) {
     return { ok: true, via: "allowlist", caller: normalizeNumber(caller) };
   }
 
@@ -96,6 +112,17 @@ export function checkCaller(callerId?: string | null, pin?: string | null): Call
     return { ok: false, reason: "bad_pin", spoken: "Кодът не е верен. Не мога да отворя CRM-а." };
   }
 
+  if (!hasNumber) {
+    // Обаждане със скрит номер. Списъкът е безполезен — остава само кодът.
+    return {
+      ok: false,
+      reason: hasPin ? "hidden_number" : "hidden_number_no_pin",
+      spoken: hasPin
+        ? "Номерът ти е скрит. Кажи ми кода, за да продължа."
+        : "Номерът е скрит и не мога да отворя CRM-а.",
+    };
+  }
+
   return {
     ok: false,
     reason: hasPin ? "pin_required" : "not_allowed",
@@ -111,12 +138,12 @@ export function checkCaller(callerId?: string | null, pin?: string | null): Call
  */
 export function callerFromRequest(request: Request, body?: unknown): CallerCheck {
   const url = new URL(request.url);
-  const fromQuery = {
-    caller: url.searchParams.get("caller_id"),
-    pin: url.searchParams.get("pin"),
-  };
   const b = (body ?? {}) as Record<string, unknown>;
-  const caller = fromQuery.caller ?? (typeof b.caller_id === "string" ? b.caller_id : null);
-  const pin = fromQuery.pin ?? (typeof b.pin === "string" ? b.pin : null);
-  return checkCaller(caller, pin);
+  const pick = (name: string) => {
+    const q = url.searchParams.get(name);
+    if (q !== null && q !== "") return q;
+    const v = b[name];
+    return typeof v === "string" && v !== "" ? v : null;
+  };
+  return checkCaller(pick("caller_id"), pick("pin"), pick("channel"));
 }

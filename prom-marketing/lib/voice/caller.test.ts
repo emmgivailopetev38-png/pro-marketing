@@ -82,3 +82,38 @@ describe("callerFromRequest", () => {
     expect(r).toMatchObject({ ok: true, via: "allowlist" });
   });
 });
+
+describe("checkCaller · каналът, не само номерът", () => {
+  const prev = { ...process.env };
+  beforeEach(() => {
+    delete process.env.VOICE_ALLOWED_CALLERS;
+    delete process.env.VOICE_PIN;
+  });
+  afterEach(() => {
+    process.env.VOICE_ALLOWED_CALLERS = prev.VOICE_ALLOWED_CALLERS;
+    process.env.VOICE_PIN = prev.VOICE_PIN;
+  });
+
+  it("СКРИТ номер по телефона НЕ минава за уеб сесия", () => {
+    // Дупката, която само caller_id не хваща: обаждане без номер изглеждаше
+    // като натиснат бутон в браузъра и минаваше.
+    process.env.VOICE_ALLOWED_CALLERS = "+359877399963";
+    process.env.VOICE_PIN = "4271";
+    const r = checkCaller("", null, "twilio");
+    expect(r).toMatchObject({ ok: false, reason: "hidden_number" });
+  });
+
+  it("скрит номер с верен код минава", () => {
+    process.env.VOICE_PIN = "4271";
+    expect(checkCaller("", "4271", "twilio")).toMatchObject({ ok: true, via: "pin" });
+  });
+
+  it("познат номер минава и когато каналът е телефонен", () => {
+    process.env.VOICE_ALLOWED_CALLERS = "+359877399963";
+    expect(checkCaller("+359877399963", null, "twilio")).toMatchObject({ ok: true, via: "allowlist" });
+  });
+
+  it("уеб бутонът остава свободен — няма нито канал, нито номер", () => {
+    expect(checkCaller(null, null, null)).toMatchObject({ ok: true, via: "web" });
+  });
+});
