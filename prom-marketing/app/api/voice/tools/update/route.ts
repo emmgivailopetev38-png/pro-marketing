@@ -89,10 +89,13 @@ export async function POST(request: Request) {
   };
   const hasChange = Object.entries(patch).some(([k, v]) => k !== "id" && v !== undefined);
   if (!hasChange && !d.note) {
-    return NextResponse.json(
-      { ok: false, spoken: `Намерих ${who.name}, но не разбрах какво да променя.` },
-      { status: 200 }
-    );
+    // Ако единственото поискано беше напомняне и датата не се разчете, кажи
+    // ТОЧНО това. „Не разбрах какво да променя" звучи като чут проблем другаде
+    // и човекът повтаря цялото изречение вместо само датата.
+    const spoken = followupFailed
+      ? `Разбрах, че е за ${who.name}, но не хванах датата. Кажи ми я пак — например „другата седмица във вторник“.`
+      : `Намерих ${who.name}, но не разбрах какво да променя.`;
+    return NextResponse.json({ ok: false, spoken }, { status: 200 });
   }
 
   try {

@@ -168,6 +168,10 @@ export function parseWhen(raw: string, opts?: { now?: Date; defaultHour?: number
     if (word(text, "днес") || word(text, "сега")) day = shift(0);
     else if (word(text, "вдругиден")) day = shift(2);
     else if (word(text, "утре")) day = shift(1);
+    // Миналото се разпознава нарочно: „вчера" при среща почти винаги значи
+    // чута накриво дата, а извикващият може да откаже само ако види минал час.
+    else if (word(text, "вчера")) day = shift(-1);
+    else if (/онзи\s+ден/.test(text)) day = shift(-2);
     else {
       const after = text.match(/след\s+(\S+)\s*(ден|дни|дена|седмица|седмици|месец|месеца)/);
       if (after) {
@@ -188,14 +192,21 @@ export function parseWhen(raw: string, opts?: { now?: Date; defaultHour?: number
 
   // 4. Ден от седмицата — „във вторник", „другия петък"
   if (!day) {
+    const nextWeek = /(друг|следващ|идва)\S*\s+седмиц/.test(text);
+    const toMonday = ((1 - base.getUTCDay() + 7) % 7) || 7;
     const wd = Object.keys(WEEKDAYS).find((name) => text.includes(name));
     if (wd) {
-      const delta = (WEEKDAYS[wd] - base.getUTCDay() + 7) % 7;
-      // „във вторник", казано във вторник, значи СЛЕДВАЩИЯ вторник.
-      day = shift(delta === 0 ? 7 : delta);
-    } else if (/(друг|следващ)\S*\s+седмиц/.test(text)) {
-      // „другата седмица" без ден = понеделник
-      day = shift(((1 - base.getUTCDay() + 7) % 7) || 7);
+      if (nextWeek) {
+        // „другата седмица във вторник" е вторникът СЛЕД понеделника на
+        // следващата седмица, а не утрешният вторник.
+        day = shift(toMonday + ((WEEKDAYS[wd] - 1 + 7) % 7));
+      } else {
+        const delta = (WEEKDAYS[wd] - base.getUTCDay() + 7) % 7;
+        // „във вторник", казано във вторник, значи СЛЕДВАЩИЯ вторник.
+        day = shift(delta === 0 ? 7 : delta);
+      }
+    } else if (nextWeek) {
+      day = shift(toMonday); // „другата седмица" без ден = понеделник
     }
   }
 
