@@ -3,19 +3,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { BRANDS, type BrandKey } from "@/components/brands";
+import { VERTICALS, VERTICAL_ORDER, type Vertical } from "./verticals";
 
 /* ============================================================================
    VerticalDemo — конфигуруем демо-двигател за един бранш (темплейт на живо).
-   Ползва се от /demo/influencer, /demo/shop, /demo/b2b.
+   Ползва се от деветте страници /demo/<бранш>; имената им идват от ./verticals.
    Самостоятелно, нула връзки към CRM. Тема (--d-*) идва от app/demo/layout.
    ========================================================================== */
 
-type Vertical =
-  | "influencer" | "shop" | "b2b"
-  | "proizvodstvo" | "schetovodstvo" | "ohrana" | "reciklirane" | "dokumenti" | "transport";
-
 type Auto = { key: string; name: string; desc: string; icon: string; feed: string[] };
-type Kpi = { label: string; value: number; prefix?: string; suffix?: string };
+/* steady = число, което по природа не расте (камиони на път, активни камери, ROAS).
+   Такива само трептят около началната си стойност вместо да се качват безкрайно. */
+type Kpi = { label: string; value: number; prefix?: string; suffix?: string; steady?: boolean };
 type Config = {
   accent: string; accent2: string;
   eyebrow: string; headline: string; headlineAccent: string; sub: string;
@@ -25,6 +24,8 @@ type Config = {
   stages?: string[];
   wonMsg?: string;
   studioTitle: string;
+  /* индексът на показателя, който се вдига при затворена сделка (по подразбиране 1) */
+  wonKpi?: number;
   brands: BrandKey[];
 };
 
@@ -35,7 +36,7 @@ const CONFIGS: Record<Vertical, Config> = {
     headline: "Личният Ви бранд —", headlineAccent: "на автопилот.",
     sub: "Свързваме каналите Ви, пишем и пускаме съдържание, отговаряме на всеки и хващаме лийдове — докато Вие творите.",
     kpis: [
-      { label: "Обхват / седмица", value: 184, suffix: "K" },
+      { label: "Обхват / седмица", value: 184, suffix: "K", steady: true },
       { label: "Отговорени DM", value: 1240 },
       { label: "Публикации", value: 86 },
       { label: "Нови последователи", value: 3920 },
@@ -45,7 +46,7 @@ const CONFIGS: Record<Vertical, Config> = {
       { key: "connect", name: "Instagram + Facebook", icon: "◎", desc: "Всичко свързано на едно място", feed: ["Instagram акаунт синхронизиран", "Facebook страница свързана", "Нов коментар → обработен"] },
       { key: "ads", name: "Meta реклами + Lead форми", icon: "✦", desc: "Реклами, които носят последователи и лийдове", feed: ["Lead форма → нов контакт", "Аудитория оптимизирана", "Цена на лийд −14%"] },
       { key: "assistant", name: "Личен AI асистент", icon: "❖", desc: "Отговаря и организира 24/7", feed: ["Запитване за колаборация обработено", "Календарът подреден за седмицата", "Гласова бележка → задача"] },
-      { key: "content", name: "Авто-постове + Reels", icon: "▷", desc: "Съдържание в Вашия стил", feed: ["Reel генериран и насрочен", "Карусел готов за преглед", "3 поста добавени в календара"] },
+      { key: "content", name: "Авто-постове + Reels", icon: "▷", desc: "Съдържание във Вашия стил", feed: ["Reel генериран и насрочен", "Карусел готов за преглед", "3 поста добавени в календара"] },
       { key: "dm", name: "DM + имейл автоматизация", icon: "✶", desc: "Мигновени лични отговори", feed: ["Авто-отговор в Instagram DM", "Имейл до бранд изпратен", "Нов абонат добре дошъл"] },
       { key: "leads", name: "Лийдове на едно място", icon: "◈", desc: "Нито една възможност изпусната", feed: ["Запитване за реклама записано", "Гореща оферта маркирана", "Партньорство в проследяване"] },
     ],
@@ -60,14 +61,14 @@ const CONFIGS: Record<Vertical, Config> = {
     kpis: [
       { label: "Поръчки / месец", value: 312 },
       { label: "Оборот", value: 48, prefix: "€", suffix: "K" },
-      { label: "ROAS реклами", value: 4, suffix: "×" },
+      { label: "ROAS реклами", value: 4, suffix: "×", steady: true },
       { label: "Отговорени запитвания", value: 980 },
       { label: "Публикации", value: 124 },
     ],
     autos: [
       { key: "ads", name: "Meta реклами + ретаргет", icon: "✦", desc: "Продажби от реклами на автопилот", feed: ["Ретаргет кампания пусната", "Бюджет към печелившия продукт", "Нова продажба от реклама"] },
       { key: "social", name: "Соц. присъствие + постове", icon: "✎", desc: "Редовно съдържание без усилие", feed: ["Пост за нов продукт публикуван", "Story с промоция качено", "Reels за бестселър готов"] },
-      { key: "orders", name: "Поръчки → CRM", icon: "◈", desc: "Всяка поръчка подредена", feed: ["Нова поръчка #8841 записана", "Адрес валидиран за доставка", "Куриер известен автоматично"] },
+      { key: "orders", name: "Поръчки → CRM", icon: "◈", desc: "Всяка поръчка подредена", feed: ["Нова поръчка #8841 записана", "Адрес валидиран за доставка", "Куриерът уведомен автоматично"] },
       { key: "reports", name: "Справки + статистика", icon: "▦", desc: "Виждате какво работи", feed: ["Дневен отчет генериран", "Топ продукт за деня отчетен", "Изоставена количка засечена"] },
       { key: "assistant", name: "AI асистент за клиенти", icon: "❖", desc: "Отговаря на въпроси за секунди", feed: ["Въпрос за наличност обработен", "Статус на поръчка изпратен", "Запитване → продажба"] },
       { key: "content", name: "Авто-съдържание за продукти", icon: "▷", desc: "Описания и визии автоматично", feed: ["Описание на продукт генерирано", "Продуктово видео готово", "Банер за промоция създаден"] },
@@ -81,7 +82,7 @@ const CONFIGS: Record<Vertical, Config> = {
     headline: "Цялата фирма", headlineAccent: "в една система.",
     sub: "CRM, оферти, фактури, проекти и отчети — свързани и автоматизирани. Пълен контрол върху всеки клиент и всеки лев.",
     kpis: [
-      { label: "Активни лийдове", value: 142 },
+      { label: "Активни лийдове", value: 142, steady: true },
       { label: "Сделки / месец", value: 28 },
       { label: "Оборот", value: 167, prefix: "€", suffix: "K" },
       { label: "Оферти", value: 64 },
@@ -94,7 +95,7 @@ const CONFIGS: Record<Vertical, Config> = {
       { key: "site", name: "Сайт + лийд форми", icon: "◎", desc: "Запитванията влизат автоматично", feed: ["Форма от сайта → нов лийд", "Чат запитване поето", "Обаждане транскрибирано"] },
       { key: "followup", name: "Follow-up машина", icon: "↻", desc: "Никой клиент не пропада", feed: ["Напомняне за оферта изпратено", "Follow-up #2 насрочен", "Замълчал клиент върнат"] },
       { key: "docs", name: "Документи + е-подпис", icon: "◆", desc: "Договори за минути", feed: ["Договор изпратен за подпис", "Документ подписан електронно", "Архив обновен"] },
-      { key: "it", name: "IT / интеграции", icon: "✦", desc: "Свързваме каквото ползвате", feed: ["Интеграция с счетоводство", "Данни синхронизирани", "Бекъп завършен"] },
+      { key: "it", name: "IT / интеграции", icon: "✦", desc: "Свързваме каквото ползвате", feed: ["Интеграция със счетоводство", "Данни синхронизирани", "Бекъп завършен"] },
     ],
     studio: "crm", studioTitle: "CRM поток на живо",
     brands: ["linkedin", "google", "googleads", "gmail", "facebook", "telegram", "meta"],
@@ -107,7 +108,7 @@ const CONFIGS: Record<Vertical, Config> = {
     kpis: [
       { label: "Изпълнени поръчки", value: 856 },
       { label: "Спестено време", value: 47, suffix: "ч" },
-      { label: "Машини на линия", value: 13 },
+      { label: "Машини на линия", value: 13, steady: true },
       { label: "Качество", value: 96, suffix: "%" },
       { label: "Проследени партиди", value: 1240 },
     ],
@@ -120,7 +121,7 @@ const CONFIGS: Record<Vertical, Config> = {
     { key: "waste", name: "Отчет за брака", icon: "◎", desc: "Загубите излизат наяве", feed: ["Брак от смяната отчетен", "Седмичен отчет генериран", "Анализ подготвен за преглед"] },
     ],
     studio: "crm", studioTitle: "Производството на живо",
-    wonMsg: "Поръчка изпълнена",
+    wonMsg: "Поръчка изпълнена", wonKpi: 0,
     stages: ["Заявка", "Планиран", "В цеха", "Готов"],
     brands: ["linkedin", "gmail", "google", "meta"],
   },
@@ -134,7 +135,7 @@ const CONFIGS: Record<Vertical, Config> = {
       { label: "Спестено време", value: 186, suffix: "ч" },
       { label: "Точност на данните", value: 99, suffix: "%" },
       { label: "Генерирани справки", value: 540 },
-      { label: "Обслужени фирми", value: 63 },
+      { label: "Обслужени фирми", value: 63, steady: true },
     ],
     autos: [
     { key: "invoice", name: "Издаване на фактури", icon: "✎", desc: "Готови и изпратени автоматично", feed: ["Фактура №2026-0340 издадена", "Фактура изпратена по имейл", "Клиентът потвърди получаване"] },
@@ -145,7 +146,7 @@ const CONFIGS: Record<Vertical, Config> = {
     { key: "report", name: "Справки за собственика", icon: "◐", desc: "Числата са налични по всяко време", feed: ["Отчет за печалбата готов", "Разходите обобщени по пера", "Прогнозата преизчислена"] },
     ],
     studio: "crm", studioTitle: "Документи на живо",
-    wonMsg: "Декларация подадена",
+    wonMsg: "Декларация подадена", wonKpi: 3,
     stages: ["Постъпил", "Обработка", "За подпис", "Подаден"],
     brands: ["gmail", "google", "linkedin", "viber"],
   },
@@ -155,10 +156,10 @@ const CONFIGS: Record<Vertical, Config> = {
     headline: "Обектите Ви —", headlineAccent: "под око денонощно.",
     sub: "Камери, достъп и аларми на едно табло. Получавате сигнал в секундата, а записите се пазят подредени.",
     kpis: [
-      { label: "Активни камери", value: 487 },
+      { label: "Активни камери", value: 487, steady: true },
       { label: "Спестено време", value: 320, suffix: "ч" },
-      { label: "Обработени сигнала", value: 156 },
-      { label: "Обекти под наблюдение", value: 24 },
+      { label: "Обработени сигнали", value: 156 },
+      { label: "Обекти под наблюдение", value: 24, steady: true },
       { label: "Часа архив", value: 89, suffix: "K" },
     ],
     autos: [
@@ -167,10 +168,10 @@ const CONFIGS: Record<Vertical, Config> = {
     { key: "archive", name: "Архив на записите", icon: "⬢", desc: "Старите записи се подреждат сами", feed: ["Записите от седмицата архивирани", "Място на диска освободено", "Копие качено в облака"] },
     { key: "alarm", name: "Аларма и реакция", icon: "✶", desc: "Никой сигнал не остава без отговор", feed: ["Алармата задействана", "Операторът поел случая", "Клиентът уведомен по телефон"] },
     { key: "night", name: "Нощен режим", icon: "◐", desc: "Осветлението и камерите се превключват сами", feed: ["Нощният режим включен", "Прожекторите активирани", "Чувствителността повишена"] },
-    { key: "check", name: "Проверка на системата", icon: "⊞", desc: "Повредена камера се хваща веднага", feed: ["Всички камери проверени", "Камера №9 обявена за офлайн", "Техник известен автоматично"] },
+    { key: "check", name: "Проверка на системата", icon: "⊞", desc: "Повредена камера се хваща веднага", feed: ["Всички камери проверени", "Камера №9 обявена за офлайн", "Техникът уведомен автоматично"] },
     ],
     studio: "crm", studioTitle: "Сигнали на живо",
-    wonMsg: "Обект в наблюдение",
+    wonMsg: "Обект в наблюдение", wonKpi: 3,
     stages: ["Оглед", "Оферта", "Монтаж", "Активен"],
     brands: ["viber", "whatsapp", "gmail", "telegram"],
   },
@@ -182,8 +183,8 @@ const CONFIGS: Record<Vertical, Config> = {
     kpis: [
       { label: "Обработени тонове", value: 342 },
       { label: "Спестено време", value: 54, suffix: "ч" },
-      { label: "Активни партньори", value: 87 },
-      { label: "Обслужени контейнера", value: 1240 },
+      { label: "Активни партньори", value: 87, steady: true },
+      { label: "Обслужени контейнери", value: 1240 },
       { label: "Проследени партиди", value: 1580 },
     ],
     autos: [
@@ -195,7 +196,7 @@ const CONFIGS: Record<Vertical, Config> = {
     { key: "sensors", name: "Ниво на контейнерите", icon: "◐", desc: "Отивате само там, където е пълно", feed: ["Сензорът отчете 80% пълнота", "Контейнерът добавен в маршрута", "Сигналът обработен"] },
     ],
     studio: "crm", studioTitle: "Партидите на живо",
-    wonMsg: "Партида отчетена",
+    wonMsg: "Партида отчетена", wonKpi: 4,
     stages: ["Заявка", "Извозване", "Сортиране", "Отчетен"],
     brands: ["google", "whatsapp", "gmail", "googleads"],
   },
@@ -220,7 +221,7 @@ const CONFIGS: Record<Vertical, Config> = {
     { key: "tags", name: "Автоматично класиране", icon: "✦", desc: "Документът сам си намира мястото", feed: ["Етикетът поставен", "Видът на документа разпознат", "Данните за търсене записани"] },
     ],
     studio: "crm", studioTitle: "Документите на живо",
-    wonMsg: "Документ архивиран",
+    wonMsg: "Документ архивиран", wonKpi: 0,
     stages: ["Постъпил", "Разчетен", "За одобрение", "Архивиран"],
     brands: ["gmail", "google", "linkedin", "viber"],
   },
@@ -232,7 +233,7 @@ const CONFIGS: Record<Vertical, Config> = {
     kpis: [
       { label: "Доставени пратки", value: 1248 },
       { label: "Спестено време", value: 154, suffix: "ч" },
-      { label: "Камиони на път", value: 43 },
+      { label: "Камиони на път", value: 43, steady: true },
       { label: "Изминати километри", value: 89, suffix: "K" },
       { label: "Доставки в срок", value: 97, suffix: "%" },
     ],
@@ -245,31 +246,24 @@ const CONFIGS: Record<Vertical, Config> = {
     { key: "notify", name: "Известия до клиента", icon: "▷", desc: "Знае кога да чака", feed: ["Известието изпратено", "Часът на доставка потвърден", "Получателят уведомен"] },
     ],
     studio: "crm", studioTitle: "Курсовете на живо",
-    wonMsg: "Пратка доставена",
+    wonMsg: "Пратка доставена", wonKpi: 0,
     stages: ["Заявка", "Натоварен", "В движение", "Доставен"],
     brands: ["viber", "whatsapp", "gmail", "google"],
   },
 };
 
 
-/* всички браншови демота — за лентата за превключване */
-const DEMOS: { slug: Vertical; label: string }[] = [
-  { slug: "b2b", label: "B2B / Фирми" },
-  { slug: "shop", label: "Магазин" },
-  { slug: "influencer", label: "Инфлуенсър" },
-  { slug: "proizvodstvo", label: "Производство" },
-  { slug: "schetovodstvo", label: "Счетоводство" },
-  { slug: "reciklirane", label: "Рециклиране" },
-  { slug: "transport", label: "Транспорт" },
-  { slug: "dokumenti", label: "Документи" },
-  { slug: "ohrana", label: "Охрана" },
-];
-
 /* ---------- helpers ---------- */
 const rid = (() => { let n = 1; return () => n++; })();
 const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 const clock = () => new Date().toLocaleTimeString("bg-BG", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 const fmt = (n: number) => Math.round(n).toLocaleString("bg-BG");
+/* трепти около базата в границите −1…+2, без да минава над тавана */
+const jitter = (v: number, base: number, cap = Infinity) => {
+  if (Math.random() > 0.45) return v;
+  const next = v + (Math.random() > 0.5 ? 1 : -1);
+  return Math.max(base - 1, Math.min(next, base + 2, cap));
+};
 
 function useInterval(cb: () => void, delay: number | null) {
   const saved = useRef(cb);
@@ -292,6 +286,8 @@ export function VerticalDemo({ vertical }: { vertical: Vertical }) {
   const [mounted, setMounted] = useState(false);
   const [running, setRunning] = useState<Set<string>>(() => new Set(cfg.autos.slice(0, 3).map((a) => a.key)));
   const [kpi, setKpi] = useState<number[]>(() => cfg.kpis.map((k) => k.value));
+  /* базата, около която трептят наличностите; спечелена сделка я вдига трайно */
+  const base = useRef<number[]>(cfg.kpis.map((k) => k.value));
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [leads, setLeads] = useState<Lead[]>(() => NAMES.slice(0, 6).map((n, i) => ({ id: rid(), name: n, stage: i % 4 })));
@@ -315,8 +311,10 @@ export function VerticalDemo({ vertical }: { vertical: Vertical }) {
     pushFeed(a.name, pick(a.feed));
     setKpi((prev) => prev.map((v, i) => {
       const k = cfg.kpis[i];
-      // процентите се движат съвсем леко и никога не стигат 100
-      if (k.suffix === "%") return Math.min(99, Math.max(k.value - 1, v + (Math.random() > 0.85 ? 1 : 0)));
+      // процентите играят леко нагоре и надолу, но никога не стигат 100
+      if (k.suffix === "%") return jitter(v, base.current[i], 99);
+      // наличностите не растат безкрайно — камионите на път си остават толкова
+      if (k.steady) return jitter(v, base.current[i]);
       if (Math.random() <= 0.4) return v;
       return v + (i === 1 && k.prefix ? Math.floor(Math.random() * 2) : Math.floor(Math.random() * 3));
     }));
@@ -342,10 +340,17 @@ export function VerticalDemo({ vertical }: { vertical: Vertical }) {
 
   const advance = (id: number) => {
     const last = (cfg.stages ?? CRM_STAGES).length - 1;
+    const wi = cfg.wonKpi ?? 1;
     setLeads((ls) => ls.map((l) => {
       if (l.id !== id) return l;
       const ns = Math.min(last, l.stage + 1);
-      if (ns === last && l.stage !== last) { setKpi((kv) => kv.map((v, i) => i === 1 && cfg.kpis[1].suffix !== "%" ? v + 1 : v)); pushFeed("CRM", `${cfg.wonMsg ?? "Сделка спечелена"} — ${l.name}`); }
+      if (ns === last && l.stage !== last) {
+        if (cfg.kpis[wi].suffix !== "%") {
+          base.current[wi] += 1;
+          setKpi((kv) => kv.map((v, i) => (i === wi ? v + 1 : v)));
+        }
+        pushFeed("CRM", `${cfg.wonMsg ?? "Сделка спечелена"} — ${l.name}`);
+      }
       return { ...l, stage: ns };
     }));
   };
@@ -366,7 +371,7 @@ export function VerticalDemo({ vertical }: { vertical: Vertical }) {
       <div className="vd-glow" aria-hidden />
 
       <header className="vd-hud">
-        <a className="vd-back" href="https://promarketing.pw/model">← Модел</a>
+        <a className="vd-back" href="/model">← Модел</a>
         <div className="vd-brand"><span className="vd-dot" />ProMarketing OS</div>
         <div className="vd-clock"><LiveClock /></div>
       </header>
@@ -374,11 +379,11 @@ export function VerticalDemo({ vertical }: { vertical: Vertical }) {
       <nav className="vd-switch" aria-label="Демота по браншове">
         <span className="vd-switch-l">Вижте друг бранш:</span>
         <div className="vd-switch-row">
-          {DEMOS.map((d) => (
-            <a key={d.slug} href={`/demo/${d.slug}`}
-               className={`vd-pill${d.slug === vertical ? " vd-pill-on" : ""}`}
-               aria-current={d.slug === vertical ? "page" : undefined}>
-              {d.label}
+          {VERTICAL_ORDER.map((slug) => (
+            <a key={slug} href={`/demo/${slug}`}
+               className={`vd-pill${slug === vertical ? " vd-pill-on" : ""}`}
+               aria-current={slug === vertical ? "page" : undefined}>
+              {VERTICALS[slug].pill}
             </a>
           ))}
         </div>
@@ -390,7 +395,7 @@ export function VerticalDemo({ vertical }: { vertical: Vertical }) {
         <p className="vd-sub">{cfg.sub}</p>
         <div className="vd-brands">
           {cfg.brands.map((k) => { const b = BRANDS[k]; const Icon = b.Icon; return (
-            <span className="vd-brand" key={k} title={b.name} style={{ "--bc": b.color } as React.CSSProperties}><Icon /></span>
+            <span className="vd-brand-chip" key={k} title={b.name} style={{ "--bc": b.color } as React.CSSProperties}><Icon /></span>
           ); })}
         </div>
 
@@ -470,7 +475,7 @@ export function VerticalDemo({ vertical }: { vertical: Vertical }) {
                   <div className="vd-orders">
                     <div className="vd-orders-h">Поръчки на живо</div>
                     <AnimatePresence initial={false}>
-                      {orders.length === 0 && <div className="vd-empty" style={{ padding: "10px 2px" }}>Пуснете „Поръчки → CRM"…</div>}
+                      {orders.length === 0 && <div className="vd-empty" style={{ padding: "10px 2px" }}>Пуснете „Поръчки → CRM“…</div>}
                       {orders.map((o) => (
                         <motion.div key={o.id} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="vd-order">
                           <span>{o.name}</span><span className="vd-order-i">{o.item}</span><span className="vd-order-s">€{o.sum}</span>
@@ -497,8 +502,8 @@ export function VerticalDemo({ vertical }: { vertical: Vertical }) {
         </section>
 
         <div className="vd-cta-row">
-          <a className="vd-cta" href="https://promarketing.pw/booking" target="_blank" rel="noreferrer">Запазете внедряване →</a>
-          <a className="vd-cta vd-cta-ghost" href="https://promarketing.pw/model">← Обратно към модела</a>
+          <a className="vd-cta" href="/booking" target="_blank" rel="noreferrer">Запазете внедряване →</a>
+          <a className="vd-cta vd-cta-ghost" href="/model">← Обратно към модела</a>
         </div>
       </main>
 
@@ -521,7 +526,7 @@ const CSS = `
 .vd-root{
   --d-bg:#ffffff; --d-bg2:#f2f7fc;
   --d-panel:rgba(255,255,255,.78); --d-panel-solid:#ffffff;
-  --d-line:rgba(14,30,56,.11); --d-line-bright:color-mix(in srgb,var(--ac) 45%,transparent);
+  --d-line-bright:color-mix(in srgb,var(--ac) 45%,transparent);
   --d-text:#0a1220; --d-dim:#51617a; --d-faint:#616f85;
   --ac-ink:color-mix(in srgb,var(--ac) 52%,#071020);
   --vd-tint:rgba(14,30,56,.035);
@@ -563,8 +568,8 @@ const CSS = `
 .vd-grad{background:linear-gradient(100deg,var(--ac),var(--ac2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
 .vd-sub{color:var(--d-dim);font-size:clamp(14.5px,1.6vw,17px);line-height:1.68;max-width:582px;margin:20px 0 0;}
 .vd-brands{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;}
-.vd-brand{display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:11px;font-size:20px;color:var(--bc);border:1px solid color-mix(in srgb,var(--bc) 38%,transparent);background:color-mix(in srgb,var(--bc) 12%,transparent);transition:.16s;}
-.vd-brand:hover{transform:translateY(-3px);box-shadow:0 6px 18px color-mix(in srgb,var(--bc) 26%,transparent);}
+.vd-brand-chip{display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:11px;font-size:20px;color:var(--bc);border:1px solid color-mix(in srgb,var(--bc) 38%,transparent);background:color-mix(in srgb,var(--bc) 12%,transparent);transition:.16s;}
+.vd-brand-chip:hover{transform:translateY(-3px);box-shadow:0 6px 18px color-mix(in srgb,var(--bc) 26%,transparent);}
 
 .vd-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:13px;margin:44px 0 30px;}
 .vd-kpi{position:relative;border:1px solid var(--d-line);border-radius:var(--r-md);background:rgba(255,255,255,.9);padding:18px 16px;box-shadow:var(--sh-1);overflow:hidden;transition:box-shadow .22s ease,transform .22s ease;}

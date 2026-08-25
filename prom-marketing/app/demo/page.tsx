@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { VERTICALS, VERTICAL_ORDER } from "./verticals";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { BRANDS, type BrandKey } from "@/components/brands";
 
@@ -1087,19 +1088,6 @@ function seedLeads(): Lead[] {
    ========================================================================== */
 
 
-/* ---------- Демо по бранш: девет готови темплейта ---------- */
-const VERTICALS = [
-  { slug: "b2b",           name: "B2B / Фирми",    ac: "#f0c560", desc: "CRM, оферти, фактури и проекти — свързани от край до край." },
-  { slug: "shop",          name: "Онлайн магазин", ac: "#ef5da8", desc: "Реклами, поръчки и отговори, които се движат сами." },
-  { slug: "influencer",    name: "Инфлуенсър",     ac: "#2dd4d8", desc: "Съдържание, DM-и и лийдове — докато Вие творите." },
-  { slug: "proizvodstvo",  name: "Производство",   ac: "#3b82f6", desc: "Поръчки, машини, склад и качество на един екран." },
-  { slug: "schetovodstvo", name: "Счетоводство",   ac: "#0ea5e9", desc: "Фактури, ДДС, банка и заплати по график." },
-  { slug: "reciklirane",   name: "Рециклиране",    ac: "#34d399", desc: "Всяка партида проследима от контейнера до везната." },
-  { slug: "transport",     name: "Транспорт",      ac: "#10b981", desc: "Курсове, шофьори и документи в една система." },
-  { slug: "dokumenti",     name: "Документооборот", ac: "#60a5fa", desc: "Сканирате веднъж — намирате за секунди." },
-  { slug: "ohrana",        name: "Видеонаблюдение", ac: "#22d3ee", desc: "Камери, достъп и аларми на едно табло." },
-];
-
 function VerticalsView() {
   return (
     <div className="d-vert">
@@ -1108,15 +1096,18 @@ function VerticalsView() {
         <p className="d-vert-s">Всеки бранш има свое демо — със свои числа, свои автоматизации и свой поток. Отворете което Ви е близко.</p>
       </div>
       <div className="d-vert-grid">
-        {VERTICALS.map((v) => (
-          <a key={v.slug} className="d-vert-card" href={`/demo/${v.slug}`}
-             style={{ "--vc": v.ac } as React.CSSProperties}>
-            <span className="d-vert-dot" />
-            <span className="d-vert-name">{v.name}</span>
-            <span className="d-vert-desc">{v.desc}</span>
-            <span className="d-vert-go">Отвори демото →</span>
-          </a>
-        ))}
+        {VERTICAL_ORDER.map((slug) => {
+          const v = VERTICALS[slug];
+          return (
+            <a key={slug} className="d-vert-card" href={`/demo/${slug}`}
+               style={{ "--vc": v.accent } as React.CSSProperties}>
+              <span className="d-vert-dot" />
+              <span className="d-vert-name">{v.name}</span>
+              <span className="d-vert-desc">{v.card}</span>
+              <span className="d-vert-go">Отвори демото →</span>
+            </a>
+          );
+        })}
       </div>
     </div>
   );
