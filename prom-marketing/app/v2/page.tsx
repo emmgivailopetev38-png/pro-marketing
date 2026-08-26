@@ -32,6 +32,7 @@ const FooterV2 = dynamic(() => import("@/components/landing/v2/FooterV2").then((
 const StickyMobileCTA = dynamic(() => import("@/components/landing/StickyMobileCTA").then((m) => ({ default: m.StickyMobileCTA })));
 const ChatWidget = dynamic(() => import("@/components/chatbot/ChatWidget").then((m) => ({ default: m.ChatWidget })));
 const WelcomeLeadPopup = dynamic(() => import("@/components/landing/v2/WelcomeLeadPopup").then((m) => ({ default: m.WelcomeLeadPopup })));
+const VideoGalleryV2 = dynamic(() => import("@/components/landing/v2/VideoGalleryV2").then((m) => ({ default: m.VideoGalleryV2 })));
 
 export default function HomePageV2() {
   return (
@@ -40,6 +41,7 @@ export default function HomePageV2() {
       <main data-v2>
         <HeroV2 />
         <TrustStripV2 />
+        <VideoGalleryV2 />
         <QuickAccessV2 />
         <JarvisSpotlightV2 />
         <LiveLabsV2 />
