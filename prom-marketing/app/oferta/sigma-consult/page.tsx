@@ -1,0 +1,425 @@
+const STEPS = [
+  {
+    n: "01",
+    title: "Казвате какво искате",
+    body: "Три неща и толкова: за коя фирма е видеото, каква е темата и колко секунди да бъде. Без брифове, без формуляри.",
+  },
+  {
+    n: "02",
+    title: "Асистентът взима вашия звук",
+    body: "Вашата музика и вашият глас — такива, каквито са. Не се пипат, не се заменят със синтетичен говор, не се композира нищо ново отгоре.",
+  },
+  {
+    n: "03",
+    title: "Картината се сглобява под звука",
+    body: "Видеото се генерира спрямо ритъма и спрямо това, което гласът казва в конкретната секунда. Звукът води, картината следва.",
+  },
+  {
+    n: "04",
+    title: "Идва при вас за одобрение",
+    body: "Готовото видео пристига при вас и спира там. Нищо не тръгва към никоя мрежа, докато не кажете „да“.",
+    accent: true,
+  },
+  {
+    n: "05",
+    title: "След вашето „да“ — публикува се",
+    body: "Facebook, Instagram и TikTok, в час, който вие сте определили. Ако кажете „не“ — видеото се преправя и се връща пак при вас.",
+  },
+];
+
+const REALNI = [
+  {
+    id: "peg4LEjRl_Q",
+    title: "Преди и след",
+    note: "Суров кадър от телефон срещу готов клип със субтитри — един и същ момент. Това е разликата, която монтажът прави.",
+  },
+  {
+    id: "mhpNb-evewI",
+    title: "Разговор, който затваря",
+    note: "Тридесет секунди от реален разговор — вдига, изслушва, отговаря, записва час.",
+  },
+  {
+    id: "wGwzuqAvfwg",
+    title: "Обаждане в 22:47",
+    note: "По-дълъг формат. Показва цял случай от начало до край, без да отегчи.",
+  },
+  {
+    id: "EBqI-TltIYo",
+    title: "Задача, казана на глас",
+    note: "Заснето в движение, с телефон. Целият блясък идва от монтажа и звука, не от техниката.",
+  },
+];
+
+const AI_SCENARII = [
+  {
+    id: "v0GhLLbYow8",
+    title: "„Тука има ли някой?“",
+    note: "Изцяло генерирана сцена. Най-гледаното ни видео.",
+  },
+  {
+    id: "HrBTiH9ACDQ",
+    title: "От плажа",
+    note: "Хора, обстановка и действие — нищо от това не е снимано.",
+  },
+  {
+    id: "S2L9z3D-jGE",
+    title: "Логистика",
+    note: "Друг бранш, същият подход — сценарий, глас, генерирана картина.",
+  },
+  {
+    id: "O-bJGQEDDXA",
+    title: "Помощникът е свършил",
+    note: "Кратка форма, направена за скрол — хваща в първата секунда.",
+  },
+];
+
+const VLIZA = [
+  {
+    title: "Асистентът, настроен за вас",
+    body: "Работи с вашата фонотека и с вашия глас. Знае темите ви, знае фирмите, за които правите видеа, и знае колко дълги ги искате.",
+  },
+  {
+    title: "Стъпката с одобрението",
+    body: "Отделен екран, на който виждате готовото видео, пускате го и решавате. Одобряваш · Върни за преправяне · Откажи.",
+  },
+  {
+    title: "Публикуване в трите мрежи",
+    body: "Facebook, Instagram и TikTok, с вертикален формат за всяка. Публикува се само одобреното.",
+  },
+  {
+    title: "Обучение на екипа",
+    body: "Шестимата ви агенти могат да го ползват, не само вие. Показваме го на живо, докато не стане ясно на всички.",
+  },
+  {
+    title: "Поддръжка след пускането",
+    body: "Ако нещо не се държи както трябва, оправяме го. Не ви оставяме с инструмент, който трябва сами да разгадавате.",
+  },
+];
+
+const OT_VAS = [
+  "Музикалните файлове, с които работите, и потвърждение, че правата за тях са ваши за социални мрежи.",
+  "Записи на вашия глас — или готови начитки, или сесия, от която да ги вземем.",
+  "Достъп до профилите във Facebook, Instagram и TikTok, когато стигнем до публикуването.",
+  "Списък с темите, които се повтарят най-често при вас — оттам тръгва асистентът.",
+];
+
+function Yt({ id, title, note }: { id: string; title: string; note: string }) {
+  return (
+    <figure className="flex flex-col gap-3">
+      <div
+        className="relative w-full overflow-hidden rounded-xl border"
+        style={{ borderColor: "var(--s-line)", background: "var(--s-deep)", aspectRatio: "9 / 16" }}
+      >
+        <iframe
+          src={`https://www.youtube.com/embed/${id}?rel=0&modestbranding=1`}
+          title={title}
+          loading="lazy"
+          allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+          allowFullScreen
+          className="absolute inset-0 h-full w-full"
+          style={{ border: 0 }}
+        />
+      </div>
+      <figcaption className="flex flex-col gap-1">
+        <span className="text-[15px] font-semibold" style={{ color: "var(--s-text)" }}>
+          {title}
+        </span>
+        <span className="text-[13.5px] leading-relaxed" style={{ color: "var(--s-text-3)" }}>
+          {note}
+        </span>
+      </figcaption>
+    </figure>
+  );
+}
+
+export default function SigmaConsultPage() {
+  return (
+    <main
+      className="mx-auto flex w-full max-w-[1080px] flex-col gap-20 px-5 pb-28 pt-14 sm:px-8 sm:pt-20"
+      style={{ fontFamily: "var(--font-body)" }}
+    >
+      {/* ── Заглавна ─────────────────────────── */}
+      <header className="flex flex-col gap-7">
+        <div className="flex flex-wrap items-center gap-3">
+          <span
+            className="rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]"
+            style={{ background: "rgba(224,164,88,0.12)", color: "var(--s-amber)" }}
+          >
+            За Сигма Консулт
+          </span>
+          <span className="text-[13px]" style={{ color: "var(--s-text-3)" }}>
+            Подготвено за Таня Велкова · 26 август 2026
+          </span>
+        </div>
+
+        <h1
+          className="text-[2rem] font-bold leading-[1.12] sm:text-[3.1rem]"
+          style={{ fontFamily: "var(--font-display)", textWrap: "balance" }}
+        >
+          Вашата музика.
+          <br />
+          Вашият глас.
+          <br />
+          <span style={{ color: "var(--s-amber)" }}>Видеото — наша работа.</span>
+        </h1>
+
+        <p className="max-w-[62ch] text-[17px] leading-relaxed" style={{ color: "var(--s-text-2)" }}>
+          По телефона казахте, че снимате все едно и също и че искате асистент, който да прави видеата
+          вместо вас — но върху вашата музика и с вашия глас. И че нищо не бива да излиза навън, преди
+          вие да сте го видели. Тази страница е точно за това.
+        </p>
+
+        <div
+          className="rounded-2xl border p-6 sm:p-7"
+          style={{ borderColor: "var(--s-line)", background: "var(--s-card)" }}
+        >
+          <div
+            className="mb-4 text-[11px] font-semibold uppercase tracking-[0.16em]"
+            style={{ color: "var(--s-amber)" }}
+          >
+            Как ви разбрах
+          </div>
+          <ul className="flex flex-col gap-3 text-[15.5px] leading-relaxed" style={{ color: "var(--s-text-2)" }}>
+            <li>
+              <strong style={{ color: "var(--s-text)" }}>Музиката е ваша</strong> и остава ваша — не се
+              заменя със стокова.
+            </li>
+            <li>
+              <strong style={{ color: "var(--s-text)" }}>Гласът е вашият</strong>, не синтетичен говорител.
+            </li>
+            <li>
+              <strong style={{ color: "var(--s-text)" }}>Задавате тема, фирма и дължина</strong> — асистентът
+              се съобразява и с трите.
+            </li>
+            <li>
+              <strong style={{ color: "var(--s-text)" }}>Нищо не се публикува без вашето одобрение.</strong>{" "}
+              Това не е настройка, която може да се изключи — то е част от начина, по който работи.
+            </li>
+          </ul>
+        </div>
+      </header>
+
+      {/* ── Как работи ───────────────────────── */}
+      <section className="flex flex-col gap-8">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-[1.6rem] font-bold sm:text-[2.1rem]" style={{ fontFamily: "var(--font-display)" }}>
+            Как ще работи
+          </h2>
+          <p className="text-[15.5px]" style={{ color: "var(--s-text-3)" }}>
+            Пет стъпки. Четвъртата е тази, на която държите.
+          </p>
+        </div>
+
+        <ol className="flex flex-col gap-3">
+          {STEPS.map((s) => (
+            <li
+              key={s.n}
+              className="flex gap-5 rounded-xl border p-5 sm:p-6"
+              style={{
+                borderColor: s.accent ? "var(--s-amber-dim)" : "var(--s-line)",
+                background: s.accent ? "rgba(224,164,88,0.06)" : "var(--s-card)",
+              }}
+            >
+              <span
+                className="shrink-0 pt-1 text-[15px] font-semibold tabular-nums"
+                style={{ fontFamily: "var(--font-mono)", color: s.accent ? "var(--s-amber)" : "var(--s-text-3)" }}
+              >
+                {s.n}
+              </span>
+              <div className="flex flex-col gap-1.5">
+                <h3 className="text-[17px] font-semibold" style={{ color: "var(--s-text)" }}>
+                  {s.title}
+                </h3>
+                <p className="text-[15px] leading-relaxed" style={{ color: "var(--s-text-2)" }}>
+                  {s.body}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* ── AI видеа за реален клиент ────────── */}
+      <section className="flex flex-col gap-8">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-[1.6rem] font-bold sm:text-[2.1rem]" style={{ fontFamily: "var(--font-display)" }}>
+            Генерирано видео за реален клиент
+          </h2>
+          <p className="max-w-[62ch] text-[15.5px] leading-relaxed" style={{ color: "var(--s-text-3)" }}>
+            Alineé Fragrances — работещ клиент, за когото правим точно това, което искате. Долу вляво е
+            изцяло генерирано видео: нито един кадър не е сниман. Долу вдясно е реален заснет материал,
+            минал през същия монтаж. Пуснете ги едно след друго.
+          </p>
+        </div>
+
+        <div className="grid gap-7 sm:grid-cols-2">
+          <figure className="flex flex-col gap-3">
+            <video
+              controls
+              playsInline
+              preload="none"
+              poster="/videa/alinee-ai-videa.jpg"
+              className="w-full rounded-xl border"
+              style={{ borderColor: "var(--s-line)", background: "var(--s-deep)", aspectRatio: "9 / 16" }}
+            >
+              <source src="/videa/alinee-ai-videa.mp4" type="video/mp4" />
+            </video>
+            <figcaption className="flex flex-col gap-1">
+              <span className="text-[15px] font-semibold" style={{ color: "var(--s-amber)" }}>
+                Изцяло генерирано · нула снимачни дни
+              </span>
+              <span className="text-[13.5px] leading-relaxed" style={{ color: "var(--s-text-3)" }}>
+                Хора, локации, продуктови кадри — всичко е направено на компютър по сценарий. Точно този
+                тип видео ще прави асистентът за вас, само че върху вашия звук.
+              </span>
+            </figcaption>
+          </figure>
+
+          <figure className="flex flex-col gap-3">
+            <video
+              controls
+              playsInline
+              preload="none"
+              poster="/videa/alinee-realni-hora.jpg"
+              className="w-full rounded-xl border"
+              style={{ borderColor: "var(--s-line)", background: "var(--s-deep)", aspectRatio: "9 / 16" }}
+            >
+              <source src="/videa/alinee-realni-hora.mp4" type="video/mp4" />
+            </video>
+            <figcaption className="flex flex-col gap-1">
+              <span className="text-[15px] font-semibold" style={{ color: "var(--s-text)" }}>
+                Реален материал · същият монтаж
+              </span>
+              <span className="text-[13.5px] leading-relaxed" style={{ color: "var(--s-text-3)" }}>
+                Заснето с телефон от самия клиент. Субтитрите, ритъмът, звукът и крайният кадър с марката
+                са добавени от нас.
+              </span>
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      {/* ── Реални видеа ─────────────────────── */}
+      <section className="flex flex-col gap-8">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-[1.6rem] font-bold sm:text-[2.1rem]" style={{ fontFamily: "var(--font-display)" }}>
+            Наши видеа с реален материал
+          </h2>
+          <p className="max-w-[62ch] text-[15.5px] leading-relaxed" style={{ color: "var(--s-text-3)" }}>
+            Тези са снимани с телефон и монтирани от нас. Първото показва най-ясно какво прави обработката —
+            същият кадър преди и след.
+          </p>
+        </div>
+        <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-4">
+          {REALNI.map((v) => (
+            <Yt key={v.id} {...v} />
+          ))}
+        </div>
+      </section>
+
+      {/* ── AI сценарии ──────────────────────── */}
+      <section className="flex flex-col gap-8">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-[1.6rem] font-bold sm:text-[2.1rem]" style={{ fontFamily: "var(--font-display)" }}>
+            Кратки видеа, генерирани по сценарий
+          </h2>
+          <p className="max-w-[62ch] text-[15.5px] leading-relaxed" style={{ color: "var(--s-text-3)" }}>
+            Единайсет секунди, направени за скрол. Различни браншове, един и същ подход — сценарий, глас,
+            генерирана картина.
+          </p>
+        </div>
+        <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-4">
+          {AI_SCENARII.map((v) => (
+            <Yt key={v.id} {...v} />
+          ))}
+        </div>
+      </section>
+
+      {/* ── Какво влиза ──────────────────────── */}
+      <section className="flex flex-col gap-8">
+        <h2 className="text-[1.6rem] font-bold sm:text-[2.1rem]" style={{ fontFamily: "var(--font-display)" }}>
+          Какво влиза
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {VLIZA.map((v) => (
+            <div
+              key={v.title}
+              className="flex flex-col gap-2 rounded-xl border p-5"
+              style={{ borderColor: "var(--s-line)", background: "var(--s-card)" }}
+            >
+              <h3 className="text-[16px] font-semibold" style={{ color: "var(--s-text)" }}>
+                {v.title}
+              </h3>
+              <p className="text-[14.5px] leading-relaxed" style={{ color: "var(--s-text-2)" }}>
+                {v.body}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── От вас ───────────────────────────── */}
+      <section className="flex flex-col gap-6">
+        <h2 className="text-[1.6rem] font-bold sm:text-[2.1rem]" style={{ fontFamily: "var(--font-display)" }}>
+          Какво ни трябва от вас
+        </h2>
+        <ul className="flex flex-col gap-3">
+          {OT_VAS.map((t) => (
+            <li
+              key={t}
+              className="flex gap-3 text-[15.5px] leading-relaxed"
+              style={{ color: "var(--s-text-2)" }}
+            >
+              <span style={{ color: "var(--s-amber)" }}>—</span>
+              <span>{t}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="max-w-[62ch] text-[14.5px] leading-relaxed" style={{ color: "var(--s-text-3)" }}>
+          Колкото по-рано дойдат тези четири неща, толкова по-рано тръгва асистентът. Първите три са
+          същинските — темите можем да ги съберем и заедно.
+        </p>
+      </section>
+
+      {/* ── Следваща стъпка ──────────────────── */}
+      <section
+        className="flex flex-col gap-5 rounded-2xl border p-7 sm:p-9"
+        style={{ borderColor: "var(--s-amber-dim)", background: "rgba(224,164,88,0.06)" }}
+      >
+        <h2 className="text-[1.5rem] font-bold sm:text-[1.9rem]" style={{ fontFamily: "var(--font-display)" }}>
+          Утре в 11:00
+        </h2>
+        <p className="max-w-[62ch] text-[16px] leading-relaxed" style={{ color: "var(--s-text-2)" }}>
+          Разбрахме се да се чуем в четвъртък, 27 август, от 11:00 ч. Дотогава разгледайте видеата на
+          спокойствие — на срещата ще тръгнем от това кои от тях ви харесват и защо, и ще уточним темите,
+          с които асистентът да започне.
+        </p>
+        <div className="flex flex-wrap gap-3 pt-1">
+          <a
+            href="tel:+359889778888"
+            className="rounded-lg px-5 py-3 text-[15px] font-semibold transition-opacity hover:opacity-90"
+            style={{ background: "var(--s-amber)", color: "#1a1206" }}
+          >
+            Обади се
+          </a>
+          <a
+            href="https://www.promarketing.pw"
+            className="rounded-lg border px-5 py-3 text-[15px] font-semibold transition-colors"
+            style={{ borderColor: "var(--s-line)", color: "var(--s-text)" }}
+          >
+            promarketing.pw
+          </a>
+        </div>
+      </section>
+
+      <footer className="flex flex-col gap-1.5 border-t pt-7" style={{ borderColor: "var(--s-line-soft)" }}>
+        <p className="text-[13.5px]" style={{ color: "var(--s-text-3)" }}>
+          Ивайло Петев · Pro Marketing LTD · promarketing.pw
+        </p>
+        <p className="text-[13px]" style={{ color: "var(--s-text-3)" }}>
+          Страницата е лична и не се индексира от търсачките.
+        </p>
+      </footer>
+    </main>
+  );
+}
