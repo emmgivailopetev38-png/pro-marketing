@@ -15,7 +15,7 @@
 --------------------------------------------------------------------------- */
 
 import { useEffect, useRef, useState } from "react";
-import { Phone, User, ArrowRight, Check, Loader2, X, Sparkles } from "lucide-react";
+import { Phone, User, Mail, ArrowRight, Check, Loader2, X, Sparkles } from "lucide-react";
 import { track } from "@/lib/analytics/track";
 
 const SHOWN_FLAG = "pm_v2_welcome_shown"; // този попъп — веднъж/сесия
@@ -27,6 +27,7 @@ export function WelcomeLeadPopup() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "done" | "error">("idle");
 
@@ -112,6 +113,7 @@ export function WelcomeLeadPopup() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           full_name: name || undefined,
+          email: email.trim() || undefined,
           phone,
           message: message
             ? `Запитване от сайта (welcome popup): ${message}`
@@ -214,6 +216,19 @@ export function WelcomeLeadPopup() {
                   autoComplete="tel"
                   placeholder="Телефон за обаждане"
                   aria-label="Телефон за обаждане"
+                  className="w-full bg-transparent py-3.5 text-sm text-[var(--v2-ink)] outline-none placeholder:text-[var(--v2-faint)]"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 rounded-[var(--v2-r-pill)] border border-[var(--v2-line)] bg-[var(--v2-void)]/60 px-4 transition focus-within:border-[var(--v2-line-bright)]">
+                <Mail className="h-4 w-4 shrink-0" style={{ color: "var(--v2-cyan)" }} />
+                <input
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  type="email"
+                  autoComplete="email"
+                  placeholder="Имейл — за да ти пратя и демотата"
+                  aria-label="Имейл"
                   className="w-full bg-transparent py-3.5 text-sm text-[var(--v2-ink)] outline-none placeholder:text-[var(--v2-faint)]"
                 />
               </div>
