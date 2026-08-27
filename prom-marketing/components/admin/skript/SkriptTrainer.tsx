@@ -21,10 +21,13 @@ import {
   Tag,
   Info,
   Orbit,
+  GraduationCap,
   Network,
 } from "lucide-react";
 import { TimeMap } from "./TimeMap";
 import { Flight } from "./Flight";
+import { StageScene } from "./StageScene";
+import { Questions } from "./Questions";
 import { Pricing } from "./Pricing";
 import { Progress } from "./Progress";
 import { CallReviewForm } from "./CallReviewForm";
@@ -48,11 +51,12 @@ const ZONE_META: Record<TimeZone, { label: string; color: string; bg: string }> 
   decision: { label: "РЕШЕНИЕТО", color: "#d8b4fe", bg: "rgba(168,85,247,0.16)" },
 };
 
-type TabId = "karta" | "etapi" | "vazrazheniya" | "predi" | "sled" | "napredak" | "ceni";
+type TabId = "karta" | "etapi" | "vaprosi" | "vazrazheniya" | "predi" | "sled" | "napredak" | "ceni";
 
 const TABS: { id: TabId; label: string; icon: typeof MapIcon; hint: string }[] = [
   { id: "karta", label: "Картата", icon: MapIcon, hint: "как е устроен разговорът" },
   { id: "etapi", label: "Етапите", icon: Layers, hint: "какво казваш на всеки етап" },
+  { id: "vaprosi", label: "Въпросите", icon: GraduationCap, hint: "учиш ги наизуст" },
   { id: "vazrazheniya", label: "Възражения", icon: ShieldQuestion, hint: "когато се дръпне" },
   { id: "predi", label: "Преди срещата", icon: ClipboardCheck, hint: "15 минути подготовка" },
   { id: "sled", label: "След срещата", icon: PenLine, hint: "записваш разговора" },
@@ -587,6 +591,9 @@ export function SkriptTrainer({ reviews }: { reviews: CallReview[] }) {
               );
             })}
           </div>
+          <div className="mb-4">
+            <StageScene stageNum={STAGES[stage].num} />
+          </div>
           <StageCard index={stage} />
           <div className="mt-3 flex justify-between">
             <button
@@ -646,6 +653,18 @@ export function SkriptTrainer({ reviews }: { reviews: CallReview[] }) {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ================= ВЪПРОСИТЕ ================= */}
+      {tab === "vaprosi" && (
+        <div>
+          <Head
+            kicker="Въпросите"
+            title="Учиш ги, докато спрат да са скрипт"
+            sub="Три начина: карти с припомняне, режим на глас и чист списък. Ненаучените се връщат, докато не ги знаеш. Напредъкът се пази в този браузър."
+          />
+          <Questions />
         </div>
       )}
 
