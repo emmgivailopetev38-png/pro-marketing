@@ -50,17 +50,19 @@ export default function MiniDemo() {
 
   useEffect(() => {
     if (faza !== "generira") return;
+    // Прогресът се смята от изтеклото ВРЕМЕ, не от брояч на тиктаци —
+    // браузърите забавят таймерите в скрит таб и лентата иначе забуксува.
+    const zapochna = Date.now();
+    const traene = 4800;
     setProgres(0);
     timer.current = setInterval(() => {
-      setProgres((p) => {
-        if (p >= 100) {
-          if (timer.current) clearInterval(timer.current);
-          setFaza("gotovo");
-          return 100;
-        }
-        return p + 1;
-      });
-    }, 48);
+      const dql = Math.min(100, Math.round(((Date.now() - zapochna) / traene) * 100));
+      setProgres(dql);
+      if (dql >= 100) {
+        if (timer.current) clearInterval(timer.current);
+        setFaza("gotovo");
+      }
+    }, 60);
     return () => {
       if (timer.current) clearInterval(timer.current);
     };
