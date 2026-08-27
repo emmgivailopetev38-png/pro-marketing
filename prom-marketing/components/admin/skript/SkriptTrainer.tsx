@@ -20,8 +20,11 @@ import {
   LineChart,
   Tag,
   Info,
+  Orbit,
+  Network,
 } from "lucide-react";
 import { TimeMap } from "./TimeMap";
+import { Flight } from "./Flight";
 import { Pricing } from "./Pricing";
 import { Progress } from "./Progress";
 import { CallReviewForm } from "./CallReviewForm";
@@ -354,6 +357,7 @@ function Prep() {
 export function SkriptTrainer({ reviews }: { reviews: CallReview[] }) {
   const [tab, setTab] = useState<TabId>("karta");
   const [stage, setStage] = useState(1);
+  const [view, setView] = useState<"polet" | "shema">("polet");
   const router = useRouter();
 
   function goStage(num: string) {
@@ -409,12 +413,78 @@ export function SkriptTrainer({ reviews }: { reviews: CallReview[] }) {
             title="Къде стои клиентът във всеки момент"
             sub="Разговорът е движение във времето. Изкарваш го от гадното сега, връщаш го в гадното минало да си признае защо, вдигаш го в хубавото бъдеще — и после му го отнемаш. Оттам решението се взима само. Цъкни върху номер, за да отвориш етапа."
           />
-          <div className="cc-panel p-4 sm:p-6">
-            <TimeMap
-              activeNum={STAGES[stage]?.num}
-              activeZone={STAGES[stage]?.zone}
-              onPick={goStage}
-            />
+          <div className="cc-panel p-4 sm:p-5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex gap-1.5">
+                {(
+                  [
+                    { id: "polet", label: "Полет", icon: Orbit },
+                    { id: "shema", label: "Схема", icon: Network },
+                  ] as const
+                ).map((v) => {
+                  const on = view === v.id;
+                  const Icon = v.icon;
+                  return (
+                    <button
+                      key={v.id}
+                      onClick={() => setView(v.id)}
+                      className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] font-medium transition"
+                      style={{
+                        borderColor: on ? "var(--color-accent-cyan)" : "rgba(120,160,220,0.2)",
+                        background: on ? "rgba(6,182,212,0.13)" : "transparent",
+                        color: on ? "#fff" : "var(--color-text-secondary)",
+                      }}
+                    >
+                      <Icon className="size-3.5" />
+                      {v.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[12px] text-[var(--color-text-tertiary)]">
+                {view === "polet"
+                  ? "Летиш по коридора на разговора. Цъкни плоча или стрелките."
+                  : "Целият път наведнъж. Цъкни номер, за да отвориш етапа."}
+              </p>
+            </div>
+
+            {view === "polet" ? (
+              <Flight active={stage} onPick={setStage} />
+            ) : (
+              <TimeMap
+                activeNum={STAGES[stage]?.num}
+                activeZone={STAGES[stage]?.zone}
+                onPick={goStage}
+              />
+            )}
+
+            <div className="mt-4 grid gap-2 border-t border-white/8 pt-4 sm:grid-cols-2 lg:grid-cols-5">
+              {[
+                { k: "Дълбочина", v: "времето — минало, сега, бъдеще" },
+                { k: "Височина", v: "горе е доброто, долу е лошото" },
+                { k: "Цвят", v: "в коя зона стои клиентът" },
+                { k: "Движението", v: "къде го местиш ти на този етап" },
+                { k: "Лилавото долу", v: "какво мисли той точно сега" },
+              ].map((l) => (
+                <div key={l.k} className="rounded-lg bg-white/[0.03] px-3 py-2">
+                  <p className="font-mono text-[9.5px] font-bold uppercase tracking-[0.14em] text-[var(--color-accent-cyan)]">
+                    {l.k}
+                  </p>
+                  <p className="mt-0.5 text-[12px] leading-snug text-[var(--color-text-secondary)]">
+                    {l.v}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-3 flex justify-end">
+              <button
+                onClick={() => setTab("etapi")}
+                className="cc-btn cc-btn-primary px-4 py-2 text-[13px]"
+              >
+                Отвори етап {STAGES[stage].num} · {STAGES[stage].title} →
+              </button>
+            </div>
           </div>
 
           <div>
