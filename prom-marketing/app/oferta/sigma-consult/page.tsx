@@ -181,6 +181,31 @@ export default function SigmaConsultPage() {
           Тази страница е отговорът и на трите.
         </p>
 
+        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border sm:grid-cols-4"
+            style={{ borderColor: "var(--s-line)", background: "var(--s-line)" }}>
+          {[
+            { n: "17", e: "години", d: "на пазара" },
+            { n: "6", e: "агента", d: "ще го ползват" },
+            { n: "1759", e: "клиента", d: "имат нужда да чуят" },
+            { n: "57", e: "вида", d: "застраховки" },
+          ].map((x) => (
+            <div key={x.e} className="flex flex-col gap-0.5 p-4 sm:p-5" style={{ background: "var(--s-card)" }}>
+              <span
+                className="text-[1.7rem] font-bold leading-none tabular-nums sm:text-[2rem]"
+                style={{ fontFamily: "var(--font-display)", color: "var(--s-amber)" }}
+              >
+                {x.n}
+              </span>
+              <span className="text-[14px] font-semibold" style={{ color: "var(--s-text)" }}>
+                {x.e}
+              </span>
+              <span className="text-[13px]" style={{ color: "var(--s-text-3)" }}>
+                {x.d}
+              </span>
+            </div>
+          ))}
+        </dl>
+
         <div
           className="rounded-2xl border p-6 sm:p-7"
           style={{ borderColor: "var(--s-line)", background: "var(--s-card)" }}
@@ -223,30 +248,42 @@ export default function SigmaConsultPage() {
             Ето едно ваше видео
           </h2>
           <p className="max-w-[62ch] text-[15.5px] leading-relaxed" style={{ color: "var(--s-text-3)" }}>
-            Направено след разговора ни, по темата, която сама повдигнахте — Каско при лизинг. Двайсет и три
-            секунди. Хората в него говорят на български. Нито един кадър не е сниман: няма оператор, няма
+            Направено след разговора ни, по темата, която сама повдигнахте — Каско при лизинг. Осемнайсет секунди. Хората в него говорят на български. Нито един кадър не е сниман: няма оператор, няма
             студио, няма актьори.
           </p>
         </div>
 
         <div className="grid gap-7 sm:grid-cols-[minmax(0,300px)_1fr] sm:items-start">
-          <figure className="flex flex-col gap-3">
+          <figure className="flex flex-col items-center gap-3">
             <div
-              className="overflow-hidden rounded-xl border"
-              style={{ borderColor: "var(--s-line)", background: "var(--s-deep)", aspectRatio: "9 / 16" }}
+              className="relative rounded-[2.2rem] p-3 shadow-2xl"
+              style={{
+                background: "linear-gradient(160deg, #2a3240, #12171f)",
+                border: "1px solid rgba(233,216,190,0.16)",
+                boxShadow: "0 30px 60px -20px rgba(0,0,0,.85)",
+              }}
             >
-              <video
-                controls
-                playsInline
-                preload="metadata"
-                poster="/videa/sigma-kasko-lizing.jpg"
-                className="h-full w-full object-cover"
+              <span
+                className="absolute left-1/2 top-4 z-10 h-1.5 w-16 -translate-x-1/2 rounded-full"
+                style={{ background: "rgba(0,0,0,.55)" }}
+              />
+              <div
+                className="overflow-hidden rounded-[1.75rem]"
+                style={{ background: "#000", aspectRatio: "9 / 16", width: "min(268px, 68vw)" }}
               >
-                <source src="/videa/sigma-kasko-lizing.mp4" type="video/mp4" />
-              </video>
+                <video
+                  controls
+                  playsInline
+                  preload="metadata"
+                  poster="/videa/sigma-kasko-lizing.jpg"
+                  className="h-full w-full object-cover"
+                >
+                  <source src="/videa/sigma-kasko-lizing.mp4" type="video/mp4" />
+                </video>
+              </div>
             </div>
-            <figcaption className="text-[13px]" style={{ color: "var(--s-text-3)" }}>
-              Каско при лизинг · 23 секунди · вертикално
+            <figcaption className="text-center text-[13px]" style={{ color: "var(--s-text-3)" }}>
+              Каско при лизинг · 18 секунди · вертикално
             </figcaption>
           </figure>
 
