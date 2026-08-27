@@ -19,6 +19,8 @@ interface UserData {
   client_user_agent?: string | null;
   fbp?: string | null;
   fbc?: string | null;
+  /** Meta Lead Ads leadgen id — НЕ се хешира; свързва събитието с точния лийд/реклама. */
+  lead_id?: string | number | null;
 }
 
 interface ServerEvent {
@@ -76,6 +78,7 @@ export async function sendCapiEvent(event: ServerEvent): Promise<{ ok: boolean; 
     client_user_agent: u.client_user_agent ?? undefined,
     fbp: u.fbp ?? undefined,
     fbc: u.fbc ?? undefined,
+    lead_id: u.lead_id ?? undefined,
   };
   // Strip undefined keys
   for (const k of Object.keys(user_data)) {

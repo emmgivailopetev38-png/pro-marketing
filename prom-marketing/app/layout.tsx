@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Unbounded, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import { MetaPixel } from "@/components/effects/MetaPixel";
 import { PostHogProvider } from "@/components/analytics/PostHogProvider";
+import { Analytics } from "@vercel/analytics/next";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { baseGraph, graph, localBusinessSchema } from "@/lib/seo/schema";
 import { ALL_KEYWORDS, ORG, SITE_URL } from "@/lib/seo/site";
@@ -132,6 +133,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </a>
         <MetaPixel />
         <PostHogProvider>{children}</PostHogProvider>
+        <Analytics />
       </body>
     </html>
   );

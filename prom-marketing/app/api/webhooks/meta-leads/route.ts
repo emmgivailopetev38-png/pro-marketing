@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/resend";
 import { LEAD_SEQUENCE, sendSequenceStep } from "@/lib/email/lead-sequence";
 import { getPageAccessToken } from "@/lib/meta/page-token";
+import { sendCapiEvent, isCapiConfigured } from "@/lib/meta/conversions-api";
 import { escapeHtml } from "@/lib/email/escape";
 
 export const dynamic = "force-dynamic";
@@ -195,6 +196,36 @@ async function processLead(leadgenId: string, formId: string | null) {
     },
     created_by: "meta_webhook",
   });
+
+  // --- Връщаме лийда към Meta през Conversions API ---
+  // Без това Meta вижда „някой е подал форма", но не знае КОЙ — event match
+  // quality пада до нула и оптимизацията се влошава. lead_id свързва събитието
+  // с точния лийд, реклама и кампания.
+  if (isCapiConfigured()) {
+    const [firstName, ...rest] = (fullName ?? "").trim().split(/\s+/);
+    void sendCapiEvent({
+      event_name: "Lead",
+      event_id: `metalead_${leadgenId}`,
+      action_source: "system_generated",
+      event_time: detail.created_time
+        ? Math.floor(new Date(detail.created_time).getTime() / 1000)
+        : undefined,
+      user_data: {
+        email: emailLower || null,
+        phone: phone || null,
+        firstName: firstName || null,
+        lastName: rest.join(" ") || null,
+        country: "bg",
+        external_id: contactId,
+        lead_id: leadgenId,
+      },
+      custom_data: {
+        lead_source: "meta_instant_form",
+        ad_id: detail.ad_id ?? null,
+        campaign_id: detail.campaign_id ?? null,
+      },
+    });
+  }
 
   // --- Първата стъпка от продажбената поредица (идемпотентна; само нови) ---
   // Старият пасивен welcome („получихме запитването, ще се чуем") не продаваше
