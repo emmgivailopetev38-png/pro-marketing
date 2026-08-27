@@ -36,14 +36,17 @@ import { openBookingPopup } from "@/lib/cal/embed";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics/track";
 
-// „Услуги" вече сочи към истинска страница, не към котва в началната.
-// Котвата не е адрес — Google не я брои за отделна страница и авторитетът
-// от менюто не стигаше доникъде. Сега води към стълба, който трябва да
-// се класира.
+// „Услуги“ вече сочи към истинска страница, не към котва в началната:
+// котвата не е адрес, Google не я брои за отделна страница и авторитетът
+// от менюто не стигаше доникъде.
+//
+// Позициите са четири плюс „Разгледай“. При седем „AI агенти“ и „Jarvis“
+// се пречупваха на два реда още при 1280px, а между 768 и 1024 менюто се
+// наслагваше върху логото — затова и прагът на хоризонталното меню е
+// вдигнат на `lg`. Стълбовете за AI агенти и чатбот стоят в „Разгледай“,
+// където имат и описание под името.
 const NAV = [
   { href: "/ai-avtomatizacia", label: "Услуги" },
-  { href: "/ai-agenti", label: "AI агенти" },
-  { href: "/ai-chatbot", label: "Чатбот" },
   { href: "/rakovodstva", label: "Ръководства" },
   { href: "/jarvis", label: "Jarvis", isNew: true },
   { href: "/#kontakti", label: "Контакти" },
@@ -169,12 +172,12 @@ export function NavbarV2() {
           <Logo />
         </a>
         <ul
-          className="hidden items-center gap-6 text-sm md:flex"
+          className="hidden items-center gap-6 whitespace-nowrap text-sm lg:flex"
           style={{ color: "var(--v2-muted)" }}
         >
           {NAV.map((item) => (
             <li key={item.href}>
-              <a href={item.href} className="v2-navlink transition-colors">
+              <a href={item.href} className="v2-navlink whitespace-nowrap transition-colors">
                 {item.label}
                 {item.isNew && <NewDot />}
               </a>
@@ -291,7 +294,7 @@ export function NavbarV2() {
             aria-label="Отвори меню"
             aria-expanded={open}
             onClick={() => setOpen(true)}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-white/5 md:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-white/5 lg:hidden"
             style={{ color: "var(--v2-ink)" }}
           >
             <Menu className="h-5 w-5" />
@@ -301,7 +304,7 @@ export function NavbarV2() {
 
       {open && (
         <div
-          className="v2-glass fixed inset-0 z-50 flex flex-col overflow-hidden px-6 pt-6 pb-10 md:hidden"
+          className="v2-glass fixed inset-0 z-50 flex flex-col overflow-hidden px-6 pt-6 pb-10 lg:hidden"
           role="dialog"
           aria-modal="true"
           aria-label="Мобилна навигация"
