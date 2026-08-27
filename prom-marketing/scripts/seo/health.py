@@ -30,20 +30,42 @@ CORE = [
     "/ai-avtomatizacia", "/ai-agenti", "/ai-chatbot", "/ai-crm",
     "/glasov-ai-agent", "/ai-avtomatizacia-plovdiv",
     "/rakovodstva", "/demo", "/booking", "/automation-audit",
-    "/magazin", "/en", "/cookies", "/privacy", "/terms",
+    "/ai-reshenia", "/ai-marketing", "/en", "/cookies", "/privacy", "/terms",
 ]
+
+# Адреси, които НАРОЧНО пренасочват. Проверява се, че пренасочването още
+# работи и че води където трябва — изчезнало пренасочване е тиха загуба
+# на всички стари връзки към адреса.
+REDIRECTS = {
+    "/magazin": "/ai-reshenia",
+    "/reshenia": "/ai-reshenia",
+    "/uslugi": "/ai-avtomatizacia",
+    "/chatbot": "/ai-chatbot",
+    "/crm": "/ai-crm",
+    "/kontakti": "/booking",
+}
 
 problems = []
 
 
-def fetch(path, want_text=False):
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Спира на пренасочването, за да се види къде точно води."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise urllib.error.HTTPError(req.full_url, code, newurl, headers, fp)
+
+
+def fetch(path, want_text=False, follow=True):
+    opener = urllib.request.build_opener() if follow else urllib.request.build_opener(NoRedirect)
     try:
         req = urllib.request.Request(SITE + path, headers=UA)
-        with urllib.request.urlopen(req, timeout=30) as r:
+        with opener.open(req, timeout=30) as r:
             body = r.read().decode("utf-8", "replace") if want_text else b""
             return r.status, body
     except urllib.error.HTTPError as e:
-        return e.code, ""
+        # При спряно пренасочване новият адрес е в заглавката Location,
+        # а НЕ в `e.msg` — там стои само текстът на статуса.
+        return e.code, (e.headers.get("Location") or "") if e.headers else ""
     except Exception as e:  # мрежата, не сайтът
         return 0, str(e)
 
@@ -61,7 +83,7 @@ else:
                      for u in re.findall(r"<loc>(.*?)</loc>", body)]
     print(f"  sitemap.xml — {len(sitemap_paths)} адреса")
 
-to_check = list(dict.fromkeys(CORE + sitemap_paths))
+to_check = [p for p in dict.fromkeys(CORE + sitemap_paths) if p not in REDIRECTS]
 
 # ── 2. Всеки адрес трябва да отговаря с 200 ───────────────────────────
 bad = []
@@ -73,6 +95,20 @@ for p in to_check:
 print(f"  адреси: {len(to_check) - len(bad)}/{len(to_check)} отговарят с 200")
 for p, st in bad:
     print(f"     ✗ {p} → {st}")
+
+# ── 2б. Нарочните пренасочвания още ли работят ────────────────────────
+red_bad = []
+for src, dst in REDIRECTS.items():
+    st, where = fetch(src, follow=False)
+    if st not in (301, 308):
+        red_bad.append(f"{src}: очаква се 301/308, връща {st}")
+    elif dst not in where:
+        red_bad.append(f"{src}: пренасочва към {where}, а трябва към {dst}")
+for m in red_bad:
+    problems.append(m)
+print(f"  пренасочвания: {len(REDIRECTS) - len(red_bad)}/{len(REDIRECTS)} работят")
+for m in red_bad:
+    print("     ✗", m)
 
 # ── 3. Каноничният адрес сочи към себе си, не към началната ───────────
 canon_bad = []
