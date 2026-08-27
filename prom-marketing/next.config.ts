@@ -35,6 +35,13 @@ const nextConfig: NextConfig = {
       { source: "/chatbot", destination: "/ai-chatbot", permanent: true },
       { source: "/crm", destination: "/ai-crm", permanent: true },
       { source: "/kontakti", destination: "/booking", permanent: true },
+
+      // „Магазин" беше неточно име: страницата продава услуги, системи и
+      // обучения, не стоки. Преименувана на „AI решения" — вярното
+      // описание и същевременно реална търсена заявка на български.
+      // 301, за да не се губи нищо от стария адрес.
+      { source: "/magazin", destination: "/ai-reshenia", permanent: true },
+      { source: "/reshenia", destination: "/ai-reshenia", permanent: true },
     ];
   },
 

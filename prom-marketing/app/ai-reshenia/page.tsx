@@ -24,15 +24,20 @@ import { OFFERS } from "@/lib/webinar/config";
 
 import { PageSchema } from "@/components/seo/PageSchema";
 export const metadata: Metadata = {
-  alternates: { canonical: "/magazin" },
-  title: "Магазин — обучения, AI агенти и системи",
+  alternates: { canonical: "/ai-reshenia" },
+  // Страницата се казваше „Магазин" — неточно име за нещо, което продава
+  // услуги и обучения, а не стоки. „AI решения" е и вярното описание, и
+  // реална търсена заявка на български („AI решения за бизнес"), по която
+  // вече се класират ai-masters.bg, flowexai.bg и aiconsult.digital.
+  // absolute: без него шаблонът лепи марката и заглавието минава 60 знака.
+  title: { absolute: "AI решения за бизнес — агенти, системи, обучения" },
   description:
-    "Курсове и менторства с директна покупка, AI чат и гласови агенти, CRM системи на нива, пакети сайт + CRM + реклами и абонаментна поддръжка.",
+    "AI чат и гласови агенти, CRM системи на нива, пакети сайт + CRM + реклами, обучения и абонаментна поддръжка. Подредени по нива, с цени по запитване.",
 };
 
 /**
- * /magazin — директният магазин на ProMarketing.
- * 4 категории: Обучения (директна покупка през Stripe) · AI Агенти ·
+ * /ai-reshenia — каталогът на ProMarketing: услугите, системите и обученията,
+ * подредени по нива. 4 категории: Обучения (директна покупка през Stripe) · AI Агенти ·
  * Системи на нива (CRM достъпи) · Пакети по бизнес (с живи демота).
  * Цените с котва идват от /plan; ориентировъчните са маркирани изрично.
  */
@@ -149,7 +154,7 @@ export default function MagazinPage() {
 
   return (
     <>
-      <PageSchema path="/magazin" name="Магазин — обучения, AI агенти и системи" description="Курсове, AI чат и гласови агенти, CRM системи на нива и абонаментна поддръжка." crumb="Магазин" />
+      <PageSchema path="/ai-reshenia" name="AI решения за бизнес — системи, агенти и обучения" description="AI чат и гласови агенти, CRM системи на нива, пакети сайт + CRM + реклами, обучения и абонаментна поддръжка." crumb="AI решения" />
     <main className="min-h-screen bg-[var(--color-bg-void)] text-white">
       {/* HERO */}
       <section className="relative overflow-hidden">
@@ -163,7 +168,7 @@ export default function MagazinPage() {
         />
         <div className="relative mx-auto max-w-4xl px-6 pb-14 pt-24 text-center">
           <span className="inline-flex items-center gap-2.5 rounded-full border border-cyan-400/30 bg-[rgba(34,211,238,0.06)] px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.22em] text-cyan-300">
-            <ShoppingBag className="h-3.5 w-3.5" /> Магазинът на ProMarketing
+            <Sparkles className="h-3.5 w-3.5" /> AI решенията на ProMarketing
           </span>
           <h1 className="mt-6 text-[clamp(32px,5vw,54px)] font-bold leading-[1.08] tracking-tight">
             Агенти, обучения и системи —

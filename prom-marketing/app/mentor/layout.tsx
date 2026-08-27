@@ -11,7 +11,7 @@ const syne = Syne({
 
 export const metadata: Metadata = {
   alternates: { canonical: "/mentor" },
-  title: "Менторска програма · AI системи и автоматизация",
+  title: "Менторска програма за AI системи",
   description:
           "4-месечна 1-на-1 менторска програма за изграждане на AI системи, автоматизация и CRM маркетинг. 16 седмични сесии, личен ментор, реални проекти.",
   robots: { index: true, follow: true },

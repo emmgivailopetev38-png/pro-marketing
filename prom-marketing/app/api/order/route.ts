@@ -7,7 +7,7 @@ import { escapeHtml } from "@/lib/email/escape";
 export const dynamic = "force-dynamic";
 
 /**
- * POST /api/order — мигновена поръчка/запитване за услуга от магазина.
+ * POST /api/order — мигновена поръчка/запитване за услуга от /ai-reshenia.
  * Докато Stripe ключовете не са сложени, това е пътят „купувам сега”:
  * човекът оставя имейл + телефон → CRM контакт + активити „ПОРЪЧКА” +
  * имейл до админа (звънни!) + потвърждение до клиента.
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   }
 
   const email = parsed.data.email.trim().toLowerCase();
-  const full_name = parsed.data.full_name?.trim() || "Клиент от магазина";
+  const full_name = parsed.data.full_name?.trim() || "Клиент от AI решения";
   const phone = parsed.data.phone.trim();
   const { service, note } = parsed.data;
   const supabase = createServiceClient();
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
         phone,
         stage: "lead",
         source: "store_order",
-        notes: `Поръча „${service}” от магазина`,
+        notes: `Поръча „${service}” от AI решения`,
       })
       .select("id")
       .single();
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
     contact_id: contactId,
     activity_type: "store_order",
     title: `🛒 ПОРЪЧКА: ${service}`,
-    body: `Гореща поръчка от /magazin — свържи се до часове!${note ? `\nБележка от клиента: ${note}` : ""}`,
+    body: `Гореща поръчка от /ai-reshenia — свържи се до часове!${note ? `\nБележка от клиента: ${note}` : ""}`,
     created_by: "website",
     metadata: { full_name, email, phone, service, note: note || null },
   });
@@ -125,7 +125,7 @@ export async function POST(request: Request) {
     sendEmail({
       to: adminTo,
       subject: `🛒🔥 НОВА ПОРЪЧКА (звънни!) · ${service} · ${full_name}`,
-      html: `<p><strong>${escapeHtml(full_name)}</strong> поръча <strong>„${escapeHtml(service)}”</strong> от магазина.</p>
+      html: `<p><strong>${escapeHtml(full_name)}</strong> поръча <strong>„${escapeHtml(service)}”</strong> от AI решения.</p>
 <p>📞 <a href="tel:${escapeHtml(phone)}">${escapeHtml(phone)}</a> · ✉️ ${escapeHtml(email)}</p>
 ${note ? `<p>Бележка: ${escapeHtml(note)}</p>` : ""}
 <p><a href="${SITE}/admin/clients/${contactId}">Виж в CRM-а</a></p>`,

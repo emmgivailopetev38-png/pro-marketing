@@ -170,8 +170,8 @@ export function FooterV2() {
                 </a>
               </li>
               <li>
-                <a className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" href="/magazin">
-                  Магазин
+                <a className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" href="/ai-reshenia">
+                  AI решения
                 </a>
               </li>
               <li>

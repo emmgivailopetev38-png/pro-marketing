@@ -2,9 +2,9 @@
 /* =====================================================================
    QuickAccessV2 — лентата „бърз достъп” на началната страница: където
    и да е тръгнал клиентът, оттук стига до всичко с 1 клик — демо,
-   магазин, безплатното обучение, трейдинг агента и консултация.
+   AI решенията, безплатното обучение, трейдинг агента и консултация.
    ===================================================================== */
-import { MonitorPlay, ShoppingBag,LineChart, Calendar, Bot, FlaskConical, CandlestickChart } from "lucide-react";
+import { MonitorPlay, Sparkles, LineChart, Calendar, Bot, FlaskConical, CandlestickChart } from "lucide-react";
 import { track } from "@/lib/analytics/track";
 import { openBookingPopup } from "@/lib/cal/embed";
 
@@ -13,7 +13,7 @@ const ITEMS = [
   { icon: FlaskConical, label: "Стратегии на живо", sub: "72 стратегии в тест", href: "/strategii", color: "#34d399" },
   { icon: CandlestickChart, label: "AI Трейдинг", sub: "ботовете на живо", href: "/ai-trading", color: "#a78bfa" },
   { icon: MonitorPlay, label: "Живо демо", sub: "виж системата отвътре", href: "/demo", color: "#67e8f9" },
-  { icon: ShoppingBag, label: "Магазин", sub: "курсове · агенти · системи", href: "/magazin", color: "#fbbf24" },
+  { icon: Sparkles, label: "AI решения", sub: "системи · агенти · обучения", href: "/ai-reshenia", color: "#fbbf24" },
   { icon: LineChart, label: "Трейдинг книга", sub: "безплатна книга", href: "/trading", color: "#d946ef" },
 ];
 
