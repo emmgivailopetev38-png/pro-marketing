@@ -33,7 +33,7 @@ import {
   Clapperboard,
   Settings,
   LogOut,
-  type LucideIcon, Mic, Presentation} from "lucide-react";
+  type LucideIcon, Mic, Presentation, Route} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/landing/Logo";
 import { cn } from "@/lib/utils";
@@ -57,6 +57,10 @@ const LINK_GROUPS: LinkGroup[] = [
       { href: "/admin/new-leads", label: "Нови лидове", icon: Sparkles },
       { href: "/admin/insights", label: "Оптимизация", icon: Lightbulb },
     ],
+  },
+  {
+    label: "Тренировка",
+    items: [{ href: "/admin/skript", label: "Разговорът", icon: Route }],
   },
   {
     label: "CRM",
