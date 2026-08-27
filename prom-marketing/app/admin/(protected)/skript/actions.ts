@@ -3,28 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/service";
 import { requireAdmin } from "@/lib/admin/require-admin";
+import { fetchCallReviews } from "@/lib/skript/reviews";
+import { createShareToken, codeFingerprint } from "@/lib/share/link";
 
-export type CallReview = {
-  id: string;
-  call_date: string;
-  client_name: string | null;
-  channel: string;
-  reached_stage: string | null;
-  client_words: string | null;
-  client_number: string | null;
-  root_cause: string | null;
-  client_picture: string | null;
-  objections: string[];
-  outcome: string;
-  deal_value: number | null;
-  next_step: string | null;
-  next_step_at: string | null;
-  prep: Record<string, boolean>;
-  scores: Record<string, number>;
-  avg_score: number | null;
-  lesson: string | null;
-  notes: string | null;
-};
+export type { CallReview } from "@/lib/skript/reviews";
 
 export type ReviewInput = {
   call_date: string;
@@ -106,16 +88,43 @@ export async function deleteCallReview(id: string): Promise<void> {
 }
 
 /** Последните разбори, най-новият отгоре. */
-export async function listCallReviews(limit = 60): Promise<CallReview[]> {
+export async function listCallReviews(limit = 60) {
   await requireAdmin();
-  const svc = createServiceClient();
-  const { data, error } = await svc
-    .from("sales_call_reviews")
-    .select("*")
-    .order("call_date", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  return fetchCallReviews(limit);
+}
 
-  if (error) throw new Error(error.message);
-  return (data ?? []) as CallReview[];
+/* ---------------------------------------------------------------------
+   Споделяне на раздела с външен човек (ментор, партньор).
+   Връща готов линк — без акаунт за него и без достъп до останалия CRM.
+   --------------------------------------------------------------------- */
+
+export type ShareLinkInput = {
+  /** за кого е — влиза в шапката на споделената страница */
+  name: string;
+  /** валидност в дни; 0 = безсрочен */
+  days: number;
+  /** да вижда ли „Напредък" — там има имена на клиенти и суми */
+  includeProgress: boolean;
+  /** код за достъп; празно = отваря се само с линка */
+  code: string;
+};
+
+export async function createSkriptShareLink(input: ShareLinkInput): Promise<{ path: string }> {
+  await requireAdmin();
+
+  const name = input.name.trim() || "гост";
+  const days = Number.isFinite(input.days) ? Math.max(0, Math.min(730, input.days)) : 90;
+  const code = input.code.trim();
+
+  const token = createShareToken({
+    n: name,
+    s: "skript",
+    x: input.includeProgress ? ["napredak"] : [],
+    e: days > 0 ? Date.now() + days * 24 * 60 * 60 * 1000 : 0,
+    ...(code ? { p: codeFingerprint(code) } : {}),
+  });
+
+  // Само пътят — домейнът се лепва отпред в браузъра, за да е верен
+  // и от локална машина, и от промо домейна.
+  return { path: `/razgovorat/${token}` };
 }

@@ -31,6 +31,7 @@ import { Questions } from "./Questions";
 import { Pricing } from "./Pricing";
 import { Progress } from "./Progress";
 import { CallReviewForm } from "./CallReviewForm";
+import { ShareLink } from "./ShareLink";
 import type { CallReview } from "@/app/admin/(protected)/skript/actions";
 import {
   STAGES,
@@ -358,11 +359,31 @@ function Prep() {
 
 /* ================= ГЛАВНИЯТ КОМПОНЕНТ ================= */
 
-export function SkriptTrainer({ reviews }: { reviews: CallReview[] }) {
+export function SkriptTrainer({
+  reviews,
+  shared = false,
+  guestName,
+  showProgress = true,
+}: {
+  reviews: CallReview[];
+  /** отворен по таен линк от външен човек — само за четене */
+  shared?: boolean;
+  guestName?: string;
+  /** вижда ли се „Напредък" (реални разбори с имена на клиенти) */
+  showProgress?: boolean;
+}) {
   const [tab, setTab] = useState<TabId>("karta");
   const [stage, setStage] = useState(1);
   const [view, setView] = useState<"polet" | "shema">("polet");
   const router = useRouter();
+
+  // Гостът не пише в базата, затова „След срещата" изобщо не съществува за него,
+  // а „Напредък" излиза само ако линкът го носи.
+  const tabs = TABS.filter((t) => {
+    if (t.id === "sled") return !shared;
+    if (t.id === "napredak") return !shared || showProgress;
+    return true;
+  });
 
   function goStage(num: string) {
     const i = STAGES.findIndex((s) => s.num === num);
@@ -375,19 +396,28 @@ export function SkriptTrainer({ reviews }: { reviews: CallReview[] }) {
   return (
     <div className="pb-16">
       {/* ---- шапка ---- */}
-      <header className="mb-6">
-        <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-[var(--color-accent-cyan)]">
-          Тренажор · само за Ивайло
-        </p>
-        <h1 className="mt-2 text-4xl font-bold tracking-tight text-[var(--color-text-primary)]">
-          Разговорът
-        </h1>
+      <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-[var(--color-accent-cyan)]">
+            {shared ? `Тренажор · споделено с ${guestName ?? "гост"}` : "Тренажор · само за Ивайло"}
+          </p>
+          <h1 className="mt-2 text-4xl font-bold tracking-tight text-[var(--color-text-primary)]">
+            Разговорът
+          </h1>
+          {shared && (
+            <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-[var(--color-text-secondary)]">
+              Цялата система за продажби на ProMarketing — картата на разговора, етапите,
+              въпросите, възраженията и ценообразуването. За четене.
+            </p>
+          )}
+        </div>
+        {!shared && <ShareLink />}
       </header>
 
       {/* ---- табове ---- */}
       <nav className="sticky top-0 z-20 -mx-4 mb-7 border-b border-white/10 bg-[rgba(3,3,8,0.9)] px-4 py-2 backdrop-blur">
         <div className="flex gap-1.5 overflow-x-auto pb-0.5">
-          {TABS.map((t) => {
+          {tabs.map((t) => {
             const on = tab === t.id;
             const Icon = t.icon;
             return (
@@ -693,7 +723,7 @@ export function SkriptTrainer({ reviews }: { reviews: CallReview[] }) {
       )}
 
       {/* ================= СЛЕД ================= */}
-      {tab === "sled" && (
+      {!shared && tab === "sled" && (
         <div>
           <Head
             kicker="След срещата"
