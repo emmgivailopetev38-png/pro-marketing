@@ -11,17 +11,28 @@ const STEPS = [
   },
   {
     n: "03",
-    title: "Картината се сглобява под звука",
-    body: "Видеото се генерира спрямо ритъма и спрямо това, което гласът казва в конкретната секунда. Звукът води, картината следва.",
+    title: "Вашите кадри влизат наравно",
+    body: "Каквото сте заснели сами, се качва и се ползва редом с генерираното. Режете началото и края, влачите клиповете и ги разменяте по местата им, докато редът стане какъвто го искате.",
   },
   {
     n: "04",
+    title: "Картината се сглобява под звука",
+    body: "Липсващото се генерира спрямо ритъма и спрямо това, което гласът казва в конкретната секунда. Звукът води, картината следва.",
+  },
+  {
+    n: "05",
+    title: "Питате го каквото се сетите",
+    body: "В същия чат: коя тема върви сега, защо това видео е тръгнало, а онова не, кой е добрият начален кадър, кога да се публикува. Отговаря на български и помни какво сте правили досега.",
+    accent: true,
+  },
+  {
+    n: "06",
     title: "Идва при вас за одобрение",
     body: "Готовото видео пристига при вас и спира там. Нищо не тръгва към никоя мрежа, докато не кажете „да“.",
     accent: true,
   },
   {
-    n: "05",
+    n: "07",
     title: "След вашето „да“ — публикува се",
     body: "Facebook, Instagram и TikTok, в час, който вие сте определили. Ако кажете „не“ — видеото се преправя и се връща пак при вас.",
   },
@@ -148,7 +159,7 @@ export default function SigmaConsultPage() {
             За Сигма Консулт
           </span>
           <span className="text-[13px]" style={{ color: "var(--s-text-3)" }}>
-            Подготвено за Таня Велкова · 26 август 2026
+            Подготвено за Таня Велкова · обновено 27 август 2026
           </span>
         </div>
 
@@ -164,9 +175,9 @@ export default function SigmaConsultPage() {
         </h1>
 
         <p className="max-w-[62ch] text-[17px] leading-relaxed" style={{ color: "var(--s-text-2)" }}>
-          По телефона казахте, че снимате все едно и също и че искате асистент, който да прави видеата
-          вместо вас — но върху вашата музика и с вашия глас. И че нищо не бива да излиза навън, преди
-          вие да сте го видели. Тази страница е точно за това.
+          По телефона казахте три неща: че снимате все едно и също, че плащате на хора да публикуват,
+          но в процеса им няма дълбочина, и че нищо не бива да излиза навън, преди вие да сте го видели.
+          Тази страница е отговорът и на трите.
         </p>
 
         <div
@@ -192,12 +203,97 @@ export default function SigmaConsultPage() {
               се съобразява и с трите.
             </li>
             <li>
+              <strong style={{ color: "var(--s-text)" }}>Дълбочината липсва, не хората.</strong> Затова
+              асистентът не само прави видеа — той обяснява защо едно е тръгнало, а друго не, и предлага
+              каква да е следващата тема. Питате го в чата, на български.
+            </li>
+            <li>
               <strong style={{ color: "var(--s-text)" }}>Нищо не се публикува без вашето одобрение.</strong>{" "}
               Това не е настройка, която може да се изключи — то е част от начина, по който работи.
             </li>
           </ul>
         </div>
       </header>
+
+      {/* ── Видеото за лизинг ────────────────── */}
+      <section className="flex flex-col gap-8">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-[1.6rem] font-bold sm:text-[2.1rem]" style={{ fontFamily: "var(--font-display)" }}>
+            Ето едно ваше видео
+          </h2>
+          <p className="max-w-[62ch] text-[15.5px] leading-relaxed" style={{ color: "var(--s-text-3)" }}>
+            Направено след разговора ни, по темата, която сама повдигнахте — Каско при лизинг. Четиридесет
+            секунди. Нито един кадър не е сниман: няма оператор, няма студио, няма актьори.
+          </p>
+        </div>
+
+        <div className="grid gap-7 sm:grid-cols-[minmax(0,300px)_1fr] sm:items-start">
+          <figure className="flex flex-col gap-3">
+            <div
+              className="overflow-hidden rounded-xl border"
+              style={{ borderColor: "var(--s-line)", background: "var(--s-deep)", aspectRatio: "9 / 16" }}
+            >
+              <video
+                controls
+                playsInline
+                preload="metadata"
+                poster="/videa/sigma-kasko-lizing.jpg"
+                className="h-full w-full object-cover"
+              >
+                <source src="/videa/sigma-kasko-lizing.mp4" type="video/mp4" />
+              </video>
+            </div>
+            <figcaption className="text-[13px]" style={{ color: "var(--s-text-3)" }}>
+              Каско при лизинг · 40 секунди · вертикално
+            </figcaption>
+          </figure>
+
+          <div className="flex flex-col gap-5">
+            <div
+              className="rounded-2xl border p-6"
+              style={{ borderColor: "var(--s-line)", background: "var(--s-card)" }}
+            >
+              <div
+                className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                style={{ color: "var(--s-amber)" }}
+              >
+                Защо точно тази тема
+              </div>
+              <p className="text-[15.5px] leading-relaxed" style={{ color: "var(--s-text-2)" }}>
+                Човек взима колата, подписва и застраховката, която лизинговата компания му е подала — без да
+                знае, че има право да избере сам. Това е момент, в който брокерът е от полза, а клиентът дори
+                не подозира, че има избор. Точно такива теми правят видеата, които хората доизгледват.
+              </p>
+            </div>
+
+            <div
+              className="rounded-2xl border p-6"
+              style={{ borderColor: "var(--s-line)", background: "var(--s-card)" }}
+            >
+              <div
+                className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                style={{ color: "var(--s-amber)" }}
+              >
+                Какво още не е вътре
+              </div>
+              <ul className="flex flex-col gap-2 text-[15px] leading-relaxed" style={{ color: "var(--s-text-2)" }}>
+                <li>
+                  <strong style={{ color: "var(--s-text)" }}>Вашият глас.</strong> Тук върви само музика и
+                  надписи. С вашия говор отгоре видеото става друго — и точно така ще работи при вас.
+                </li>
+                <li>
+                  <strong style={{ color: "var(--s-text)" }}>Вашата музика.</strong> Тази е композирана от
+                  нула, за да няма авторски права. Вашата пътека я заменя веднага.
+                </li>
+                <li>
+                  <strong style={{ color: "var(--s-text)" }}>Вашето лице.</strong> Жената във видеото е
+                  генерирана. Не сме пипали ваша снимка — за това се иска вашето разрешение, писмено.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* ── Как работи ───────────────────────── */}
       <section className="flex flex-col gap-8">
@@ -206,7 +302,7 @@ export default function SigmaConsultPage() {
             Как ще работи
           </h2>
           <p className="text-[15.5px]" style={{ color: "var(--s-text-3)" }}>
-            Пет стъпки. Четвъртата е тази, на която държите.
+            Седем стъпки. Пета и шеста са тези, на които държите.
           </p>
         </div>
 
@@ -381,18 +477,125 @@ export default function SigmaConsultPage() {
         </p>
       </section>
 
+      {/* ── Цени и договор ───────────────────── */}
+      <section className="flex flex-col gap-8">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-[1.6rem] font-bold sm:text-[2.1rem]" style={{ fontFamily: "var(--font-display)" }}>
+            Колко струва
+          </h2>
+          <p className="max-w-[62ch] text-[15.5px] leading-relaxed" style={{ color: "var(--s-text-3)" }}>
+            По телефона минахме през числата бързо. Ето ги подредени, за да са пред очите ви.
+          </p>
+        </div>
+
+        <div
+          className="overflow-hidden rounded-2xl border"
+          style={{ borderColor: "var(--s-line)", background: "var(--s-card)" }}
+        >
+          <div className="flex flex-col divide-y" style={{ borderColor: "var(--s-line-soft)" }}>
+            <div className="flex flex-wrap items-baseline justify-between gap-3 p-6">
+              <div className="flex flex-col gap-1">
+                <div className="text-[16px] font-semibold" style={{ color: "var(--s-text)" }}>
+                  Изработка на платформата
+                </div>
+                <div className="text-[14px]" style={{ color: "var(--s-text-3)" }}>
+                  Еднократно — 400 € при подпис, 400 € при приемане
+                </div>
+              </div>
+              <div
+                className="text-[24px] font-bold tabular-nums"
+                style={{ fontFamily: "var(--font-mono)", color: "var(--s-text)" }}
+              >
+                800 €
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-baseline justify-between gap-3 p-6">
+              <div className="flex flex-col gap-1">
+                <div className="text-[16px] font-semibold" style={{ color: "var(--s-text)" }}>
+                  След това — на месец
+                </div>
+                <div className="text-[14px] leading-relaxed" style={{ color: "var(--s-text-3)" }}>
+                  50 € поддръжка + 100 € за работата на системата, с до 10 готови видеа месечно.
+                  <br />
+                  Първият месец е безплатен. Цената е фиксирана 12 месеца.
+                </div>
+              </div>
+              <div
+                className="text-[24px] font-bold tabular-nums"
+                style={{ fontFamily: "var(--font-mono)", color: "var(--s-amber)" }}
+              >
+                150 €
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-baseline justify-between gap-3 p-6">
+              <div className="flex flex-col gap-1">
+                <div className="text-[16px] font-semibold" style={{ color: "var(--s-text)" }}>
+                  Видео над включените десет
+                </div>
+                <div className="text-[14px]" style={{ color: "var(--s-text-3)" }}>
+                  Плаща се само ако го поискате
+                </div>
+              </div>
+              <div
+                className="text-[24px] font-bold tabular-nums"
+                style={{ fontFamily: "var(--font-mono)", color: "var(--s-text)" }}
+              >
+                8 €
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="rounded-2xl border p-6 sm:p-7"
+          style={{ borderColor: "var(--s-amber-dim)", background: "rgba(224,164,88,0.06)" }}
+        >
+          <div
+            className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em]"
+            style={{ color: "var(--s-amber)" }}
+          >
+            Клаузата, на която държа
+          </div>
+          <p className="max-w-[62ch] text-[15.5px] leading-relaxed" style={{ color: "var(--s-text-2)" }}>
+            Цените на AI услугите се менят бързо — и в двете посоки. В договора е записано, че се преглеждат
+            на всеки шест месеца, а <strong style={{ color: "var(--s-text)" }}>поевтинеят ли, намалявам сам</strong>,
+            без да ме питате. Не виждам причина това да е само в моя полза. Ако някога поскъпнат съществено и
+            не приемете новата цена, прекратявате с месец предизвестие и без неустойка.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <p className="max-w-[62ch] text-[15.5px] leading-relaxed" style={{ color: "var(--s-text-2)" }}>
+            Примерният договор е готов — с всичко горе вътре, плюс кой какво отговаря за музиката, какво става
+            при поправки и защо одобрението е записано като задължение, а не като любезност. Прочетете го на
+            спокойствие. Ако нещо не ви пасва, променяме го.
+          </p>
+          <div className="flex flex-wrap gap-3 pt-1">
+            <a
+              href="/oferta/sigma-consult/dogovor.pdf"
+              className="rounded-lg px-5 py-3 text-[15px] font-semibold transition-opacity hover:opacity-90"
+              style={{ background: "var(--s-amber)", color: "#1a1206" }}
+            >
+              Примерният договор (PDF)
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* ── Следваща стъпка ──────────────────── */}
       <section
         className="flex flex-col gap-5 rounded-2xl border p-7 sm:p-9"
         style={{ borderColor: "var(--s-amber-dim)", background: "rgba(224,164,88,0.06)" }}
       >
         <h2 className="text-[1.5rem] font-bold sm:text-[1.9rem]" style={{ fontFamily: "var(--font-display)" }}>
-          Утре в 11:00
+          Вторник, 10:00
         </h2>
         <p className="max-w-[62ch] text-[16px] leading-relaxed" style={{ color: "var(--s-text-2)" }}>
-          Разбрахме се да се чуем в четвъртък, 27 август, от 11:00 ч. Дотогава разгледайте видеата на
-          спокойствие — на срещата ще тръгнем от това кои от тях ви харесват и защо, и ще уточним темите,
-          с които асистентът да започне.
+          Разбрахме се да се чуем във вторник, 1 септември, от 10:00 ч. Дотогава разгледайте видеото и
+          договора на спокойствие. На срещата ще минем през него ред по ред и ще пуснем едно видео заедно,
+          на живо — да видите как се прави, преди да сте се обвързали с каквото и да било.
         </p>
         <div className="flex flex-wrap gap-3 pt-1">
           <a
