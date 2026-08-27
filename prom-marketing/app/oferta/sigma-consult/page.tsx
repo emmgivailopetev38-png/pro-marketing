@@ -1,3 +1,4 @@
+import MiniDemo from "./MiniDemo";
 const STEPS = [
   {
     n: "01",
@@ -222,8 +223,9 @@ export default function SigmaConsultPage() {
             Ето едно ваше видео
           </h2>
           <p className="max-w-[62ch] text-[15.5px] leading-relaxed" style={{ color: "var(--s-text-3)" }}>
-            Направено след разговора ни, по темата, която сама повдигнахте — Каско при лизинг. Четиридесет
-            секунди. Нито един кадър не е сниман: няма оператор, няма студио, няма актьори.
+            Направено след разговора ни, по темата, която сама повдигнахте — Каско при лизинг. Двайсет и три
+            секунди. Хората в него говорят на български. Нито един кадър не е сниман: няма оператор, няма
+            студио, няма актьори.
           </p>
         </div>
 
@@ -244,7 +246,7 @@ export default function SigmaConsultPage() {
               </video>
             </div>
             <figcaption className="text-[13px]" style={{ color: "var(--s-text-3)" }}>
-              Каско при лизинг · 40 секунди · вертикално
+              Каско при лизинг · 23 секунди · вертикално
             </figcaption>
           </figure>
 
@@ -278,8 +280,8 @@ export default function SigmaConsultPage() {
               </div>
               <ul className="flex flex-col gap-2 text-[15px] leading-relaxed" style={{ color: "var(--s-text-2)" }}>
                 <li>
-                  <strong style={{ color: "var(--s-text)" }}>Вашият глас.</strong> Тук върви само музика и
-                  надписи. С вашия говор отгоре видеото става друго — и точно така ще работи при вас.
+                  <strong style={{ color: "var(--s-text)" }}>Вашият глас.</strong> Тук говорят генерирани
+                  хора. С вашия глас отгоре видеото става друго — и точно така ще работи при вас.
                 </li>
                 <li>
                   <strong style={{ color: "var(--s-text)" }}>Вашата музика.</strong> Тази е композирана от
@@ -293,6 +295,26 @@ export default function SigmaConsultPage() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* ── Мини демо ────────────────────────── */}
+      <section className="flex flex-col gap-8">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-[1.6rem] font-bold sm:text-[2.1rem]" style={{ fontFamily: "var(--font-display)" }}>
+            Пипнете го сега
+          </h2>
+          <p className="max-w-[62ch] text-[15.5px] leading-relaxed" style={{ color: "var(--s-text-3)" }}>
+            Това долу не е снимка на екран — то работи. Изберете продукт и дължина, вижте какъв сценарий
+            излиза, одобрете го и гледайте какво се получава. Същите четири стъпки ще правите и наистина.
+          </p>
+        </div>
+
+        <MiniDemo />
+
+        <p className="max-w-[62ch] text-[14px] leading-relaxed" style={{ color: "var(--s-text-3)" }}>
+          Единствената разлика с истинската система: тук сценарият и отговорите са подготвени предварително,
+          за да е бързо. При вас се съчиняват в момента, върху вашите теми и вашите числа.
+        </p>
       </section>
 
       {/* ── Как работи ───────────────────────── */}
@@ -529,20 +551,46 @@ export default function SigmaConsultPage() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-baseline justify-between gap-3 p-6">
+            <div className="flex flex-col gap-3 p-6">
               <div className="flex flex-col gap-1">
                 <div className="text-[16px] font-semibold" style={{ color: "var(--s-text)" }}>
-                  Видео над включените десет
+                  Ако десет не стигат
                 </div>
                 <div className="text-[14px]" style={{ color: "var(--s-text-3)" }}>
-                  Плаща се само ако го поискате
+                  Обемът се вдига с пакет, не на парче. Сменя се от месец за месец.
                 </div>
               </div>
-              <div
-                className="text-[24px] font-bold tabular-nums"
-                style={{ fontFamily: "var(--font-mono)", color: "var(--s-text)" }}
-              >
-                8 €
+              <div className="flex flex-col gap-2 pt-1 sm:flex-row">
+                {[
+                  { n: "Основен", v: "до 10 видеа", c: "150 €", aktiven: true },
+                  { n: "Разширен", v: "до 20 видеа", c: "270 €" },
+                  { n: "Голям", v: "до 30 видеа", c: "350 €" },
+                ].map((p) => (
+                  <div
+                    key={p.n}
+                    className="flex-1 rounded-xl border p-4"
+                    style={{
+                      borderColor: p.aktiven ? "var(--s-amber-dim)" : "var(--s-line)",
+                      background: p.aktiven ? "rgba(224,164,88,0.06)" : "var(--s-deep)",
+                    }}
+                  >
+                    <div
+                      className="text-[11px] font-semibold uppercase tracking-[0.14em]"
+                      style={{ color: p.aktiven ? "var(--s-amber)" : "var(--s-text-3)" }}
+                    >
+                      {p.n}
+                    </div>
+                    <div
+                      className="mt-1.5 text-[20px] font-bold tabular-nums"
+                      style={{ fontFamily: "var(--font-mono)", color: "var(--s-text)" }}
+                    >
+                      {p.c}
+                    </div>
+                    <div className="text-[13.5px]" style={{ color: "var(--s-text-2)" }}>
+                      {p.v} на месец
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
