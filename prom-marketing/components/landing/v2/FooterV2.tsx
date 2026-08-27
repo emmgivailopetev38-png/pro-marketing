@@ -116,6 +116,7 @@ export function FooterV2() {
                 { href: "/ai-chatbot", label: "AI чатбот" },
                 { href: "/ai-crm", label: "AI CRM система" },
                 { href: "/glasov-ai-agent", label: "Гласов AI агент" },
+                { href: "/ai-marketing", label: "AI маркетинг" },
                 { href: "/ai-avtomatizacia-plovdiv", label: "AI автоматизация Пловдив" },
                 { href: "/rakovodstva", label: "Ръководства" },
                 { href: "/kurs", label: "Курс за AI продажби" },

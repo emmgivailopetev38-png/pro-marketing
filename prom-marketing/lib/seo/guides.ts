@@ -608,7 +608,7 @@ export const GUIDES: Guide[] = [
       { q: "Кое е по-подходящо за онлайн магазин?", a: "Чатбот с достъп до наличности покрива повечето нужди. Агент става полезен при поръчки по запитване, при B2B цени или когато има връщания и рекламации за обработка." },
       { q: "А ако имам малко запитвания?", a: "Тогава вероятно не ти трябва нито едното. Започни с автоматично проследяване на клиентите, които вече са питали — там са парите при малък обем." },
     ],
-    related: ["ai-avtomatizacia-rakovodstvo", "kolko-struva-ai-avtomatizacia"],
+    related: ["ai-avtomatizacia-rakovodstvo", "optimizacia-za-ai-tarsachki"],
   },
 
   /* ══════════════════════════════════════════════════════════════════ */
@@ -992,4 +992,25 @@ export const GUIDES: Guide[] = [
 
 export function getGuide(slug: string): Guide | undefined {
   return GUIDES.find((g) => g.slug === slug);
+}
+
+/**
+ * Свързаните ръководства — двупосочно.
+ *
+ * Полето `related` сочи само напред. Ако А сочи към Б, но Б не сочи към А,
+ * Б получава една входяща връзка по-малко — а страница с една входяща
+ * връзка е почти сирак. Тук се добавят и обратните: всяко ръководство,
+ * което сочи насам, се показва и то.
+ */
+export function relatedFor(slug: string): Guide[] {
+  const g = getGuide(slug);
+  if (!g) return [];
+  const forward = g.related;
+  const backward = GUIDES.filter((x) => x.slug !== slug && x.related.includes(slug)).map((x) => x.slug);
+  const seen = new Set<string>();
+  return [...forward, ...backward]
+    .filter((s) => s !== slug && !seen.has(s) && seen.add(s))
+    .map((s) => getGuide(s))
+    .filter((x): x is Guide => Boolean(x))
+    .slice(0, 4);
 }

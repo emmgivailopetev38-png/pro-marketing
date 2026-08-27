@@ -112,6 +112,13 @@ export const KW = {
     "AI за онлайн магазин",
     "AI за транспортна фирма",
   ],
+  marketing: [
+    "AI маркетинг",
+    "AI реклами",
+    "AI видео реклама",
+    "маркетинг агенция",
+    "дигитална маркетинг агенция",
+  ],
   /** Английски — за международните запитвания. Не се крият никъде;
       живеят на /en и в структурираните данни. */
   en: [
@@ -131,6 +138,7 @@ export const ALL_KEYWORDS: string[] = [
   ...KW.voice,
   ...KW.local,
   ...KW.vertical,
+  ...KW.marketing,
 ];
 
 /* ---------------------------------------------------------------------
@@ -152,6 +160,7 @@ export const PILLAR_PAGES: SitemapEntry[] = [
   { path: "/ai-chatbot", priority: 0.9, changeFrequency: "weekly" },
   { path: "/ai-crm", priority: 0.9, changeFrequency: "weekly" },
   { path: "/glasov-ai-agent", priority: 0.9, changeFrequency: "weekly" },
+  { path: "/ai-marketing", priority: 0.9, changeFrequency: "weekly" },
   { path: "/ai-avtomatizacia-plovdiv", priority: 0.85, changeFrequency: "monthly" },
 ];
 
