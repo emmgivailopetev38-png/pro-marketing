@@ -1,3 +1,16 @@
+import type { Metadata } from "next";
+
+/* /v2 е вътрешният адрес на същата начална страница — държи се като
+   пътека за връщане назад, ако редизайнът трябва да се отмени. За
+   търсачката обаче това е точно копие на „/" със същото заглавие и
+   същия текст. robots.txt го спира да се обхожда, но забранената
+   страница пак може да влезе в индекса само с адрес; noindex и
+   каноничен адрес към „/" затварят и тази вратичка. */
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+  alternates: { canonical: "/" },
+};
+
 import dynamic from "next/dynamic";
 import "./v2-design.css";
 

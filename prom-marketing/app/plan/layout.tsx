@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Unbounded, Manrope, JetBrains_Mono } from "next/font/google";
 
+import { PageSchema } from "@/components/seo/PageSchema";
 const display = Unbounded({
   subsets: ["latin", "latin-ext", "cyrillic"],
   weight: ["600", "700", "800"],
@@ -21,14 +22,21 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/plan" },
   title: "ProMarketing · Платформа + AI — план и цени",
   description:
     "Изграждане на бизнес платформа с изкуствен интелект — 3 фази, ясни цени и поддръжка.",
-  robots: { index: false, follow: false },
+  // Досега тази страница беше noindex и същевременно стоеше в картата
+  // на сайта — противоречив сигнал, който Search Console отчита като
+  // грешка. Страницата е публична, обемна и линкната от менюто, значи
+  // мястото ѝ е в индекса.
+  robots: { index: true, follow: true },
 };
 
 export default function PlanLayout({ children }: { children: React.ReactNode }) {
   return (
+    <>
+      <PageSchema path="/plan" name="План и цени за AI платформа" description="Фази, пакети и поддръжка — как изглежда пътят от първия процес до свързана система." crumb="План и цени" />
     <div
       className={`${display.variable} ${body.variable} ${mono.variable}`}
       style={
@@ -41,5 +49,6 @@ export default function PlanLayout({ children }: { children: React.ReactNode }) 
     >
       {children}
     </div>
+    </>
   );
 }

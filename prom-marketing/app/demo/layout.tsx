@@ -23,10 +23,15 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/demo" },
   title: "ProMarketing OS · Живо демо · AI операционна система за бизнес",
   description:
     "Интерактивно демо — пуснете и спрете AI агенти, генерирайте видеа и публикации, гледайте живия CRM поток. Командният център от бъдещето.",
-  robots: { index: false, follow: false },
+  // Досега тази страница беше noindex и същевременно стоеше в картата
+  // на сайта — противоречив сигнал, който Search Console отчита като
+  // грешка. Страницата е публична, обемна и линкната от менюто, значи
+  // мястото ѝ е в индекса.
+  robots: { index: true, follow: true },
 };
 
 export default function DemoLayout({ children }: { children: React.ReactNode }) {

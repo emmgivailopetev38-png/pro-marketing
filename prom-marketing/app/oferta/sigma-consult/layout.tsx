@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "За Сигма Консулт · AI асистент за видеа · ProMarketing",
+  title: "За Сигма Консулт · AI асистент за видеа",
   description:
     "Асистент, който прави видеата вместо вас — върху вашата музика и вашия глас, с одобрение от вас преди всяка публикация.",
   robots: { index: false, follow: false },

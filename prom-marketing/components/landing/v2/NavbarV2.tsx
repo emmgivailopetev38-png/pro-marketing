@@ -36,11 +36,19 @@ import { openBookingPopup } from "@/lib/cal/embed";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics/track";
 
+// „Услуги“ вече сочи към истинска страница, не към котва в началната:
+// котвата не е адрес, Google не я брои за отделна страница и авторитетът
+// от менюто не стигаше доникъде.
+//
+// Позициите са четири плюс „Разгледай“. При седем „AI агенти“ и „Jarvis“
+// се пречупваха на два реда още при 1280px, а между 768 и 1024 менюто се
+// наслагваше върху логото — затова и прагът на хоризонталното меню е
+// вдигнат на `lg`. Стълбовете за AI агенти и чатбот стоят в „Разгледай“,
+// където имат и описание под името.
 const NAV = [
-  { href: "/#services", label: "Услуги" },
+  { href: "/ai-avtomatizacia", label: "Услуги" },
+  { href: "/rakovodstva", label: "Ръководства" },
   { href: "/jarvis", label: "Jarvis", isNew: true },
-  { href: "/strategii", label: "Стратегии", isNew: true },
-  { href: "/ai-trading", label: "AI Трейдинг", isNew: true },
   { href: "/#kontakti", label: "Контакти" },
 ];
 
@@ -54,6 +62,16 @@ type ExploreItem = {
 };
 
 const EXPLORE: ExploreItem[] = [
+  // Стълбовете стоят най-отгоре нарочно. Мястото във вътрешното меню е
+  // сигнал за важност — Google чете реда на връзките, а и посетителят
+  // среща първо това, което продаваме.
+  { href: "/ai-avtomatizacia", label: "AI автоматизация", sub: "кои процеси тръгват сами", icon: Radar, color: "#22d3ee" },
+  { href: "/ai-agenti", label: "AI агенти", sub: "виртуален асистент за бизнеса", icon: Bot, color: "#67e8f9" },
+  { href: "/ai-chatbot", label: "AI чатбот", sub: "на сайта и в Messenger, на български", icon: MonitorPlay, color: "#34d399" },
+  { href: "/ai-crm", label: "AI CRM система", sub: "на твоя домейн, попълва се сама", icon: Boxes, color: "#a78bfa" },
+  { href: "/glasov-ai-agent", label: "Гласов AI агент", sub: "вдига телефона вместо теб", icon: Handshake, color: "#d946ef" },
+  { href: "/ai-avtomatizacia-plovdiv", label: "AI в Пловдив", sub: "срещи на живо в региона", icon: Map, color: "#fbbf24" },
+  { href: "/rakovodstva", label: "Ръководства", sub: "как се прави, с числа и граници", icon: BookOpen, color: "#34d399" },
   { href: "/jarvis", label: "Jarvis", sub: "асистентът от бъдещето", icon: Bot, color: "#22d3ee", isNew: true },
   { href: "/strategii", label: "Лаборатория за стратегии", sub: "72 стратегии в тест · на живо", icon: FlaskConical, color: "#34d399", isNew: true },
   { href: "/ai-trading", label: "AI Трейдинг ботове", sub: "трейдинг флотата на живо", icon: CandlestickChart, color: "#a78bfa", isNew: true },
@@ -154,12 +172,12 @@ export function NavbarV2() {
           <Logo />
         </a>
         <ul
-          className="hidden items-center gap-6 text-sm md:flex"
+          className="hidden items-center gap-6 whitespace-nowrap text-sm lg:flex"
           style={{ color: "var(--v2-muted)" }}
         >
           {NAV.map((item) => (
             <li key={item.href}>
-              <a href={item.href} className="v2-navlink transition-colors">
+              <a href={item.href} className="v2-navlink whitespace-nowrap transition-colors">
                 {item.label}
                 {item.isNew && <NewDot />}
               </a>
@@ -276,7 +294,7 @@ export function NavbarV2() {
             aria-label="Отвори меню"
             aria-expanded={open}
             onClick={() => setOpen(true)}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-white/5 md:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-white/5 lg:hidden"
             style={{ color: "var(--v2-ink)" }}
           >
             <Menu className="h-5 w-5" />
@@ -286,7 +304,7 @@ export function NavbarV2() {
 
       {open && (
         <div
-          className="v2-glass fixed inset-0 z-50 flex flex-col overflow-hidden px-6 pt-6 pb-10 md:hidden"
+          className="v2-glass fixed inset-0 z-50 flex flex-col overflow-hidden px-6 pt-6 pb-10 lg:hidden"
           role="dialog"
           aria-modal="true"
           aria-label="Мобилна навигация"

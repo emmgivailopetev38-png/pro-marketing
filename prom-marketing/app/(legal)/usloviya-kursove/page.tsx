@@ -1,13 +1,18 @@
+import { PageSchema } from "@/components/seo/PageSchema";
+
 export const metadata = {
-  title: "Общи условия за онлайн курсове и обучения — ProMarketing LTD",
+  alternates: { canonical: "/usloviya-kursove" },
+  title: "Общи условия за онлайн курсове и обучения",
   description:
-    "Условия за покупка на онлайн курсове, обучения и менторски програми през promarketing.pw: цени, плащане, право на отказ, гаранция за връщане на парите, интелектуална собственост.",
+    "Условия за покупка на онлайн курсове и менторски програми: цени, плащане, право на отказ и гаранция за връщане на парите.",
 };
 
 const updatedAt = "6 юли 2026 г.";
 
 export default function UsloviyaKursovePage() {
   return (
+    <>
+      <PageSchema path="/usloviya-kursove" name="Условия за курсовете и обученията" description="Условия за записване, плащане и достъп до обученията." crumb="Условия за курсове" />
     <article className="prose prose-invert max-w-none">
       <h1 className="font-display text-4xl font-bold leading-tight md:text-5xl">
         Общи условия за покупка на онлайн курсове и обучения
@@ -155,5 +160,6 @@ export default function UsloviyaKursovePage() {
         сила. За вече направени покупки важат Условията към момента на поръчката.
       </p>
     </article>
+    </>
   );
 }

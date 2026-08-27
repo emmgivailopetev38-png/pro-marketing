@@ -1,5 +1,8 @@
+import { PageSchema } from "@/components/seo/PageSchema";
+
 export const metadata = {
-  title: "Общи условия — ProMarketing LTD",
+  alternates: { canonical: "/terms" },
+  title: "Общи условия",
   description:
     "Общи условия за ползване на уебсайта и услугите на ProMarketing LTD съгласно българското законодателство.",
 };
@@ -8,6 +11,8 @@ const updatedAt = "26 май 2026 г.";
 
 export default function TermsPage() {
   return (
+    <>
+      <PageSchema path="/terms" name="Общи условия за ползване" description="Условията за ползване на сайта и услугите на ProMarketing." crumb="Общи условия" />
     <article className="prose prose-invert max-w-none">
       <h1 className="font-display text-4xl font-bold leading-tight md:text-5xl">
         Общи условия за ползване
@@ -187,5 +192,6 @@ export default function TermsPage() {
         </li>
       </ul>
     </article>
+    </>
   );
 }

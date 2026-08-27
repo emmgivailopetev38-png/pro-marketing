@@ -9,7 +9,7 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
-  title: "За Antoan 09 EOOD · AI Система за пожарогасители · ProMarketing",
+  title: "За Antoan 09 EOOD · AI Система за пожарогасители",
   description:
     "Персонална презентация за AI автоматизация на сервиз за пожарогасители — QR сканиране, авто-протоколи, проследяване на обслужвания.",
   robots: { index: false, follow: false },

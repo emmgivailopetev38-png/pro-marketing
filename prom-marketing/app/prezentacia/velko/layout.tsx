@@ -9,7 +9,7 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
-  title: "Презентация за Велко Кузманов · Партньорство · ProMarketing",
+  title: "Презентация за Велко Кузманов · Партньорство",
   description:
     "Как работи ProMarketing — какво продаваме, нивата, през които минава клиентът, двата пътя (done-for-you и менторска) и моделът на партньорство и възнаграждение. Лично за Велко Кузманов.",
   robots: { index: false, follow: false },

@@ -215,7 +215,7 @@ function useInterval(cb: () => void, delay: number | null) {
    Главен компонент
    ========================================================================== */
 
-export default function DemoPage() {
+export function DemoHub() {
   const reduce = useReducedMotion();
   const [mounted, setMounted] = useState(false);
   const [booted, setBooted] = useState(false);
@@ -459,7 +459,7 @@ function Overview({ kpi, feed, running, loads, onAllOn, onAllOff, go }: {
       <div className="d-view-head">
         <div>
           <div className="d-eyebrow">КОМАНДЕН ЦЕНТЪР</div>
-          <h1 className="d-h1">Целият Ви бизнес — <span className="d-grad">на един екран</span>.</h1>
+          <h2 className="d-h1">Целият Ви бизнес — <span className="d-grad">на един екран</span>.</h2>
           <p className="d-sub">Шестнадесет AI агента под управлението на Хермес работят денонощно: хващат клиенти, отговарят навсякъде, пишат съдържание, правят видеа, въртят реклами и затварят сделки. Вие само наблюдавате и одобрявате.</p>
         </div>
         <div className="d-head-actions">
@@ -572,7 +572,7 @@ function HermesConsole({ kpi, pushFeed, flashToast }: { kpi: Record<KpiKey, numb
       <div className="d-view-head">
         <div>
           <div className="d-eyebrow">ХЕРМЕС · ЦЕНТРАЛЕН МОЗЪК</div>
-          <h1 className="d-h1">Един мозък, който <span className="d-grad">движи всичко</span>.</h1>
+          <h2 className="d-h1">Един мозък, който <span className="d-grad">движи всичко</span>.</h2>
           <p className="d-sub">Хермес разбира естествен език (текст или глас), решава кои агенти да включи и изпълнява. Пишете команда или изберете готова — и гледайте как мисли и действа на живо.</p>
         </div>
       </div>
@@ -622,7 +622,7 @@ function AgentsView({ running, loads, toggle, onAllOn, onAllOff }: {
       <div className="d-view-head">
         <div>
           <div className="d-eyebrow">AI ЕКИП · 16 АГЕНТА</div>
-          <h1 className="d-h1">Пускате и спирате всеки <span className="d-grad">с един клик</span>.</h1>
+          <h2 className="d-h1">Пускате и спирате всеки <span className="d-grad">с един клик</span>.</h2>
           <p className="d-sub">Всеки агент е специалист. Пуснете го — започва да работи веднага. Спрете го — спира. Контролът е изцяло Ваш.</p>
         </div>
         <div className="d-head-actions">
@@ -661,7 +661,7 @@ function ChannelsView() {
       <div className="d-view-head">
         <div>
           <div className="d-eyebrow">КАНАЛИ · ИНТЕГРАЦИИ</div>
-          <h1 className="d-h1">Всичките Ви канали — <span className="d-grad">на едно място</span>.</h1>
+          <h2 className="d-h1">Всичките Ви канали — <span className="d-grad">на едно място</span>.</h2>
           <p className="d-sub">Реклами, съобщения, имейли, форми и обаждания влизат в една система. Системата отговаря, публикува и записва — навсякъде, без да скачате между приложения.</p>
         </div>
       </div>
@@ -692,7 +692,7 @@ function InboxView({ emails, reply }: { emails: Email[]; reply: (id: number) => 
       <div className="d-view-head">
         <div>
           <div className="d-eyebrow">ИМЕЙЛИ · ПОЩАЛЬОНЪТ</div>
-          <h1 className="d-h1">AI чете пощата и <span className="d-grad">отговаря вместо Вас</span>.</h1>
+          <h2 className="d-h1">AI чете пощата и <span className="d-grad">отговаря вместо Вас</span>.</h2>
           <p className="d-sub">Всеки имейл се разпознава, класифицира и качва в CRM. Запитванията стават лийдове, фактурите се засичат, а отговорите се подготвят автоматично. Вие само одобрявате.</p>
         </div>
         <div className="d-head-actions"><span className="d-pill-count">{newCount} чакат отговор</span></div>
@@ -731,7 +731,7 @@ function FollowupView({ followups, doFollowup }: { followups: Followup[]; doFoll
       <div className="d-view-head">
         <div>
           <div className="d-eyebrow">FOLLOW-UP МАШИНА</div>
-          <h1 className="d-h1">Никой клиент <span className="d-grad">не пропада в забвение</span>.</h1>
+          <h2 className="d-h1">Никой клиент <span className="d-grad">не пропада в забвение</span>.</h2>
           <p className="d-sub">Системата помни всяка оферта и всеки разговор. Връща клиентите в точния момент — по имейл, Viber, Messenger или телефон — докато не вземете решение.</p>
         </div>
         <div className="d-head-actions"><span className="d-pill-count">{pending} активни</span></div>
@@ -783,7 +783,7 @@ function ContentStudio({ posts, setPosts, pushFeed, setKpi, flashToast }: {
       <div className="d-view-head">
         <div>
           <div className="d-eyebrow">СЪДЪРЖАНИЕ</div>
-          <h1 className="d-h1">Публикации, които <span className="d-grad">сами се пишат</span>.</h1>
+          <h2 className="d-h1">Публикации, които <span className="d-grad">сами се пишат</span>.</h2>
           <p className="d-sub">Изберете мрежа и тема. AI пише в стила на марката Ви и подготвя за всички канали наведнъж — Facebook, Instagram, TikTok, LinkedIn, YouTube.</p>
         </div>
       </div>
@@ -854,7 +854,7 @@ function VideoStudio({ onDone, videos, setVideos, flashToast }: {
       <div className="d-view-head">
         <div>
           <div className="d-eyebrow">ВИДЕО СТУДИО</div>
-          <h1 className="d-h1">Рекламно видео от <span className="d-grad">едно изречение</span>.</h1>
+          <h2 className="d-h1">Рекламно видео от <span className="d-grad">едно изречение</span>.</h2>
           <p className="d-sub">Опишете идеята. AI пише сценарий, прави кадрите, озвучава и монтира. Готово за публикуване във всички мрежи за секунди.</p>
         </div>
       </div>
@@ -903,7 +903,7 @@ function AdsView({ campaigns, optimize, toggle }: { campaigns: Campaign[]; optim
       <div className="d-view-head">
         <div>
           <div className="d-eyebrow">РЕКЛАМИ · META + ОЩЕ</div>
-          <h1 className="d-h1">Реклами, които <span className="d-grad">сами се оптимизират</span>.</h1>
+          <h2 className="d-h1">Реклами, които <span className="d-grad">сами се оптимизират</span>.</h2>
           <p className="d-sub">Кампаниите се управляват директно от системата. Лийдовете от рекламите влизат автоматично в CRM, а Рекламният Пилот мести бюджета към това, което носи пари.</p>
         </div>
       </div>
@@ -948,7 +948,7 @@ function Pipeline({ leads, advance, addLead }: { leads: Lead[]; advance: (id: nu
       <div className="d-view-head">
         <div>
           <div className="d-eyebrow">CRM ПОТОК</div>
-          <h1 className="d-h1">Всеки клиент — <span className="d-grad">проследен до сделка</span>.</h1>
+          <h2 className="d-h1">Всеки клиент — <span className="d-grad">проследен до сделка</span>.</h2>
           <p className="d-sub">Лийдовете влизат автоматично и се движат през ясни етапи. Натиснете „придвижи“, за да преместите клиент напред — или оставете агентите да го правят.</p>
         </div>
         <div className="d-head-actions"><button className="d-btn d-btn-primary" onClick={addLead}>+ Нов лийд</button></div>
@@ -989,7 +989,7 @@ function Analytics({ kpi }: { kpi: Record<KpiKey, number> }) {
       <div className="d-view-head">
         <div>
           <div className="d-eyebrow">АНАЛИТИКА · ОПТИМИЗАЦИЯ</div>
-          <h1 className="d-h1">Системата си казва <span className="d-grad">какво да подобри</span>.</h1>
+          <h2 className="d-h1">Системата си казва <span className="d-grad">какво да подобри</span>.</h2>
           <p className="d-sub">Всяка нощ Одиторът прави равнение и анализ. Сутрин получавате ясни препоръки — къде да наблегнете, какво да спрете и кое носи най-много пари.</p>
         </div>
       </div>

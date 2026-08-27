@@ -1,5 +1,8 @@
+import { PageSchema } from "@/components/seo/PageSchema";
+
 export const metadata = {
-  title: "Политика за поверителност — ProMarketing LTD",
+  alternates: { canonical: "/privacy" },
+  title: "Политика за поверителност",
   description:
     "Политика за поверителност и защита на личните данни на ProMarketing LTD съгласно GDPR и българското законодателство.",
 };
@@ -8,6 +11,8 @@ const updatedAt = "26 май 2026 г.";
 
 export default function PrivacyPage() {
   return (
+    <>
+      <PageSchema path="/privacy" name="Политика за поверителност" description="Как ProMarketing събира, използва и защитава лични данни." crumb="Поверителност" />
     <article className="prose prose-invert max-w-none">
       <h1 className="font-display text-4xl font-bold leading-tight md:text-5xl">
         Политика за поверителност
@@ -257,5 +262,6 @@ export default function PrivacyPage() {
         </li>
       </ul>
     </article>
+    </>
   );
 }

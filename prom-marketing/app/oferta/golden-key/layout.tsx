@@ -9,7 +9,7 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
-  title: "За Golden Key · AI Автоматизация на агенция за имоти · ProMarketing",
+  title: "За Golden Key · AI Автоматизация на агенция за имоти",
   description:
     "Тотална AI автоматизация за агенция за недвижими имоти — лийдове, разпределение, нива в CRM, чат с брокери, форми за HR, промотиране и социални мрежи.",
   robots: { index: false, follow: false },

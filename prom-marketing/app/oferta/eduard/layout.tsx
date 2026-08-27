@@ -9,7 +9,7 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
-  title: "За Едуард · AI Автоматизация · ProMarketing",
+  title: "За Едуард · AI Автоматизация",
   description:
     "Персонализирана оферта за AI автоматизация на социални мрежи, чат ботове и дашборд от ProMarketing LTD.",
   robots: { index: false, follow: false },

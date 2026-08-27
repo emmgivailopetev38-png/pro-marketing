@@ -162,7 +162,10 @@ export function VideoGalleryV2() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={`/videa/${c.slug}.jpg`}
-                      alt=""
+                      /* Описателен alt вместо празен: кадърът е и вход към
+                         Google Images, а видео резултатите се класират по
+                         текста около тях. */
+                      alt={`Кадър от видеото: ${c.title}`}
                       loading="lazy"
                       decoding="async"
                       className="h-full w-full object-cover"

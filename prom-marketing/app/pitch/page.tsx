@@ -15,11 +15,11 @@ import { ScrollProgress } from "@/components/effects/ScrollProgress";
 import { BookingConfetti } from "@/components/effects/BookingConfetti";
 
 export const metadata: Metadata = {
-  title: "AI решенията на бъдещето — ProMarketing LTD",
+  title: "AI решенията на бъдещето",
   description:
     "Изграждаме AI агенти, custom CRM системи и автоматизации, които работят 24/7 и превръщат рутината в растеж. Виж пълния спектър от това, което правим за теб.",
   openGraph: {
-    title: "AI решенията на бъдещето — ProMarketing LTD",
+    title: "AI решенията на бъдещето",
     description:
       "AI агенти, custom CRM, автоматизации. Виж пълния спектър от това, което правим.",
     type: "website",
