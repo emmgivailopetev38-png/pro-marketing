@@ -22,10 +22,12 @@ import { AgentChatViz, DashboardViz, LevelsViz } from "@/components/store/StoreV
 import { OrderDialog } from "@/components/store/OrderDialog";
 import { OFFERS } from "@/lib/webinar/config";
 
+import { PageSchema } from "@/components/seo/PageSchema";
 export const metadata: Metadata = {
-  title: "Магазин — обучения, AI агенти и системи | ProMarketing",
+  alternates: { canonical: "/magazin" },
+  title: "Магазин — обучения, AI агенти и системи",
   description:
-    "Директният магазин на ProMarketing: курсове и менторства (директна покупка), AI чат и гласови агенти, CRM системи на нива, уебсайт + CRM + реклами пакети и абонаментна поддръжка.",
+    "Курсове и менторства с директна покупка, AI чат и гласови агенти, CRM системи на нива, пакети сайт + CRM + реклами и абонаментна поддръжка.",
 };
 
 /**
@@ -146,6 +148,8 @@ export default function MagazinPage() {
   const m = OFFERS.mentorship;
 
   return (
+    <>
+      <PageSchema path="/magazin" name="Магазин — обучения, AI агенти и системи" description="Курсове, AI чат и гласови агенти, CRM системи на нива и абонаментна поддръжка." crumb="Магазин" />
     <main className="min-h-screen bg-[var(--color-bg-void)] text-white">
       {/* HERO */}
       <section className="relative overflow-hidden">
@@ -396,5 +400,6 @@ export default function MagazinPage() {
         </p>
       </section>
     </main>
+    </>
   );
 }

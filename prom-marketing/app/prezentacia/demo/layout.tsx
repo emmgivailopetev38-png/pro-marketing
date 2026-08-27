@@ -9,7 +9,7 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
-  title: "AI CRM · Командният център от бъдещето · ProMarketing",
+  title: "AI CRM · Командният център от бъдещето",
   description:
     "Жива демонстрация на custom CRM от ProMarketing — 13 AI агента, контрол на обажданията, проследяване на оферти, автоматично четене на имейли и AI следене на производството.",
   robots: { index: false, follow: false },

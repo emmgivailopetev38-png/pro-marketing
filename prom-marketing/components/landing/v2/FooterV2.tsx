@@ -71,8 +71,8 @@ export function FooterV2() {
           </div>
         </div>
 
-        {/* Middle row — 4 columns */}
-        <div className="mb-12 grid gap-10 border-y border-[var(--v2-line)] py-12 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
+        {/* Middle row — 5 columns (услугите влязоха като отделна колона) */}
+        <div className="mb-12 grid gap-10 border-y border-[var(--v2-line)] py-12 md:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]">
           <div>
             <h4 className="v2-mono mb-3 text-xs uppercase tracking-[0.2em] text-[var(--v2-faint)]">
               Контакт
@@ -98,6 +98,38 @@ export function FooterV2() {
               <li className="pt-2 text-xs text-[var(--v2-faint)]">
                 Работно време: пон-пет 9:00 — 19:00
               </li>
+            </ul>
+          </div>
+
+          {/* Услугите в долния колонтитул стоят на всяка страница от сайта.
+              Това е най-евтиният начин авторитетът от началната да стигне
+              до страниците, които трябва да се класират — и единственият,
+              който не зависи от това дали някой ще отвори менюто. */}
+          <div>
+            <h4 className="v2-mono mb-3 text-xs uppercase tracking-[0.2em] text-[var(--v2-faint)]">
+              Услуги
+            </h4>
+            <ul className="space-y-2 text-sm">
+              {[
+                { href: "/ai-avtomatizacia", label: "AI автоматизация" },
+                { href: "/ai-agenti", label: "AI агенти" },
+                { href: "/ai-chatbot", label: "AI чатбот" },
+                { href: "/ai-crm", label: "AI CRM система" },
+                { href: "/glasov-ai-agent", label: "Гласов AI агент" },
+                { href: "/ai-avtomatizacia-plovdiv", label: "AI автоматизация Пловдив" },
+                { href: "/rakovodstva", label: "Ръководства" },
+                { href: "/kurs", label: "Курс за AI продажби" },
+                { href: "/en", label: "English" },
+              ].map((l) => (
+                <li key={l.href}>
+                  <Link
+                    className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]"
+                    href={l.href}
+                  >
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 

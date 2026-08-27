@@ -2,7 +2,8 @@ import { VoiceButton } from "@/components/admin/VoiceButton";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Гласово демо · ProMarketing" };
+// Админ страница — зад парола и извън индекса.
+export const metadata = { robots: { index: false, follow: false }, title: "Гласово демо · ProMarketing" };
 
 /**
  * Гласовото демо живее ВЪТРЕ в CRM-а нарочно.

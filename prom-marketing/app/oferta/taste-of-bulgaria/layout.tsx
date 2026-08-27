@@ -9,7 +9,7 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
-  title: "За Taste of Bulgaria · AI операционна система за храни и онлайн магазин · ProMarketing",
+  title: "За Taste of Bulgaria · AI операционна система за храни и онлайн магазин",
   description:
     "Персонална презентация за AI автоматизация на хранителна фирма с онлайн магазин — авто-публикуване в социалните мрежи, имейл център, документи, плащания, склад.",
   robots: { index: false, follow: false },

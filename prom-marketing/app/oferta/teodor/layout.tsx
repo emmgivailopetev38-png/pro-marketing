@@ -9,7 +9,7 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
-  title: "За Теодор Лозев · AI Автоматизация в строителството · ProMarketing",
+  title: "За Теодор Лозев · AI Автоматизация в строителството",
   description:
     "Персонализирана презентация за AI операционна система в строителния бранш — единен дашборд за склад, КСС, счетоводство и проекти.",
   robots: { index: false, follow: false },

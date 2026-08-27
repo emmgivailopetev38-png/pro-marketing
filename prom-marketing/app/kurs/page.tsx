@@ -4,8 +4,10 @@ import { Check, Clock3, GraduationCap, ShieldCheck, Sparkles, Zap } from "lucide
 import { CheckoutButton } from "@/components/webinar/CheckoutButton";
 import { OFFERS } from "@/lib/webinar/config";
 
+import { PageSchema } from "@/components/seo/PageSchema";
 export const metadata: Metadata = {
-  title: `${OFFERS.course.name} — 30-дневен курс | ProMarketing`,
+  alternates: { canonical: "/kurs" },
+  title: `${OFFERS.course.name} — 30-дневен курс`,
   description:
     "Изгради сам своята AI система за клиенти: реклами, фуния, AI агенти и автоматични продажби — за 30 дни, с шаблоните, които използваме на клиенти.",
 };
@@ -62,6 +64,8 @@ export default function KursPage() {
   const c = OFFERS.course;
   const m = OFFERS.mentorship;
   return (
+    <>
+      <PageSchema path="/kurs" name="30-дневен курс за AI продажбена машина" description="Курс за собственици: как се строи система, която води клиенти и ги затваря." crumb="Курс" />
     <main className="min-h-screen bg-[var(--color-bg-void)] text-white">
       {/* HERO */}
       <section className="relative overflow-hidden">
@@ -173,5 +177,6 @@ export default function KursPage() {
         </p>
       </section>
     </main>
+    </>
   );
 }

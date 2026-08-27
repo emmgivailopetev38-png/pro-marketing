@@ -1,19 +1,27 @@
 import type { Metadata } from "next";
 import { Exo_2, Manrope, JetBrains_Mono } from "next/font/google";
 
+import { PageSchema } from "@/components/seo/PageSchema";
 const display = Exo_2({ subsets: ["latin", "cyrillic"], weight: ["500", "600", "700", "800"], variable: "--m-display", display: "swap" });
 const body = Manrope({ subsets: ["latin", "cyrillic"], weight: ["400", "500", "600", "700", "800"], variable: "--m-body", display: "swap" });
 const mono = JetBrains_Mono({ subsets: ["latin", "cyrillic"], weight: ["400", "500", "700"], variable: "--m-mono", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "ProMarketing · Продуктов модел — темплейт рамка по браншове",
+  alternates: { canonical: "/model" },
+  title: "Продуктов модел — рамка по браншове",
   description:
     "Темплейт рамка по браншове: база от 5–7 безупречни автоматизации + custom add-ons. Построй веднъж, продай много.",
-  robots: { index: false, follow: false },
+  // Досега тази страница беше noindex и същевременно стоеше в картата
+  // на сайта — противоречив сигнал, който Search Console отчита като
+  // грешка. Страницата е публична, обемна и линкната от менюто, значи
+  // мястото ѝ е в индекса.
+  robots: { index: true, follow: true },
 };
 
 export default function ModelLayout({ children }: { children: React.ReactNode }) {
   return (
+    <>
+      <PageSchema path="/model" name="Продуктов модел по браншове" description="Как строим системата веднъж и я пренасяме по браншове." crumb="Продуктов модел" />
     <div
       className={`${display.variable} ${body.variable} ${mono.variable}`}
       style={
@@ -43,5 +51,6 @@ export default function ModelLayout({ children }: { children: React.ReactNode })
     >
       {children}
     </div>
+    </>
   );
 }

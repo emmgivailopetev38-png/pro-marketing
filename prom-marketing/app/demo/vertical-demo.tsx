@@ -391,7 +391,9 @@ export function VerticalDemo({ vertical }: { vertical: Vertical }) {
 
       <main className="vd-main">
         <div className="vd-eyebrow">{cfg.eyebrow}</div>
-        <h1 className="vd-h1">{cfg.headline} <span className="vd-grad">{cfg.headlineAccent}</span></h1>
+        {/* h2: единственият H1 на страницата идва от сървърната секция
+            под демото (vertical-seo.tsx). */}
+        <h2 className="vd-h1">{cfg.headline} <span className="vd-grad">{cfg.headlineAccent}</span></h2>
         <p className="vd-sub">{cfg.sub}</p>
         <div className="vd-brands">
           {cfg.brands.map((k) => { const b = BRANDS[k]; const Icon = b.Icon; return (

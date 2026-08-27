@@ -1,6 +1,7 @@
 import { Syne } from "next/font/google";
 import type { Metadata } from "next";
 
+import { PageSchema } from "@/components/seo/PageSchema";
 const syne = Syne({
   subsets: ["latin", "latin-ext"],
   display: "swap",
@@ -9,12 +10,13 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
-  title: "Менторска програма · AI системи и автоматизация · ProMarketing",
+  alternates: { canonical: "/mentor" },
+  title: "Менторска програма · AI системи и автоматизация",
   description:
           "4-месечна 1-на-1 менторска програма за изграждане на AI системи, автоматизация и CRM маркетинг. 16 седмични сесии, личен ментор, реални проекти.",
   robots: { index: true, follow: true },
   openGraph: {
-    title: "Менторска програма · AI системи · ProMarketing",
+    title: "Менторска програма · AI системи",
     description:
       "16 седмични 1-на-1 сесии за изграждане на AI системи и автоматизация. От идея до собствен AI бизнес или внедряване в твоя текущ.",
     type: "website",
@@ -23,6 +25,8 @@ export const metadata: Metadata = {
 
 export default function MentorLayout({ children }: { children: React.ReactNode }) {
   return (
+    <>
+      <PageSchema path="/mentor" name="Менторска програма за AI системи и автоматизация" description="Индивидуално менторство за собственици, които сами строят AI системата на бизнеса си." crumb="Менторство" />
     <div
       className={`${syne.variable} oferta-theme min-h-screen`}
       style={
@@ -46,5 +50,6 @@ export default function MentorLayout({ children }: { children: React.ReactNode }
     >
       {children}
     </div>
+    </>
   );
 }

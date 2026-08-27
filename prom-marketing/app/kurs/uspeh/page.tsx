@@ -6,7 +6,7 @@ import { PurchasePixel } from "@/components/webinar/PurchasePixel";
 import { OFFERS } from "@/lib/webinar/config";
 
 export const metadata: Metadata = {
-  title: "Успешна покупка | ProMarketing",
+  title: "Успешна покупка",
   description: "Плащането е прието. Следващите стъпки пристигат по имейл.",
   robots: { index: false },
 };

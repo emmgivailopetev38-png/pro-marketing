@@ -1,6 +1,7 @@
 import { Unbounded } from "next/font/google";
 import type { Metadata } from "next";
 
+import { PageSchema } from "@/components/seo/PageSchema";
 const editorial = Unbounded({
   subsets: ["latin", "latin-ext", "cyrillic"],
   display: "swap",
@@ -9,7 +10,7 @@ const editorial = Unbounded({
 });
 
 export const metadata: Metadata = {
-  title: "Партньорска програма за маркетинг агенции · ProMarketing",
+  title: "Партньорска програма за маркетинг агенции",
   description:
     "White-label AI автоматизация за маркетинг агенции, обслужващи хотели и имотни агенции. Ние сме твоят execution екип — 30–60 дни до handover.",
   alternates: { canonical: "https://promarketing.pw/partneri" },
@@ -17,6 +18,8 @@ export const metadata: Metadata = {
 
 export default function PartneriLayout({ children }: { children: React.ReactNode }) {
   return (
+    <>
+      <PageSchema path="/partneri" name="Партньорска програма за маркетинг агенции" description="Работи с нас: препоръчваш клиенти за AI автоматизация и получаваш комисиона." crumb="Партньори" />
     <div
       className={`${editorial.variable} partneri-theme min-h-screen`}
       style={
@@ -39,5 +42,6 @@ export default function PartneriLayout({ children }: { children: React.ReactNode
     >
       {children}
     </div>
+    </>
   );
 }

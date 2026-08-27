@@ -48,17 +48,22 @@ export function HeroV2() {
             2050 · AI операции
           </span>
 
+          {/* H1 — водещата ключова дума стои отпред нарочно.
+              Досега заглавието беше „Твоят бизнес на автопилот с AI, който
+              не спира." — силно като обещание, но без нито една дума, по
+              която някой търси. H1 е вторият по тежест сигнал след <title>;
+              празен от ключови думи, той просто не участва в класирането.
+              Обещанието е запазено дословно, само редът е сменен. */}
           <h1 className="font-display text-[clamp(34px,5.4vw,64px)] font-bold leading-[1.05] tracking-tight" lang="bg">
-            Твоят бизнес
+            AI автоматизация,
+            <br />
+            <span className="font-light text-[var(--color-text-secondary)]">която държи бизнеса ти</span>
             <br />
             на <HolographicText>автопилот</HolographicText>
-            <br />
-            <span className="font-light text-[var(--color-text-secondary)]">с AI, който</span>{" "}
-            <span className="text-[var(--color-accent-cyan)]">не спира.</span>
           </h1>
 
           <p className="mt-6 max-w-lg text-base text-[var(--color-text-secondary)] md:text-lg">
-            AI агенти поемат обажданията, чата и офертите.{" "}
+            AI агенти и чатботове поемат обажданията, чата и офертите — на български, 24/7.{" "}
             <span className="font-medium text-[var(--color-text-primary)]">Ти гледаш само резултатите</span>{" "}
             — в личния си AI CRM.
           </p>

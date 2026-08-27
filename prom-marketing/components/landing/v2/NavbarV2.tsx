@@ -36,11 +36,16 @@ import { openBookingPopup } from "@/lib/cal/embed";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics/track";
 
+// „Услуги" вече сочи към истинска страница, не към котва в началната.
+// Котвата не е адрес — Google не я брои за отделна страница и авторитетът
+// от менюто не стигаше доникъде. Сега води към стълба, който трябва да
+// се класира.
 const NAV = [
-  { href: "/#services", label: "Услуги" },
+  { href: "/ai-avtomatizacia", label: "Услуги" },
+  { href: "/ai-agenti", label: "AI агенти" },
+  { href: "/ai-chatbot", label: "Чатбот" },
+  { href: "/rakovodstva", label: "Ръководства" },
   { href: "/jarvis", label: "Jarvis", isNew: true },
-  { href: "/strategii", label: "Стратегии", isNew: true },
-  { href: "/ai-trading", label: "AI Трейдинг", isNew: true },
   { href: "/#kontakti", label: "Контакти" },
 ];
 
@@ -54,6 +59,16 @@ type ExploreItem = {
 };
 
 const EXPLORE: ExploreItem[] = [
+  // Стълбовете стоят най-отгоре нарочно. Мястото във вътрешното меню е
+  // сигнал за важност — Google чете реда на връзките, а и посетителят
+  // среща първо това, което продаваме.
+  { href: "/ai-avtomatizacia", label: "AI автоматизация", sub: "кои процеси тръгват сами", icon: Radar, color: "#22d3ee" },
+  { href: "/ai-agenti", label: "AI агенти", sub: "виртуален асистент за бизнеса", icon: Bot, color: "#67e8f9" },
+  { href: "/ai-chatbot", label: "AI чатбот", sub: "на сайта и в Messenger, на български", icon: MonitorPlay, color: "#34d399" },
+  { href: "/ai-crm", label: "AI CRM система", sub: "на твоя домейн, попълва се сама", icon: Boxes, color: "#a78bfa" },
+  { href: "/glasov-ai-agent", label: "Гласов AI агент", sub: "вдига телефона вместо теб", icon: Handshake, color: "#d946ef" },
+  { href: "/ai-avtomatizacia-plovdiv", label: "AI в Пловдив", sub: "срещи на живо в региона", icon: Map, color: "#fbbf24" },
+  { href: "/rakovodstva", label: "Ръководства", sub: "как се прави, с числа и граници", icon: BookOpen, color: "#34d399" },
   { href: "/jarvis", label: "Jarvis", sub: "асистентът от бъдещето", icon: Bot, color: "#22d3ee", isNew: true },
   { href: "/strategii", label: "Лаборатория за стратегии", sub: "72 стратегии в тест · на живо", icon: FlaskConical, color: "#34d399", isNew: true },
   { href: "/ai-trading", label: "AI Трейдинг ботове", sub: "трейдинг флотата на живо", icon: CandlestickChart, color: "#a78bfa", isNew: true },

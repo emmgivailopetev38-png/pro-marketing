@@ -9,7 +9,7 @@ const editorial = Unbounded({
 });
 
 export const metadata: Metadata = {
-  title: "За Evolto · AI операционна система · ProMarketing",
+  title: "За Evolto · AI операционна система",
   description:
     "Персонализирана AI операционна система за Evolto — Sales AI CRM + Content AI Engine. Автоматизирани оферти, договори, видеа, банери, постове.",
   robots: { index: false, follow: false },
