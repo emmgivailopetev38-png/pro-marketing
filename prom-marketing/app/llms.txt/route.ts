@@ -46,7 +46,7 @@ const BODY = `# ${ORG.name} (${ORG.legalName})
 
 - [Живо демо на системата](${SITE_URL}/demo)
 - [Безплатен AI одит на автоматизациите](${SITE_URL}/automation-audit)
-- [Обучения и продукти](${SITE_URL}/magazin)
+- [AI решения, системи и обучения](${SITE_URL}/ai-reshenia)
 - [Запазване на разговор](${SITE_URL}/booking)
 - [English overview](${SITE_URL}/en)
 

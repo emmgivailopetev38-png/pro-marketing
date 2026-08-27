@@ -24,7 +24,7 @@ const mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   alternates: { canonical: "/demo" },
-  title: "ProMarketing OS · Живо демо · AI операционна система за бизнес",
+  title: "Живо демо — AI операционна система за бизнес",
   description:
     "Интерактивно демо — пуснете и спрете AI агенти, генерирайте видеа и публикации, гледайте живия CRM поток. Командният център от бъдещето.",
   // Досега тази страница беше noindex и същевременно стоеше в картата

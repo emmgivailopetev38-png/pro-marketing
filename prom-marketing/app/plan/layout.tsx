@@ -23,7 +23,7 @@ const mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   alternates: { canonical: "/plan" },
-  title: "ProMarketing · Платформа + AI — план и цени",
+  title: "Платформа + AI — план, фази и цени",
   description:
     "Изграждане на бизнес платформа с изкуствен интелект — 3 фази, ясни цени и поддръжка.",
   // Досега тази страница беше noindex и същевременно стоеше в картата

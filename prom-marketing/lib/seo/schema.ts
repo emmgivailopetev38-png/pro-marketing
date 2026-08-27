@@ -22,6 +22,25 @@ const LOCAL_ID = `${SITE_URL}/#local`;
 
 type Json = Record<string, unknown>;
 
+/**
+ * Пощенският адрес — само с това, което е потвърдено.
+ *
+ * Улицата, пощенският код и координатите се подават само ако са попълнени
+ * в `site.ts`. Измислен адрес в структурираните данни е по-вреден от
+ * липсващ: Google го сверява с Google Business Profile и разминаването
+ * сваля доверието към целия локален профил.
+ */
+function postalAddress(): Json {
+  return {
+    "@type": "PostalAddress",
+    addressLocality: ORG.city,
+    addressRegion: ORG.region,
+    addressCountry: ORG.country,
+    ...(ORG.street ? { streetAddress: ORG.street } : {}),
+    ...(ORG.postalCode ? { postalCode: ORG.postalCode } : {}),
+  };
+}
+
 /** Фирмата — коренният възел, към който сочи всичко останало. */
 export function organizationSchema(): Json {
   return {
@@ -47,13 +66,7 @@ export function organizationSchema(): Json {
     taxID: ORG.taxId,
     foundingDate: ORG.foundingDate,
     founder: { "@id": PERSON_ID },
-    address: {
-      "@type": "PostalAddress",
-      addressLocality: ORG.city,
-      addressRegion: ORG.region,
-      postalCode: ORG.postalCode,
-      addressCountry: ORG.country,
-    },
+    address: postalAddress(),
     areaServed: ORG.areaServed.map((name) => ({ "@type": "AdministrativeArea", name })),
     knowsLanguage: ["bg", "en"],
     sameAs: [...ORG.sameAs],
@@ -82,14 +95,10 @@ export function localBusinessSchema(): Json {
     priceRange: "€€€",
     currenciesAccepted: "EUR, BGN",
     paymentAccepted: "Банков превод, карта",
-    address: {
-      "@type": "PostalAddress",
-      addressLocality: ORG.city,
-      addressRegion: ORG.region,
-      postalCode: ORG.postalCode,
-      addressCountry: ORG.country,
-    },
-    geo: { "@type": "GeoCoordinates", latitude: ORG.geo.lat, longitude: ORG.geo.lng },
+    address: postalAddress(),
+    ...(ORG.geo
+      ? { geo: { "@type": "GeoCoordinates", latitude: ORG.geo.lat, longitude: ORG.geo.lng } }
+      : {}),
     areaServed: ORG.areaServed.map((name) => ({ "@type": "AdministrativeArea", name })),
     openingHoursSpecification: [
       {

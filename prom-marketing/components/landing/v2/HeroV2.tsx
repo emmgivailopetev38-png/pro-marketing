@@ -113,11 +113,11 @@ export function HeroV2() {
 
           <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
             <a
-              href="/magazin"
-              onClick={() => track("cta_clicked", { location: "hero_v2", target: "store" })}
+              href="/ai-reshenia"
+              onClick={() => track("cta_clicked", { location: "hero_v2", target: "reshenia" })}
               className="font-semibold text-[var(--color-accent-cyan)] underline decoration-[var(--color-accent-cyan)]/40 underline-offset-4 transition hover:decoration-[var(--color-accent-cyan)]"
             >
-              🛒 Разгледай магазина — курсове, агенти и системи →
+              Виж всички AI решения — системи, агенти и обучения →
             </a>
           </div>
         </div>

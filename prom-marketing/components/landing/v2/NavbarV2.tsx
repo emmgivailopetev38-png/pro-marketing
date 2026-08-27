@@ -12,6 +12,7 @@
    ===================================================================== */
 import { useEffect, useRef, useState } from "react";
 import {
+  Sparkles,
   Menu,
   X,
   Phone,
@@ -23,7 +24,6 @@ import {
   Map,
   Boxes,
   BookOpen,
-  ShoppingBag,
   LineChart,
   Radar,
   Handshake,
@@ -81,7 +81,7 @@ const EXPLORE: ExploreItem[] = [
   { href: "/plan", label: "План и цени", sub: "фази · пакети · поддръжка", icon: Map, color: "#67e8f9" },
   { href: "/model", label: "Продуктов модел", sub: "как строим системата", icon: Boxes, color: "#7c3aed" },
   { href: "/kurs", label: "Курсове", sub: "AI умения за бизнеса", icon: BookOpen, color: "#fbbf24" },
-  { href: "/magazin", label: "Магазин", sub: "курсове · агенти · системи", icon: ShoppingBag, color: "#fbbf24" },
+  { href: "/ai-reshenia", label: "AI решения", sub: "системи · агенти · обучения", icon: Sparkles, color: "#fbbf24" },
   { href: "/trading", label: "Трейдинг книга", sub: "безплатна книга + разговор", icon: LineChart, color: "#a78bfa" },
   { href: "/automation-audit", label: "AI Одит", sub: "безплатен одит на процесите", icon: Radar, color: "#d946ef" },
   { href: "/partneri", label: "Партньори", sub: "работи с нас", icon: Handshake, color: "#67e8f9" },

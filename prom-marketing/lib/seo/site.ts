@@ -27,10 +27,20 @@ export const ORG = {
   city: "Пловдив",
   region: "Пловдив",
   country: "BG",
-  postalCode: "4000",
-  /** Приблизителни координати на центъра на Пловдив. Замени с точните
-      от Google Business Profile, щом профилът бъде потвърден. */
-  geo: { lat: 42.1354, lng: 24.7453 },
+  /**
+   * ⚠️ Улица, пощенски код и координати НАРОЧНО липсват.
+   *
+   * Публикуването на измислен адрес в структурираните данни е по-лошо от
+   * липсващ адрес: Google сверява адреса с Google Business Profile и с
+   * останалите места, където фирмата се среща, а разминаването сваля
+   * доверието към целия локален профил.
+   *
+   * Попълва се с ТОЧНИЯ адрес в мига, в който профилът в Google Business
+   * Profile бъде потвърден — и трябва да съвпада с него буква по буква.
+   */
+  street: null as string | null,
+  postalCode: null as string | null,
+  geo: null as { lat: number; lng: number } | null,
   founder: {
     name: "Ивайло Петев",
     jobTitle: "Основател и AI консултант",
@@ -168,7 +178,7 @@ export const PILLAR_PAGES: SitemapEntry[] = [
 export const SUPPORTING_PAGES: SitemapEntry[] = [
   { path: "/demo", priority: 0.8, changeFrequency: "monthly" },
   { path: "/automation-audit", priority: 0.8, changeFrequency: "monthly" },
-  { path: "/magazin", priority: 0.7, changeFrequency: "weekly" },
+  { path: "/ai-reshenia", priority: 0.8, changeFrequency: "weekly" },
   { path: "/kurs", priority: 0.7, changeFrequency: "monthly" },
   { path: "/mentor", priority: 0.7, changeFrequency: "monthly" },
   { path: "/jarvis", priority: 0.7, changeFrequency: "monthly" },
