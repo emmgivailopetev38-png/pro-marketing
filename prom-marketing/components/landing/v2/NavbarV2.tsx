@@ -27,6 +27,7 @@ import {
   LineChart,
   Radar,
   Handshake,
+  Megaphone,
   Calendar,
   type LucideIcon,
 } from "lucide-react";
@@ -70,6 +71,7 @@ const EXPLORE: ExploreItem[] = [
   { href: "/ai-chatbot", label: "AI чатбот", sub: "на сайта и в Messenger, на български", icon: MonitorPlay, color: "#34d399" },
   { href: "/ai-crm", label: "AI CRM система", sub: "на твоя домейн, попълва се сама", icon: Boxes, color: "#a78bfa" },
   { href: "/glasov-ai-agent", label: "Гласов AI агент", sub: "вдига телефона вместо теб", icon: Handshake, color: "#d946ef" },
+  { href: "/ai-marketing", label: "AI маркетинг", sub: "реклами, видеа и фунии", icon: Megaphone, color: "#f472b6" },
   { href: "/ai-avtomatizacia-plovdiv", label: "AI в Пловдив", sub: "срещи на живо в региона", icon: Map, color: "#fbbf24" },
   { href: "/rakovodstva", label: "Ръководства", sub: "как се прави, с числа и граници", icon: BookOpen, color: "#34d399" },
   { href: "/jarvis", label: "Jarvis", sub: "асистентът от бъдещето", icon: Bot, color: "#22d3ee", isNew: true },

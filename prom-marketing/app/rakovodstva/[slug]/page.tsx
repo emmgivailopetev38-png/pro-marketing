@@ -6,7 +6,7 @@ import { NavbarV2 } from "@/components/landing/v2/NavbarV2";
 import { FooterV2 } from "@/components/landing/v2/FooterV2";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { faqSchema, graph, webPageSchema } from "@/lib/seo/schema";
-import { GUIDES, getGuide, type Guide, type GuideBlock } from "@/lib/seo/guides";
+import { GUIDES, getGuide, relatedFor, type Guide, type GuideBlock } from "@/lib/seo/guides";
 import { ORG, SITE_URL, abs } from "@/lib/seo/site";
 
 /* =====================================================================
@@ -170,6 +170,11 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 
   const path = `/rakovodstva/${g.slug}`;
 
+  // Двете ръководства за самостоятелната работа водят към менторството,
+  // а не към услугата — там читателят вече е казал, че иска да строи сам.
+  const MENTOR_SLUGS = ["chatgpt-sam-ili-agencia", "ai-agencia-balgaria-izbor"];
+  const wantsMentor = MENTOR_SLUGS.includes(g.slug);
+
   return (
     <>
       <JsonLd
@@ -279,13 +284,12 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
                 </div>
               </section>
 
-              {g.related.length ? (
+              {relatedFor(g.slug).length ? (
                 <section className="mt-16">
                   <h2 className="v2-title-plain text-[clamp(20px,2.8vw,26px)]">Продължава в</h2>
                   <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                    {g.related.map((slug2) => {
-                      const r = GUIDES.find((x) => x.slug === slug2);
-                      if (!r) return null;
+                    {relatedFor(g.slug).map((r) => {
+                      const slug2 = r.slug;
                       return (
                         <Link
                           key={slug2}
@@ -320,8 +324,8 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
                   <Link href="/booking" className="v2-btn v2-btn-primary">
                     Запази безплатна консултация
                   </Link>
-                  <Link href="/ai-avtomatizacia" className="v2-btn">
-                    Виж услугата
+                  <Link href={wantsMentor ? "/mentor" : "/automation-audit"} className="v2-btn">
+                    {wantsMentor ? "Виж менторството" : "Безплатен одит на процесите"}
                   </Link>
                 </div>
               </section>
