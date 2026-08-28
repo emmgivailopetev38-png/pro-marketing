@@ -11,7 +11,7 @@ export default function GlobalError({ error, reset }: { error: Error; reset: () 
         </p>
         <h1 className="mt-3 font-display text-5xl font-bold">Възникна грешка</h1>
         <p className="mt-4 max-w-md text-[var(--color-text-secondary)]">
-          Опитай отново. Ако проблемът остане, пиши ни на hello@promarketing.bg.
+          Опитай отново. Ако проблемът остане, пиши ни на emmgivailopetev38@gmail.com.
         </p>
         <Button className="mt-8" onClick={reset}>Опитай отново</Button>
       </div>

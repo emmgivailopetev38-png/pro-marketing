@@ -142,8 +142,8 @@ dos.forEach((r) => kids.push(numbered(r, "donum")));
 // 3 DON'T
 kids.push(h1("3. Твърди забрани (DON’T)"));
 const donts = [
-  [t("НЕ пращай welcome имейли.", { bold: true, color: NO }), t(" Приложението ги праща автоматично от "), t("ivailo@promarketing.pw", { font: "Consolas", size: 20 }), t(" (reply-to "), t("ivailopetev38@gmail.com", { font: "Consolas", size: 20 }), t(").")],
-  [t("НЕ пращай реални имейли към клиенти без одобрение.", { bold: true, color: NO }), t(" Прати preview към "), t("ivailopetev38@gmail.com", { font: "Consolas", size: 20 }), t(" и чакай „да“.")],
+  [t("НЕ пращай welcome имейли.", { bold: true, color: NO }), t(" Приложението ги праща автоматично от "), t("ivailo@promarketing.pw", { font: "Consolas", size: 20 }), t(" (reply-to "), t("emmgivailopetev38@gmail.com", { font: "Consolas", size: 20 }), t(").")],
+  [t("НЕ пращай реални имейли към клиенти без одобрение.", { bold: true, color: NO }), t(" Прати preview към "), t("emmgivailopetev38@gmail.com", { font: "Consolas", size: 20 }), t(" и чакай „да“.")],
   [t("НЕ пипай схемата, таблиците, RLS, миграциите.", { bold: true, color: NO }), t(" Никакъв DDL.")],
   [t("НЕ пиши директно в Supabase.", { bold: true, color: NO }), t(" Само през "), t("/api/crm/*", { font: "Consolas", size: 20 }), t(".")],
   [t("НЕ маркирай фактура платена", { bold: true, color: NO }), t(" извън правилото за ≥2 сигнала.")],
@@ -348,8 +348,8 @@ kids.push(bullet([t("За валута извън EUR/BGN", {}), t(" подай 
 
 // 8 Emails
 kids.push(h1("8. Имейли"));
-kids.push(bullet([t("Welcome имейлите се пращат от ПРИЛОЖЕНИЕТО", { bold: true }), t(" (Resend, от "), t("ivailo@promarketing.pw", { font: "Consolas", size: 20 }), t(", reply-to "), t("ivailopetev38@gmail.com", { font: "Consolas", size: 20 }), t(") за нови лийдове от Meta и сайта. Hermes стои настрана.")]));
-kids.push(bullet([t("Нов имейл шаблон / кампания", { bold: true }), t(": първо preview към "), t("ivailopetev38@gmail.com", { font: "Consolas", size: 20 }), t(", чакай „да“, чак тогава към реален получател.")]));
+kids.push(bullet([t("Welcome имейлите се пращат от ПРИЛОЖЕНИЕТО", { bold: true }), t(" (Resend, от "), t("ivailo@promarketing.pw", { font: "Consolas", size: 20 }), t(", reply-to "), t("emmgivailopetev38@gmail.com", { font: "Consolas", size: 20 }), t(") за нови лийдове от Meta и сайта. Hermes стои настрана.")]));
+kids.push(bullet([t("Нов имейл шаблон / кампания", { bold: true }), t(": първо preview към "), t("emmgivailopetev38@gmail.com", { font: "Consolas", size: 20 }), t(", чакай „да“, чак тогава към реален получател.")]));
 kids.push(bullet([t("Hermes записва изпратените имейли като активност ("), t("activity_type: email_sent", { font: "Consolas", size: 20 }), t(") с "), t("dedupe_key", { font: "Consolas", size: 20 }), t(", за да са видими в профила.")]));
 
 kids.push(bullet([t("Технически интерлок", { bold: true }), t(": "), t("/api/email/send", { font: "Consolas", size: 19 }), t(" с токен към НЕ-собственик изисква "), t("approved:true", { font: "Consolas", size: 19 }), t(". Preview към собственика е свободно; welcome авто-имейлите ползват отделен път.")]));

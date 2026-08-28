@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Preview към ivailopetev38@gmail.com на имейла за Теодор Лозев.
+// Preview към emmgivailopetev38@gmail.com на имейла за Теодор Лозев.
 
 const TOKEN = "d57f2e068ec50e6ebccc5e98dbf9a9189a2fbaa238b22354036250334a57872e";
 const HOST = "https://promarketing.pw";
@@ -67,18 +67,18 @@ https://promarketing.pw/oferta/teodor
 
 const previewHtml = `<div style="background:#fff3cd;border:1px solid #ffc107;padding:12px;margin-bottom:20px;border-radius:6px;font-family:Arial">
 <strong>📧 PREVIEW</strong> — ще иде до <code>Lozevteodor@gmail.com</code> (Теодор Лозев, Строителство) след твоето „да пращай".<br/>
-Reply-to: <code>ivailopetev38@gmail.com</code> · Презентация: <a href="https://promarketing.pw/oferta/teodor">promarketing.pw/oferta/teodor</a>
+Reply-to: <code>emmgivailopetev38@gmail.com</code> · Презентация: <a href="https://promarketing.pw/oferta/teodor">promarketing.pw/oferta/teodor</a>
 </div>` + html;
 
 const r = await fetch(`${HOST}/api/email/send`, {
   method: "POST",
   headers: { "Authorization": `Bearer ${TOKEN}`, "Content-Type": "application/json" },
   body: JSON.stringify({
-    to: "ivailopetev38@gmail.com",
+    to: "emmgivailopetev38@gmail.com",
     subject: "[PREVIEW] " + subject,
     html: previewHtml,
     text: "[PREVIEW]\n\n" + text,
-    replyTo: "ivailopetev38@gmail.com",
+    replyTo: "emmgivailopetev38@gmail.com",
   }),
 });
 console.log(await r.json());

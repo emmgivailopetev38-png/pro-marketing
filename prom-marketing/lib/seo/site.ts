@@ -20,7 +20,7 @@ export const ORG = {
   vatId: "BG207223552",
   taxId: "207223552",
   foundingDate: "2024",
-  email: "ivailo@promarketing.pw",
+  email: "emmgivailopetev38@gmail.com",
   phone: "+359877399963",
   phoneDisplay: "0877 399 963",
   /** Оперативен адрес — Пловдив. Потвърден на 27.08.2026. */

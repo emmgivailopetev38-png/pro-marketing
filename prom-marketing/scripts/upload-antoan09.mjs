@@ -10,7 +10,7 @@ const fd = new FormData();
 fd.append("file", new File([blob], "Antoan09-Oferta-1800EUR.pdf", { type: "application/pdf" }));
 fd.append("category", "oferta");
 fd.append("description", "Финална оферта за Antoan 09 EOOD · 1 800 € · 30-45 дни · QR + AI Vision + авто-протоколи + 3 вида обслужване tracking + Telegram + опция за multilingual AI чат за чужбина.");
-fd.append("uploaded_by", "ivailopetev38@gmail.com");
+fd.append("uploaded_by", "emmgivailopetev38@gmail.com");
 
 const up = await fetch(`${HOST}/api/admin/contacts/${VALENTIN_ID}/files`, {
   method: "POST",

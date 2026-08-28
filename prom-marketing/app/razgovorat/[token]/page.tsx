@@ -40,8 +40,8 @@ function Invalid() {
         </h1>
         <p className="mt-3 text-[15px] leading-relaxed text-[var(--color-text-secondary)]">
           Или срокът му е изтекъл, или адресът е непълен. Поискай нов от Ивайло —
-          <a className="ml-1 text-[var(--color-accent-cyan)]" href="mailto:ivailo@promarketing.pw">
-            ivailo@promarketing.pw
+          <a className="ml-1 text-[var(--color-accent-cyan)]" href="mailto:emmgivailopetev38@gmail.com">
+            emmgivailopetev38@gmail.com
           </a>
           .
         </p>

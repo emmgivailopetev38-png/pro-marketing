@@ -63,7 +63,7 @@ const r = await fetch(`${HOST}/api/email/send`, {
     subject,
     html,
     text,
-    replyTo: "ivailopetev38@gmail.com",
+    replyTo: "emmgivailopetev38@gmail.com",
   }),
 });
 console.log(await r.json());

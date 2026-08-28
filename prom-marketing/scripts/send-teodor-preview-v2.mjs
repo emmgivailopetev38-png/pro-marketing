@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Preview към ivailopetev38@gmail.com с PDF прикачен.
+// Preview към emmgivailopetev38@gmail.com с PDF прикачен.
 
 const TOKEN = "d57f2e068ec50e6ebccc5e98dbf9a9189a2fbaa238b22354036250334a57872e";
 const HOST = "https://promarketing.pw";
@@ -75,7 +75,7 @@ https://promarketing.pw/oferta/teodor
 
 const previewHtml = `<div style="background:#fff3cd;border:1px solid #ffc107;padding:12px;margin-bottom:20px;border-radius:6px;font-family:Arial">
 <strong>📧 PREVIEW v2 (с PDF)</strong> — ще иде до <code>Lozevteodor@gmail.com</code> (Теодор Лозев, Строителство) след твоето „да пращай".<br/>
-Reply-to: <code>ivailopetev38@gmail.com</code><br/>
+Reply-to: <code>emmgivailopetev38@gmail.com</code><br/>
 Прикачен: Teodor-Lozev-Prezentaciya-ProMarketing.pdf
 </div>` + html;
 
@@ -83,11 +83,11 @@ const r = await fetch(`${HOST}/api/email/send`, {
   method: "POST",
   headers: { "Authorization": `Bearer ${TOKEN}`, "Content-Type": "application/json" },
   body: JSON.stringify({
-    to: "ivailopetev38@gmail.com",
+    to: "emmgivailopetev38@gmail.com",
     subject: "[PREVIEW v2] " + subject,
     html: previewHtml,
     text: "[PREVIEW v2 — с PDF]\n\n" + text,
-    replyTo: "ivailopetev38@gmail.com",
+    replyTo: "emmgivailopetev38@gmail.com",
     attachments: [
       { filename: "Teodor-Lozev-Prezentaciya-ProMarketing.pdf", content: pdfB64, contentType: "application/pdf" },
     ],

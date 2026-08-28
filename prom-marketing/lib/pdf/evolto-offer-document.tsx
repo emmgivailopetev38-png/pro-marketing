@@ -266,7 +266,7 @@ export function EvoltoOfferDocument() {
                 ЕИК / ДДС № BG207223552{"\n"}
                 Гр. Русе, ул. Цар Асен I-ви № 31{"\n"}
                 МОЛ: Ивайло Петров Петев{"\n"}
-                ivailo@promarketing.pw{"\n"}
+                emmgivailopetev38@gmail.com{"\n"}
                 +359 877 399 963
               </Text>
             </View>
@@ -393,7 +393,7 @@ export function EvoltoOfferDocument() {
             <View style={s.footerCol}>
               <Text style={s.footerBold}>„ПроМаркетинг" ЕООД</Text>
               <Text>Ивайло Петров Петев · управител</Text>
-              <Text>ivailo@promarketing.pw</Text>
+              <Text>emmgivailopetev38@gmail.com</Text>
               <Text>+359 877 399 963</Text>
             </View>
             <View style={[s.footerCol, { textAlign: "right" }]}>

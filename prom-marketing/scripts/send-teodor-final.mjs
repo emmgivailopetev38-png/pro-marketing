@@ -80,7 +80,7 @@ const r = await fetch(`${HOST}/api/email/send`, {
     subject,
     html,
     text,
-    replyTo: "ivailopetev38@gmail.com",
+    replyTo: "emmgivailopetev38@gmail.com",
     attachments: [
       { filename: "Teodor-Lozev-Prezentaciya-ProMarketing.pdf", content: pdfB64, contentType: "application/pdf" },
     ],

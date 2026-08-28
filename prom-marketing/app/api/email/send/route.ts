@@ -26,13 +26,18 @@ const bodySchema = z.object({
   approved: z.boolean().optional(),
 });
 
-/** Owner inboxes — token callers may always send here (previews), no approval needed. */
+/**
+ * Owner inboxes — token callers may always send here (previews), no approval needed.
+ *
+ * `ivailo@promarketing.pw` is deliberately NOT on this list: the domain can send
+ * but has no inbox, so a preview addressed there is accepted by Resend and then
+ * silently lost. Rejecting it (approval required) surfaces the mistake instead.
+ */
 function ownerAddresses(): Set<string> {
   return new Set(
     [
       process.env.EMAIL_REPLY_TO,
       "emmgivailopetev38@gmail.com",
-      "ivailo@promarketing.pw",
       ...(process.env.ALLOWED_ADMIN_EMAILS ?? "").split(","),
     ]
       .map((s) => (s ?? "").trim().toLowerCase())

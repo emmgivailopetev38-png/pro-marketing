@@ -39,8 +39,8 @@ export default function TermsPage() {
         <li>Седалище и адрес на управление: гр. София, България</li>
         <li>
           Електронна поща:{" "}
-          <a className="text-[var(--color-accent-cyan)]" href="mailto:ivailo@promarketing.pw">
-            ivailo@promarketing.pw
+          <a className="text-[var(--color-accent-cyan)]" href="mailto:emmgivailopetev38@gmail.com">
+            emmgivailopetev38@gmail.com
           </a>
         </li>
         <li>Телефон: +359 877 399 963</li>
@@ -180,8 +180,8 @@ export default function TermsPage() {
       <ul className="text-[var(--color-text-secondary)]">
         <li>
           Имейл:{" "}
-          <a className="text-[var(--color-accent-cyan)]" href="mailto:ivailo@promarketing.pw">
-            ivailo@promarketing.pw
+          <a className="text-[var(--color-accent-cyan)]" href="mailto:emmgivailopetev38@gmail.com">
+            emmgivailopetev38@gmail.com
           </a>
         </li>
         <li>

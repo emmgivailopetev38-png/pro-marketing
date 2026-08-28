@@ -29,9 +29,9 @@
 ## Твърди забрани (DON'T — за да не се разваля системата)
 
 1. **НЕ пращай welcome имейли.** Приложението ги праща автоматично от
-   `ivailo@promarketing.pw` (reply-to `ivailopetev38@gmail.com`). Hermes стои настрана.
+   `ivailo@promarketing.pw` (reply-to `emmgivailopetev38@gmail.com`). Hermes стои настрана.
 2. **НЕ пращай реални имейли към клиенти без одобрение.** Прати preview към
-   `ivailopetev38@gmail.com` и чакай „да".
+   `emmgivailopetev38@gmail.com` и чакай „да".
 3. **НЕ пипай схемата, таблиците, RLS, миграциите.** Никакъв DDL. Не трий и не променяй
    колони/политики/индекси.
 4. **НЕ пиши директно в Supabase.** Само през `/api/crm/*`.

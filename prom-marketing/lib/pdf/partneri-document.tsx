@@ -376,7 +376,7 @@ export function PartneriDocument() {
 
         {/* SIGNATURE */}
         <View style={s.sig}>
-          <Text style={s.sigText}>Ивайло Петев · ivailo@promarketing.pw</Text>
+          <Text style={s.sigText}>Ивайло Петев · emmgivailopetev38@gmail.com</Text>
           <Text style={s.sigText}>ProMarketing LTD · 2026</Text>
         </View>
       </Page>

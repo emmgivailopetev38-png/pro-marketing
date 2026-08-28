@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// One-off: изпрати preview към ivailopetev38@gmail.com с обновените PDF-и
+// One-off: изпрати preview към emmgivailopetev38@gmail.com с обновените PDF-и
 // (юристки корекции v2) преди реално изпращане към Станислава.
 
 const TOKEN = "d57f2e068ec50e6ebccc5e98dbf9a9189a2fbaa238b22354036250334a57872e";
@@ -75,7 +75,7 @@ const r = await fetch(`${HOST}/api/email/send`, {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    to: "ivailopetev38@gmail.com",
+    to: "emmgivailopetev38@gmail.com",
     subject: "[PREVIEW] Корекции по договор + оферта Evolto — v2 (юрист)",
     html,
     text,
