@@ -85,10 +85,10 @@ export function QuickLeadFormV2() {
               <p className="flex items-center gap-2 text-[color:var(--v2-muted)]">
                 <Mail className="h-4 w-4" style={{ color: "var(--v2-cyan)" }} />
                 <a
-                  href="mailto:ivailo@promarketing.pw"
+                  href="mailto:emmgivailopetev38@gmail.com"
                   className="transition-colors hover:text-[color:var(--v2-cyan)]"
                 >
-                  ivailo@promarketing.pw
+                  emmgivailopetev38@gmail.com
                 </a>
               </p>
             </div>

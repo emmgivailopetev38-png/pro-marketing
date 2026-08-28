@@ -209,4 +209,4 @@ Borima Trans (край след май 2026): `active: false`, `excluded_from_au
 за текущия месец. sales-summary: pipeline + follow-up състояние.
 
 > **Welcome имейли** се пращат от приложението (Resend · от `ivailo@promarketing.pw` ·
-> reply-to `ivailopetev38@gmail.com`) — **НЕ от Hermes**.
+> reply-to `emmgivailopetev38@gmail.com`) — **НЕ от Hermes**.

@@ -42,8 +42,8 @@ export default function UsloviyaKursovePage() {
         <li>Седалище: гр. София, България</li>
         <li>
           Имейл:{" "}
-          <a className="text-[var(--color-accent-cyan)]" href="mailto:ivailo@promarketing.pw">
-            ivailo@promarketing.pw
+          <a className="text-[var(--color-accent-cyan)]" href="mailto:emmgivailopetev38@gmail.com">
+            emmgivailopetev38@gmail.com
           </a>{" "}
           · Телефон: +359 877 399 963
         </li>
@@ -92,8 +92,8 @@ export default function UsloviyaKursovePage() {
       <p className="text-[var(--color-text-secondary)]">
         Независимо от горното, за онлайн курсовете даваме <strong>доброволна търговска гаранция
         от 14 дни</strong> от датата на покупката: ако курсът не Ви хареса, пишете ни на{" "}
-        <a className="text-[var(--color-accent-cyan)]" href="mailto:ivailo@promarketing.pw">
-          ivailo@promarketing.pw
+        <a className="text-[var(--color-accent-cyan)]" href="mailto:emmgivailopetev38@gmail.com">
+          emmgivailopetev38@gmail.com
         </a>{" "}
         от имейла на поръчката и връщаме цялата сума, без въпроси. Възстановяването се извършва по
         същия платежен метод до 14 дни от одобрението. Тази гаранция не ограничава законовите Ви
@@ -138,8 +138,8 @@ export default function UsloviyaKursovePage() {
       <h2 className="mt-10 font-display text-2xl font-bold">10. Жалби и спорове</h2>
       <p className="text-[var(--color-text-secondary)]">
         Пишете ни първо на{" "}
-        <a className="text-[var(--color-accent-cyan)]" href="mailto:ivailo@promarketing.pw">
-          ivailo@promarketing.pw
+        <a className="text-[var(--color-accent-cyan)]" href="mailto:emmgivailopetev38@gmail.com">
+          emmgivailopetev38@gmail.com
         </a>{" "}
         — отговаряме до 14 дни. Можете да подадете жалба и до КЗП (kzp.bg) или да използвате
         европейската платформа за онлайн решаване на спорове:{" "}

@@ -698,11 +698,11 @@ export default function AlineeOfferPage() {
             +359 877 399 963
           </a>
           <a
-            href="mailto:ivailo@promarketing.pw?subject=Alineé · оферта"
+            href="mailto:emmgivailopetev38@gmail.com?subject=Alineé · оферта"
             className="rounded-lg border px-5 py-3 text-[15px] font-semibold"
             style={{ borderColor: "var(--a-line)", color: "var(--a-text)" }}
           >
-            ivailo@promarketing.pw
+            emmgivailopetev38@gmail.com
           </a>
           <a
             href="/oferta/alinee/analiz-i-oferta.pdf"

@@ -75,7 +75,7 @@ const r = await fetch(`${HOST}/api/email/send`, {
     subject: "Корекции по договор + оферта Evolto — v2 (resend)",
     html,
     text,
-    replyTo: "ivailopetev38@gmail.com",
+    replyTo: "emmgivailopetev38@gmail.com",
     attachments: [
       { filename: "Evolto-Oferta-v2.pdf", content: offerB64, contentType: "application/pdf" },
       { filename: "Evolto-Dogovor-v2.pdf", content: contractB64, contentType: "application/pdf" },

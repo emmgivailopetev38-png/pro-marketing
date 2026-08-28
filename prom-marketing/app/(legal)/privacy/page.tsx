@@ -44,8 +44,8 @@ export default function PrivacyPage() {
         <li>Седалище и адрес на управление: гр. София, България</li>
         <li>
           Електронна поща за връзка:{" "}
-          <a className="text-[var(--color-accent-cyan)]" href="mailto:ivailo@promarketing.pw">
-            ivailo@promarketing.pw
+          <a className="text-[var(--color-accent-cyan)]" href="mailto:emmgivailopetev38@gmail.com">
+            emmgivailopetev38@gmail.com
           </a>
         </li>
         <li>Телефон: +359 877 399 963</li>
@@ -157,8 +157,8 @@ export default function PrivacyPage() {
       <p className="text-[var(--color-text-secondary)]">
         Можете да управлявате или оттеглите съгласието си по всяко време чрез настройките на
         браузъра или като ни пишете на{" "}
-        <a className="text-[var(--color-accent-cyan)]" href="mailto:ivailo@promarketing.pw">
-          ivailo@promarketing.pw
+        <a className="text-[var(--color-accent-cyan)]" href="mailto:emmgivailopetev38@gmail.com">
+          emmgivailopetev38@gmail.com
         </a>
         .
       </p>
@@ -197,8 +197,8 @@ export default function PrivacyPage() {
       </ul>
       <p className="text-[var(--color-text-secondary)]">
         За упражняване на правата си се свържете с нас на{" "}
-        <a className="text-[var(--color-accent-cyan)]" href="mailto:ivailo@promarketing.pw">
-          ivailo@promarketing.pw
+        <a className="text-[var(--color-accent-cyan)]" href="mailto:emmgivailopetev38@gmail.com">
+          emmgivailopetev38@gmail.com
         </a>
         . Ще отговорим в срок до 30 дни.
       </p>
@@ -250,8 +250,8 @@ export default function PrivacyPage() {
       <ul className="text-[var(--color-text-secondary)]">
         <li>
           Имейл:{" "}
-          <a className="text-[var(--color-accent-cyan)]" href="mailto:ivailo@promarketing.pw">
-            ivailo@promarketing.pw
+          <a className="text-[var(--color-accent-cyan)]" href="mailto:emmgivailopetev38@gmail.com">
+            emmgivailopetev38@gmail.com
           </a>
         </li>
         <li>

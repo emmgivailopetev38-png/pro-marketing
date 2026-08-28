@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Preview към ivailopetev38@gmail.com — показва списъка получатели + шаблона.
+// Preview към emmgivailopetev38@gmail.com — показва списъка получатели + шаблона.
 
 const TOKEN = "d57f2e068ec50e6ebccc5e98dbf9a9189a2fbaa238b22354036250334a57872e";
 const HOST = "https://promarketing.pw";
@@ -51,7 +51,7 @@ const list = RECIPIENTS.map((r, i) => `<li><strong>${i + 1}.</strong> ${r.name} 
 const previewHtml = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#0d1221;max-width:700px">
 <div style="background:#fff3cd;border:1px solid #ffc107;padding:14px;margin-bottom:24px;border-radius:6px">
 <strong>📧 BATCH PREVIEW</strong> — ще се изпрати към <strong>${RECIPIENTS.length} получатели</strong> от Meta lead таблиците (24-25 май, които още не са получавали имейл от нас).<br/>
-Reply-to: <code>ivailopetev38@gmail.com</code> на всички.<br/>
+Reply-to: <code>emmgivailopetev38@gmail.com</code> на всички.<br/>
 Цени: <strong>от 500 €</strong> · Срок: <strong>30-60 дни според проекта</strong>
 </div>
 
@@ -73,11 +73,11 @@ const r = await fetch(`${HOST}/api/email/send`, {
   method: "POST",
   headers: { "Authorization": `Bearer ${TOKEN}`, "Content-Type": "application/json" },
   body: JSON.stringify({
-    to: "ivailopetev38@gmail.com",
+    to: "emmgivailopetev38@gmail.com",
     subject: `[BATCH PREVIEW] ${RECIPIENTS.length} имейла към Meta лидове (24-25 май)`,
     html: previewHtml,
     text: `BATCH PREVIEW — ${RECIPIENTS.length} получатели:\n\n${RECIPIENTS.map((r, i) => `${i + 1}. ${r.name} — ${r.email}`).join("\n")}\n\nКажи „да пращай" за всички.`,
-    replyTo: "ivailopetev38@gmail.com",
+    replyTo: "emmgivailopetev38@gmail.com",
   }),
 });
 console.log(await r.json());

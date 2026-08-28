@@ -301,7 +301,7 @@ const footerSection = [
     border: { top: { style: BorderStyle.SINGLE, size: 8, color: 'D1D5DB', space: 8 } },
     children: [
       new TextRun({
-        text: 'ProMarketing ЕООД · Ивайло Петев · ivailopetev38@gmail.com · +359 877 399 963',
+        text: 'ProMarketing ЕООД · Ивайло Петев · emmgivailopetev38@gmail.com · +359 877 399 963',
         font: FONT,
         color: COLOR_TEXT_LIGHT,
         size: SIZE_SMALL,
