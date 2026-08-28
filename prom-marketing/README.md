@@ -33,7 +33,7 @@ supabase db push   # if using Supabase CLI linked to your project
 After migrations, set the Postgres custom config:
 
 ```sql
-alter database postgres set app.allowed_admin_emails = 'owner@promarketing.bg,other@promarketing.bg';
+alter database postgres set app.allowed_admin_emails = 'emmgivailopetev38@gmail.com';
 select pg_reload_conf();
 ```
 
