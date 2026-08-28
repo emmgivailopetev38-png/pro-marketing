@@ -48,6 +48,95 @@ const FINDINGS = [
   },
 ];
 
+const SEO_SCOPE = [
+  {
+    what: "Продуктови страници, пренаписани",
+    pages: "8",
+    words: "≈ 4 800",
+    note: "мл, концентрация, трайност, повод — това, което хората пишат в Google",
+  },
+  {
+    what: "Нови страници по категории",
+    pages: "6",
+    words: "≈ 4 200",
+    note: "арабски · дървесни · сладки · за зимата · мъжки · дамски",
+  },
+  {
+    what: "Статии, по две на месец",
+    pages: "8",
+    words: "≈ 8 800",
+    note: "„колко трае парфюмът“, „как се пръска правилно“, „кой аромат за какъв повод“",
+  },
+  {
+    what: "Техническо — заглавия, описания, структурирани данни",
+    pages: "целият сайт",
+    words: "—",
+    note: "цената и наличността излизат под резултата в Google",
+  },
+];
+
+const ROADMAP = [
+  {
+    month: "Месец 1",
+    when: "септември",
+    title: "Спираме течовете",
+    items: [
+      "Преструктурата на магазина — проследяване, мл, политики, чекаут",
+      "8-те продуктови страници, пренаписани за търсене и за продажба",
+      "Техническото SEO ляга наведнъж: заглавия, описания, структурирани данни",
+      "Ревютата от Instagram влизат в сайта",
+      "Рекламата продължава да върви, но вече над поправена фуния",
+    ],
+    marker: "Първите поръчки от същия трафик",
+  },
+  {
+    month: "Месец 2",
+    when: "октомври",
+    title: "Вдигаме стойността на поръчката",
+    items: [
+      "Комплект от два флакона и комплект за опознаване — влизат в сайта и в рекламата",
+      "Писмата тръгват: изоставена количка, след покупка, покана за втори аромат",
+      "Първите 4 категорийни страници",
+      "Две статии",
+      "Динамични реклами по каталога към хора, вече гледали аромата",
+    ],
+    marker: "Средната поръчка тръгва нагоре",
+  },
+  {
+    month: "Месец 3",
+    when: "ноември",
+    title: "Google започва да носи",
+    items: [
+      "Останалите категорийни страници и още две статии",
+      "Първите позиции по нотки и поводи — трафик, за който не се плаща на клик",
+      "Рекламата се пренасочва към това, което вече печели",
+      "Сегментирани кампании към клиентската база за подаръчния сезон",
+    ],
+    marker: "Първи безплатни посетители от търсене",
+  },
+  {
+    month: "Месец 4",
+    when: "декември",
+    title: "Сезонът, за който всичко дотук е подготовка",
+    items: [
+      "Декември е месецът, в който парфюмът се купува за подарък",
+      "Комплектите вече са готови, ревютата са налице, доставката не изненадва",
+      "Google носи хора, които не са видели нито една реклама",
+      "Ремаркетинг към всички, пипали количката през есента",
+    ],
+    marker: "Най-силният месец в годината, посрещнат подготвен",
+    peak: true,
+  },
+];
+
+const TALLY = [
+  ["24", "страници, написани или пренаписани"],
+  ["≈ 18 000", "думи за Google"],
+  ["≈ 480", "видеа за социалните мрежи"],
+  ["5", "автоматични писма, които работят сами"],
+  ["4", "месечни отчета с числата"],
+];
+
 const TIERS = [
   {
     tag: "Пакет 1",
@@ -470,9 +559,243 @@ export default function AlineeOfferPage() {
         </p>
       </section>
 
+      {/* ── SEO в числа ────────────────────────────── */}
+      <section className="flex flex-col gap-6">
+        <SectionHead n="05" title="SEO-то в числа, за четири месеца" />
+
+        <p className="max-w-[64ch] text-[16px] leading-relaxed" style={{ color: "var(--a-text-2)" }}>
+          За да не е „ще правим SEO“ — ето точно колко страници и колко думи влизат в сайта, и за
+          какво са написани.
+        </p>
+
+        <div className="overflow-x-auto rounded-xl border" style={{ borderColor: "var(--a-line)" }}>
+          <table className="w-full min-w-[640px] border-collapse">
+            <thead>
+              <tr style={{ background: "var(--a-card)" }}>
+                {["Какво", "Страници", "Думи", "За какво са"].map((h) => (
+                  <th
+                    key={h}
+                    className="border-b px-5 py-3 text-left text-[10.5px] font-semibold uppercase tracking-[0.12em]"
+                    style={{
+                      borderColor: "var(--a-line)",
+                      color: "var(--a-text-3)",
+                      fontFamily: "var(--font-mono)",
+                    }}
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody style={{ background: "var(--a-deep)" }}>
+              {SEO_SCOPE.map((r) => (
+                <tr key={r.what}>
+                  <td
+                    className="px-5 py-4 text-[15px]"
+                    style={{ borderBottom: "1px solid var(--a-line-soft)", color: "var(--a-text)" }}
+                  >
+                    {r.what}
+                  </td>
+                  <td
+                    className="whitespace-nowrap px-5 py-4 text-[15px]"
+                    style={{
+                      borderBottom: "1px solid var(--a-line-soft)",
+                      color: "var(--a-amber)",
+                      fontFamily: "var(--font-mono)",
+                    }}
+                  >
+                    {r.pages}
+                  </td>
+                  <td
+                    className="whitespace-nowrap px-5 py-4 text-[15px]"
+                    style={{
+                      borderBottom: "1px solid var(--a-line-soft)",
+                      color: "var(--a-amber)",
+                      fontFamily: "var(--font-mono)",
+                    }}
+                  >
+                    {r.words}
+                  </td>
+                  <td
+                    className="px-5 py-4 text-[13.5px] leading-snug"
+                    style={{
+                      borderBottom: "1px solid var(--a-line-soft)",
+                      color: "var(--a-text-3)",
+                    }}
+                  >
+                    {r.note}
+                  </td>
+                </tr>
+              ))}
+              <tr style={{ background: "var(--a-card)" }}>
+                <td className="px-5 py-4 text-[15px] font-semibold" style={{ color: "var(--a-text)" }}>
+                  Общо
+                </td>
+                <td
+                  className="whitespace-nowrap px-5 py-4 text-[16px] font-semibold"
+                  style={{ color: "var(--a-green)", fontFamily: "var(--font-mono)" }}
+                >
+                  24
+                </td>
+                <td
+                  className="whitespace-nowrap px-5 py-4 text-[16px] font-semibold"
+                  style={{ color: "var(--a-green)", fontFamily: "var(--font-mono)" }}
+                >
+                  ≈ 18 000
+                </td>
+                <td className="px-5 py-4 text-[13.5px]" style={{ color: "var(--a-text-3)" }}>
+                  всичко върху магазина, нищо под наем
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div
+          className="rounded-xl border-l-[3px] border-y border-r p-6"
+          style={{
+            borderLeftColor: "var(--a-alert)",
+            borderTopColor: "var(--a-line)",
+            borderRightColor: "var(--a-line)",
+            borderBottomColor: "var(--a-line)",
+            background: "var(--a-deep)",
+          }}
+        >
+          <h3
+            className="text-[1.05rem] font-bold"
+            style={{ fontFamily: "var(--font-display)", color: "var(--a-text)" }}
+          >
+            Едно, което няма да правим нарочно
+          </h3>
+          <p
+            className="mt-3 max-w-[66ch] text-[15.5px] leading-relaxed"
+            style={{ color: "var(--a-text-2)" }}
+          >
+            Няма да се борим за търсения от типа „подобен на …“ с име на чужда марка. Те носят
+            най-много трафик, но и правен риск — Meta вече е сваляла реклами заради точно такива
+            текстове. Работим по <strong style={{ color: "var(--a-text)" }}>нотки, поводи и
+            трайност</strong>: там конкуренцията е по-малка, купувачът е по-сигурен, а нищо не може
+            да ти бъде свалено.
+          </p>
+        </div>
+      </section>
+
+      {/* ── Планът месец по месец ──────────────────── */}
+      <section className="flex flex-col gap-6">
+        <SectionHead n="06" title="Планът, месец по месец" />
+
+        <p className="max-w-[64ch] text-[16px] leading-relaxed" style={{ color: "var(--a-text-2)" }}>
+          Четири месеца, всеки с една задача. Не се прави всичко наведнъж — прави се това, което
+          подготвя следващото.
+        </p>
+
+        <div className="flex flex-col gap-4">
+          {ROADMAP.map((m) => (
+            <article
+              key={m.month}
+              className="rounded-xl border p-6 sm:p-7"
+              style={{
+                borderColor: m.peak ? "var(--a-amber)" : "var(--a-line)",
+                background: m.peak ? "var(--a-card)" : "var(--a-deep)",
+              }}
+            >
+              <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                <span
+                  className="rounded px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.14em]"
+                  style={
+                    m.peak
+                      ? {
+                          background: "var(--a-amber)",
+                          color: "#0d0a07",
+                          fontFamily: "var(--font-mono)",
+                        }
+                      : {
+                          border: "1px solid var(--a-line)",
+                          color: "var(--a-text-3)",
+                          fontFamily: "var(--font-mono)",
+                        }
+                  }
+                >
+                  {m.month}
+                </span>
+                <span
+                  className="text-[12.5px]"
+                  style={{ fontFamily: "var(--font-mono)", color: "var(--a-text-3)" }}
+                >
+                  {m.when}
+                </span>
+              </div>
+
+              <h3
+                className="mt-3 text-[1.2rem] font-bold leading-snug sm:text-[1.35rem]"
+                style={{ fontFamily: "var(--font-display)", color: "var(--a-text)" }}
+              >
+                {m.title}
+              </h3>
+
+              <ul className="mt-4 flex flex-col gap-2.5">
+                {m.items.map((it) => (
+                  <li
+                    key={it}
+                    className="relative pl-5 text-[15px] leading-relaxed"
+                    style={{ color: "var(--a-text-2)" }}
+                  >
+                    <span className="absolute left-0" style={{ color: "var(--a-amber-dim)" }}>
+                      —
+                    </span>
+                    {it}
+                  </li>
+                ))}
+              </ul>
+
+              <span
+                className="mt-5 inline-block rounded px-3 py-1.5 text-[12.5px]"
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  background: m.peak ? "rgba(223,169,74,0.14)" : "rgba(134,179,146,0.11)",
+                  color: m.peak ? "var(--a-amber)" : "var(--a-green)",
+                }}
+              >
+                {m.marker}
+              </span>
+            </article>
+          ))}
+        </div>
+
+        <div
+          className="mt-2 grid grid-cols-2 gap-px overflow-hidden rounded-xl border lg:grid-cols-5"
+          style={{ borderColor: "var(--a-line)", background: "var(--a-line-soft)" }}
+        >
+          {TALLY.map(([v, l]) => (
+            <div
+              key={l}
+              className="flex flex-col gap-1.5 p-5"
+              style={{ background: "var(--a-deep)" }}
+            >
+              <span
+                className="text-[1.5rem] font-bold leading-none"
+                style={{ fontFamily: "var(--font-display)", color: "var(--a-amber)" }}
+              >
+                {v}
+              </span>
+              <span className="text-[12.5px] leading-snug" style={{ color: "var(--a-text-3)" }}>
+                {l}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <p
+          className="text-[13.5px]"
+          style={{ fontFamily: "var(--font-mono)", color: "var(--a-text-3)" }}
+        >
+          Обемите са за пакет Растеж, за четири месеца.
+        </p>
+      </section>
+
       {/* ── Пакетите ───────────────────────────────── */}
       <section id="paketi" className="flex flex-col gap-6 scroll-mt-8">
-        <SectionHead n="05" title="Трите пакета" />
+        <SectionHead n="07" title="Трите пакета" />
 
         <p className="max-w-[64ch] text-[16px] leading-relaxed" style={{ color: "var(--a-text-2)" }}>
           Всеки пакет стъпва на едно и също:{" "}
@@ -582,7 +905,7 @@ export default function AlineeOfferPage() {
 
       {/* ── Очакванията ────────────────────────────── */}
       <section className="flex flex-col gap-6">
-        <SectionHead n="06" title="Какво очаквам — по твоите числа" />
+        <SectionHead n="08" title="Какво очаквам — по твоите числа" />
 
         <p className="max-w-[64ch] text-[16px] leading-relaxed" style={{ color: "var(--a-text-2)" }}>
           Не обещавам проценти от моята глава. Магазинът вече е постигал по-добро от сегашното,
@@ -658,7 +981,7 @@ export default function AlineeOfferPage() {
 
       {/* ── Двете числа ────────────────────────────── */}
       <section className="flex flex-col gap-6">
-        <SectionHead n="07" title="Две числа, които ми трябват от теб" />
+        <SectionHead n="09" title="Две числа, които ми трябват от теб" />
         <p className="max-w-[64ch] text-[16px] leading-relaxed" style={{ color: "var(--a-text-2)" }}>
           За да ти кажа при каква цена на клиент си на печалба, а не да гадая:{" "}
           <strong style={{ color: "var(--a-text)" }}>колко ти струва един флакон</strong> и{" "}
