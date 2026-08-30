@@ -49,6 +49,7 @@ import { track } from "@/lib/analytics/track";
 const NAV = [
   { href: "/ai-avtomatizacia", label: "Услуги" },
   { href: "/rakovodstva", label: "Ръководства" },
+  { href: "/rabota", label: "Работа при нас", isNew: true },
   { href: "/jarvis", label: "Jarvis", isNew: true },
   { href: "/#kontakti", label: "Контакти" },
 ];
