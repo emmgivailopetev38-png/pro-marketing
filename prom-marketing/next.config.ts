@@ -36,6 +36,20 @@ const nextConfig: NextConfig = {
       { source: "/crm", destination: "/ai-crm", permanent: true },
       { source: "/kontakti", destination: "/booking", permanent: true },
 
+      // Играта „ЛОСТ" — тренажорът, през който кандидатите за търговец
+      // кандидатстват. Живее в отделен Vercel проект; временен redirect
+      // (307), защото после ще се премести на igra.promarketing.pw.
+      {
+        source: "/rabota",
+        destination: "https://lost-sales-game-petur-s-projects1.vercel.app/rabota",
+        permanent: false,
+      },
+      {
+        source: "/igra",
+        destination: "https://lost-sales-game-petur-s-projects1.vercel.app/rabota",
+        permanent: false,
+      },
+
       // „Магазин" беше неточно име: страницата продава услуги, системи и
       // обучения, не стоки. Преименувана на „AI решения" — вярното
       // описание и същевременно реална търсена заявка на български.
