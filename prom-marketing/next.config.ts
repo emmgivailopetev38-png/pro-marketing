@@ -41,12 +41,12 @@ const nextConfig: NextConfig = {
       // (307), защото после ще се премести на igra.promarketing.pw.
       {
         source: "/rabota",
-        destination: "https://lost-sales-game-petur-s-projects1.vercel.app/rabota",
+        destination: "https://igra.promarketing.pw/rabota",
         permanent: false,
       },
       {
         source: "/igra",
-        destination: "https://lost-sales-game-petur-s-projects1.vercel.app/rabota",
+        destination: "https://igra.promarketing.pw/rabota",
         permanent: false,
       },
 
