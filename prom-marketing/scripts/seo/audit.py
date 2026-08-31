@@ -19,6 +19,9 @@
 """
 import json, os, re, sys, html, glob, collections
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _redirects import redirects as config_redirects
+
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 APP  = os.path.join(ROOT, ".next/server/app")
 SITE = "https://promarketing.pw"
@@ -31,7 +34,8 @@ def text_of(h):
     t = re.sub(r'<[^>]+>', ' ', t)
     return re.sub(r'\s+', ' ', html.unescape(t)).strip()
 
-REDIRECTS = set()
+# Пренасочванията от next.config.ts + тези, направени със самия redirect() в страница.
+REDIRECTS = set(config_redirects())
 for f in glob.glob(os.path.join(ROOT, "app/**/page.tsx"), recursive=True):
     src = open(f, encoding="utf-8", errors="replace").read()
     if re.search(r'redirect\("/"\)', src):
