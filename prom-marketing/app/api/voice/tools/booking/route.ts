@@ -5,6 +5,7 @@ import { resolveContact } from "@/lib/voice/resolve";
 import { parseWhen, speakDate } from "@/lib/voice/when";
 import { upsertBooking, updateBooking } from "@/lib/crm/repository";
 import { listBookings } from "@/lib/crm/list-read";
+import { createCalBooking, isCalWriteConfigured } from "@/lib/cal/create-booking";
 
 export const dynamic = "force-dynamic";
 
@@ -15,9 +16,15 @@ export const dynamic = "force-dynamic";
  * вечерта е забравена. Затова часът се разбира от българската фраза, а не се
  * иска ISO от модела.
  *
- * Записва само в CRM-а: НЕ праща покана, НЕ прави Meet линк и НЕ пише на
- * човека отсреща. Причина: поканата е необратима — тръгне ли, не се връща,
- * а гласът може да е чул „вторник" вместо „четвъртък".
+ * Записва ВИНАГИ в CRM-а. Влиза и в Google Календара — през Cal.com, който
+ * държи връзката с него — само когато и трите условия са налице: има ключ
+ * `CAL_API_KEY`, има истински имейл на човека, и повикващият не е казал „без
+ * покана" (`send_invite: false`).
+ *
+ * ⚠️ Календарният запис ИЗПРАЩА потвърждение до човека и затова е необратим —
+ * гласът може да е чул „вторник" вместо „четвъртък". Пазачът срещу това е
+ * изговореното потвърждение: отговорът винаги казва дословно какво е тръгнало
+ * навън и какво не, за да се хване грешката в същия разговор.
  */
 
 const schema = z.object({
@@ -31,6 +38,10 @@ const schema = z.object({
   duration_minutes: z.coerce.number().int().min(5).max(600).optional(),
   note: z.string().trim().max(2000).optional(),
   meeting_url: z.string().trim().max(500).optional(),
+  /** Имейлът, продиктуван на глас. Без него срещата остава само в CRM-а. */
+  email: z.string().trim().email().max(160).optional(),
+  /** „Без покана" — записва се, но нищо не тръгва към човека. */
+  send_invite: z.coerce.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -82,7 +93,10 @@ async function create(d: Input) {
   // Контактът може и да го няма — среща с нов човек е нормална.
   const who = await resolveContact({ q: d.who });
   const name = who.ok ? who.name : d.who;
-  const email = who.ok && who.email ? who.email : NO_EMAIL;
+  // Продиктуваният на глас имейл бие този от картона: гласът записва час на
+  // човека, който е насреща СЕГА, а картонът може да носи стар адрес.
+  const email = d.email ?? (who.ok && who.email ? who.email : NO_EMAIL);
+  const phone = who.ok ? (who.phone ?? undefined) : undefined;
 
   const result = await upsertBooking({
     // Ключът е по ИМЕ и час, не по имейл: половината уговорени по телефона
@@ -90,7 +104,7 @@ async function create(d: Input) {
     cal_booking_id: `manual:${when.date.toISOString().slice(0, 16)}:${slug(name)}`,
     attendee_name: name,
     attendee_email: email,
-    attendee_phone: who.ok ? (who.phone ?? undefined) : undefined,
+    attendee_phone: phone,
     scheduled_at: when.date.toISOString(),
     duration_minutes: d.duration_minutes ?? 60,
     status: "accepted",
@@ -105,12 +119,83 @@ async function create(d: Input) {
   }
 
   const extra = who.ok ? "" : " Него го няма в CRM-а, записах я само по име.";
+  const cal = await putInCalendar({
+    name,
+    email,
+    startISO: when.date.toISOString(),
+    durationMinutes: d.duration_minutes ?? 60,
+    phone,
+    notes: d.note,
+    allowed: d.send_invite !== false,
+  });
+
+  // Ако Cal.com е върнал линк за срещата, той влиза и в картона — иначе
+  // линкът живее само в календара и в CRM-а срещата изглежда без място.
+  if (cal.meetingUrl && result.id) {
+    await updateBooking({ id: result.id, meeting_url: cal.meetingUrl }).catch(() => {});
+  }
+
   return NextResponse.json({
     ok: true,
     id: result.id,
     created: result.created,
-    spoken: `${result.created ? "Записах" : "Обнових"} срещата с ${name} за ${speakDate(when.date)}.${extra} Покана не съм пращал.`,
+    in_calendar: cal.ok,
+    meeting_url: cal.meetingUrl,
+    spoken: `${result.created ? "Записах" : "Обнових"} срещата с ${name} за ${speakDate(when.date)}.${extra} ${cal.spoken}`,
   });
+}
+
+/**
+ * Календарната половина на записването, отделена, за да остане ясно кога нещо
+ * тръгва навън. Връща и изречението, което гласът казва — то е ЕДИНСТВЕНОТО
+ * място, от което Ивайло разбира дали е пратена покана.
+ */
+async function putInCalendar(args: {
+  name: string;
+  email: string;
+  startISO: string;
+  durationMinutes: number;
+  phone?: string;
+  notes?: string;
+  allowed: boolean;
+}): Promise<{ ok: boolean; meetingUrl: string | null; spoken: string }> {
+  if (!args.allowed) {
+    return { ok: false, meetingUrl: null, spoken: "В календара не съм я слагал и покана не съм пращал." };
+  }
+  if (!isCalWriteConfigured()) {
+    return { ok: false, meetingUrl: null, spoken: "Записана е само в CRM-а — календарът още не е вързан." };
+  }
+  if (!args.email || args.email === NO_EMAIL) {
+    return {
+      ok: false,
+      meetingUrl: null,
+      spoken: "Нямам имейл за него, затова е само в CRM-а. Кажи ми имейла и я слагам и в календара.",
+    };
+  }
+
+  const res = await createCalBooking({
+    name: args.name,
+    email: args.email,
+    startISO: args.startISO,
+    durationMinutes: args.durationMinutes,
+    phone: args.phone,
+    notes: args.notes,
+  });
+
+  if (!res.ok) {
+    console.error("[voice/booking] cal", res.error);
+    return {
+      ok: false,
+      meetingUrl: null,
+      spoken: "В CRM-а е записана, но в календара не влезе — виж я, като можеш.",
+    };
+  }
+
+  return {
+    ok: true,
+    meetingUrl: res.meetingUrl,
+    spoken: `Влезе и в календара, а потвърждението замина на ${args.email}.`,
+  };
 }
 
 async function moveOrCancel(d: Input) {
