@@ -52,3 +52,37 @@ describe("isCalWriteConfigured", () => {
     expect(isCalWriteConfigured()).toBe(true);
   });
 });
+
+// Пазачът срещу капана, който щеше да прати покана точно когато е казано „без
+// покана": ElevenLabs подава булевите полета и като текст, а Boolean("false")
+// в JavaScript е true.
+import { z } from "zod";
+
+const sendInvite = z
+  .union([z.boolean(), z.string()])
+  .optional()
+  .transform((v) => {
+    if (typeof v !== "string") return v;
+    const t = v.trim().toLowerCase();
+    if (["false", "0", "не", "ne", "no"].includes(t)) return false;
+    if (["true", "1", "да", "da", "yes"].includes(t)) return true;
+    return undefined;
+  });
+
+describe("send_invite от гласа", () => {
+  it("текстът „false\" значи false, не true", () => {
+    expect(sendInvite.parse("false")).toBe(false);
+    expect(sendInvite.parse("не")).toBe(false);
+    expect(sendInvite.parse("0")).toBe(false);
+  });
+
+  it("истинските булеви стойности минават непокътнати", () => {
+    expect(sendInvite.parse(true)).toBe(true);
+    expect(sendInvite.parse(false)).toBe(false);
+  });
+
+  it("неразбрана дума не значи отказ — остава по подразбиране", () => {
+    expect(sendInvite.parse("може би")).toBeUndefined();
+    expect(sendInvite.parse(undefined)).toBeUndefined();
+  });
+});

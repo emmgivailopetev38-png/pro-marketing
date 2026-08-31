@@ -40,8 +40,23 @@ const schema = z.object({
   meeting_url: z.string().trim().max(500).optional(),
   /** Имейлът, продиктуван на глас. Без него срещата остава само в CRM-а. */
   email: z.string().trim().email().max(160).optional(),
-  /** „Без покана" — записва се, но нищо не тръгва към човека. */
-  send_invite: z.coerce.boolean().optional(),
+  /**
+   * „Без покана" — записва се, но нищо не тръгва към човека.
+   *
+   * ⚠️ НЕ през `z.coerce.boolean()`: в JavaScript `Boolean("false")` е true, а
+   * ElevenLabs подава булевите полета и като текст. Точно обратното на казаното
+   * би тръгнало навън — затова текстът се чете дословно.
+   */
+  send_invite: z
+    .union([z.boolean(), z.string()])
+    .optional()
+    .transform((v) => {
+      if (typeof v !== "string") return v;
+      const t = v.trim().toLowerCase();
+      if (["false", "0", "не", "ne", "no"].includes(t)) return false;
+      if (["true", "1", "да", "da", "yes"].includes(t)) return true;
+      return undefined;
+    }),
 });
 
 export async function POST(request: Request) {
