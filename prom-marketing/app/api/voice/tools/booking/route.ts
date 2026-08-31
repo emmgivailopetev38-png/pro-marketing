@@ -138,7 +138,10 @@ async function create(d: Input) {
     name,
     email,
     startISO: when.date.toISOString(),
-    durationMinutes: d.duration_minutes ?? 60,
+    // Нарочно БЕЗ „?? 60": типът събитие в Cal.com е 30-минутен и отказва
+    // подадена дължина, която не е в неговия списък. Пропуснем ли полето,
+    // важи неговата собствена дължина. Подава се само ако Ивайло я е казал.
+    durationMinutes: d.duration_minutes,
     phone,
     notes: d.note,
     allowed: d.send_invite !== false,
@@ -169,7 +172,7 @@ async function putInCalendar(args: {
   name: string;
   email: string;
   startISO: string;
-  durationMinutes: number;
+  durationMinutes?: number;
   phone?: string;
   notes?: string;
   allowed: boolean;
