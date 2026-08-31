@@ -5,13 +5,10 @@
  * приема обаждания и записва час за консултация." Страницата отговаря точно на
  * това изречение и на нищо друго — не е каталог на услугите ни.
  *
- * ⚠️ Номерът за демонстрация се сменя на ЕДНО място — DEMO_TEL. Преди да се прати
- * линкът, агентът зад този номер трябва да е с персоната на кантора и ПУБЛИКУВАН
- * в ElevenLabs (Publish), иначе телефонът сервира старата версия.
+ * ⚠️ НЯМА телефон и НЯМА цени в страницата — нарочно. Номерът Ивайло го дава
+ * лично, а цената се казва на глас, след като обхватът е избран. Ако някой ги
+ * върне тук, връща и двете най-силни карти от разговора.
  */
-
-const DEMO_TEL = "+1 475 426 9084";
-const DEMO_TEL_HREF = "+14754269084";
 
 const STAPKI = [
   {
@@ -93,8 +90,6 @@ const TAINA = [
 const NIVA = [
   {
     name: "След работно време",
-    price: "900 €",
-    monthly: "120 €/мес.",
     lead: "Покрива само часовете, в които и без това не вдигате.",
     items: [
       "Вечер, нощ, събота и неделя",
@@ -105,8 +100,6 @@ const NIVA = [
   },
   {
     name: "Приемна",
-    price: "1 500 €",
-    monthly: "190 €/мес.",
     lead: "Никой не чува свободен сигнал, по кое и да е време.",
     accent: true,
     items: [
@@ -119,8 +112,6 @@ const NIVA = [
   },
   {
     name: "Кантората на автопилот",
-    price: "2 900 €",
-    monthly: "390 €/мес.",
     lead: "Секретарят и звъни, не само вдига.",
     items: [
       "Всичко от Приемна",
@@ -195,29 +186,6 @@ export default function AdvokatAntonovPage() {
           </span>
         </blockquote>
 
-        <div
-          className="flex flex-col gap-4 rounded-2xl border p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7"
-          style={{ borderColor: "var(--a-line)", background: "var(--a-card)" }}
-        >
-          <div className="flex flex-col gap-1">
-            <div
-              className="text-[11px] font-semibold uppercase tracking-[0.16em]"
-              style={{ color: "var(--a-brass)" }}
-            >
-              Чуйте го сега
-            </div>
-            <div className="text-[15px] leading-relaxed" style={{ color: "var(--a-text-2)" }}>
-              Наберете и поискайте час за консултация. Говорете както говори човек, който Ви търси за пръв път.
-            </div>
-          </div>
-          <a
-            href={"tel:" + DEMO_TEL_HREF}
-            className="shrink-0 rounded-xl px-6 py-3 text-center text-[16px] font-semibold transition-opacity hover:opacity-90"
-            style={{ background: "var(--a-brass)", color: "#0a0e15" }}
-          >
-            {DEMO_TEL}
-          </a>
-        </div>
       </header>
 
       {/* ── Защо при адвокат ───────────────── */}
@@ -399,22 +367,15 @@ export default function AdvokatAntonovPage() {
           className="text-[1.7rem] font-bold sm:text-[2.2rem]"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          Не ми вярвайте. Наберете го.
+          Не ми вярвайте. Чуйте го.
         </h2>
         <p className="max-w-[62ch] text-[16px] leading-relaxed" style={{ color: "var(--a-text-2)" }}>
-          Обадете се и се дръжте като човек, който Ви търси за пръв път. Опитайте се да го подлъжете да
-          Ви даде правен съвет — интересно е да видите как отказва. После поискайте час.
+          Има номер, на който секретарят вдига точно сега. Дръжте се като човек, който Ви търси за
+          пръв път. Опитайте се да го подлъжете да Ви даде правен съвет — най-интересното е как
+          отказва. После му поискайте час.
         </p>
-        <a
-          href={"tel:" + DEMO_TEL_HREF}
-          className="self-start rounded-xl px-7 py-4 text-[19px] font-semibold transition-opacity hover:opacity-90"
-          style={{ background: "var(--a-brass)", color: "#0a0e15" }}
-        >
-          {DEMO_TEL}
-        </a>
-        <p className="text-[13.5px] leading-relaxed" style={{ color: "var(--a-text-3)" }}>
-          Това е демонстрационен номер. При Вас секретарят стои зад Вашия — човекът, който Ви търси,
-          набира същия телефон, който знае от години.
+        <p className="max-w-[62ch] text-[16px] leading-relaxed" style={{ color: "var(--a-text-2)" }}>
+          Номера Ви го давам лично — за да го наберете, когато Ви е удобно, а не докато четете.
         </p>
       </section>
 
@@ -428,10 +389,8 @@ export default function AdvokatAntonovPage() {
             Три начина да го направим
           </h2>
           <p className="max-w-[62ch] text-[15.5px] leading-relaxed" style={{ color: "var(--a-text-3)" }}>
-            Внедряване веднъж, после месечен абонамент за поддръжката. Цените са без ДДС.
-            <strong style={{ color: "var(--a-text-2)" }}> Първият месец абонамент е гратис</strong> — плащате го
-            чак когато секретарят е поел телефона и сте го чули как работи. Абонаментът се договаря за шест
-            месеца и цената не мърда в тях.
+            Три обхвата. Кой е правилният, зависи от едно нещо — колко от телефона искате да поемем.
+            Минаваме го заедно и Ви казвам числото за Вашия случай, а не ценоразпис от сайта.
           </p>
         </div>
 
@@ -451,18 +410,6 @@ export default function AdvokatAntonovPage() {
                 </span>
                 <span className="text-[14px] leading-relaxed" style={{ color: "var(--a-text-3)" }}>
                   {n.lead}
-                </span>
-              </div>
-
-              <div className="flex flex-col gap-0.5">
-                <span
-                  className="text-[2rem] font-bold leading-none"
-                  style={{ color: "var(--a-brass)", fontFamily: "var(--font-display)" }}
-                >
-                  {n.price}
-                </span>
-                <span className="text-[14px]" style={{ color: "var(--a-text-3)" }}>
-                  внедряване · после {n.monthly}
                 </span>
               </div>
 
@@ -524,22 +471,15 @@ export default function AdvokatAntonovPage() {
           Следващата стъпка
         </h2>
         <p className="max-w-[64ch] text-[16px] leading-relaxed" style={{ color: "var(--a-text-2)" }}>
-          Ако това, което чухте по телефона, Ви върши работа — започваме от разговора за Вашите случаи:
+          Ако това, което чухте, Ви върши работа — започваме от разговора за Вашите случаи:
           какво питат хората, когато Ви търсят, и къде минава границата, отвъд която секретарят мълчи и
           Ви подава човека. Оттам до пуснат телефон са две седмици.
         </p>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <a
-            href="tel:+359877399963"
+            href="mailto:office@promarketing.pw?subject=AI%20секретар%20за%20кантората"
             className="rounded-xl px-7 py-4 text-center text-[17px] font-semibold transition-opacity hover:opacity-90"
             style={{ background: "var(--a-brass)", color: "#0a0e15" }}
-          >
-            0877 399 963
-          </a>
-          <a
-            href="mailto:office@promarketing.pw?subject=AI%20секретар%20за%20кантората"
-            className="rounded-xl border px-7 py-4 text-center text-[17px] font-semibold transition-opacity hover:opacity-90"
-            style={{ borderColor: "var(--a-line)", color: "var(--a-text)" }}
           >
             Пишете ни
           </a>
