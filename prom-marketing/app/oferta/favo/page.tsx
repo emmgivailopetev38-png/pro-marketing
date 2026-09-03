@@ -43,6 +43,10 @@ const CSS = `
 .favo-doc .byline{display:flex;flex-wrap:wrap;gap:8px 30px;
   font-family:var(--favo-ui),sans-serif;font-size:13.5px;color:var(--ink-2)}
 .favo-doc .byline b{color:var(--ink);font-weight:600}
+.favo-doc .byline .pdf{font-weight:600;color:var(--accent);text-decoration:none;
+  border:1px solid var(--accent);padding:5px 12px;border-radius:4px;transition:background .15s ease}
+.favo-doc .byline .pdf:hover{background:var(--accent-soft)}
+@media print{.favo-doc .byline .pdf{display:none}}
 
 .favo-doc .cols{display:grid;grid-template-columns:minmax(0,1fr) 358px;gap:60px;
   align-items:start;padding-top:52px}
@@ -501,6 +505,9 @@ export default function FavoPage() {
             <span>
               <b>1 836</b> продукта в каталога
             </span>
+            <a className="pdf" href="/oferta/favo/Favo-analiz.pdf" download>
+              Свали като PDF
+            </a>
           </div>
         </header>
 
