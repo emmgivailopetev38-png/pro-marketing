@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { upsertContactAndLog } from "@/lib/contacts/repository";
+import { isCapiConfigured, sendCapiEvent } from "@/lib/meta/conversions-api";
 import { checkVoiceBudget, isPublicVoiceEnabled, VOICE_WEB_ACTIVITY } from "@/lib/voice/public-auth";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +30,27 @@ const schema = z.object({
   phone: z.string().trim().min(6, "телефон").max(40),
   /** С какво се занимава — агентът стъпва на това в първия си въпрос. */
   business: z.string().trim().max(200).optional(),
+  /**
+   * Откъде идва човекът. Началната страница не го подава („sait"); лендингът
+   * на рекламата подава „reklama", за да се вижда в CRM-а кой лийд е платен
+   * и колко струва. Стига до агента като {{kanal}}.
+   */
+  channel: z.string().trim().regex(/^[a-z0-9_-]{1,40}$/i).optional(),
+  /** Пътят на страницата — влиза в event_source_url към Meta. */
+  page: z.string().trim().max(120).optional(),
+  /**
+   * Идентификатор на събитието, генериран в браузъра. Пикселът го праща със
+   * същото id; Meta слепва двете и брои един лийд, не два.
+   */
+  event_id: z.string().trim().max(80).optional(),
 });
+
+/** `_fbp`/`_fbc` са бисквитки на пиксела на същия домейн — четат се от заявката. */
+function cookie(request: Request, name: string): string | null {
+  const raw = request.headers.get("cookie") ?? "";
+  const m = raw.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`));
+  return m ? decodeURIComponent(m[1]) : null;
+}
 
 export async function POST(request: Request) {
   if (!isPublicVoiceEnabled()) {
@@ -45,17 +66,12 @@ export async function POST(request: Request) {
     );
   }
   const d = parsed.data;
-
-  const budget = await checkVoiceBudget();
-  if (!budget.ok) {
-    return NextResponse.json({ error: "budget", spoken: budget.spoken }, { status: 429 });
-  }
-
-  const agentId = process.env.ELEVENLABS_PUBLIC_AGENT_ID ?? DEFAULT_AGENT_ID;
+  const channel = d.channel ?? "sait";
 
   // Лийдът влиза пръв — виж коментара най-горе. Но CRM-ът никога не е
   // причина да откажем клиент: и грешката, и хвърленото изключение само се
   // журналират. `createServiceClient()` хвърля при липсващи ключове.
+  let contactId: string | null = null;
   try {
     const lead = await upsertContactAndLog({
       full_name: d.name,
@@ -63,19 +79,71 @@ export async function POST(request: Request) {
       phone: d.phone,
       company: d.business || null,
       source: "voice_web",
+      // Каналът стои в source_ref, а не в source: справките броят „voice_web"
+      // като едно и не бива да се разцепват на две колони заради рекламата.
+      source_ref: channel === "sait" ? null : channel,
       initial_stage: "lead",
       activity: {
         type: VOICE_WEB_ACTIVITY,
-        title: "Отвори гласовия агент от сайта",
+        title: channel === "reklama" ? "Отвори гласовия агент от рекламата" : "Отвори гласовия агент от сайта",
         body: d.business ? `Дейност: ${d.business}` : null,
         created_by: "website",
-        metadata: { name: d.name, email: d.email, phone: d.phone, business: d.business ?? null },
+        metadata: {
+          name: d.name,
+          email: d.email,
+          phone: d.phone,
+          business: d.business ?? null,
+          channel,
+          page: d.page ?? null,
+        },
       },
     });
+    contactId = lead.contact_id;
     if (lead.error) console.error("[voice/public/session] lead", lead.error);
   } catch (err) {
     console.error("[voice/public/session] lead хвърли", err);
   }
+
+  /**
+   * Лийдът се връща и към Meta през Conversions API — с имейл и телефон,
+   * за да има с какво да го съпостави. Пикселът в браузъра праща същото
+   * събитие със същото event_id; без сървърната половина Meta вижда само
+   * „някой подаде форма" и оптимизира рекламата по сляп сигнал.
+   * `void`: отговорът към човека не чака Meta.
+   */
+  if (isCapiConfigured()) {
+    const origin = new URL(request.url).origin;
+    void sendCapiEvent({
+      event_name: "Lead",
+      event_id: d.event_id,
+      event_source_url: `${origin}${d.page ?? "/"}`,
+      action_source: "website",
+      user_data: {
+        email: d.email,
+        phone: d.phone,
+        firstName: d.name.split(/\s+/)[0] ?? null,
+        lastName: d.name.split(/\s+/).slice(1).join(" ") || null,
+        country: "bg",
+        external_id: contactId,
+        client_ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+        client_user_agent: request.headers.get("user-agent"),
+        fbp: cookie(request, "_fbp"),
+        fbc: cookie(request, "_fbc"),
+      },
+      custom_data: { content_name: channel === "reklama" ? "glas_reklama" : "voice_web", content_category: "voice_agent" },
+    }).then((r) => {
+      if (!r.ok) console.error("[voice/public/session] capi", r.error);
+    });
+  }
+
+  // Таванът се проверява СЛЕД записа: човек над лимита е пак истински лийд
+  // и остава в CRM-а, само че вместо линия получава линк към календара.
+  const budget = await checkVoiceBudget();
+  if (!budget.ok) {
+    return NextResponse.json({ error: "budget", spoken: budget.spoken }, { status: 429 });
+  }
+
+  const agentId = process.env.ELEVENLABS_PUBLIC_AGENT_ID ?? DEFAULT_AGENT_ID;
 
   /**
    * Връща се ИДЕНТИФИКАТОРЪТ на агента, не подписан адрес — и това е
@@ -101,6 +169,9 @@ export async function POST(request: Request) {
       imeil: d.email,
       telefon: d.phone,
       deynost: d.business ?? "",
+      // За агента рекламният лендинг е пак „сайтът": полетата са попълнени
+      // по същия начин и промптът разпознава само „sait". Каналът за
+      // отчетите живее в CRM-а (source_ref), не тук.
       kanal: "sait",
     },
   });
