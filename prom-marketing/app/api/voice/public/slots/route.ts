@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { checkPublicVoiceAuth } from "@/lib/voice/public-auth";
+import { isPublicVoiceEnabled } from "@/lib/voice/public-auth";
 import { fetchSlots, speakSlots, speakDay, speakTime } from "@/lib/cal/slots";
 import { parseWhen } from "@/lib/voice/when";
 
@@ -25,14 +25,21 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
-  const auth = checkPublicVoiceAuth(request);
-  if (!auth.ok) {
-    // Причината влиза в лога, защото трите отказа искат три различни
-    // поправки: `no_bearer` значи, че ElevenLabs не е подал заглавката
-    // (променливата в инструмента не резолва), `mismatch` — че токенът е
-    // друг, а `no_token_configured` — че липсва в самия Vercel.
-    console.error("[voice/public/slots] отказан достъп:", auth.reason);
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  /**
+   * Тук НЯМА Bearer проверка и това е обмислено, не пропуск.
+   *
+   * Рутът връща свободните часове на един публичен тип събитие — дословно
+   * това, което всеки вижда на cal.com/promarketing/consultation, без да се
+   * легитимира пред никого. Тайна, която не пази тайна, е само още едно
+   * място, където нещо може да се разпадне: точно тя направи агента сляп за
+   * календара на 03.09.2026, защото стойността в ElevenLabs не съвпадаше с
+   * тази във Vercel, и агентът започна да отговаря „нямам достъп".
+   *
+   * Записването е друго — `/book` пише в CRM-а и остава зад токена.
+   * Шалтерът `PUBLIC_VOICE_ENABLED=false` спира и този рут.
+   */
+  if (!isPublicVoiceEnabled()) {
+    return NextResponse.json({ ok: false, spoken: "Гласовото демо е спряно в момента." }, { status: 200 });
   }
 
   const body = await request.json().catch(() => ({}));
