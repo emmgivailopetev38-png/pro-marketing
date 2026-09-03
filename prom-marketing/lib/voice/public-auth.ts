@@ -69,27 +69,40 @@ export async function checkVoiceBudget(): Promise<Budget> {
   const dayCap = limit("PUBLIC_VOICE_DAILY_LIMIT", 12);
   const monthCap = limit("PUBLIC_VOICE_MONTHLY_LIMIT", 45);
 
-  const sb = createServiceClient();
-  const now = Date.now();
-  const since = (ms: number) => new Date(now - ms).toISOString();
+  /**
+   * Ако броенето се счупи, разговорът МИНАВА.
+   *
+   * Обвивката не е излишна предпазливост: `createServiceClient()` хвърля,
+   * когато ключовете липсват, и без този catch целият рут връщаше 500 —
+   * тоест едно трепване на базата затваряше бутона на началната страница.
+   * По-скъпо е да откажем на истински клиент, отколкото да пуснем един
+   * разговор над тавана.
+   */
+  let today = 0;
+  let monthly = 0;
+  try {
+    const sb = createServiceClient();
+    const now = Date.now();
+    const since = (ms: number) => new Date(now - ms).toISOString();
 
-  const [day, month] = await Promise.all([
-    sb
-      .from("contact_activities")
-      .select("id", { count: "exact", head: true })
-      .eq("activity_type", VOICE_WEB_ACTIVITY)
-      .gte("created_at", since(24 * 3600_000)),
-    sb
-      .from("contact_activities")
-      .select("id", { count: "exact", head: true })
-      .eq("activity_type", VOICE_WEB_ACTIVITY)
-      .gte("created_at", since(30 * 24 * 3600_000)),
-  ]);
-
-  // Ако броенето се счупи, разговорът минава. По-скъпо е да откажем на
-  // истински клиент, отколкото да пуснем един разговор в повече.
-  const today = day.count ?? 0;
-  const monthly = month.count ?? 0;
+    const [day, month] = await Promise.all([
+      sb
+        .from("contact_activities")
+        .select("id", { count: "exact", head: true })
+        .eq("activity_type", VOICE_WEB_ACTIVITY)
+        .gte("created_at", since(24 * 3600_000)),
+      sb
+        .from("contact_activities")
+        .select("id", { count: "exact", head: true })
+        .eq("activity_type", VOICE_WEB_ACTIVITY)
+        .gte("created_at", since(30 * 24 * 3600_000)),
+    ]);
+    today = day.count ?? 0;
+    monthly = month.count ?? 0;
+  } catch (err) {
+    console.error("[voice/budget] броенето падна, пускам разговора", err);
+    return { ok: true, today: 0, month: 0 };
+  }
 
   if (monthly >= monthCap) {
     return {

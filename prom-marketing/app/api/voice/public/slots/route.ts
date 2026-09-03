@@ -55,13 +55,15 @@ export async function POST(request: Request) {
         return NextResponse.json({
           ok: true,
           slots: sameDay.slice(0, 8),
-          spoken: `${speakDay(wanted.date)} мога в ${times.join(", ")}. Кой да запиша?`,
+          // „В понеделник…", не „понеделник…": изречението започва тук и без
+          // предлога говорителят го подкарва като продължение на чуждо.
+          spoken: `В ${speakDay(wanted.date)} мога в ${times.join(", ")}. Кой да запиша?`,
         });
       }
       return NextResponse.json({
         ok: true,
         slots: res.slots.slice(0, 8),
-        spoken: `${speakDay(wanted.date)} нямам свободен час. ${speakSlots(res.slots)}`,
+        spoken: `В ${speakDay(wanted.date)} нямам свободен час. ${speakSlots(res.slots)}`,
       });
     }
   }

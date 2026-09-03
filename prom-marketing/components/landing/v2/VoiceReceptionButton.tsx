@@ -20,6 +20,7 @@
 --------------------------------------------------------------------------- */
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Mic, Phone, User, Mail, Building2, Loader2, X, ArrowRight, CalendarCheck } from "lucide-react";
 import { track } from "@/lib/analytics/track";
 
@@ -41,6 +42,17 @@ export function VoiceReceptionButton({ variant = "hero" }: { variant?: "hero" | 
   const holder = useRef<HTMLDivElement>(null);
   const firstField = useRef<HTMLInputElement>(null);
   const lastFocus = useRef<HTMLElement | null>(null);
+
+  /**
+   * ⚠️ Прозорецът излиза през портал към <body> и това НЕ е стилистичен избор.
+   *
+   * Бутонът живее вътре в `MagneticButton`, който го мести с CSS `transform`.
+   * А трансформиран родител става новата отправна рамка за `position: fixed`
+   * на всяко дете — прозорецът се лепваше за бутона и излизаше като тясна
+   * ивица насред героя, вместо да покрие екрана.
+   */
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   /* --- Отваряне и затваряне -------------------------------------------- */
   useEffect(() => {
@@ -161,9 +173,10 @@ export function VoiceReceptionButton({ variant = "hero" }: { variant?: "hero" | 
         </span>
       </button>
 
-      {open && (
+      {open && mounted && createPortal(
         <div
-          className="fixed inset-0 z-[130] flex items-center justify-center p-4"
+          data-v2
+          className="v2-scope fixed inset-0 z-[130] flex items-center justify-center p-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="pm-voice-title"
@@ -315,7 +328,8 @@ export function VoiceReceptionButton({ variant = "hero" }: { variant?: "hero" | 
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

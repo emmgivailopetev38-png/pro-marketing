@@ -69,6 +69,16 @@ export function speakDay(d: Date): string {
   return `${DAYS[p.weekday]}, ${p.day} ${MONTHS[p.m - 1]}`;
 }
 
+/**
+ * Главна буква за ден, който отваря изречение.
+ *
+ * Не е козметика: говорителят чете малката буква като продължение на
+ * предното изречение и не прави паузата, по която ухото ги разделя.
+ */
+export function capFirst(s: string): string {
+  return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
+}
+
 /** „девет и половина", „десет часа" — часът, изговорен, не изписан. */
 export function speakTime(d: Date): string {
   const p = sofiaParts(d);
@@ -153,18 +163,30 @@ export function speakSlots(slots: Slot[], opts?: { days?: number; perDay?: numbe
 
   const parts: string[] = [];
   for (const [, list] of Array.from(byDay.entries()).slice(0, maxDays)) {
-    const day = speakDay(new Date(list[0].startISO));
+    let day = speakDay(new Date(list[0].startISO));
+    // Следващият ден започва ново изречение — с малка буква говорителят
+    // не прави паузата и двата дни се сливат в един.
+    if (parts.length > 0) day = capFirst(day);
     const times = list.map((s) => speakTime(new Date(s.startISO)));
-    parts.push(`${day} — ${joinBg(times)}`);
+    // „или", не „и": това е избор, а не списък с уговорени часове.
+    parts.push(`${day} — ${joinBg(times, "или")}`);
   }
 
-  return `Мога ${joinBg(parts, "; ")}. Кой от тези ти върши работа?`;
+  /**
+   * Дните се делят с ТОЧКА, не със съюз.
+   *
+   * Първият вариант ги свързваше с „и" и на глас излизаше
+   * „…12 и половина И понеделник, 7 септември…" — съюзът се сливаше с
+   * изброяването на часовете и се чуваше като още един час. Точката дава
+   * паузата, по която ухото разделя двата дни.
+   */
+  return `Мога ${parts.join(". ")}. Кой от тези ти върши работа?`;
 }
 
-/** „едно, друго и трето" — с „и" пред последното, както се говори. */
-function joinBg(items: string[], sep = ", "): string {
+/** „едно, друго и трето" — със съюз пред последното, както се говори. */
+function joinBg(items: string[], conj = "и"): string {
   if (items.length <= 1) return items[0] ?? "";
-  return `${items.slice(0, -1).join(sep)} и ${items[items.length - 1]}`;
+  return `${items.slice(0, -1).join(", ")} ${conj} ${items[items.length - 1]}`;
 }
 
 /**

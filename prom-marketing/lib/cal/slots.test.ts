@@ -55,7 +55,7 @@ describe("speakSlots", () => {
   it("предлага най-много два дни — списък от седем дни по телефона е шум", () => {
     const said = speakSlots(slots);
     expect(said).toContain("вторник, 8 септември");
-    expect(said).toContain("сряда, 9 септември");
+    expect(said).toContain("Сряда, 9 септември");
     expect(said).not.toContain("10 септември");
   });
 
@@ -66,8 +66,16 @@ describe("speakSlots", () => {
     expect(said).toContain("9 часа");
   });
 
-  it("свързва последното с „и“, както се говори", () => {
-    expect(speakSlots(slots)).toMatch(/9 часа, 9 и половина и 10 часа/);
+  it("часовете в един ден се предлагат с „или“ — това е избор, не списък", () => {
+    expect(speakSlots(slots)).toMatch(/9 часа, 9 и половина или 10 часа/);
+  });
+
+  it("двата дни се делят с точка, не със съюз", () => {
+    // Със съюз на глас излизаше „…12 и половина И понеделник…" и „и"-то
+    // се чуваше като още един час от същия ден.
+    const said = speakSlots(slots);
+    expect(said).toMatch(/10 часа\. Сряда/);
+    expect(said).not.toMatch(/и сряда/);
   });
 
   it("празният календар не мълчи, а подава следваща стъпка", () => {

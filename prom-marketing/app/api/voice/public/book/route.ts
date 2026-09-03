@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { checkPublicVoiceAuth } from "@/lib/voice/public-auth";
-import { fetchSlots, matchSlot, speakDay, speakSlots, speakTime } from "@/lib/cal/slots";
+import { capFirst, fetchSlots, matchSlot, speakDay, speakSlots, speakTime } from "@/lib/cal/slots";
 import { parseWhen } from "@/lib/voice/when";
 import { upsertBooking, updateBooking } from "@/lib/crm/repository";
 import { upsertContactAndLog } from "@/lib/contacts/repository";
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
         {
           ok: false,
           taken: true,
-          spoken: `${speakDay(wanted.date)} в ${speakTime(wanted.date)} е заето. ${speakSlots(cal.slots)}`,
+          spoken: `${capFirst(speakDay(wanted.date))} в ${speakTime(wanted.date)} е заето. ${speakSlots(cal.slots)}`,
         },
         { status: 200 }
       );

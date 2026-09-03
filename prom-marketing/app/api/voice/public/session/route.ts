@@ -57,25 +57,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "not_configured" }, { status: 503 });
   }
 
-  // Лийдът влиза пръв — виж коментара най-горе.
-  const lead = await upsertContactAndLog({
-    full_name: d.name,
-    email: d.email,
-    phone: d.phone,
-    company: d.business || null,
-    source: "voice_web",
-    initial_stage: "lead",
-    activity: {
-      type: VOICE_WEB_ACTIVITY,
-      title: "Отвори гласовия агент от сайта",
-      body: d.business ? `Дейност: ${d.business}` : null,
-      created_by: "website",
-      metadata: { name: d.name, email: d.email, phone: d.phone, business: d.business ?? null },
-    },
-  });
-  if (lead.error) {
-    // Разговорът пак върви — CRM-ът не бива да е причина да откажем клиент.
-    console.error("[voice/public/session] lead", lead.error);
+  // Лийдът влиза пръв — виж коментара най-горе. Но CRM-ът никога не е
+  // причина да откажем клиент: и грешката, и хвърленото изключение само се
+  // журналират. `createServiceClient()` хвърля при липсващи ключове.
+  try {
+    const lead = await upsertContactAndLog({
+      full_name: d.name,
+      email: d.email,
+      phone: d.phone,
+      company: d.business || null,
+      source: "voice_web",
+      initial_stage: "lead",
+      activity: {
+        type: VOICE_WEB_ACTIVITY,
+        title: "Отвори гласовия агент от сайта",
+        body: d.business ? `Дейност: ${d.business}` : null,
+        created_by: "website",
+        metadata: { name: d.name, email: d.email, phone: d.phone, business: d.business ?? null },
+      },
+    });
+    if (lead.error) console.error("[voice/public/session] lead", lead.error);
+  } catch (err) {
+    console.error("[voice/public/session] lead хвърли", err);
   }
 
   try {
