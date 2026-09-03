@@ -66,6 +66,27 @@ export type CalBookingResult = {
  * Тялото се строи отделно, за да може да се провери с тест, без да се вика
  * чужд сървър.
  */
+/**
+ * Български телефон → международен формат, какъвто Cal.com иска.
+ *
+ * Хората пишат номера си както го знаят: `0899123456`. Cal.com отговаря
+ * `responses - {attendeePhoneNumber}invalid_number` и срещата не влиза в
+ * календара — без нищо в разговора да подскаже, че се е счупило точно тук.
+ *
+ * Последните девет цифри са националният номер за България, същото
+ * допускане като в `phoneVariants` при контактите. Номер, който вече е
+ * международен, не се пипа — не всички обаждащи се са оттук.
+ */
+export function toE164(raw: string | null | undefined): string | null {
+  const s = (raw ?? "").trim();
+  if (!s) return null;
+  if (s.startsWith("+")) return "+" + s.slice(1).replace(/\D/g, "");
+
+  const digits = s.replace(/\D/g, "");
+  if (digits.length < 9) return null;
+  return `+359${digits.slice(-9)}`;
+}
+
 export function buildCalPayload(input: CalBookingInput): Record<string, unknown> {
   const body: Record<string, unknown> = {
     start: new Date(input.startISO).toISOString(),
@@ -90,8 +111,9 @@ export function buildCalPayload(input: CalBookingInput): Record<string, unknown>
    * Мястото му също е чувствително: работи само вътре в `attendee`.
    * В `bookingFieldsResponses` Cal.com го подминава и пак иска полето.
    */
-  if (input.phone?.trim()) {
-    (body.attendee as Record<string, unknown>).phoneNumber = input.phone.trim();
+  const phone = toE164(input.phone);
+  if (phone) {
+    (body.attendee as Record<string, unknown>).phoneNumber = phone;
   }
 
   // Бележката, надиктувана на глас, отива в описанието на събитието — така
@@ -123,7 +145,7 @@ export async function createCalBooking(input: CalBookingInput): Promise<CalBooki
   }
   // Отказваме рано и с ясна причина: иначе Cal.com връща съобщение за
   // липсващо поле, което звучи като счупено API, а не като липсващ телефон.
-  if (!input.phone?.trim()) {
+  if (!toE164(input.phone)) {
     return { ok: false, uid: null, meetingUrl: null, error: "phone_required" };
   }
 

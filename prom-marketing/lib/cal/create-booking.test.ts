@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { buildCalPayload, isCalWriteConfigured, CAL_TIMEZONE } from "./create-booking";
+import { buildCalPayload, isCalWriteConfigured, toE164, CAL_TIMEZONE } from "./create-booking";
 
 describe("buildCalPayload", () => {
   const base = {
@@ -103,5 +103,34 @@ describe("send_invite от гласа", () => {
   it("неразбрана дума не значи отказ — остава по подразбиране", () => {
     expect(sendInvite.parse("може би")).toBeUndefined();
     expect(sendInvite.parse(undefined)).toBeUndefined();
+  });
+});
+
+/**
+ * Телефонът е задължителен за този тип събитие и Cal.com иска международен
+ * формат. Българският запис `0899123456` върна `invalid_number` на живо на
+ * 03.09.2026 — срещата не влезе в календара, а разговорът звучеше успешно.
+ */
+describe("toE164", () => {
+  it("българският национален запис става международен", () => {
+    expect(toE164("0899123456")).toBe("+359899123456");
+  });
+
+  it("записът с интервали и тирета също", () => {
+    expect(toE164("088 812 34 56")).toBe("+359888123456");
+  });
+
+  it("вече международен номер не се пипа", () => {
+    expect(toE164("+14754269084")).toBe("+14754269084");
+  });
+
+  it("номер с 359 отпред не се удвоява", () => {
+    expect(toE164("359899123456")).toBe("+359899123456");
+  });
+
+  it("твърде къс номер не се доизмисля", () => {
+    expect(toE164("1234")).toBeNull();
+    expect(toE164("")).toBeNull();
+    expect(toE164(null)).toBeNull();
   });
 });
