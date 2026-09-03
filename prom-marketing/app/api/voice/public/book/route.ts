@@ -40,7 +40,14 @@ const NO_EMAIL = "bez-imeil@promarketing.pw";
 
 export async function POST(request: Request) {
   const auth = checkPublicVoiceAuth(request);
-  if (!auth.ok) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!auth.ok) {
+    // Причината влиза в лога, защото трите отказа искат три различни
+    // поправки: `no_bearer` значи, че ElevenLabs не е подал заглавката
+    // (променливата в инструмента не резолва), `mismatch` — че токенът е
+    // друг, а `no_token_configured` — че липсва в самия Vercel.
+    console.error("[voice/public/book] отказан достъп:", auth.reason);
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
