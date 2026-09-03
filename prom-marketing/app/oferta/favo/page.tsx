@@ -96,21 +96,31 @@ const CSS = `
   border:1px solid var(--rule);border-radius:5px;box-shadow:var(--shadow)}
 .favo-doc figcaption{font-family:var(--favo-ui),sans-serif;font-size:13.5px;color:var(--ink-2);
   margin-top:20px;padding-top:16px;border-top:1px solid var(--rule-soft);max-width:58ch}
-.favo-doc .bars{display:flex;flex-direction:column;gap:17px}
-.favo-doc .bar-row{display:grid;grid-template-columns:150px minmax(0,1fr);gap:16px;align-items:center}
+/* ЕДНА обща решетка за всички редове, а не решетка на всеки ред поотделно.
+   Иначе колоната с надписа се мери за всеки ред сама и по-дългият надпис
+   свива своята лента — трите ленти спират да са на обща скала и сравнението
+   лъже. Затова и надписите са само числа; обяснението слезе в надписа отдолу. */
+.favo-doc .bars{display:grid;grid-template-columns:150px minmax(0,1fr) max-content;
+  gap:17px 16px;align-items:center}
+.favo-doc .bar-row{display:contents}
 .favo-doc .bar-label{font-family:var(--favo-mono),monospace;font-size:13px;color:var(--ink-2);
   text-align:right;line-height:1.3}
-.favo-doc .bar-track{display:flex;align-items:center;gap:11px;min-width:0}
-.favo-doc .bar{height:26px;border-radius:0 4px 4px 0;flex:none;transition:filter .18s ease}
-.favo-doc .bar-row:hover .bar{filter:brightness(1.08)}
+.favo-doc .bar{height:26px;border-radius:0 4px 4px 0;transition:filter .18s ease}
+.favo-doc .bar:hover{filter:brightness(1.08)}
 .favo-doc .bar.is-crit{background:var(--crit)}
 .favo-doc .bar.is-goal{background:var(--accent)}
 .favo-doc .bar-val{font-family:var(--favo-mono),monospace;font-size:14px;font-weight:500;
   color:var(--ink);white-space:nowrap}
-.favo-doc .bar-val small{color:var(--ink-3);font-weight:400;font-size:12px}
 @media (max-width:600px){
-  .favo-doc .bar-row{grid-template-columns:1fr;gap:5px}
-  .favo-doc .bar-label{text-align:left}
+  /* align-items:stretch е задължително — иначе center-ът от горното правило
+     свива всеки ред по съдържанието му и лентите стават на педя. */
+  .favo-doc .bars{display:flex;flex-direction:column;gap:17px;align-items:stretch}
+  .favo-doc .bar-row{display:grid;grid-template-columns:minmax(0,1fr) max-content;
+    grid-template-areas:"label label" "bar val";gap:5px 10px;align-items:center}
+  .favo-doc .bar-label{grid-area:label;text-align:left}
+  .favo-doc .bar{grid-area:bar}
+  /* еднаква резервирана ширина, за да не се свива лентата на по-дългия надпис */
+  .favo-doc .bar-val{grid-area:val;min-width:58px}
 }
 
 .favo-doc .pull{margin:32px 0;padding:22px 26px;background:var(--panel);
@@ -538,10 +548,8 @@ export default function FavoPage() {
                       <br />
                       начална
                     </div>
-                    <div className="bar-track">
-                      <div className="bar is-crit" style={{ width: "100%" }} />
-                      <span className="bar-val">17,2 MB</span>
-                    </div>
+                    <div className="bar is-crit" style={{ width: "100%" }} />
+                    <span className="bar-val">17,2 MB</span>
                   </div>
                   <div className="bar-row">
                     <div className="bar-label">
@@ -549,23 +557,18 @@ export default function FavoPage() {
                       <br />
                       начална
                     </div>
-                    <div className="bar-track">
-                      <div className="bar is-crit" style={{ width: "49.4%" }} />
-                      <span className="bar-val">8,5 MB</span>
-                    </div>
+                    <div className="bar is-crit" style={{ width: "49.4%" }} />
+                    <span className="bar-val">8,5 MB</span>
                   </div>
                   <div className="bar-row">
                     <div className="bar-label">разумна цел</div>
-                    <div className="bar-track">
-                      <div className="bar is-goal" style={{ width: "8.7%" }} />
-                      <span className="bar-val">
-                        1,5 MB <small>· постижимо за един ден</small>
-                      </span>
-                    </div>
+                    <div className="bar is-goal" style={{ width: "8.7%" }} />
+                    <span className="bar-val">1,5 MB</span>
                   </div>
                 </div>
                 <figcaption>
                   Тегло на началната страница при първо зареждане, измерено на 3 септември 2026.
+                  Целта от 1,5 MB е постижима за един ден работа.
                 </figcaption>
               </figure>
 
