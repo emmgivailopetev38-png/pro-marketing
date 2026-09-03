@@ -5,7 +5,7 @@ import { resolveContact } from "@/lib/voice/resolve";
 import { parseWhen, speakDate } from "@/lib/voice/when";
 import { upsertBooking, updateBooking } from "@/lib/crm/repository";
 import { listBookings } from "@/lib/crm/list-read";
-import { createCalBooking, isCalWriteConfigured } from "@/lib/cal/create-booking";
+import { cancelCalBooking, createCalBooking, isCalWriteConfigured } from "@/lib/cal/create-booking";
 
 export const dynamic = "force-dynamic";
 
@@ -149,8 +149,14 @@ async function create(d: Input) {
 
   // Ако Cal.com е върнал линк за срещата, той влиза и в картона — иначе
   // линкът живее само в календара и в CRM-а срещата изглежда без място.
-  if (cal.meetingUrl && result.id) {
-    await updateBooking({ id: result.id, meeting_url: cal.meetingUrl }).catch(() => {});
+  // Линкът и `uid`-ът влизат заедно: без линка срещата изглежда без място,
+  // а без uid по-късната отмяна не може да стигне до календара.
+  if ((cal.meetingUrl || cal.uid) && result.id) {
+    await updateBooking({
+      id: result.id,
+      meeting_url: cal.meetingUrl ?? undefined,
+      cal_uid: cal.uid ?? undefined,
+    }).catch(() => {});
   }
 
   return NextResponse.json({
@@ -176,16 +182,17 @@ async function putInCalendar(args: {
   phone?: string;
   notes?: string;
   allowed: boolean;
-}): Promise<{ ok: boolean; meetingUrl: string | null; spoken: string }> {
+}): Promise<{ ok: boolean; uid: string | null; meetingUrl: string | null; spoken: string }> {
   if (!args.allowed) {
-    return { ok: false, meetingUrl: null, spoken: "В календара не съм я слагал и покана не съм пращал." };
+    return { ok: false, uid: null, meetingUrl: null, spoken: "В календара не съм я слагал и покана не съм пращал." };
   }
   if (!isCalWriteConfigured()) {
-    return { ok: false, meetingUrl: null, spoken: "Записана е само в CRM-а — календарът още не е вързан." };
+    return { ok: false, uid: null, meetingUrl: null, spoken: "Записана е само в CRM-а — календарът още не е вързан." };
   }
   if (!args.email || args.email === NO_EMAIL) {
     return {
       ok: false,
+      uid: null,
       meetingUrl: null,
       spoken: "Нямам имейл за него, затова е само в CRM-а. Кажи ми имейла и я слагам и в календара.",
     };
@@ -204,6 +211,7 @@ async function putInCalendar(args: {
     console.error("[voice/booking] cal", res.error);
     return {
       ok: false,
+      uid: null,
       meetingUrl: null,
       spoken: "В CRM-а е записана, но в календара не влезе — виж я, като можеш.",
     };
@@ -211,6 +219,7 @@ async function putInCalendar(args: {
 
   return {
     ok: true,
+    uid: res.uid,
     meetingUrl: res.meetingUrl,
     spoken: `Влезе и в календара, а потвърждението замина на ${args.email}.`,
   };
@@ -240,10 +249,29 @@ async function moveOrCancel(d: Input) {
       console.error("[voice/booking] cancel", res.error);
       return NextResponse.json({ ok: false, spoken: "Не успях да отменя срещата." }, { status: 200 });
     }
+
+    /**
+     * Отмяната трябва да стигне и до календара, иначе става най-неприятното:
+     * в CRM-а пише „отменена", а събитието си стои и Ивайло отива на среща,
+     * която сам е отменил. Уговорените на ръка срещи нямат `cal_uid` — те
+     * никога не са влизали в Cal.com — и там няма какво да се маха.
+     */
+    let calSpoken = " В календара я нямаше.";
+    if (res.cal_uid) {
+      const cal = await cancelCalBooking(res.cal_uid, d.note ?? "Отменена по телефона");
+      if (cal.ok) {
+        calSpoken = " Махнах я и от календара, а той уведоми човека.";
+      } else {
+        console.error("[voice/booking] cal cancel", cal.error);
+        calSpoken = " ⚠️ От календара обаче не излезе — виж я, като можеш.";
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       id,
-      spoken: `Отмених срещата с ${attendee}. Не съм му писал — ако трябва да го уведомя, кажи ми.`,
+      in_calendar: false,
+      spoken: `Отмених срещата с ${attendee}.${calSpoken}`,
     });
   }
 

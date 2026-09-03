@@ -136,6 +136,50 @@ function pickMeetingUrl(data: unknown): string | null {
   return null;
 }
 
+/**
+ * Отменя резервация в Cal.com — тоест маха срещата и от Google Календара.
+ *
+ * Дотук „отмених срещата" значеше само ред в CRM-а: събитието си стоеше в
+ * календара и Ивайло щеше да го види чак сутринта на самата среща. Ключът
+ * към отмяната е `uid`-ът, който Cal.com връща при създаването; затова той
+ * вече се пази в `bookings.raw_payload.cal_uid`.
+ *
+ * ⚠️ Версията на заглавката тук е ТРЕТА — `2024-08-13`. Всеки ресурс в
+ * Cal.com се версионира отделно: слотовете искат `2024-09-04`, резервациите
+ * `2026-02-25`, отмяната тази. Проверено на живо на 03.09.2026, също без ключ.
+ */
+export async function cancelCalBooking(
+  uid: string,
+  reason?: string
+): Promise<{ ok: boolean; error: string | null }> {
+  const key = (process.env.CAL_API_KEY ?? "").trim();
+  if (!uid.trim()) return { ok: false, error: "no_uid" };
+
+  try {
+    const res = await fetch(`https://api.cal.com/v2/bookings/${encodeURIComponent(uid.trim())}/cancel`, {
+      method: "POST",
+      headers: {
+        ...(key ? { Authorization: `Bearer ${key}` } : {}),
+        "cal-api-version": "2024-08-13",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ cancellationReason: reason?.slice(0, 300) ?? "Отменена по телефона" }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) {
+      const j = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+      const msg =
+        (j && typeof j.error === "object" && j.error && "message" in j.error
+          ? String((j.error as Record<string, unknown>).message)
+          : null) ?? `HTTP ${res.status}`;
+      return { ok: false, error: msg };
+    }
+    return { ok: true, error: null };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "unknown" };
+  }
+}
+
 export async function createCalBooking(input: CalBookingInput): Promise<CalBookingResult> {
   const key = (process.env.CAL_API_KEY ?? "").trim();
 

@@ -1515,6 +1515,8 @@ export async function upsertBooking(input: {
   meeting_url?: string;
   services_interested?: unknown;
   notes?: string;
+  /** `uid`-ът от Cal.com — без него отмяната не може да стигне до календара. */
+  cal_uid?: string;
 }): Promise<{ id: string | null; created: boolean; error: string | null }> {
   const sb = createServiceClient();
 
@@ -1544,7 +1546,7 @@ export async function upsertBooking(input: {
     timeline: input.timeline?.trim() ?? null,
     meeting_url: input.meeting_url?.trim() ?? null,
     services_interested: input.services_interested ?? null,
-    raw_payload: { source: "hermes", notes: input.notes ?? null },
+    raw_payload: { source: "hermes", notes: input.notes ?? null, cal_uid: input.cal_uid ?? null },
     updated_at: new Date().toISOString(),
   };
 
@@ -1594,32 +1596,42 @@ export async function updateBooking(args: {
   status?: string;
   meeting_url?: string;
   notes?: string;
-}): Promise<{ error: string | null }> {
+  /** Записва се при създаване в Cal.com; после отваря пътя към отмяната. */
+  cal_uid?: string;
+}): Promise<{ error: string | null; cal_uid: string | null }> {
   const sb = createServiceClient();
   const { data: row } = await sb
     .from("bookings")
     .select("id, scheduled_at, status, raw_payload")
     .eq("id", args.id)
     .maybeSingle();
-  if (!row) return { error: "booking not found" };
+  if (!row) return { error: "booking not found", cal_uid: null };
+
+  // Връща се нагоре, за да може рутът да отмени и в Cal.com — CRM-ът не
+  // говори с чужди системи, това е работа на рута.
+  const rawNow = ((row as { raw_payload?: Record<string, unknown> }).raw_payload ?? {}) as Record<string, unknown>;
+  const calUid = typeof rawNow.cal_uid === "string" && rawNow.cal_uid ? rawNow.cal_uid : null;
 
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (args.scheduled_at) {
     const when = new Date(args.scheduled_at);
-    if (Number.isNaN(when.getTime())) return { error: "невалидна дата" };
+    if (Number.isNaN(when.getTime())) return { error: "невалидна дата", cal_uid: calUid };
     patch.scheduled_at = when.toISOString();
   }
   if (args.duration_minutes !== undefined) patch.duration_minutes = args.duration_minutes;
   if (args.status) patch.status = args.status;
   if (args.meeting_url !== undefined) patch.meeting_url = args.meeting_url;
-  if (args.notes) {
-    const raw = ((row as { raw_payload?: Record<string, unknown> }).raw_payload ?? {}) as Record<string, unknown>;
-    patch.raw_payload = { ...raw, notes: args.notes };
+  if (args.notes || args.cal_uid) {
+    patch.raw_payload = {
+      ...rawNow,
+      ...(args.notes ? { notes: args.notes } : {}),
+      ...(args.cal_uid ? { cal_uid: args.cal_uid } : {}),
+    };
   }
-  if (Object.keys(patch).length === 1) return { error: null };
+  if (Object.keys(patch).length === 1) return { error: null, cal_uid: calUid };
 
   const { error } = await sb.from("bookings").update(patch).eq("id", args.id);
-  if (error) return { error: error.message ?? "update failed" };
+  if (error) return { error: error.message ?? "update failed", cal_uid: calUid };
 
   await recordAutomationEvent({
     event_type: "booking_updated",
@@ -1630,5 +1642,5 @@ export async function updateBooking(args: {
         .join(", "),
     idempotency_key: `booking-upd:${args.id}:${Date.now()}`,
   }).catch(() => {});
-  return { error: null };
+  return { error: null, cal_uid: calUid };
 }

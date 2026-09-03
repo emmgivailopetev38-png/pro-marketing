@@ -111,6 +111,7 @@ export async function POST(request: Request) {
     let inCalendar = false;
     let meetingUrl: string | null = null;
     let calError: string | null = null;
+    let calUid: string | null = null;
 
     // И трите са задължителни за Cal.com: типът събитие иска телефон, а без
     // имейл няма къде да отиде потвърждението. Липсва ли едно от тях, часът
@@ -126,6 +127,9 @@ export async function POST(request: Request) {
       inCalendar = res.ok;
       meetingUrl = res.meetingUrl;
       calError = res.error;
+      // Без този uid по-късната отмяна остава само в CRM-а, а срещата си
+      // стои в календара — виж `cancelCalBooking`.
+      calUid = res.uid;
       if (!res.ok) console.error("[voice/public/book] cal", res.error);
     }
 
@@ -140,6 +144,7 @@ export async function POST(request: Request) {
       business: d.deynost,
       meeting_url: meetingUrl ?? undefined,
       notes: notes ?? undefined,
+      cal_uid: calUid ?? undefined,
     });
     if (booking.error) console.error("[voice/public/book] crm", booking.error);
     if (meetingUrl && booking.id) {
