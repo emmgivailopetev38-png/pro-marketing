@@ -28,9 +28,20 @@ function eventSlug(): string {
   return (process.env.CAL_EVENT_SLUG ?? process.env.NEXT_PUBLIC_CAL_EVENT_SLUG ?? "consultation").trim();
 }
 
-/** Без ключ мостът мълчи и всичко останало работи както преди. */
+/**
+ * Мостът е готов за работа.
+ *
+ * ⚠️ Дълго време тук се искаше `CAL_API_KEY` — и понеже такъв никога не е
+ * слаган във Vercel, записването в календара мълчеше от деня, в който беше
+ * написано. Проверено на живо на 03.09.2026: `POST /v2/bookings` приема
+ * резервация БЕЗ никаква автентикация, точно както публичната страница
+ * cal.com/promarketing/consultation. Ключът остава само за в бъдеще, ако
+ * потрябва резервация от името на акаунта.
+ *
+ * Затова условието вече е друго: има ли изобщо към кого да се пише.
+ */
 export function isCalWriteConfigured(): boolean {
-  return (process.env.CAL_API_KEY ?? "").trim().length > 10;
+  return username().length > 0 && eventSlug().length > 0;
 }
 
 export type CalBookingInput = {
@@ -70,6 +81,15 @@ export function buildCalPayload(input: CalBookingInput): Record<string, unknown>
 
   if (input.durationMinutes) body.lengthInMinutes = input.durationMinutes;
 
+  /**
+   * ⚠️ Телефонът е ЗАДЪЛЖИТЕЛЕН за този тип събитие — полето
+   * `attendeePhoneNumber` в Cal.com е `required: true`. Без него отговорът е
+   * `responses - {attendeePhoneNumber}error_required_field`, което не прилича
+   * на липсващо поле и се чете като счупено API.
+   *
+   * Мястото му също е чувствително: работи само вътре в `attendee`.
+   * В `bookingFieldsResponses` Cal.com го подминава и пак иска полето.
+   */
   if (input.phone?.trim()) {
     (body.attendee as Record<string, unknown>).phoneNumber = input.phone.trim();
   }
@@ -96,11 +116,15 @@ function pickMeetingUrl(data: unknown): string | null {
 
 export async function createCalBooking(input: CalBookingInput): Promise<CalBookingResult> {
   const key = (process.env.CAL_API_KEY ?? "").trim();
-  if (!key) return { ok: false, uid: null, meetingUrl: null, error: "no_api_key" };
 
   const when = new Date(input.startISO);
   if (Number.isNaN(when.getTime())) {
     return { ok: false, uid: null, meetingUrl: null, error: "invalid_date" };
+  }
+  // Отказваме рано и с ясна причина: иначе Cal.com връща съобщение за
+  // липсващо поле, което звучи като счупено API, а не като липсващ телефон.
+  if (!input.phone?.trim()) {
+    return { ok: false, uid: null, meetingUrl: null, error: "phone_required" };
   }
 
   try {
@@ -109,7 +133,9 @@ export async function createCalBooking(input: CalBookingInput): Promise<CalBooki
     const res = await fetch(API, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${key}`,
+        // Празна заглавка `Bearer ` е по-лоша от никаква — Cal.com я чете
+        // като невалиден ключ и отказва това, което иначе би приел.
+        ...(key ? { Authorization: `Bearer ${key}` } : {}),
         "cal-api-version": API_VERSION,
         "Content-Type": "application/json",
       },

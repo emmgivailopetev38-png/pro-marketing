@@ -33,23 +33,42 @@ describe("buildCalPayload", () => {
   });
 });
 
+/**
+ * Тези очаквания са ОБЪРНАТИ на 03.09.2026 и обръщането е нарочно.
+ *
+ * Дотогава мостът се смяташе за изключен без `CAL_API_KEY` — а такъв никога
+ * не беше слаган във Vercel. Тоест функцията „срещата влиза в календара"
+ * мълчеше от деня, в който беше написана, и тестът пазеше точно мълчанието.
+ *
+ * Проверено на живо срещу api.cal.com: `POST /v2/bookings` приема резервация
+ * без никаква автентикация, както публичната страница на типа събитие.
+ * Ключът остава опционален — за резервация от името на акаунта.
+ */
 describe("isCalWriteConfigured", () => {
   const saved = process.env.CAL_API_KEY;
   beforeEach(() => { delete process.env.CAL_API_KEY; });
   afterEach(() => { if (saved === undefined) delete process.env.CAL_API_KEY; else process.env.CAL_API_KEY = saved; });
 
-  it("мълчи без ключ — така нищо не се променя, докато Ивайло не го сложи", () => {
-    expect(isCalWriteConfigured()).toBe(false);
+  it("работи и без ключ — Cal.com не иска такъв за публичен тип събитие", () => {
+    expect(isCalWriteConfigured()).toBe(true);
   });
 
-  it("не приема огризка вместо ключ", () => {
-    process.env.CAL_API_KEY = "cal_x";
-    expect(isCalWriteConfigured()).toBe(false);
-  });
-
-  it("приема истински ключ", () => {
+  it("ключът не пречи, когато го има", () => {
     process.env.CAL_API_KEY = "cal_live_0123456789abcdef";
     expect(isCalWriteConfigured()).toBe(true);
+  });
+
+  it("без потребител в Cal.com няма къде да пише", () => {
+    const savedUser = process.env.CAL_USERNAME;
+    const savedPublic = process.env.NEXT_PUBLIC_CAL_USERNAME;
+    process.env.CAL_USERNAME = "";
+    process.env.NEXT_PUBLIC_CAL_USERNAME = "";
+    try {
+      expect(isCalWriteConfigured()).toBe(false);
+    } finally {
+      if (savedUser === undefined) delete process.env.CAL_USERNAME; else process.env.CAL_USERNAME = savedUser;
+      if (savedPublic === undefined) delete process.env.NEXT_PUBLIC_CAL_USERNAME; else process.env.NEXT_PUBLIC_CAL_USERNAME = savedPublic;
+    }
   });
 });
 

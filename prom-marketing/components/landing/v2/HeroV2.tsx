@@ -8,6 +8,7 @@ import { NeuralCoreLazy } from "./NeuralCoreLazy";
 import { openBookingPopup } from "@/lib/cal/embed";
 import { track } from "@/lib/analytics/track";
 import { AiAudit } from "./AiAudit";
+import { VoiceReceptionButton } from "./VoiceReceptionButton";
 import { Star, Phone, Play } from "lucide-react";
 
 export function HeroV2() {
@@ -78,6 +79,12 @@ export function HeroV2() {
                 Запази безплатна консултация
                 <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
               </button>
+            </MagneticButton>
+            {/* Гласовата рецепция. Стои втора нарочно: тя не описва услугата,
+                а я прави пред очите на човека — и излиза със същия резултат
+                като главния бутон, само че сам записан от агента. */}
+            <MagneticButton>
+              <VoiceReceptionButton />
             </MagneticButton>
             <MagneticButton>
               <a
