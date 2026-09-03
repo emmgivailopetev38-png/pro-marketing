@@ -45,9 +45,23 @@ describe("checkVoiceAuth", () => {
     expect(r).toEqual({ ok: false, reason: "no_token_configured" });
   });
 
-  it("отказва без Bearer префикс", () => {
+  /**
+   * Очакването е ОБЪРНАТО на 03.09.2026, и то нарочно.
+   *
+   * ElevenLabs пълни заглавката по два взаимно изключващи се начина: тип
+   * „Environment Variable" подава САМО стойността на променливата, а тип
+   * „Value" позволява префикс, но не замества `{{system__env_...}}` и го
+   * праща буквално. Тестът пазеше отказа на първия вариант — тоест пазеше
+   * счупеното: гласовите инструменти връщаха 403 при иначе верен токен.
+   */
+  it("приема и гол токен — така го подава ElevenLabs от environment variable", () => {
     process.env.VOICE_AGENT_TOKEN = "pravilen";
-    expect(checkVoiceAuth(req("pravilen")).ok).toBe(false);
+    expect(checkVoiceAuth(req("pravilen")).ok).toBe(true);
+  });
+
+  it("голият токен пак трябва да е верният", () => {
+    process.env.VOICE_AGENT_TOKEN = "pravilen";
+    expect(checkVoiceAuth(req("gresen")).ok).toBe(false);
   });
 
   it("отказва без заглавка изобщо", () => {

@@ -16,8 +16,13 @@ export function checkVoiceAuth(request: Request): { ok: true } | { ok: false; re
   }
 
   const header = request.headers.get("authorization") ?? "";
-  if (!header.startsWith("Bearer ")) return { ok: false, reason: "no_bearer" };
-  const provided = header.slice(7).trim();
+  /**
+   * И тук се приема гол токен освен „Bearer <токен>": заглавка от тип
+   * „Environment Variable" в ElevenLabs носи само стойността на променливата.
+   * Инструментът `sreshta` стоеше на „Value" с шаблон `{{system__env_...}}`,
+   * който пътува буквално — затова гласовите инструменти връщаха 403.
+   */
+  const provided = (header.startsWith("Bearer ") ? header.slice(7) : header).trim();
   if (!provided) return { ok: false, reason: "empty" };
 
   const candidates = [process.env.VOICE_AGENT_TOKEN, process.env.HERMES_API_TOKEN].filter(

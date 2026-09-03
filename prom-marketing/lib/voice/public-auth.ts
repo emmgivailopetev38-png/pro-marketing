@@ -29,8 +29,17 @@ export function checkPublicVoiceAuth(request: Request): { ok: true } | { ok: fal
   if (!isPublicVoiceEnabled()) return { ok: false, reason: "disabled" };
 
   const header = request.headers.get("authorization") ?? "";
-  if (!header.startsWith("Bearer ")) return { ok: false, reason: "no_bearer" };
-  const provided = header.slice(7).trim();
+  /**
+   * Приема се и „Bearer <токен>", и гол токен — заради начина, по който
+   * ElevenLabs пълни заглавката.
+   *
+   * Заглавка от тип „Environment Variable" носи САМО стойността на
+   * променливата; префиксът може да се сложи единствено ако типът е „Value",
+   * а тогава `{{system__env_...}}` пътува буквално и не се замества. Тоест
+   * или имаш променлива без „Bearer", или „Bearer" без променлива.
+   * Точно това държеше записването на час на 403 през целия 03.09.2026.
+   */
+  const provided = (header.startsWith("Bearer ") ? header.slice(7) : header).trim();
   if (!provided) return { ok: false, reason: "empty" };
 
   const candidates = [process.env.PUBLIC_VOICE_TOKEN, process.env.VOICE_AGENT_TOKEN].filter(
