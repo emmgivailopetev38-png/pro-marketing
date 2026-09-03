@@ -51,11 +51,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "budget", spoken: budget.spoken }, { status: 429 });
   }
 
-  const apiKey = process.env.ELEVENLABS_API_KEY;
   const agentId = process.env.ELEVENLABS_PUBLIC_AGENT_ID ?? DEFAULT_AGENT_ID;
-  if (!apiKey) {
-    return NextResponse.json({ error: "not_configured" }, { status: 503 });
-  }
 
   // Лийдът влиза пръв — виж коментара най-горе. Но CRM-ът никога не е
   // причина да откажем клиент: и грешката, и хвърленото изключение само се
@@ -81,34 +77,31 @@ export async function POST(request: Request) {
     console.error("[voice/public/session] lead хвърли", err);
   }
 
-  try {
-    const res = await fetch(
-      `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${encodeURIComponent(agentId)}`,
-      { headers: { "xi-api-key": apiKey }, cache: "no-store" }
-    );
-    if (!res.ok) {
-      // Тялото на грешката може да носи ключа — не се връща към браузъра.
-      console.error("[voice/public/session] ElevenLabs", res.status);
-      return NextResponse.json({ error: "upstream" }, { status: 502 });
-    }
-    const data = (await res.json()) as { signed_url?: string };
-    if (!data.signed_url) return NextResponse.json({ error: "no_signed_url" }, { status: 502 });
-
-    return NextResponse.json({
-      ok: true,
-      signed_url: data.signed_url,
-      // Имената съвпадат с плейсхолдърите в промпта на агента. Смениш ли ги
-      // тук, агентът започва да казва „{{ime}}" на глас.
-      variables: {
-        ime: d.name,
-        imeil: d.email,
-        telefon: d.phone,
-        deynost: d.business ?? "",
-        kanal: "sait",
-      },
-    });
-  } catch (err) {
-    console.error("[voice/public/session]", err);
-    return NextResponse.json({ error: "unreachable" }, { status: 502 });
-  }
+  /**
+   * Връща се ИДЕНТИФИКАТОРЪТ на агента, не подписан адрес — и това е
+   * съзнателна размяна, направена на 03.09.2026.
+   *
+   * Подписаният адрес се вади с `ELEVENLABS_API_KEY`, а той връщаше 401:
+   * ключът във Vercel е остарял и бутонът просто не отваряше разговор.
+   * Агентът обаче е публичен (`enable_auth: false`) и вече носи собствената
+   * си ограда — allowlist за promarketing.pw със задължителна заглавка
+   * `Origin`. Тоест идентификаторът, видим в кода на страницата, е безполезен
+   * от чужд домейн, а разговорът тръгва без нито един ключ по веригата.
+   *
+   * Ако някой ден authentication бъде включена от страната на ElevenLabs,
+   * тук отново трябва подписан адрес — и жив API ключ.
+   */
+  return NextResponse.json({
+    ok: true,
+    agent_id: agentId,
+    // Имената съвпадат с плейсхолдърите в промпта на агента. Смениш ли ги
+    // тук, агентът започва да казва „{{ime}}" на глас.
+    variables: {
+      ime: d.name,
+      imeil: d.email,
+      telefon: d.phone,
+      deynost: d.business ?? "",
+      kanal: "sait",
+    },
+  });
 }

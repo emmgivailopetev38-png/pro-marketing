@@ -107,14 +107,14 @@ export function VoiceReceptionButton({ variant = "hero" }: { variant?: "hero" | 
         body: JSON.stringify({ name, email, phone, business: business || undefined }),
       });
       const data = (await res.json()) as {
-        signed_url?: string;
+        agent_id?: string;
         variables?: Vars;
         error?: string;
         spoken?: string;
         detail?: string;
       };
 
-      if (!res.ok || !data.signed_url) {
+      if (!res.ok || !data.agent_id) {
         setStep("form");
         setError(
           data.spoken ??
@@ -129,7 +129,9 @@ export function VoiceReceptionButton({ variant = "hero" }: { variant?: "hero" | 
       if (holder.current) {
         holder.current.innerHTML = "";
         const el = document.createElement("elevenlabs-convai");
-        el.setAttribute("signed-url", data.signed_url);
+        // Идентификаторът, не подписан адрес: агентът е публичен и се пази с
+        // allowlist за този домейн. Виж коментара в /api/voice/public/session.
+        el.setAttribute("agent-id", data.agent_id);
         // Агентът знае кой е насреща — затова не пита за имейл на глас.
         if (data.variables) el.setAttribute("dynamic-variables", JSON.stringify(data.variables));
         el.setAttribute("variant", "expanded");
