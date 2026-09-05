@@ -1,5 +1,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
+import { ATTEMPT_TYPES, followupState } from "@/lib/contacts/followup";
+import { escapeHtml } from "./escape";
 
 /** Vercel върви на UTC — без това сутрешният отчет показва 08:00 вместо 11:00. */
 const TZ = "Europe/Sofia";
@@ -29,6 +31,15 @@ interface ActivitySummary {
   activity_type: string;
   title: string;
   occurred_at: string;
+}
+
+interface VoiceCallRow {
+  contact_id: string;
+  title: string;
+  body: string | null;
+  occurred_at: string;
+  metadata: Record<string, unknown> | null;
+  contacts: { id: string; full_name: string | null; phone: string | null; company: string | null } | Array<{ id: string; full_name: string | null; phone: string | null; company: string | null }> | null;
 }
 
 interface OfferReminder {
@@ -92,13 +103,65 @@ export async function buildDailyCrmReport() {
 
   const todayBookings = (todayBookingsRaw ?? []) as BookingBrief[];
 
+  // --- 2c. Разговори с гласовия агент (последните 24 часа) ---
+  // Идват от post-call webhook-а на ElevenLabs като `voice_call`; резюмето е в
+  // metadata.summary, транскриптът — в body. Тук стои резюмето, за да знае
+  // Ивайло какво е питал човекът, преди да му звънне.
+  const { data: voiceRaw } = await supabase
+    .from("contact_activities")
+    .select("contact_id, title, body, occurred_at, metadata, contacts!inner(id, full_name, phone, company)")
+    .eq("activity_type", "voice_call")
+    .gte("occurred_at", new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString())
+    .order("occurred_at", { ascending: false })
+    .limit(12);
+  const voiceCalls = ((voiceRaw ?? []) as unknown as VoiceCallRow[]).map((v) => {
+    const meta = (v.metadata ?? {}) as Record<string, unknown>;
+    const c = Array.isArray(v.contacts) ? v.contacts[0] : v.contacts;
+    return {
+      contactId: v.contact_id,
+      name: c?.full_name ?? c?.phone ?? "непознат",
+      phone: c?.phone ?? null,
+      minutes: typeof meta.minutes === "number" ? meta.minutes : null,
+      booked: meta.booked === true,
+      channel: typeof meta.channel === "string" ? meta.channel : "sait",
+      summary:
+        (typeof meta.summary === "string" && meta.summary) ||
+        (v.body ?? "").split("\n\n")[0] ||
+        v.title,
+      at: v.occurred_at,
+    };
+  });
+
   // --- 3. Overdue follow-ups ---
-  const { data: overdueFollowups } = await supabase
+  // Същото правило като в списъка за обаждане (`followupState`): обещанието е
+  // по календарен ден, а обаждане или среща на деня или след него го изпълнява.
+  // Дотук отчетът броеше всяка минала дата, без да гледа какво е станало после.
+  const { data: overdueRaw } = await supabase
     .from("contacts")
-    .select("id, full_name, company, email, phone, stage, next_followup_at")
+    .select("id, full_name, company, email, phone, stage, next_followup_at, last_heard_from_at")
     .lt("next_followup_at", todayStart.toISOString())
-    .neq("stage", "lost")
-    .order("next_followup_at", { ascending: true });
+    .not("stage", "in", "(won,lost)")
+    .order("next_followup_at", { ascending: true })
+    .limit(300);
+  const overdueCandidates = (overdueRaw ?? []) as Array<ContactBrief & { last_heard_from_at: string | null }>;
+  const attempts = new Map<string, string>();
+  if (overdueCandidates.length > 0) {
+    const { data: att } = await supabase
+      .from("contact_activities")
+      .select("contact_id, occurred_at")
+      .in(
+        "contact_id",
+        overdueCandidates.map((c) => c.id)
+      )
+      .in("activity_type", [...ATTEMPT_TYPES])
+      .order("occurred_at", { ascending: false });
+    for (const a of att ?? []) {
+      if (!attempts.has(a.contact_id)) attempts.set(a.contact_id, a.occurred_at);
+    }
+  }
+  const overdueFollowups = overdueCandidates.filter(
+    (c) => followupState(c, attempts.get(c.id) ?? null, now) === "overdue"
+  );
 
   // --- 4. 7-day offer follow-up reminders ---
   // Намери всички 'offer_sent' / 'contract_sent' / 'presentation_sent' активности
@@ -201,6 +264,23 @@ export async function buildDailyCrmReport() {
     }
   </div>
 
+  ${
+    voiceCalls.length > 0
+      ? `<!-- Voice agent calls -->
+  <div style="background:#f2f7f4;border-left:4px solid #0b6b4a;border-radius:8px;padding:18px;margin-bottom:18px">
+    <h2 style="margin:0 0 10px;font-size:16px;color:#0b6b4a">🎙️ Разговори с гласовия агент · ${voiceCalls.length}</h2>
+    <ul style="margin:0;padding-left:20px">
+      ${voiceCalls
+        .map(
+          (v) =>
+            `<li style="margin-bottom:8px"><a href="${HOST}/admin/clients/${v.contactId}" style="color:#0066cc;font-weight:bold">${escapeHtml(v.name)}</a>${v.phone ? ` · <a href="tel:${escapeHtml(v.phone)}" style="color:#22a722">${escapeHtml(v.phone)}</a>` : ""} · <span style="color:#666;font-size:12px">${v.channel === "telefon" ? "по телефона" : "от сайта"}${v.minutes ? ` · ${v.minutes} мин` : ""}${v.booked ? " · ✅ записа си час" : ""} · ${formatRelative(v.at)}</span><br/><span style="color:#444;font-size:13px">${escapeHtml(v.summary.length > 220 ? `${v.summary.slice(0, 220)}…` : v.summary)}</span></li>`
+        )
+        .join("")}
+    </ul>
+  </div>`
+      : ""
+  }
+
   <!-- Today's plan -->
   <div style="background:${todayCount > 0 ? "#e6f7e6" : "#f5f7fa"};border-radius:8px;padding:18px;margin-bottom:18px">
     <h2 style="margin:0 0 10px;font-size:16px;color:#22a722">📅 Днес · ${todayCount} срещи / разговори</h2>
@@ -287,7 +367,16 @@ ${totalYesterday} активности на ${new Set(yesterdayActs.map((a) => a
 ${Array.from(actsByType.entries())
   .map(([t, c]) => `  ${activityLabel(t)}: ${c}`)
   .join("\n")}
-
+${
+  voiceCalls.length > 0
+    ? `\n🎙️ РАЗГОВОРИ С ГЛАСОВИЯ АГЕНТ · ${voiceCalls.length}\n${voiceCalls
+        .map(
+          (v) =>
+            `  ${v.name}${v.phone ? ` (${v.phone})` : ""} · ${v.channel === "telefon" ? "по телефона" : "от сайта"}${v.minutes ? ` · ${v.minutes} мин` : ""}${v.booked ? " · записа си час" : ""}\n    ${v.summary.length > 220 ? `${v.summary.slice(0, 220)}…` : v.summary}`
+        )
+        .join("\n")}\n`
+    : ""
+}
 📅 ДНЕС · ${todayCount} срещи
 ${todayBookings.map((b) => `  📅 ${formatTime(b.scheduled_at)} · ${b.attendee_name}${b.status === "rescheduled" ? " (преместена)" : ""}${b.attendee_phone ? ` · ${b.attendee_phone}` : ""}`).join("\n")}
 ${(todayFollowups ?? []).map((c) => `  📞 ${formatTime(c.next_followup_at!)} · ${c.full_name}${c.company ? ` (${c.company})` : ""}`).join("\n")}
