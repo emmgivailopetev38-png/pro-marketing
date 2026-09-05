@@ -1,4 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/service";
+import { phoneVariants } from "@/lib/contacts/repository";
+import { alignStage, alignStatus, dayKey, nextWorkingDayAt } from "@/lib/contacts/followup";
+import type { ContactStage, FollowupStatus } from "@/lib/contacts/types";
 import { evaluatePaymentMatch, invoiceStatusAfterPayment, type MatchConfidence } from "./match";
 import { toEur, convertWith, fxColumns } from "./fx";
 import { INVOICE_STATUSES, type InvoiceStatus } from "./types";
@@ -95,8 +98,15 @@ export async function recordActivity(input: ActivityInput): Promise<ActivityResu
     existing = data;
   }
   if (!existing && phone) {
-    const { data } = await sb.from("contacts").select("id").eq("phone", phone).is("email", null).maybeSingle();
-    existing = data;
+    // Един номер в два формата (0888… / +359888…) е един човек — иначе Хермес
+    // прави втори картон на човека, който попъпът вече е записал.
+    const { data } = await sb
+      .from("contacts")
+      .select("id")
+      .in("phone", phoneVariants(phone))
+      .order("created_at", { ascending: true })
+      .limit(1);
+    existing = data?.[0] ?? null;
   }
 
   let contactId: string;
@@ -121,6 +131,19 @@ export async function recordActivity(input: ActivityInput): Promise<ActivityResu
     contactId = data.id;
   }
 
+  // Текущото състояние — правилата по-долу стъпват на него.
+  const { data: currentRow } = await sb
+    .from("contacts")
+    .select("stage, followup_status, next_followup_at, last_heard_from_at")
+    .eq("id", contactId)
+    .maybeSingle();
+  const current = {
+    stage: ((currentRow?.stage as ContactStage | undefined) ?? input.stage ?? "lead") as ContactStage,
+    followup_status: (currentRow?.followup_status as FollowupStatus | null | undefined) ?? null,
+    next_followup_at: (currentRow?.next_followup_at as string | null | undefined) ?? null,
+    last_heard_from_at: (currentRow?.last_heard_from_at as string | null | undefined) ?? null,
+  };
+
   // Explicit patches (Hermes overrides; only fields actually provided).
   const patch: Record<string, unknown> = {};
   if (input.full_name) patch.full_name = input.full_name;
@@ -131,6 +154,63 @@ export async function recordActivity(input: ActivityInput): Promise<ActivityResu
   if (input.mark_heard) patch.last_heard_from_at = new Date().toISOString();
   if (input.notes !== undefined) patch.notes = input.notes;
   if (input.deal_value_eur !== undefined) patch.deal_value_eur = input.deal_value_eur;
+
+  /**
+   * Правилата, които държат картона верен без ръчна работа.
+   *
+   * Досега Хермес записваше обаждането като активност, а полетата за
+   * проследяване оставаха както са били: лийдът си стоеше „lead" след три
+   * разговора, „изпратена оферта" стоеше при етап „contacted", а обещаното
+   * обаждане стоеше „просрочено" завинаги, защото никой не му пипаше датата.
+   * Сутрешният имейл показваше 49 просрочени, от които повечето отдавна
+   * направени.
+   */
+  const isAttempt = input.activity_type === "call" || input.activity_type === "meeting";
+  if (isAttempt) {
+    const at = input.occurred_at ? new Date(input.occurred_at) : new Date();
+    const now = new Date();
+    const fs = input.followup_status ?? null;
+    // Чут е човекът, с когото има среща, или чието състояние след обаждането
+    // казва, че е отговорил: чака обратна връзка, заинтересован, не иска…
+    // „да се обади" и „изпратен имейл" значат, че не сме го хванали.
+    const heard =
+      input.mark_heard === true ||
+      input.activity_type === "meeting" ||
+      (fs !== null && fs !== "needs_call" && fs !== "sent_email");
+
+    if (heard && !patch.last_heard_from_at) {
+      // Бъдеща среща също е контакт — но „чут" не може да е в бъдещето.
+      const heardAt = at.getTime() > now.getTime() ? now : at;
+      const prev = current.last_heard_from_at ? new Date(current.last_heard_from_at).getTime() : 0;
+      if (heardAt.getTime() >= prev) patch.last_heard_from_at = heardAt.toISOString();
+    }
+
+    // Обаждане или среща на лийд — вече е „контактуван".
+    if (!input.stage && current.stage === "lead") patch.stage = "contacted";
+
+    // Обещаното обаждане е изпълнено, ако опитът е на деня му или след него.
+    // Чут → напомнянето си е свършило работата. Нечут („не вдига", „в среща е")
+    // → не изчезва тихо, а се мести на следващата работна сутрин.
+    if (!input.next_followup_at && current.next_followup_at && dayKey(current.next_followup_at) <= dayKey(at)) {
+      patch.next_followup_at = heard ? null : nextWorkingDayAt(at).toISOString();
+      if (!heard && !fs) patch.followup_status = "needs_call";
+    }
+  }
+
+  // Статусът дърпа етапа напред: „изпратена оферта" при lead е противоречие.
+  // Само напред, никога назад; спечелен и загубен не се пипат.
+  if (input.followup_status && !input.stage) {
+    const base = (patch.stage as ContactStage | undefined) ?? current.stage;
+    const aligned = alignStage(base, input.followup_status);
+    if (aligned !== base) patch.stage = aligned;
+  }
+  // Спечеленият няма „да се обади" — статусът му се чисти.
+  {
+    const finalStage = ((patch.stage as ContactStage | undefined) ?? current.stage) as ContactStage;
+    const finalStatus = (patch.followup_status as FollowupStatus | undefined) ?? current.followup_status;
+    if (alignStatus(finalStage, finalStatus) !== finalStatus) patch.followup_status = null;
+  }
+
   if (Object.keys(patch).length > 0) {
     await sb.from("contacts").update(patch).eq("id", contactId);
   }
@@ -819,6 +899,7 @@ const CONTACT_PATCH_FIELDS = [
   "stage",
   "followup_status",
   "next_followup_at",
+  "last_heard_from_at",
 ] as const;
 
 /**
@@ -834,8 +915,12 @@ export async function updateContact(args: {
   notes?: string;
   deal_value_eur?: number;
   stage?: string;
-  followup_status?: string;
-  next_followup_at?: string;
+  /** `null` чисти статуса — спечеленият няма „да се обади". */
+  followup_status?: string | null;
+  /** `null` маха напомнянето — обещаното обаждане е направено. */
+  next_followup_at?: string | null;
+  /** Кога сме се чули за последно — Хермес го слага след истински разговор. */
+  last_heard_from_at?: string | null;
 }): Promise<{ error: string | null }> {
   const sb = createServiceClient();
   const { data: contact } = await sb
@@ -848,6 +933,22 @@ export async function updateContact(args: {
   const patch: Record<string, unknown> = {};
   for (const key of CONTACT_PATCH_FIELDS) {
     if (args[key] !== undefined) patch[key] = key === "email" ? String(args[key]).toLowerCase() : args[key];
+  }
+
+  // Статусът дърпа етапа напред, а спечеленият остава без статус — същите
+  // правила като при активностите, за да не се разминават двата пътя.
+  {
+    const prevStage = (contact as unknown as { stage: ContactStage }).stage;
+    if (typeof patch.followup_status === "string" && patch.stage === undefined) {
+      const aligned = alignStage(prevStage, patch.followup_status);
+      if (aligned !== prevStage) patch.stage = aligned;
+    }
+    const finalStage = ((patch.stage as ContactStage | undefined) ?? prevStage) as ContactStage;
+    const finalStatus =
+      patch.followup_status !== undefined
+        ? (patch.followup_status as FollowupStatus | null)
+        : ((contact as unknown as { followup_status: FollowupStatus | null }).followup_status ?? null);
+    if (alignStatus(finalStage, finalStatus) !== finalStatus) patch.followup_status = null;
   }
   if (Object.keys(patch).length === 0) return { error: null };
 

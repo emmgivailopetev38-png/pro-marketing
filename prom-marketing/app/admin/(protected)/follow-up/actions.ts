@@ -2,7 +2,8 @@
 import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/service";
 import { requireAdmin } from "@/lib/admin/require-admin";
-import { FOLLOWUP_STATUSES, type FollowupStatus } from "@/lib/contacts/types";
+import { FOLLOWUP_STATUSES, type ContactStage, type FollowupStatus } from "@/lib/contacts/types";
+import { alignStage, dayKey } from "@/lib/contacts/followup";
 
 /**
  * Single dispatcher for the follow-up queue quick actions. Each action records
@@ -21,6 +22,17 @@ export async function followupQuickAction(formData: FormData) {
   const nowIso = new Date().toISOString();
   const patch: Record<string, unknown> = {};
   let activity: { type: string; title: string; body?: string | null } | null = null;
+
+  // Текущото състояние — за да не стои напомнянето „просрочено" след като
+  // бутонът е натиснат, и за да върви етапът със статуса.
+  const { data: current } = await svc
+    .from("contacts")
+    .select("stage, next_followup_at")
+    .eq("id", contactId)
+    .maybeSingle();
+  const currentStage = (current?.stage ?? "lead") as ContactStage;
+  const dueFulfilled =
+    typeof current?.next_followup_at === "string" && dayKey(current.next_followup_at) <= dayKey(nowIso);
 
   switch (action) {
     case "mark_called":
@@ -80,6 +92,20 @@ export async function followupQuickAction(formData: FormData) {
     }
     default:
       throw new Error("Unknown action");
+  }
+
+  // „Обадихме се" и роднините му значат, че обещаното обаждане е направено —
+  // напомнянето си е свършило работата и не стои повече в сутрешния списък.
+  // Досега бутонът пишеше само last_heard_from_at и контактът оставаше
+  // „просрочен" завинаги.
+  if (patch.last_heard_from_at && dueFulfilled && patch.next_followup_at === undefined) {
+    patch.next_followup_at = null;
+  }
+
+  // Статусът дърпа етапа напред („изпратена оферта" → offer_sent), никога назад.
+  if (typeof patch.followup_status === "string" && patch.stage === undefined) {
+    const aligned = alignStage(currentStage, patch.followup_status);
+    if (aligned !== currentStage) patch.stage = aligned;
   }
 
   if (Object.keys(patch).length > 0) {

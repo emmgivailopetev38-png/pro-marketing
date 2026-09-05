@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ATTEMPT_TYPES, followupState, type FollowupState } from "@/lib/contacts/followup";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/resend";
 
@@ -97,14 +98,31 @@ export async function GET(request: Request) {
     .order("next_followup_at", { ascending: true })
     .limit(50);
 
-  // Ако вече си се чул с човека СЛЕД датата, за която си се сетил да го звъннеш,
-  // напомнянето си е свършило работата — иначе „Обадихме се" не пипа датата и
-  // контактът стои просрочен завинаги, докато имейлът не стане шум.
-  const followups = ((followupRows ?? []) as FollowUp[]).filter(
-    (f) =>
-      !f.last_heard_from_at ||
-      new Date(f.last_heard_from_at) < new Date(f.next_followup_at)
-  );
+  // Обещанието е „ще се чуем на ден X". Изпълнено е, ако на ден X или след него
+  // има обаждане или среща в картона (`followupState`) — сравнението е по
+  // календарен ден в София, не по секунда. Дотук се гледаше само
+  // `last_heard_from_at`, което бутонът пише, а обаждането от Хермес — не, и
+  // в списъка стояха 49 „просрочени", повечето отдавна направени.
+  const candidates = (followupRows ?? []) as FollowUp[];
+  const attempts = new Map<string, string>();
+  if (candidates.length > 0) {
+    const { data: att } = await supabase
+      .from("contact_activities")
+      .select("contact_id, occurred_at")
+      .in(
+        "contact_id",
+        candidates.map((c) => c.id)
+      )
+      .in("activity_type", [...ATTEMPT_TYPES])
+      .order("occurred_at", { ascending: false });
+    for (const a of att ?? []) {
+      if (!attempts.has(a.contact_id)) attempts.set(a.contact_id, a.occurred_at);
+    }
+  }
+  const stateAt = new Date();
+  const stateOf = new Map<string, FollowupState>();
+  for (const f of candidates) stateOf.set(f.id, followupState(f, attempts.get(f.id) ?? null, stateAt));
+  const followups = candidates.filter((f) => stateOf.get(f.id) === "overdue" || stateOf.get(f.id) === "due_today");
 
   // Последната човешка активност — за да си спомниш какво си обещал.
   const lastTouch = new Map<string, { title: string; occurred_at: string }>();
@@ -125,8 +143,8 @@ export async function GET(request: Request) {
     }
   }
 
-  const overdue = followups.filter((f) => new Date(f.next_followup_at) < todayStart);
-  const dueToday = followups.filter((f) => new Date(f.next_followup_at) >= todayStart);
+  const overdue = followups.filter((f) => stateOf.get(f.id) === "overdue");
+  const dueToday = followups.filter((f) => stateOf.get(f.id) === "due_today");
 
   // Лид с насрочено чуване вече е в секциите горе — не го повтаряме долу.
   const followupIds = new Set(followups.map((f) => f.id));

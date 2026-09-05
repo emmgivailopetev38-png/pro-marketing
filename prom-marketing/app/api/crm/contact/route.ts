@@ -61,8 +61,10 @@ const contactPatchSchema = z.object({
   notes: z.string().optional(),
   deal_value_eur: z.coerce.number().int().optional(),
   stage: z.enum(CONTACT_STAGES).optional(),
-  followup_status: z.enum(FOLLOWUP_STATUSES).optional(),
-  next_followup_at: z.string().optional(),
+  // `null` чисти статуса и напомнянето — „обещаното обаждане е направено".
+  followup_status: z.enum(FOLLOWUP_STATUSES).nullable().optional(),
+  next_followup_at: z.string().nullable().optional(),
+  last_heard_from_at: z.string().optional(),
 });
 
 /**
