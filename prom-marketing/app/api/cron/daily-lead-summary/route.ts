@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { runLeadSequence } from "@/lib/email/lead-sequence";
 import { runWarmSequence } from "@/lib/email/warm-sequence";
 import { TRACK_LABEL } from "@/lib/email/warm-steps";
+import { consistencySummary, runCrmConsistency } from "@/lib/crm/consistency";
 import { createServiceClient } from "@/lib/supabase/service";
 import { syncAllSources } from "@/lib/leads/import";
 import { sendEmail } from "@/lib/email/resend";
@@ -80,6 +81,17 @@ export async function GET(request: Request) {
   // 1. Sync Meta leads first so the report includes the latest data
   const syncResult = await syncAllSources();
 
+  // 1b. Рутинното изравняване на CRM-а — ПРЕДИ отчета, за да брои върху
+  // верни данни: етапи според случилото се, спечелени без „да се обади",
+  // изпълнени напомняния, фирма от домейна, стойност на сделката от офертата.
+  // Никога не бива да събори отчета.
+  let tidy: Awaited<ReturnType<typeof runCrmConsistency>> | { error: string };
+  try {
+    tidy = await runCrmConsistency();
+  } catch (e) {
+    tidy = { error: e instanceof Error ? e.message : "unknown" };
+  }
+
   // 2. Build the comprehensive CRM report (includes 7-day reminders)
   const report = await buildDailyCrmReport();
 
@@ -108,12 +120,13 @@ export async function GET(request: Request) {
   // писма тази сутрин, за да се вижда, че машината работи (или че е на празен ход).
   const recipient = process.env.EMAIL_REPLY_TO || "emmgivailopetev38@gmail.com";
   const auto = automationSummary(sequence, warm);
+  const tidySummary = consistencySummary(tidy);
 
   const emailResult = await sendEmail({
     to: recipient,
     subject: report.subject,
-    html: report.html + auto.html,
-    text: report.text + auto.text,
+    html: report.html + auto.html + tidySummary.html,
+    text: report.text + auto.text + tidySummary.text,
   });
 
   return NextResponse.json({
@@ -125,6 +138,7 @@ export async function GET(request: Request) {
     report: report.stats,
     sequence,
     warm,
+    tidy,
     email: {
       to: recipient,
       id: emailResult.id,
