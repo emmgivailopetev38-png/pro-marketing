@@ -225,9 +225,11 @@ export async function sendWarmStep(args: {
 /**
  * Един такт на топлия кръг. Върви в дневния крон, след студената поредица.
  *
- * Изключва се изцяло с `WARM_SEQUENCE_ENABLED=false`; докато променливата не е
- * сложена на `true`, поредицата само СМЯТА кого би докоснала и не праща нищо —
- * така се вижда обхватът, преди първото писмо да е тръгнало.
+ * Праща наистина. `WARM_SEQUENCE_ENABLED=false` го спира изцяло, `=dry` го
+ * връща в пробен режим — смята кого би докоснал и не праща нищо. До 05.09.2026
+ * пробният режим беше по подразбиране, докато Ивайло не прочете 24-те писма;
+ * прочете ги и каза „довърши на 100%", затова редът се обърна тук, в кода —
+ * ключът във Vercel не можеше да бъде сложен от тази страна.
  */
 export async function runWarmSequence(supabase: Sb): Promise<{
   mode: "off" | "dry" | "live";
@@ -236,8 +238,8 @@ export async function runWarmSequence(supabase: Sb): Promise<{
   skipped: Record<string, number>;
   details: Array<{ contact_id: string; name: string | null; step: string; track: WarmTrack }>;
 }> {
-  const enabled = process.env.WARM_SEQUENCE_ENABLED;
-  const mode: "off" | "dry" | "live" = enabled === "false" ? "off" : enabled === "true" ? "live" : "dry";
+  const enabled = (process.env.WARM_SEQUENCE_ENABLED ?? "").toLowerCase();
+  const mode: "off" | "dry" | "live" = enabled === "false" ? "off" : enabled === "dry" ? "dry" : "live";
   const out = {
     mode,
     checked: 0,
