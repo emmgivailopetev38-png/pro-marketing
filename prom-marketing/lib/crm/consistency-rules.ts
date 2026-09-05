@@ -161,15 +161,12 @@ export function planContactFixes(
     }
   }
 
-  // 2. Спечеленият няма „да се обади" и няма напомняне за продажба.
+  // 2. Спечеленият няма продажбен статус. Напомнянето му обаче остава: то може
+  //    да е обаждане по доставката, а сутрешният списък и без това не брои won.
   if (stage === "won") {
     if (alignStatus(stage, status) !== status) {
       fixes.push({ field: "followup_status", from: status, to: null, reason: "спечелен клиент" });
       status = null;
-    }
-    if (next) {
-      fixes.push({ field: "next_followup_at", from: next, to: null, reason: "спечелен клиент" });
-      next = null;
     }
   }
 
