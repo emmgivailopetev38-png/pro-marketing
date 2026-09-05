@@ -15,10 +15,14 @@
 първия проблем, за да го хване планираната задача.
 """
 import json
+import os
 import re
 import sys
 import urllib.error
 import urllib.request
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _redirects import redirects as config_redirects
 
 SITE = "https://promarketing.pw"
 UA = {"User-Agent": "ProMarketing-SEO-Health/1.0 (+https://promarketing.pw)"}
@@ -36,14 +40,11 @@ CORE = [
 # Адреси, които НАРОЧНО пренасочват. Проверява се, че пренасочването още
 # работи и че води където трябва — изчезнало пренасочване е тиха загуба
 # на всички стари връзки към адреса.
-REDIRECTS = {
-    "/magazin": "/ai-reshenia",
-    "/reshenia": "/ai-reshenia",
-    "/uslugi": "/ai-avtomatizacia",
-    "/chatbot": "/ai-chatbot",
-    "/crm": "/ai-crm",
-    "/kontakti": "/booking",
-}
+#
+# Четат се от next.config.ts, а не на ръка: списъкът тук беше от шест адреса,
+# докато в конфигурацията вече бяха десет, и /rabota — входът на кандидатите
+# през играта „ЛОСТ" — не се проверяваше изобщо.
+REDIRECTS = config_redirects()
 
 problems = []
 
@@ -98,10 +99,12 @@ for p, st in bad:
 
 # ── 2б. Нарочните пренасочвания още ли работят ────────────────────────
 red_bad = []
-for src, dst in REDIRECTS.items():
+for src, rule in REDIRECTS.items():
+    dst = rule["to"]
+    want = (301, 308) if rule["permanent"] else (302, 307)
     st, where = fetch(src, follow=False)
-    if st not in (301, 308):
-        red_bad.append(f"{src}: очаква се 301/308, връща {st}")
+    if st not in want:
+        red_bad.append(f"{src}: очаква се {want[0]}/{want[1]}, връща {st}")
     elif dst not in where:
         red_bad.append(f"{src}: пренасочва към {where}, а трябва към {dst}")
 for m in red_bad:
