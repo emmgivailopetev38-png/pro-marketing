@@ -9,6 +9,19 @@ import type { ContactStage } from "./types";
  * Used by the email/send route, the Cal.com webhook, and the meta-lead
  * importer so the contacts dashboard stays in sync automatically.
  */
+/**
+ * Един и същ телефон влиза в базата в различни формати: попъпът на сайта дава
+ * `0892036709`, Meta дава `+359892036709`. Сравнението беше буквално, затова
+ * същият човек си правеше втори картон — случи се на 24.08.2026 в рамките
+ * на 9 секунди. Последните 9 цифри са националният номер за България.
+ */
+export function phoneVariants(raw: string): string[] {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return [raw];
+  const national = digits.length >= 9 ? digits.slice(-9) : digits;
+  return Array.from(new Set([raw, `+359${national}`, `0${national}`, `359${national}`, national]));
+}
+
 export async function upsertContactAndLog(args: {
   full_name?: string | null;
   email?: string | null;
@@ -49,13 +62,16 @@ export async function upsertContactAndLog(args: {
     existing = data;
   }
   if (!existing && phone) {
+    // Без `.in(...)` тук един и същи номер в друг формат прави нов картон.
+    // Ограничението „само контакти без имейл" също отпадна: точно то пречеше
+    // на лийд само с телефон да се залепи за вече съществуващия си картон.
     const { data } = await supabase
       .from("contacts")
       .select("id, stage, full_name, phone")
-      .eq("phone", phone)
-      .is("email", null)
-      .maybeSingle();
-    existing = data;
+      .in("phone", phoneVariants(phone))
+      .order("created_at", { ascending: true })
+      .limit(1);
+    existing = data?.[0] ?? null;
   }
 
   let contactId: string;

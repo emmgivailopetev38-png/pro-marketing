@@ -118,7 +118,7 @@ export async function POST(request: Request) {
     bump_stage_to: "discovery",
     activity: {
       type: "booking",
-      title: `Cal.com среща — ${new Date(row.scheduled_at).toLocaleString("bg-BG", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}`,
+      title: `Cal.com среща — ${new Date(row.scheduled_at).toLocaleString("bg-BG", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Sofia" })}`,
       occurred_at: row.scheduled_at,
       body: [
         row.business && `Бизнес: ${row.business}`,
