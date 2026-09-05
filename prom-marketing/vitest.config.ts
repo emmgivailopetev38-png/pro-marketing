@@ -8,7 +8,8 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./tests/setup.ts"],
     globals: true,
-    include: ["**/*.test.ts", "**/*.test.tsx"],
+    // .mjs е заради скриптовете в scripts/ — те не са TypeScript.
+    include: ["**/*.test.ts", "**/*.test.tsx", "**/*.test.mjs"],
   },
   resolve: {
     alias: {

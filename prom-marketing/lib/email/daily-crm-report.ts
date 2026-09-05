@@ -1,6 +1,9 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 
+/** Vercel върви на UTC — без това сутрешният отчет показва 08:00 вместо 11:00. */
+const TZ = "Europe/Sofia";
+
 interface ContactBrief {
   id: string;
   full_name: string | null;
@@ -154,7 +157,7 @@ export async function buildDailyCrmReport() {
       contact_id: r.contact.id,
       activity_type: "note",
       title: `🔔 Напомняне: 7 дни от изпратена оферта — звънни`,
-      body: `Изпратена оферта/презентация преди ${r.daysSince} дни (${new Date(r.offerSentAt).toLocaleDateString("bg-BG")}). Все още без отговор. Време е за follow-up разговор.`,
+      body: `Изпратена оферта/презентация преди ${r.daysSince} дни (${new Date(r.offerSentAt).toLocaleDateString("bg-BG", { timeZone: TZ })}). Все още без отговор. Време е за follow-up разговор.`,
       occurred_at: new Date().toISOString(),
       created_by: "auto-reminder",
     });
@@ -173,11 +176,12 @@ export async function buildDailyCrmReport() {
     day: "2-digit",
     month: "long",
     year: "numeric",
+    timeZone: TZ,
   });
 
   const totalYesterday = yesterdayActs.length;
   const todayCount = (todayFollowups?.length ?? 0) + todayBookings.length;
-  const subject = `☀️ CRM отчет · ${now.toLocaleDateString("bg-BG", { day: "2-digit", month: "short" })} · ${todayCount} срещи, ${reminders.length} напомняния`;
+  const subject = `☀️ CRM отчет · ${now.toLocaleDateString("bg-BG", { day: "2-digit", month: "short", timeZone: TZ })} · ${todayCount} срещи, ${reminders.length} напомняния`;
 
   let html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#0d1221;max-width:680px">
   <h1 style="font-size:24px;margin:0 0 4px;color:#0066cc">☀️ Добро утро, Ивайло!</h1>
@@ -383,7 +387,7 @@ function stageColor(s: string): string {
 }
 
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("bg-BG", { hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString("bg-BG", { hour: "2-digit", minute: "2-digit", timeZone: TZ });
 }
 
 function formatRelative(iso: string): string {

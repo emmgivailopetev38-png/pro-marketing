@@ -5,6 +5,9 @@ import { sendEmail } from "@/lib/email/resend";
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
+/** Vercel върви на UTC — без това датата в имейла се разминава със софийската. */
+const TZ = "Europe/Sofia";
+
 /**
  * Vercel Cron: GET /api/cron/morning-leads-to-call
  *
@@ -145,9 +148,10 @@ export async function GET(request: Request) {
     weekday: "long",
     day: "2-digit",
     month: "long",
+    timeZone: TZ,
   });
 
-  const dayShort = new Date().toLocaleDateString("bg-BG", { day: "2-digit", month: "short" });
+  const dayShort = new Date().toLocaleDateString("bg-BG", { day: "2-digit", month: "short", timeZone: TZ });
   const subjectParts: string[] = [];
   if (followups.length > 0) {
     subjectParts.push(
@@ -264,7 +268,7 @@ function formatRelative(iso: string): string {
   if (days === 1) return "вчера";
   if (days < 7) return `преди ${days} дни`;
   if (days < 30) return `преди ${Math.floor(days / 7)} седм.`;
-  return new Date(iso).toLocaleDateString("bg-BG", { day: "2-digit", month: "short" });
+  return new Date(iso).toLocaleDateString("bg-BG", { day: "2-digit", month: "short", timeZone: TZ });
 }
 
 function sourceLabel(s: string): string {
@@ -302,7 +306,7 @@ function formatDue(iso: string): string {
   if (days <= 0) return "днес";
   if (days === 1) return "вчера";
   if (days < 7) return `преди ${days} дни`;
-  return d.toLocaleDateString("bg-BG", { day: "2-digit", month: "short" });
+  return d.toLocaleDateString("bg-BG", { day: "2-digit", month: "short", timeZone: TZ });
 }
 
 /** Един блок с обещани обаждания — просрочени или за днес. */
