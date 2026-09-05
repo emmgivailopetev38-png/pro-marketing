@@ -54,6 +54,22 @@ export function VoiceReceptionButton({ variant = "hero" }: { variant?: "hero" | 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  /**
+   * `?glas=1` идва от подписа на автоматичните писма: човекът натиска линка
+   * и разговорът се отваря направо, без да търси бутона на страницата.
+   * Чете се от `window`, а не от `useSearchParams` — така героят не иска Suspense.
+   */
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("glas") !== "1") return;
+    // След първото рендиране, не в тялото на ефекта — така героят се показва,
+    // а прозорецът излиза върху него, вместо да се бие с хидратацията.
+    const id = window.setTimeout(() => {
+      setOpen(true);
+      track("voice_reception_open", { location: variant, via: "email_link" });
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [variant]);
+
   /* --- Отваряне и затваряне -------------------------------------------- */
   useEffect(() => {
     if (!open) return;

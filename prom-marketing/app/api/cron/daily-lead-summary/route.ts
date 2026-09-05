@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { runLeadSequence } from "@/lib/email/lead-sequence";
+import { runWarmSequence } from "@/lib/email/warm-sequence";
 import { createServiceClient } from "@/lib/supabase/service";
 import { syncAllSources } from "@/lib/leads/import";
 import { sendEmail } from "@/lib/email/resend";
@@ -24,6 +25,8 @@ export const maxDuration = 60;
  *   3. Emails the report to emmgivailopetev38@gmail.com (via EMAIL_REPLY_TO env)
  *   4. Дава един такт на продажбената поредица към новите лийдове
  *      (`runLeadSequence`) — тук е, защото Hobby дава само 2 крона.
+ *   5. Дава един такт и на топлия кръг (`runWarmSequence`) — писмата към
+ *      хората, с които вече сме говорили и които не са спечелени.
  *
  * Auth: Vercel cron sends `Authorization: Bearer ${CRON_SECRET}` automatically.
  */
@@ -53,6 +56,17 @@ export async function GET(request: Request) {
     sequence = { error: e instanceof Error ? e.message : "unknown" };
   }
 
+  // 2c. Топлият кръг — писмата към хората, с които ВЕЧЕ сме говорили. Студената
+  // поредица спира при първия разговор; оттам нататък поема този кръг, за да не
+  // изстива никой между обажданията. Пази се в същия try/catch по същата
+  // причина: сутрешният отчет е по-важен от всяко писмо.
+  let warm: Awaited<ReturnType<typeof runWarmSequence>> | { error: string };
+  try {
+    warm = await runWarmSequence(createServiceClient());
+  } catch (e) {
+    warm = { error: e instanceof Error ? e.message : "unknown" };
+  }
+
   // 3. Send the report to the user's Gmail
   const recipient = process.env.EMAIL_REPLY_TO || "emmgivailopetev38@gmail.com";
 
@@ -71,6 +85,7 @@ export async function GET(request: Request) {
     },
     report: report.stats,
     sequence,
+    warm,
     email: {
       to: recipient,
       id: emailResult.id,
