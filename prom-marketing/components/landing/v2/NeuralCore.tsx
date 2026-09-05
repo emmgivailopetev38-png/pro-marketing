@@ -3,21 +3,31 @@
    NeuralCore — the "2050" signature centerpiece.
    A slowly rotating sphere of glowing nodes (Fibonacci distribution)
    wired by faint synaptic lines, breathing, with a soft cursor parallax.
-   Same DNA as the public/velko core, rebuilt declaratively on
-   @react-three/fiber (the stack this project already uses).
 
-   Usage (from any section / hero):
-     import { NeuralCore } from "@/components/landing/v2/NeuralCore";
-     <div className="relative h-[520px] w-[520px]">
-       <NeuralCore />
-     </div>
-   Props let an agent retune it per placement without forking the file.
-   Respects prefers-reduced-motion: renders a calm static frame instead
-   of animating (and never mounts the rAF loop).
+   Как се появява (преработено на 05.09.2026, защото „ядрото се бъгваше
+   в началото"):
+
+   1. ЛЕКАТА РЕШЕТКА (SVG) се рисува ВИНАГИ и се рендира и на сървъра —
+      тоест е в първия HTML, преди какъвто и да е JavaScript. Без three.js:
+      двете сметки на цвят са десет реда собствен код. Дотук телефонът
+      сваляше 233 KB three, за да нарисува SVG, а ядрото се появяваше чак
+      след хидратацията и изтеглянето на чънка — виждаше се как „изскача".
+
+   2. На настолен браузър (fine pointer, > 820px), когато ядрото е в кадър,
+      се тегли `NeuralCoreGL` (three + fiber) и след ПЪРВИЯ му нарисуван
+      кадър canvas-ът се появява с кросфейд върху SVG-то, което после спира
+      да се анимира. Дотук `lite` тръгваше от `true`, ефектът сменяше SVG →
+      празно → WebGL в две резки стъпки, а render loop-ът стоеше на `never`,
+      докато IntersectionObserver не се обади — сферата стоеше замръзнала.
+
+   3. Дали сме на телефон се чете синхронно (`useSyncExternalStore` върху
+      matchMedia), не с ефект след първото рендиране — така няма междинно
+      състояние, което да се вижда.
+
+   Респектира prefers-reduced-motion: статична решетка, без rAF, без WebGL.
    ===================================================================== */
-import { Canvas, useFrame } from "@react-three/fiber";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
-import * as THREE from "three";
+import dynamic from "next/dynamic";
+import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
 export interface NeuralCoreProps {
@@ -37,131 +47,192 @@ export interface NeuralCoreProps {
   className?: string;
 }
 
-/* Build the node cloud + the synapse line segments once (memoized). */
-function useCoreGeometry(nodeCount: number, radius: number, colorA: string, colorB: string) {
-  return useMemo(() => {
-    const cA = new THREE.Color(colorA);
-    const cB = new THREE.Color(colorB);
-    const positions = new Float32Array(nodeCount * 3);
-    const colors = new Float32Array(nodeCount * 3);
-    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+const NeuralCoreGL = dynamic(() => import("./NeuralCoreGL").then((m) => m.NeuralCoreGL), {
+  ssr: false,
+  loading: () => null,
+});
 
-    for (let i = 0; i < nodeCount; i++) {
-      // Fibonacci sphere — even, organic node spread.
-      const y = 1 - (i / (nodeCount - 1)) * 2;
-      const r = Math.sqrt(Math.max(0, 1 - y * y));
-      const theta = goldenAngle * i;
-      const x = Math.cos(theta) * r;
-      const z = Math.sin(theta) * r;
-      positions[i * 3] = x * radius;
-      positions[i * 3 + 1] = y * radius;
-      positions[i * 3 + 2] = z * radius;
+/* ---- Телефон/тъч → само леката решетка. Чете се синхронно. -------------- */
+const LITE_QUERY = "(max-width: 820px), (pointer: coarse)";
+function subscribeLite(cb: () => void): () => void {
+  const mq = window.matchMedia(LITE_QUERY);
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+}
+const getLite = () => window.matchMedia(LITE_QUERY).matches;
+// Сървърът не знае устройството: рисува леката решетка. Тя е и подложката,
+// върху която настолният браузър после кросфейдва WebGL-а — нищо не мига.
+const getLiteServer = () => true;
 
-      const c = cA.clone().lerp(cB, (y + 1) / 2);
-      colors[i * 3] = c.r;
-      colors[i * 3 + 1] = c.g;
-      colors[i * 3 + 2] = c.b;
-    }
+/* ---- Цвят без three ------------------------------------------------------ */
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace("#", "");
+  const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+  const n = parseInt(full, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function lerpHex(a: string, b: string, t: number): string {
+  const A = hexToRgb(a);
+  const B = hexToRgb(b);
+  return `#${A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, "0")).join("")}`;
+}
 
-    // Wire near-neighbours into synapse lines (squared-distance threshold).
-    const linePts: number[] = [];
-    const threshold = (radius * 0.5) ** 2;
-    for (let i = 0; i < nodeCount; i += 2) {
-      for (let j = i + 2; j < nodeCount; j += 2) {
-        const dx = positions[i * 3] - positions[j * 3];
-        const dy = positions[i * 3 + 1] - positions[j * 3 + 1];
-        const dz = positions[i * 3 + 2] - positions[j * 3 + 2];
-        if (dx * dx + dy * dy + dz * dz < threshold) {
-          linePts.push(
-            positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2],
-            positions[j * 3], positions[j * 3 + 1], positions[j * 3 + 2],
-          );
-        }
+interface LiteNode { sx: number; sy: number; z: number; color: string }
+interface LiteLine { x1: number; y1: number; x2: number; y2: number; o: number }
+
+/**
+ * Fibonacci сфера, проектирана в 100×100 SVG. Детерминистична — затова може
+ * да се рендира на сървъра и да съвпадне 1:1 при хидратацията.
+ * По-рядка от WebGL версията: телефонът рисува всяка окръжност наново при
+ * всяко завъртане, а 84 възела изглеждат като 240 при този размер.
+ */
+/**
+ * Закръгляне до 4 знака. Сървърът (Node) и браузърът смятат sin/cos/sqrt с
+ * разлика в последния бит — без закръгляне React се оплаква при хидратацията,
+ * че `strokeOpacity="0.03675842501499336"` не е 0.036758425014993386.
+ * За SVG в кутия 100×100 четвъртият знак е под една хилядна от пиксела.
+ */
+const r4 = (v: number) => Math.round(v * 10_000) / 10_000;
+
+function buildLiteGeometry(nodeCount: number, colorA: string, colorB: string) {
+  const N = Math.min(Math.max(Math.round(nodeCount * 0.4), 56), 84);
+  const golden = Math.PI * (3 - Math.sqrt(5));
+  const R = 43;
+  const raw: { x: number; y: number; z: number }[] = [];
+  const nodes: LiteNode[] = [];
+  for (let i = 0; i < N; i++) {
+    const y = r4(1 - (i / (N - 1)) * 2);
+    const rr = Math.sqrt(Math.max(0, 1 - y * y));
+    const t = golden * i;
+    const x = r4(Math.cos(t) * rr);
+    const z = r4(Math.sin(t) * rr);
+    raw.push({ x, y, z });
+    nodes.push({ sx: r4(50 + x * R), sy: r4(50 - y * R), z, color: lerpHex(colorA, colorB, (y + 1) / 2) });
+  }
+  const lines: LiteLine[] = [];
+  const thr = 0.22;
+  for (let i = 0; i < N; i++) {
+    for (let j = i + 1; j < N; j++) {
+      const dx = raw[i].x - raw[j].x;
+      const dy = raw[i].y - raw[j].y;
+      const dz = raw[i].z - raw[j].z;
+      const d2 = dx * dx + dy * dy + dz * dz;
+      if (d2 < thr) {
+        const front = (raw[i].z + raw[j].z) / 2;
+        lines.push({
+          x1: nodes[i].sx, y1: nodes[i].sy, x2: nodes[j].sx, y2: nodes[j].sy,
+          o: r4(0.18 * (1 - d2 / thr) * (0.4 + 0.6 * ((front + 1) / 2))),
+        });
       }
     }
-
-    const pointsGeo = new THREE.BufferGeometry();
-    pointsGeo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    pointsGeo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-
-    const lineGeo = new THREE.BufferGeometry();
-    lineGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(linePts), 3));
-
-    return { pointsGeo, lineGeo };
-  }, [nodeCount, radius, colorA, colorB]);
+  }
+  const order = nodes.map((n, idx) => ({ n, idx })).sort((a, b) => a.n.z - b.n.z);
+  return { lines, order };
 }
 
-/* Soft radial sprite so each node reads as a glowing dot, not a hard pixel. */
-function useGlowTexture() {
-  return useMemo(() => {
-    const c = document.createElement("canvas");
-    c.width = c.height = 64;
-    const ctx = c.getContext("2d")!;
-    const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-    g.addColorStop(0, "#ffffff");
-    g.addColorStop(0.3, "rgba(255,255,255,0.9)");
-    g.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, 64, 64);
-    const tex = new THREE.CanvasTexture(c);
-    tex.needsUpdate = true;
-    return tex;
-  }, []);
-}
-
-function CoreObject({
-  nodeCount,
-  radius,
+function LiteLattice({
+  uid,
+  geo,
   colorA,
   colorB,
   lineColor,
-  spin,
   animate,
-}: Required<Omit<NeuralCoreProps, "className">> & { animate: boolean }) {
-  const group = useRef<THREE.Group>(null);
-  const { pointsGeo, lineGeo } = useCoreGeometry(nodeCount, radius, colorA, colorB);
-  const sprite = useGlowTexture();
-
-  useFrame((state) => {
-    const g = group.current;
-    if (!g || !animate) return;
-    const t = state.clock.elapsedTime;
-    // breathing scale + base auto-rotation
-    const breathe = 1 + Math.sin(t * 1.6) * 0.045;
-    g.scale.setScalar(breathe);
-    g.rotation.y += 0.0038 * spin;
-    g.rotation.x += 0.0011 * spin;
-    // gentle cursor parallax (pointer is normalised -1..1)
-    const px = state.pointer.x;
-    const py = state.pointer.y;
-    g.rotation.z += (px * 0.25 - g.rotation.z) * 0.04;
-    state.camera.position.x += (px * 0.6 - state.camera.position.x) * 0.04;
-    state.camera.position.y += (py * 0.6 - state.camera.position.y) * 0.04;
-    state.camera.lookAt(0, 0, 0);
-  });
-
+}: {
+  uid: string;
+  geo: ReturnType<typeof buildLiteGeometry>;
+  colorA: string;
+  colorB: string;
+  lineColor: string;
+  animate: boolean;
+}) {
   return (
-    <group ref={group}>
-      <points geometry={pointsGeo}>
-        <pointsMaterial
-          size={radius * 0.1}
-          map={sprite}
-          vertexColors
-          transparent
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-          sizeAttenuation
-        />
-      </points>
-      <lineSegments geometry={lineGeo}>
-        <lineBasicMaterial
-          color={lineColor}
-          transparent
-          opacity={0.22}
-          blending={THREE.AdditiveBlending}
-        />
-      </lineSegments>
-    </group>
+    <>
+      <style>{`
+        @keyframes ncAlive_${uid} {
+          0%   { transform: rotate(0deg)   scale(0.99); }
+          50%  { transform: rotate(180deg) scale(1.025); }
+          100% { transform: rotate(360deg) scale(0.99); }
+        }
+        @keyframes ncFire_${uid} {
+          0%, 68%, 100% { opacity: 0.3; }
+          14%           { opacity: 1; }
+        }
+        @keyframes ncSyn_${uid} {
+          0%, 72%, 100% { stroke-opacity: 0.05; }
+          22%           { stroke-opacity: 0.85; }
+        }
+      `}</style>
+      {/* Сиянието е ОТДЕЛЕН статичен слой. Дотук беше `filter: drop-shadow` върху
+          самия SVG — а той се върти, тоест браузърът преизчисляваше размазването
+          на всеки кадър. На телефон това беше половината от цената на ядрото. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-[14%] rounded-full"
+        style={{
+          background: `radial-gradient(circle, ${colorA}66 0%, ${colorB}40 38%, transparent 70%)`,
+          filter: "blur(18px)",
+          transform: "translateZ(0)",
+        }}
+      />
+      <svg
+        viewBox="0 0 100 100"
+        preserveAspectRatio="xMidYMid meet"
+        className="relative h-full w-full overflow-visible"
+        style={{
+          transformOrigin: "center",
+          willChange: animate ? "transform" : undefined,
+          animation: animate ? `ncAlive_${uid} 22s ease-in-out infinite` : undefined,
+        }}
+      >
+        <defs>
+          <radialGradient id={`ncGlow_${uid}`} cx="50%" cy="46%" r="56%">
+            <stop offset="0%" stopColor={colorA} stopOpacity="0.5" />
+            <stop offset="36%" stopColor={colorB} stopOpacity="0.24" />
+            <stop offset="100%" stopColor={colorB} stopOpacity="0" />
+          </radialGradient>
+        </defs>
+
+        <circle cx="50" cy="48" r="43" fill={`url(#ncGlow_${uid})`} />
+
+        {/* synapse lines — светят само някои, иначе телефонът анимира стотици елементи */}
+        <g stroke={lineColor} strokeLinecap="round">
+          {geo.lines.map((l, i) => {
+            const fires = animate && i % 12 === 0;
+            return (
+              <line
+                key={i}
+                x1={l.x1}
+                y1={l.y1}
+                x2={l.x2}
+                y2={l.y2}
+                strokeWidth="0.25"
+                strokeOpacity={l.o}
+                style={fires ? { animation: `ncSyn_${uid} ${3 + (i % 5) * 0.6}s ease-in-out ${(i % 9) * 0.5}s infinite` } : undefined}
+              />
+            );
+          })}
+        </g>
+
+        {/* nodes painted back → front (front = larger, brighter, with a sheen) */}
+        {geo.order.map(({ n, idx }, oi) => {
+          const depth = (n.z + 1) / 2;
+          const r = r4(0.55 + depth * 1.5);
+          const fires = animate && oi % 6 === 0 && depth > 0.35;
+          return (
+            <g key={idx} opacity={r4(0.34 + depth * 0.66)}>
+              <circle
+                cx={n.sx}
+                cy={n.sy}
+                r={r}
+                fill={n.color}
+                style={fires ? { animation: `ncFire_${uid} ${2.6 + (oi % 6) * 0.5}s ease-in-out ${(oi % 11) * 0.4}s infinite` } : undefined}
+              />
+              {depth > 0.5 && <circle cx={r4(n.sx - r * 0.28)} cy={r4(n.sy - r * 0.28)} r={r4(r * 0.42)} fill="#ffffff" opacity={0.9} />}
+            </g>
+          );
+        })}
+      </svg>
+    </>
   );
 }
 
@@ -174,196 +245,77 @@ export function NeuralCore({
   spin = 1,
   className,
 }: NeuralCoreProps) {
+  const lite = useSyncExternalStore(subscribeLite, getLite, getLiteServer);
   const reduced = useReducedMotion();
   const wrapRef = useRef<HTMLDivElement>(null);
-  // Default to the lightweight (no-WebGL) variant until we confirm a capable
-  // desktop — mobile/touch NEVER mounts a WebGL context (perf).
-  const [lite, setLite] = useState(true);
-  const [inView, setInView] = useState(false);
   const uid = useId().replace(/:/g, "");
 
-  // Lite (mobile/touch/reduced) geometry: a Fibonacci sphere of nodes + near-
-  // neighbour synapse lines, projected to a 100×100 SVG. Cheap, computed once —
-  // renders as a razor-sharp neural lattice instead of a blurry CSS blob.
-  const liteGeo = useMemo(() => {
-    const N = Math.min(Math.max(Math.round(nodeCount * 0.5), 64), 100);
-    const cA = new THREE.Color(colorA);
-    const cB = new THREE.Color(colorB);
-    const golden = Math.PI * (3 - Math.sqrt(5));
-    const R = 43;
-    const raw: { x: number; y: number; z: number }[] = [];
-    const nodes: { sx: number; sy: number; z: number; color: string }[] = [];
-    for (let i = 0; i < N; i++) {
-      const y = 1 - (i / (N - 1)) * 2;
-      const rr = Math.sqrt(Math.max(0, 1 - y * y));
-      const t = golden * i;
-      const x = Math.cos(t) * rr;
-      const z = Math.sin(t) * rr;
-      raw.push({ x, y, z });
-      const c = cA.clone().lerp(cB, (y + 1) / 2);
-      nodes.push({ sx: 50 + x * R, sy: 50 - y * R, z, color: `#${c.getHexString()}` });
-    }
-    const lines: { x1: number; y1: number; x2: number; y2: number; o: number }[] = [];
-    const thr = 0.2;
-    for (let i = 0; i < N; i++) {
-      for (let j = i + 1; j < N; j++) {
-        const dx = raw[i].x - raw[j].x;
-        const dy = raw[i].y - raw[j].y;
-        const dz = raw[i].z - raw[j].z;
-        const d2 = dx * dx + dy * dy + dz * dz;
-        if (d2 < thr) {
-          const front = (raw[i].z + raw[j].z) / 2;
-          lines.push({
-            x1: nodes[i].sx, y1: nodes[i].sy, x2: nodes[j].sx, y2: nodes[j].sy,
-            o: 0.18 * (1 - d2 / thr) * (0.4 + 0.6 * ((front + 1) / 2)),
-          });
-        }
-      }
-    }
-    const order = nodes.map((n, idx) => ({ n, idx })).sort((a, b) => a.n.z - b.n.z);
-    return { lines, order };
-  }, [nodeCount, colorA, colorB]);
+  // В кадър ли е — за WebGL loop-а. Тръгва от `true`: героят е на екрана при
+  // зареждане, а IntersectionObserver-ът само го спира, когато се скролне.
+  const [inView, setInView] = useState(true);
+  // WebGL се монтира чак когда ядрото е било в кадър поне веднъж — под
+  // сгъвката three не се тегли за сфера, до която никой не е стигнал.
+  // Много стар браузър без IntersectionObserver → монтираме направо.
+  const [everInView, setEverInView] = useState(
+    () => typeof window !== "undefined" && typeof IntersectionObserver === "undefined"
+  );
+  const [glReady, setGlReady] = useState(false);
 
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 820px), (pointer: coarse)");
-    const apply = () => setLite(mq.matches);
-    apply();
-    mq.addEventListener?.("change", apply);
-    return () => mq.removeEventListener?.("change", apply);
-  }, []);
+  const liteGeo = useMemo(() => buildLiteGeometry(nodeCount, colorA, colorB), [nodeCount, colorA, colorB]);
 
   useEffect(() => {
     const el = wrapRef.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([e]) => setInView(e.isIntersecting), {
-      rootMargin: "100px",
-    });
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        setInView(e.isIntersecting);
+        if (e.isIntersecting) setEverInView(true);
+      },
+      { rootMargin: "120px" }
+    );
     io.observe(el);
     return () => io.disconnect();
   }, []);
 
-  // Mobile / touch / reduced-motion → crisp SVG neural sphere that's ALIVE:
-  // the lattice slowly turns + breathes, neurons fire (staggered opacity) and
-  // synapses light up — all cheap CSS keyframes (no WebGL, no rAF; the browser
-  // pauses paint while off-screen). Every motion is disabled when `reduced`.
-  if (lite || reduced) {
-    return (
-      <div ref={wrapRef} className={`absolute inset-0 ${className ?? ""}`} aria-hidden>
-        <style>{`
-          @keyframes ncAlive_${uid} {
-            0%   { transform: rotate(0deg)   scale(0.99); }
-            50%  { transform: rotate(180deg) scale(1.025); }
-            100% { transform: rotate(360deg) scale(0.99); }
-          }
-          @keyframes ncFire_${uid} {
-            0%, 68%, 100% { opacity: 0.3; }
-            14%           { opacity: 1; }
-          }
-          @keyframes ncSyn_${uid} {
-            0%, 72%, 100% { stroke-opacity: 0.05; }
-            22%           { stroke-opacity: 0.85; }
-          }
-        `}</style>
-        <svg
-          viewBox="0 0 100 100"
-          preserveAspectRatio="xMidYMid meet"
-          className="h-full w-full overflow-visible"
-          style={{
-            transformOrigin: "center",
-            animation: reduced ? undefined : `ncAlive_${uid} 22s ease-in-out infinite`,
-            filter: `drop-shadow(0 0 6px ${colorA}73) drop-shadow(0 0 16px ${colorB}45)`,
-          }}
-        >
-          <defs>
-            <radialGradient id={`ncGlow_${uid}`} cx="50%" cy="46%" r="56%">
-              <stop offset="0%" stopColor={colorA} stopOpacity="0.5" />
-              <stop offset="36%" stopColor={colorB} stopOpacity="0.24" />
-              <stop offset="100%" stopColor={colorB} stopOpacity="0" />
-            </radialGradient>
-          </defs>
+  const wantGL = !lite && !reduced;
 
-          {/* volumetric glow behind the lattice */}
-          <circle cx="50" cy="48" r="43" fill={`url(#ncGlow_${uid})`} />
-
-          {/* synapse lines */}
-          <g stroke={lineColor} strokeLinecap="round">
-            {liteGeo.lines.map((l, i) => {
-              const fires = !reduced && i % 8 === 0;
-              return (
-                <line
-                  key={i}
-                  x1={l.x1}
-                  y1={l.y1}
-                  x2={l.x2}
-                  y2={l.y2}
-                  strokeWidth="0.25"
-                  strokeOpacity={l.o}
-                  style={
-                    fires
-                      ? { animation: `ncSyn_${uid} ${3 + (i % 5) * 0.6}s ease-in-out ${(i % 9) * 0.5}s infinite` }
-                      : undefined
-                  }
-                />
-              );
-            })}
-          </g>
-
-          {/* nodes painted back → front (front = larger, brighter, with a sheen) */}
-          {liteGeo.order.map(({ n, idx }, oi) => {
-            const depth = (n.z + 1) / 2;
-            const r = 0.55 + depth * 1.5;
-            const fires = !reduced && oi % 4 === 0 && depth > 0.35;
-            return (
-              <g key={idx} opacity={0.34 + depth * 0.66}>
-                <circle
-                  cx={n.sx}
-                  cy={n.sy}
-                  r={r}
-                  fill={n.color}
-                  style={
-                    fires
-                      ? { animation: `ncFire_${uid} ${2.6 + (oi % 6) * 0.5}s ease-in-out ${(oi % 11) * 0.4}s infinite` }
-                      : undefined
-                  }
-                />
-                {depth > 0.5 && (
-                  <circle
-                    cx={n.sx - r * 0.28}
-                    cy={n.sy - r * 0.28}
-                    r={r * 0.42}
-                    fill="#ffffff"
-                    opacity={0.9}
-                  />
-                )}
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-    );
-  }
-
-  // Desktop in-view → WebGL core, PAUSED when scrolled off-screen, capped DPR.
   return (
-    <div ref={wrapRef} className={`absolute inset-0 ${className ?? ""}`} aria-hidden>
-      <Canvas
-        camera={{ position: [0, 0, 3.2], fov: 55 }}
-        gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
-        dpr={[1, 1.5]}
-        frameloop={inView ? "always" : "never"}
+    <div
+      ref={wrapRef}
+      className={`absolute inset-0 ${className ?? ""}`}
+      aria-hidden
+      style={{ contain: "layout paint" }}
+    >
+      {/* Леката решетка: винаги в HTML-а. Щом WebGL нарисува кадър — избледнява
+          и спира да се анимира (visibility: hidden спира CSS анимациите). */}
+      <div
+        className="absolute inset-0"
+        style={{
+          opacity: glReady ? 0 : 1,
+          visibility: glReady ? "hidden" : "visible",
+          transition: "opacity 700ms ease, visibility 0s linear 700ms",
+        }}
       >
-        {/* soft fill so the dark side of nodes still glows faintly */}
-        <ambientLight intensity={0.6} />
-        <CoreObject
-          nodeCount={nodeCount}
-          radius={radius}
-          colorA={colorA}
-          colorB={colorB}
-          lineColor={lineColor}
-          spin={spin}
-          animate={inView}
-        />
-      </Canvas>
+        <LiteLattice uid={uid} geo={liteGeo} colorA={colorA} colorB={colorB} lineColor={lineColor} animate={!reduced && !glReady} />
+      </div>
+
+      {wantGL && everInView && (
+        <div
+          className="absolute inset-0"
+          style={{ opacity: glReady ? 1 : 0, transition: "opacity 700ms ease" }}
+        >
+          <NeuralCoreGL
+            nodeCount={nodeCount}
+            radius={radius}
+            colorA={colorA}
+            colorB={colorB}
+            lineColor={lineColor}
+            spin={spin}
+            animate={inView}
+            onReady={() => setGlReady(true)}
+          />
+        </div>
+      )}
     </div>
   );
 }

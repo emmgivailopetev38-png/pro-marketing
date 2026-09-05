@@ -17,9 +17,15 @@
    `[data-v2]` so it can't leak into the rest of the app.
    ===================================================================== */
 
-/* ---- DISTINCTIVE TYPE: Sora (display) + JetBrains Mono (mono) -------- */
-/* Sora = geometric, future-leaning, NOT Inter / NOT Space Grotesk.      */
-@import url("https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+/* ---- ТИПОГРАФИЯ ------------------------------------------------------
+   До 05.09.2026 тук стоеше @import на Google Fonts (Sora + JetBrains Mono).
+   Три проблема наведнъж: @import в CSS блокира първото рисуване, докато
+   не пристигнат чуждият CSS и после файловете; Sora НЯМА кирилица — целият
+   български текст в секциите падаше на system-ui, а латинските думи
+   излизаха в Sora (смесен вид); JetBrains Mono вече идва през next/font и
+   се теглеше втори път. Секциите вече ползват шрифтовете на сайта, които
+   next/font вгражда без блокиране: Unbounded за заглавия (като H1),
+   Inter Tight за текст, JetBrains Mono за телеметрията.                  */
 
 /* CSS custom-angle for the conic neon edge (graceful no-op if unsupported) */
 @property --v2-a {
@@ -74,9 +80,10 @@
   --v2-shadow-card: 0 28px 70px -45px rgba(0, 0, 0, 0.95);
   --v2-shadow-glow: 0 0 40px -6px var(--v2-glow-cyan);
 
-  /* fonts (local aliases so agents can reference them) */
-  --v2-font-display: "Sora", system-ui, sans-serif;
-  --v2-font-mono: "JetBrains Mono", ui-monospace, monospace;
+  /* fonts (local aliases so agents can reference them) — идват от next/font */
+  --v2-font-display: var(--font-body, "Inter Tight"), system-ui, sans-serif;
+  --v2-font-title: var(--font-display, "Unbounded"), var(--font-body, "Inter Tight"), system-ui, sans-serif;
+  --v2-font-mono: var(--font-mono, "JetBrains Mono"), ui-monospace, monospace;
 }
 
 /* Mobile safety — never allow a horizontal scrollbar from decorative overflow */
@@ -230,7 +237,7 @@ html, body { overflow-x: hidden; max-width: 100%; }
 
 /* .v2-title — holographic gradient display heading */
 .v2-title {
-  font-family: var(--v2-font-display);
+  font-family: var(--v2-font-title);
   font-weight: 800;
   font-size: clamp(2rem, 5.4vw, 4rem);
   line-height: 1.04;
@@ -246,7 +253,7 @@ html, body { overflow-x: hidden; max-width: 100%; }
 }
 /* Use .v2-title-plain when you want a solid-ink heading (no gradient) */
 .v2-title-plain {
-  font-family: var(--v2-font-display);
+  font-family: var(--v2-font-title);
   font-weight: 800;
   font-size: clamp(2rem, 5.4vw, 4rem);
   line-height: 1.04;
