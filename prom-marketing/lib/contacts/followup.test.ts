@@ -88,6 +88,17 @@ describe("обещаното обаждане", () => {
     expect(followupState(c, "2026-09-02T10:00:00Z", NOW)).toBe("overdue");
   });
 
+  it("бъдещо напомняне остава бъдеще, дори срещата за този ден вече да е записана", () => {
+    const c = { next_followup_at: "2026-09-16T08:00:00Z", last_heard_from_at: null };
+    expect(followupState(c, "2026-09-16T08:00:00Z", NOW)).toBe("future");
+    expect(followupState(c, "2026-09-04T08:00:00Z", NOW)).toBe("future");
+  });
+
+  it("опит с бъдеща дата не изпълнява минало напомняне", () => {
+    const c = { next_followup_at: "2026-09-03T12:00:00Z", last_heard_from_at: null };
+    expect(followupState(c, "2026-09-10T08:00:00Z", NOW)).toBe("overdue");
+  });
+
   it(`днес е „за днес", утре е „бъдеще"`, () => {
     expect(followupState({ next_followup_at: "2026-09-05T14:00:00Z", last_heard_from_at: null }, null, NOW)).toBe("due_today");
     expect(followupState({ next_followup_at: "2026-09-07T07:00:00Z", last_heard_from_at: null }, null, NOW)).toBe("future");

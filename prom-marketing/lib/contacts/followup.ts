@@ -137,11 +137,17 @@ export function followupState(
   const dueDay = dayKey(c.next_followup_at);
   const today = dayKey(now);
 
-  const heard = c.last_heard_from_at ? dayKey(c.last_heard_from_at) >= dueDay : false;
-  const attempted = lastAttemptAt ? dayKey(lastAttemptAt) >= dueDay : false;
+  // Обещание за бъдещето не може да е изпълнено — дори срещата за този ден вече
+  // да е записана в картона с бъдеща дата. Проверява се, когато денят дойде.
+  if (dueDay > today) return "future";
+
+  // Броят се само опити, които вече са се случили.
+  const heardDay = c.last_heard_from_at ? dayKey(c.last_heard_from_at) : null;
+  const attemptDay = lastAttemptAt ? dayKey(lastAttemptAt) : null;
+  const heard = heardDay !== null && heardDay >= dueDay && heardDay <= today;
+  const attempted = attemptDay !== null && attemptDay >= dueDay && attemptDay <= today;
   if (heard || attempted) return "fulfilled";
 
-  if (dueDay > today) return "future";
   if (dueDay === today) return "due_today";
   return "overdue";
 }

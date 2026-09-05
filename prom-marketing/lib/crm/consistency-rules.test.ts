@@ -85,16 +85,22 @@ describe("планът за един картон", () => {
     expect(fixes.find((f) => f.field === "followup_status")).toBeUndefined();
   });
 
-  it(`спечеленият губи „да се обади" и напомнянето, и взима стойността от фактурите`, () => {
+  it(`спечеленият губи „да се обади", пази напомнянето си и взима стойността от фактурите`, () => {
     const fixes = planContactFixes(
-      contact({ stage: "won", followup_status: "needs_call", next_followup_at: "2026-09-01T10:00:00Z" }),
+      contact({ stage: "won", followup_status: "needs_call", next_followup_at: "2026-09-09T10:00:00Z" }),
       [],
       [],
       [{ amount_gross: 350, amount_net: 291.67, status: "paid" }],
       NOW
     );
-    expect(fixes.map((f) => f.field).sort()).toEqual(["deal_value_eur", "followup_status", "next_followup_at"]);
+    expect(fixes.map((f) => f.field).sort()).toEqual(["deal_value_eur", "followup_status"]);
     expect(fixes.find((f) => f.field === "deal_value_eur")?.to).toBe(350);
+  });
+
+  it("бъдещо напомняне със записана среща за същия ден не се маха", () => {
+    const acts = [act("meeting", "2026-09-16T11:00:00Z", "Среща")];
+    const fixes = planContactFixes(contact({ stage: "discovery", next_followup_at: "2026-09-16T11:00:00Z" }), acts, [], [], NOW);
+    expect(fixes.find((f) => f.field === "next_followup_at")).toBeUndefined();
   });
 
   it(`изпълненото напомняне се маха; срещата слага „чут"`, () => {
