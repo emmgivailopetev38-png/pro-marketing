@@ -68,6 +68,12 @@ export function normalizeEmail(email: string | null | undefined): string | null 
   if (!e || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) return null;
   // Плейсхолдърът от формата не е човек и не бива да събира минути на всички.
   if (e === "bez-imeil@promarketing.pw") return null;
+  /**
+   * Втора ограда около заявките: заявките ползват `.eq()`, което кодира
+   * стойността, но адрес със запетая или кавичка не е адрес на български
+   * бизнес, а опит. Отрязва се тук, а не по-надолу.
+   */
+  if (/[,()"\\]/.test(e)) return null;
   return e.slice(0, 160);
 }
 
@@ -115,16 +121,60 @@ export function identityOf(args: {
   };
 }
 
+/** Кои от трите колони изобщо има смисъл да се питат. */
+function identityColumns(id: Identity): Array<[keyof Identity, string]> {
+  const cols: Array<[keyof Identity, string]> = [];
+  if (id.email) cols.push(["email", id.email]);
+  if (id.phone_key) cols.push(["phone_key", id.phone_key]);
+  if (id.ip_hash) cols.push(["ip_hash", id.ip_hash]);
+  return cols;
+}
+
 /**
- * PostgREST филтър „кой от трите съвпада". Празните се изпускат — иначе
- * `email.is.null` би хванало всички редове без имейл, тоест всички чужди.
+ * ⚠️ Три отделни заявки, а не един `or=(…)` — нарочно.
+ *
+ * `.or()` приема готов НИЗ и го пише в адреса както си е: там запетаята дели
+ * условията, а скобите ги групират. Стойността влиза в този низ без нищо да
+ * я екранира, тоест адрес със запетая би пренаписал въпроса към базата.
+ * `.eq()` минава през кодирането на клиента и такъв въпрос не съществува.
+ *
+ * Цената са две допълнителни заявки на отворен разговор — по няколко на ден.
  */
-function identityFilter(id: Identity): string | null {
-  const parts: string[] = [];
-  if (id.email) parts.push(`email.eq.${id.email}`);
-  if (id.phone_key) parts.push(`phone_key.eq.${id.phone_key}`);
-  if (id.ip_hash) parts.push(`ip_hash.eq.${id.ip_hash}`);
-  return parts.length ? parts.join(",") : null;
+async function rowsForIdentity(
+  sb: ReturnType<typeof createServiceClient>,
+  id: Identity,
+  sinceISO: string
+): Promise<VoiceSessionRow[]> {
+  const cols = identityColumns(id);
+  if (cols.length === 0) return [];
+
+  const results = await Promise.all(
+    cols.map(([col, value]) =>
+      sb
+        .from("voice_sessions")
+        .select("id, seconds, opened_at, email, phone_key, ip_hash")
+        .eq(col as string, value)
+        .gte("opened_at", sinceISO)
+        .limit(300)
+    )
+  );
+
+  // Един и същ ред идва и по имейл, и по IP — слепва се по id.
+  const byId = new Map<string, VoiceSessionRow>();
+  for (const r of results) {
+    if (r.error) throw new Error(r.error.message);
+    for (const row of (r.data ?? []) as VoiceSessionRow[]) byId.set(String(row.id), row);
+  }
+  return [...byId.values()];
+}
+
+interface VoiceSessionRow {
+  id: string;
+  seconds: number | null;
+  opened_at: string;
+  email: string | null;
+  phone_key: string | null;
+  ip_hash: string | null;
 }
 
 /* ------------------------------------------------------------- четене */
@@ -154,8 +204,7 @@ export async function readUsage(id: Identity): Promise<Usage> {
     blind: true,
   };
 
-  const filter = identityFilter(id);
-  if (!filter) return blank;
+  if (identityColumns(id).length === 0) return blank;
 
   /**
    * Ако тефтерът мълчи, разговорът МИНАВА.
@@ -169,15 +218,7 @@ export async function readUsage(id: Identity): Promise<Usage> {
     const since = new Date(Date.now() - MONTH_MS).toISOString();
     const dayAgo = new Date(Date.now() - DAY_MS).toISOString();
 
-    const { data, error } = await sb
-      .from("voice_sessions")
-      .select("seconds, opened_at, email, phone_key, ip_hash")
-      .or(filter)
-      .gte("opened_at", since)
-      .limit(500);
-    if (error) throw new Error(error.message);
-
-    const rows = data ?? [];
+    const rows = await rowsForIdentity(sb, id, since);
     // Секундите се броят само по ЧОВЕК (имейл/телефон), не по IP: в един
     // офис или зад един мобилен оператор седят различни хора и чуждият
     // разговор не бива да изяжда твоите минути. IP-то ограничава само
@@ -348,12 +389,13 @@ export async function closeVoiceSession(args: {
       if (data) return { ok: true, matched: "key" };
     }
 
-    const filter = identityFilter({ ...id, ip_hash: null });
-    if (filter) {
+    // Незатворен ред от последните три часа — по имейл или по телефон, но
+    // НЕ по IP: webhook-ът идва от сървърите на ElevenLabs и адрес няма.
+    for (const [col, value] of identityColumns({ ...id, ip_hash: null })) {
       const { data: open } = await sb
         .from("voice_sessions")
         .select("id")
-        .or(filter)
+        .eq(col as string, value)
         .is("conversation_id", null)
         .gte("opened_at", new Date(Date.now() - 3 * 3600_000).toISOString())
         .order("opened_at", { ascending: false })
