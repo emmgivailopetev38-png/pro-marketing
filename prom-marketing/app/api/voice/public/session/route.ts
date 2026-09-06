@@ -6,6 +6,7 @@ import { sendEmail } from "@/lib/email/resend";
 import { isCapiConfigured, sendCapiEvent } from "@/lib/meta/conversions-api";
 import { sendTelegram } from "@/lib/notifications/telegram";
 import { checkVoiceBudget, isPublicVoiceEnabled, VOICE_WEB_ACTIVITY } from "@/lib/voice/public-auth";
+import { clientIp, openVoiceSession } from "@/lib/voice/quota";
 
 export const dynamic = "force-dynamic";
 
@@ -171,14 +172,32 @@ export async function POST(request: Request) {
     });
   }
 
-  // Таванът се проверява СЛЕД записа: човек над лимита е пак истински лийд
-  // и остава в CRM-а, само че вместо линия получава линк към календара.
+  /**
+   * Двата тавана се проверяват СЛЕД записа: човек над лимита е пак истински
+   * лийд и остава в CRM-а, само че вместо линия получава линк към календара.
+   *
+   * Редът е нарочен. ЛИЧНИЯТ таван е пръв, защото на човека, който сам е
+   * изговорил десетте си минути, се казва друго изречение — благодарност и
+   * покана към Ивайло, не „демото е заето". Общият таван идва след него.
+   */
+  const seat = await openVoiceSession({
+    email: d.email,
+    phone: d.phone,
+    ip: clientIp(request),
+    contactId,
+    channel,
+  });
+  if (!seat.ok) {
+    return NextResponse.json({ error: `quota_${seat.reason}`, spoken: seat.spoken }, { status: 429 });
+  }
+
   const budget = await checkVoiceBudget();
   if (!budget.ok) {
     return NextResponse.json({ error: "budget", spoken: budget.spoken }, { status: 429 });
   }
 
   const agentId = process.env.ELEVENLABS_PUBLIC_AGENT_ID ?? DEFAULT_AGENT_ID;
+  const minutes = Math.max(1, Math.floor(seat.seconds / 60));
 
   /**
    * Връща се ИДЕНТИФИКАТОРЪТ на агента, не подписан адрес — и това е
@@ -197,6 +216,19 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: true,
     agent_id: agentId,
+    /**
+     * Таймерът за браузъра. Той е ИСТИНСКОТО спиране: ElevenLabs таксува
+     * свързаното време, а единственият, който може да затвори линията, е
+     * страницата, която я е отворила. Промптът само прави края красив.
+     *
+     * `seconds` е остатъкът на този човек, а не таванът — на втория му
+     * разговор остават по-малко минути и той трябва да ги знае.
+     */
+    limit: {
+      seconds: seat.seconds,
+      warn_at: seat.warnAt,
+      used_seconds: seat.usage.usedSeconds,
+    },
     // Имената съвпадат с плейсхолдърите в промпта на агента. Смениш ли ги
     // тук, агентът започва да казва „{{ime}}" на глас.
     variables: {
@@ -208,6 +240,22 @@ export async function POST(request: Request) {
       // по същия начин и промптът разпознава само „sait". Каналът за
       // отчетите живее в CRM-а (source_ref), не тук.
       kanal: "sait",
+      /**
+       * Колко минути има този разговор — агентът го казва в началото и по
+       * него преценява кога да започне да приключва. Низ, защото
+       * динамичните променливи на ElevenLabs се заместват като текст.
+       */
+      minuti: String(minutes),
+      /**
+       * Ключът на реда в тефтера. Пътува с разговора и се връща в post-call
+       * webhook-а, така че изговорените минути се залепят за точния човек
+       * без никакво гадаене по имейл.
+       *
+       * Ако някой ден `zapishi_chas` получи поле `sesia`, същият ключ прави
+       * и записания час неподправяем — сървърът взима имейла от тефтера,
+       * вместо от това, което агентът е бил убеден да напише.
+       */
+      sesia: seat.sessionKey,
     },
   });
 }

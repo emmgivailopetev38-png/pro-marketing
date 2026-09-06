@@ -7,6 +7,8 @@ import { upsertBooking, updateBooking } from "@/lib/crm/repository";
 import { upsertContactAndLog } from "@/lib/contacts/repository";
 import { createCalBooking, isCalWriteConfigured } from "@/lib/cal/create-booking";
 import { sendTelegram } from "@/lib/notifications/telegram";
+import { identityForSessionKey, phoneKey } from "@/lib/voice/quota";
+import { checkBookingAllowed } from "@/lib/voice/booking-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +35,14 @@ const schema = z.object({
   /** За какво е срещата — влиза в календара, за да знае Ивайло преди нея. */
   tema: z.string().trim().max(600).optional(),
   deynost: z.string().trim().max(200).optional(),
+  /**
+   * Ключът на разговора (`{{sesia}}`), ако инструментът в ElevenLabs го
+   * подава. С него имейлът и телефонът идват от ТЕФТЕРА, не от това, което
+   * агентът е бил убеден да напише — тоест часът не може да бъде записан на
+   * чужд човек с едно изречение. Незадължителен: без него всичко работи
+   * както преди, само че самоличността се вярва на думата.
+   */
+  sesia: z.string().trim().max(80).optional(),
 });
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -58,13 +68,66 @@ export async function POST(request: Request) {
     );
   }
   const d = parsed.data;
-  const email = d.imeil && EMAIL_RE.test(d.imeil.toLowerCase()) ? d.imeil.toLowerCase() : null;
+  let email = d.imeil && EMAIL_RE.test(d.imeil.toLowerCase()) ? d.imeil.toLowerCase() : null;
+  let telefon = d.telefon ?? null;
+
+  /**
+   * Самоличността идва от тефтера, а не от разговора.
+   *
+   * Формата на сайта вече знае кой е човекът; ключът `sesia` пътува с
+   * разговора и връща тук същия имейл. Ако агентът е подал друг — печели
+   * тефтерът. Това затваря най-евтината злоупотреба с гласов агент: „запиши
+   * часа на този имейл" с чужд адрес, за да отиде потвърждението другаде.
+   */
+  const bound = await identityForSessionKey(d.sesia);
+  if (bound?.email && bound.email !== email) {
+    console.warn("[voice/public/book] имейлът от разговора е подменен — взимам този от тефтера");
+    email = bound.email;
+  }
+  if (bound?.phone && phoneKey(bound.phone) !== phoneKey(telefon)) {
+    console.warn("[voice/public/book] телефонът от разговора е подменен — взимам този от тефтера");
+    telefon = bound.phone;
+  }
 
   try {
     const wanted = parseWhen(d.kogato, { defaultHour: 10 });
     if (!wanted) {
       return NextResponse.json(
         { ok: false, spoken: "Не разбрах кой час. Кажи ми деня и часа — например „четвъртък в десет“." },
+        { status: 200 }
+      );
+    }
+
+    /**
+     * Часът трябва да е напред и в разумното. `parseWhen` разбира и „преди
+     * две години", а Cal.com приема каквото му дадеш — така един объркан
+     * (или нарочен) израз влиза в календара за 2028-а и стои там незабелязан.
+     */
+    const aheadMs = wanted.date.getTime() - Date.now();
+    if (aheadMs < -60_000 || aheadMs > 90 * 24 * 3600_000) {
+      return NextResponse.json(
+        { ok: false, spoken: "Този час не мога да го запиша. Кажи ми ден от следващите няколко седмици." },
+        { status: 200 }
+      );
+    }
+
+    /**
+     * Пазачът пред календара — един жив час на човек, най-много два за
+     * месец, най-много осем на денонощие през гласа изобщо. Проверява се
+     * ПРЕДИ да сме извикали Cal.com: отказаното записване не бива да остави
+     * следа нито в календара, нито в CRM-а.
+     */
+    const guard = await checkBookingAllowed({
+      email,
+      phone: telefon,
+      speakExisting: (when) =>
+        `Виждам, че вече имаш запазен час — ${speakDay(when)} в ${speakTime(when)}. ` +
+        `Няма нужда от втори. Ако този не ти е удобен, кажи ми кога и ще помоля Ивайло да го премести.`,
+    });
+    if (!guard.ok) {
+      await notify(d, wanted.date, `отказан: ${guard.reason}`);
+      return NextResponse.json(
+        { ok: false, blocked: guard.reason, spoken: guard.spoken },
         { status: 200 }
       );
     }
@@ -116,12 +179,12 @@ export async function POST(request: Request) {
     // И трите са задължителни за Cal.com: типът събитие иска телефон, а без
     // имейл няма къде да отиде потвърждението. Липсва ли едно от тях, часът
     // остава в CRM-а и Ивайло го потвърждава ръчно.
-    if (email && d.telefon?.trim() && isCalWriteConfigured()) {
+    if (email && telefon?.trim() && isCalWriteConfigured()) {
       const res = await createCalBooking({
         name: d.ime,
         email,
         startISO: start.toISOString(),
-        phone: d.telefon ?? null,
+        phone: telefon,
         notes,
       });
       inCalendar = res.ok;
@@ -137,7 +200,7 @@ export async function POST(request: Request) {
       cal_booking_id: `glas:${start.toISOString().slice(0, 16)}:${slug(d.ime)}`,
       attendee_name: d.ime,
       attendee_email: email ?? NO_EMAIL,
-      attendee_phone: d.telefon,
+      attendee_phone: telefon ?? undefined,
       scheduled_at: start.toISOString(),
       duration_minutes: 30,
       status: inCalendar ? "accepted" : "pending",
@@ -152,11 +215,11 @@ export async function POST(request: Request) {
     }
 
     // Картонът на човека — за да не остане срещата да виси без контакт.
-    if (email || d.telefon) {
+    if (email || telefon) {
       await upsertContactAndLog({
         full_name: d.ime,
         email,
-        phone: d.telefon ?? null,
+        phone: telefon,
         company: d.deynost ?? null,
         source: "voice_agent",
         initial_stage: "lead",

@@ -19,20 +19,31 @@
    „Разреши микрофона?" веднага след изпращане на форма изглежда като капан.
 --------------------------------------------------------------------------- */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Mic, Phone, User, Mail, Building2, Loader2, X, ArrowRight, CalendarCheck } from "lucide-react";
 import { track } from "@/lib/analytics/track";
+import {
+  useVoiceLimit,
+  VOICE_EXPIRED_TEXT,
+  VOICE_EXPIRED_TITLE,
+  type VoiceLimit,
+} from "@/components/voice/use-voice-limit";
 
 const WIDGET_SRC = "https://unpkg.com/@elevenlabs/convai-widget-embed";
 
 type Vars = Record<string, string>;
-type Step = "form" | "connecting" | "live";
+type Step = "form" | "connecting" | "live" | "closed";
 
 export function VoiceReceptionButton({ variant = "hero" }: { variant?: "hero" | "inline" }) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>("form");
   const [error, setError] = useState<string | null>(null);
+  const [limit, setLimit] = useState<VoiceLimit | null>(null);
+  /** Текстът на края: изтекло време или изчерпан таван — различни изречения. */
+  const [closedText, setClosedText] = useState("");
+  /** Мигът, в който линията се отвори — от него тръгва отброяването. */
+  const [liveSince, setLiveSince] = useState<number | null>(null);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -79,7 +90,7 @@ export function VoiceReceptionButton({ variant = "hero" }: { variant?: "hero" | 
     const onKey = (e: KeyboardEvent) => {
       // Escape затваря само формата. Насред разговор би прекъснал линията
       // с погрешен натиск — там се излиза само с бутона.
-      if (e.key === "Escape" && step === "form") close();
+      if (e.key === "Escape" && (step === "form" || step === "closed")) close();
     };
     document.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
@@ -94,10 +105,29 @@ export function VoiceReceptionButton({ variant = "hero" }: { variant?: "hero" | 
     setOpen(false);
     setStep("form");
     setError(null);
+    setLimit(null);
+    setLiveSince(null);
+    setClosedText("");
     // Говорителят се маха от дървото — иначе микрофонът остава отворен.
     if (holder.current) holder.current.innerHTML = "";
     lastFocus.current?.focus?.();
   }
+
+  /**
+   * Десетте минути свършиха. Свалянето на говорителя от дървото затваря
+   * микрофона и връзката — оттам нататък ElevenLabs не брои нищо.
+   * Прозорецът НЕ се затваря: човекът трябва да прочете защо е спряло и да
+   * види къде е следващата стъпка.
+   */
+  const expire = useCallback(() => {
+    setLiveSince(null);
+    if (holder.current) holder.current.innerHTML = "";
+    setClosedText(VOICE_EXPIRED_TEXT);
+    setStep("closed");
+    track("voice_reception_limit_reached", { location: variant });
+  }, [variant]);
+
+  const clock = useVoiceLimit(limit, { startedAt: liveSince, onExpire: expire });
 
   /* --- Говорителят се зарежда веднъж за целия живот на страницата ------- */
   function ensureWidgetScript() {
@@ -125,10 +155,22 @@ export function VoiceReceptionButton({ variant = "hero" }: { variant?: "hero" | 
       const data = (await res.json()) as {
         agent_id?: string;
         variables?: Vars;
+        limit?: VoiceLimit;
         error?: string;
         spoken?: string;
         detail?: string;
       };
+
+      /**
+       * Изчерпан таван не е грешка в червено: човекът вече е в CRM-а и
+       * заслужава изход, а не съобщение за отказ. Затова 429 води до
+       * същия екран като изтеклото време — с линк към календара.
+       */
+      if (res.status === 429) {
+        setClosedText(data.spoken ?? "Гласовото демо е заето в момента.");
+        setStep("closed");
+        return;
+      }
 
       if (!res.ok || !data.agent_id) {
         setStep("form");
@@ -153,8 +195,10 @@ export function VoiceReceptionButton({ variant = "hero" }: { variant?: "hero" | 
         el.setAttribute("variant", "expanded");
         holder.current.appendChild(el);
       }
+      setLimit(data.limit ?? null);
+      setLiveSince(Date.now());
       setStep("live");
-      track("voice_reception_live", { location: variant });
+      track("voice_reception_live", { location: variant, seconds: data.limit?.seconds ?? null });
     } catch {
       setStep("form");
       setError("Няма връзка със сървъра. Пробвай пак.");
@@ -216,7 +260,35 @@ export function VoiceReceptionButton({ variant = "hero" }: { variant?: "hero" | 
               <X className="h-4 w-4" />
             </button>
 
-            {step === "live" ? (
+            {step === "closed" ? (
+              /* --- Времето изтече, или таванът е изчерпан ---------------- */
+              <div className="p-1 text-center">
+                <p className="text-3xl">📅</p>
+                <h3
+                  id="pm-voice-title"
+                  className="mt-3 text-[1.35rem] font-bold leading-[1.15] text-[var(--v2-ink)]"
+                  style={{ fontFamily: "var(--v2-font-display)" }}
+                >
+                  {closedText === VOICE_EXPIRED_TEXT ? VOICE_EXPIRED_TITLE : "Данните ти са при нас."}
+                </h3>
+                <p className="mx-auto mt-2.5 max-w-[22rem] text-sm leading-relaxed text-[var(--v2-muted)]">
+                  {closedText}
+                </p>
+                <a
+                  href="/booking"
+                  className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-[var(--v2-r-pill)] bg-[var(--v2-cyan)] py-3.5 text-sm font-bold text-[#04060d]"
+                >
+                  Запази час с Ивайло <ArrowRight className="h-4 w-4" />
+                </a>
+                <button
+                  type="button"
+                  onClick={close}
+                  className="mt-2.5 inline-flex w-full items-center justify-center rounded-[var(--v2-r-pill)] border border-[var(--v2-line)] py-3 text-sm font-semibold text-[var(--v2-muted)] transition hover:border-[var(--v2-line-bright)] hover:text-[var(--v2-ink)]"
+                >
+                  Затвори
+                </button>
+              </div>
+            ) : step === "live" ? (
               <div className="p-1">
                 <span className="v2-eyebrow inline-flex items-center gap-1.5">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--v2-cyan)]" /> На линия
@@ -232,6 +304,23 @@ export function VoiceReceptionButton({ variant = "hero" }: { variant?: "hero" | 
                   Коста знае кой си — не му диктувай имейл. Кажи му с какво се занимаваш и
                   го помоли да ти запише час. Прекъсни го насред изречение: спира и слуша.
                 </p>
+
+                {clock.left !== null && (
+                  <div
+                    className={`mt-4 flex items-center justify-between rounded-[14px] border px-3.5 py-2.5 text-sm ${
+                      clock.warning
+                        ? "border-amber-300/40 bg-[rgba(251,191,36,0.08)] text-amber-200"
+                        : "border-[var(--v2-line)] bg-[var(--v2-void)]/50 text-[var(--v2-muted)]"
+                    }`}
+                  >
+                    <span>
+                      {clock.warning
+                        ? "Остава малко — помоли го да ти запише часа."
+                        : "Демото е по десет минути на човек."}
+                    </span>
+                    <span className="font-mono tabular-nums text-base">{clock.label}</span>
+                  </div>
+                )}
 
                 <div ref={holder} className="mt-4" />
 

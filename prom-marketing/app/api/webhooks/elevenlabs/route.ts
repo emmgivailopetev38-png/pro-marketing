@@ -12,6 +12,7 @@ import {
   verifyElevenLabsSignature,
   type PostCallEvent,
 } from "@/lib/voice/postcall";
+import { closeVoiceSession } from "@/lib/voice/quota";
 
 export const dynamic = "force-dynamic";
 
@@ -112,6 +113,25 @@ export async function POST(request: Request) {
   } catch (err) {
     console.error("[webhooks/elevenlabs] crm хвърли", err);
   }
+
+  /**
+   * Тефтерът се затваря тук и това е единственото място, където изговорените
+   * минути стават известни. Дотук редът стои с `seconds = 0` — а личният
+   * таван от десет минути се брои точно по тази колона.
+   *
+   * Ключът `sesia` е пътувал с разговора като динамична променлива и се
+   * връща в същия payload; по телефона го няма и редът се сглобява по номер.
+   */
+  await closeVoiceSession({
+    sessionKey: ev.dynamic.sesia ?? null,
+    conversationId: ev.conversationId,
+    seconds: ev.durationSecs,
+    booked: ev.booked,
+    email,
+    phone,
+    contactId,
+    channel: ev.channel,
+  }).catch((e) => console.error("[webhooks/elevenlabs] тефтер", e));
 
   // Известието към Ивайло тръгва СЛЕД отговора — ElevenLabs чака 200, не Resend.
   after(async () => {
