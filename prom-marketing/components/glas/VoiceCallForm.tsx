@@ -20,7 +20,7 @@
    форма изглежда като капан.
 --------------------------------------------------------------------------- */
 
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   ArrowRight,
   Building2,
@@ -34,6 +34,12 @@ import {
 } from "lucide-react";
 import { track } from "@/lib/analytics/track";
 import { newEventId, track as pixelTrack } from "@/lib/meta/pixel-client";
+import {
+  useVoiceLimit,
+  VOICE_EXPIRED_TEXT,
+  VOICE_EXPIRED_TITLE,
+  type VoiceLimit,
+} from "@/components/voice/use-voice-limit";
 
 const WIDGET_SRC = "https://unpkg.com/@elevenlabs/convai-widget-embed";
 
@@ -62,6 +68,28 @@ export function VoiceCallForm({ location }: { location: string }) {
   const [business, setBusiness] = useState("");
 
   const holder = useRef<HTMLDivElement>(null);
+  const [limit, setLimit] = useState<VoiceLimit | null>(null);
+  /** Мигът, в който линията се отвори — от него тръгва отброяването. */
+  const [liveSince, setLiveSince] = useState<number | null>(null);
+
+  /**
+   * Свалянето на говорителя от дървото затваря микрофона и връзката —
+   * оттам нататък ElevenLabs не брои нищо. Затова тук е и спирането по
+   * време, и „затвори разговора" с бутон.
+   */
+  const hangUp = useCallback(() => {
+    if (holder.current) holder.current.innerHTML = "";
+  }, []);
+
+  const expire = useCallback(() => {
+    setLiveSince(null);
+    hangUp();
+    setClosedText(VOICE_EXPIRED_TEXT);
+    setStep("closed");
+    track("glas_voice_limit_reached", { location });
+  }, [hangUp, location]);
+
+  const clock = useVoiceLimit(limit, { startedAt: liveSince, onExpire: expire });
 
   /** Говорителят се зарежда веднъж за целия живот на страницата. */
   function ensureWidgetScript() {
@@ -101,6 +129,7 @@ export function VoiceCallForm({ location }: { location: string }) {
       const data = (await res.json()) as {
         agent_id?: string;
         variables?: Vars;
+        limit?: VoiceLimit;
         error?: string;
         spoken?: string;
       };
@@ -139,8 +168,10 @@ export function VoiceCallForm({ location }: { location: string }) {
         el.setAttribute("variant", "expanded");
         holder.current.appendChild(el);
       }
+      setLimit(data.limit ?? null);
+      setLiveSince(Date.now());
       setStep("live");
-      track("glas_voice_live", { location });
+      track("glas_voice_live", { location, seconds: data.limit?.seconds ?? null });
     } catch {
       setStep("form");
       setError("Няма връзка със сървъра. Пробвай пак.");
@@ -167,6 +198,23 @@ export function VoiceCallForm({ location }: { location: string }) {
           Коста знае кой си — не му диктувай имейл. Кажи му с какво се занимаваш и го помоли
           да ти запише час. Прекъсни го насред изречение: спира и слуша.
         </p>
+
+        {clock.left !== null && (
+          <div
+            className={`mt-4 flex items-center justify-between rounded-2xl border px-4 py-3 text-sm ${
+              clock.warning
+                ? "border-amber-300/40 bg-[rgba(251,191,36,0.08)] text-amber-200"
+                : "border-white/10 bg-[rgba(255,255,255,0.03)] text-slate-300"
+            }`}
+          >
+            <span>
+              {clock.warning
+                ? "Остава малко — помоли Коста да ти запише часа."
+                : "Демото е по десет минути на човек."}
+            </span>
+            <span className="font-mono tabular-nums text-base">{clock.label}</span>
+          </div>
+        )}
 
         <div ref={holder} className="mt-4" />
 
@@ -197,7 +245,9 @@ export function VoiceCallForm({ location }: { location: string }) {
     return (
       <div className="text-center">
         <p className="text-3xl">📅</p>
-        <h3 className="mt-3 text-xl font-bold text-white">Данните са при нас.</h3>
+        <h3 className="mt-3 text-xl font-bold text-white">
+          {closedText === VOICE_EXPIRED_TEXT ? VOICE_EXPIRED_TITLE : "Данните са при нас."}
+        </h3>
         <p className="mx-auto mt-2 max-w-sm text-sm text-slate-300">{closedText}</p>
         <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:justify-center">
           <a
