@@ -32,7 +32,7 @@ import Link from "next/link";
 import { SectionReveal } from "@/components/effects/SectionReveal";
 import { VoiceCallForm } from "@/components/glas/VoiceCallForm";
 
-const PRICE = { setup: "2 400 €", monthly: "290 €/мес." };
+const PRICE = { setup: "2 400 €", monthly: "от 290 €/мес." };
 
 const CALLS = [
   {
@@ -242,7 +242,11 @@ export function GlasLanding() {
               <p className="mt-3 text-3xl font-bold text-white">{PRICE.setup}</p>
               <p className="text-sm text-slate-400">внедряване — глас, сценарий, свързване с магазина и телефона</p>
               <p className="mt-4 text-3xl font-bold text-white">{PRICE.monthly}</p>
-              <p className="text-sm text-slate-400">абонамент — линията, минутите, поддръжката и подобренията</p>
+              <p className="text-sm text-slate-400">
+                абонамент „Старт“ — линията, до 300 минути разговори на месец, поддръжката и
+                подобренията. Над това 0,40 € на минута; при повече обаждания има „Растеж“ (1 000
+                мин.) и „Кол център“ (2 500 мин.).
+              </p>
               <p className="mt-4 text-xs leading-relaxed text-slate-500">
                 Сметката е проста: една пропусната поръчка на ден или пет фалшиви наложени платежа
                 седмично струват повече.

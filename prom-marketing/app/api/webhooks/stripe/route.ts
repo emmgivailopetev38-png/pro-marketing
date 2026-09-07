@@ -5,6 +5,8 @@ import { upsertPayment } from "@/lib/crm/repository";
 import { sendEmail } from "@/lib/email/resend";
 import { escapeHtml } from "@/lib/email/escape";
 import { CHECKOUT_PRODUCTS, isCheckoutProductId } from "@/lib/stripe/products";
+import { findPayLinkOffer } from "@/lib/stripe/pay-link-offer";
+import { setOfferStatus } from "@/lib/crm/repository";
 
 export const dynamic = "force-dynamic";
 
@@ -56,10 +58,19 @@ export async function POST(request: Request) {
   const currency = (session.currency ?? "eur").toUpperCase();
 
   const supabase = createServiceClient();
+  const viaVoice = session.metadata?.source === "voice_agent";
+  const payLinkId = session.metadata?.pay_link_id ?? null;
 
-  // Контакт по имейл (checkout-ът винаги събира имейл).
-  let contactId: string | null = null;
-  if (email) {
+  // Контакт по имейл (checkout-ът винаги събира имейл). Линкът от гласовия
+  // агент носи и картона в metadata — той печели, ако човекът е платил от
+  // друг имейл, отколкото е оставил на формата.
+  let contactId: string | null = session.metadata?.contact_id ?? null;
+  if (contactId) {
+    const { data: known } = await supabase.from("contacts").select("id").eq("id", contactId).maybeSingle();
+    if (known) await supabase.from("contacts").update({ stage: "client" }).eq("id", contactId);
+    else contactId = null;
+  }
+  if (!contactId && email) {
     const { data: existing } = await supabase
       .from("contacts")
       .select("id, stage, full_name")
@@ -90,11 +101,28 @@ export async function POST(request: Request) {
     await supabase.from("contact_activities").insert({
       contact_id: contactId,
       activity_type: "payment",
-      title: `💳 Плати ${amountEur} ${currency} · ${productName}`,
+      title: `💳 Плати ${amountEur} ${currency} · ${productName}${viaVoice ? " · затворено от гласовия агент" : ""}`,
       body: `Stripe Checkout · сесия ${session.id}`,
       created_by: "stripe_webhook",
-      metadata: { product: productId, amount: amountEur, currency, session_id: session.id },
+      metadata: { product: productId, amount: amountEur, currency, session_id: session.id, source: session.metadata?.source ?? null, pay_link_id: payLinkId },
     });
+  }
+
+  /**
+   * Офертата зад линка на гласовия агент става „приета“ — а това в CRM-а
+   * значи проект и чернова фактура, създадени веднъж. Така кръгът
+   * разговор → линк → плащане → работа се затваря без ръка на Ивайло.
+   */
+  if (payLinkId) {
+    try {
+      const offer = await findPayLinkOffer(payLinkId);
+      if (offer && offer.status !== "accepted") {
+        const r = await setOfferStatus({ id: offer.id, status: "accepted" });
+        if (r.error) console.error("[webhooks/stripe] offer accepted", r.error);
+      }
+    } catch (e) {
+      console.error("[webhooks/stripe] offer", e instanceof Error ? e.message : e);
+    }
   }
 
   // Счетоводен запис — dedupe по session id, за да са безопасни retry-ята.
@@ -119,7 +147,7 @@ export async function POST(request: Request) {
   if (adminTo) {
     sendEmail({
       to: adminTo,
-      subject: `💰 Ново плащане: ${amountEur} ${currency} · ${productName}`,
+      subject: `💰 Ново плащане: ${amountEur} ${currency} · ${productName}${viaVoice ? " · от гласовия агент" : ""}`,
       html: `<p><strong>${escapeHtml(fullName)}</strong> (${escapeHtml(email || "без имейл")}) плати <strong>${amountEur} ${currency}</strong> за „${escapeHtml(productName)}”.</p>
 ${contactId ? `<p><a href="https://promarketing.pw/admin/clients/${contactId}">Виж в CRM-а</a></p>` : ""}`,
       text: `${fullName} (${email}) плати ${amountEur} ${currency} за ${productName}.`,

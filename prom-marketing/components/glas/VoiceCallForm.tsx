@@ -354,9 +354,15 @@ export function VoiceCallForm({ location }: { location: string }) {
         </button>
       </form>
 
-      <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-slate-500">
-        <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" /> Разговорът е с AI и той сам ти го
-        казва. Нужен е микрофон.
+      <p className="mt-3 flex items-start justify-center gap-1.5 text-center text-xs leading-relaxed text-slate-500">
+        <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-300" />
+        <span>
+          Разговорът е с AI, записва се и Коста сам ти го казва. С натискането се съгласяваш с{" "}
+          <a href="/privacy" target="_blank" className="underline underline-offset-2 hover:text-slate-300">
+            политиката за поверителност
+          </a>
+          . Нужен е микрофон.
+        </span>
       </p>
     </div>
   );

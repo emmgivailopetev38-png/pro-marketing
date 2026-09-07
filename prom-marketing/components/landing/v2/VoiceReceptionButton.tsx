@@ -425,8 +425,12 @@ export function VoiceReceptionButton({ variant = "hero" }: { variant?: "hero" | 
                 </form>
 
                 <p className="mt-3 text-center text-[11px] leading-relaxed text-[var(--v2-faint)]">
-                  Разговорът е с AI и той сам ти го казва. Нужен е микрофон.
-                  Предпочиташ мълчаливо?{" "}
+                  Разговорът е с AI, записва се и Коста сам ти го казва. С натискането се
+                  съгласяваш с{" "}
+                  <a href="/privacy" target="_blank" className="underline underline-offset-2 hover:text-[var(--v2-muted)]">
+                    политиката за поверителност
+                  </a>
+                  . Нужен е микрофон. Предпочиташ мълчаливо?{" "}
                   <a href="/booking" className="underline underline-offset-2 hover:text-[var(--v2-muted)]">
                     Запази час от календара
                   </a>
