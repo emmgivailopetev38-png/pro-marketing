@@ -51,20 +51,23 @@ export async function POST(request: Request) {
 
   const email = (session.customer_details?.email ?? session.customer_email ?? "").toLowerCase();
   const fullName = session.customer_details?.name ?? "Stripe клиент";
+  // Checkout от ключа носи metadata; Payment Link носи само client_reference_id.
+  const payLinkId = session.metadata?.pay_link_id ?? session.client_reference_id ?? null;
+  const viaVoice = session.metadata?.source === "voice_agent" || Boolean(session.client_reference_id);
   const productId = session.metadata?.product ?? "";
   const product = isCheckoutProductId(productId) ? CHECKOUT_PRODUCTS[productId] : null;
-  const productName = product?.name ?? "Онлайн покупка";
+  // При Payment Link продуктът не е в metadata — името идва от офертата зад линка.
+  const linkedOffer = payLinkId ? await findPayLinkOffer(payLinkId).catch(() => null) : null;
+  const productName = product?.name ?? linkedOffer?.title ?? "Онлайн покупка";
   const amountEur = (session.amount_total ?? 0) / 100;
   const currency = (session.currency ?? "eur").toUpperCase();
 
   const supabase = createServiceClient();
-  const viaVoice = session.metadata?.source === "voice_agent";
-  const payLinkId = session.metadata?.pay_link_id ?? null;
 
   // Контакт по имейл (checkout-ът винаги събира имейл). Линкът от гласовия
   // агент носи и картона в metadata — той печели, ако човекът е платил от
   // друг имейл, отколкото е оставил на формата.
-  let contactId: string | null = session.metadata?.contact_id ?? null;
+  let contactId: string | null = session.metadata?.contact_id ?? linkedOffer?.contact_id ?? null;
   if (contactId) {
     const { data: known } = await supabase.from("contacts").select("id").eq("id", contactId).maybeSingle();
     if (known) await supabase.from("contacts").update({ stage: "client" }).eq("id", contactId);
@@ -115,7 +118,7 @@ export async function POST(request: Request) {
    */
   if (payLinkId) {
     try {
-      const offer = await findPayLinkOffer(payLinkId);
+      const offer = linkedOffer ?? (await findPayLinkOffer(payLinkId));
       if (offer && offer.status !== "accepted") {
         const r = await setOfferStatus({ id: offer.id, status: "accepted" });
         if (r.error) console.error("[webhooks/stripe] offer accepted", r.error);
