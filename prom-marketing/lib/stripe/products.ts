@@ -74,6 +74,14 @@ export const CHECKOUT_PRODUCTS = {
     successPath: "/plati/uspeh?p=glas",
     cancelPath: "/glas",
   },
+  "glas-kaparo-30": {
+    name: "Гласов AI агент · капаро 30%",
+    description:
+      "Капаро, с което запазвате мястото си и започва работата по вашия агент. Останалите 70% се плащат при предаване на работещия агент.",
+    priceEur: 720,
+    successPath: "/plati/uspeh?p=glas",
+    cancelPath: "/glas",
+  },
   "avtomatizacia-proces": {
     name: "AI автоматизация · един процес",
     description:
@@ -113,6 +121,7 @@ export const STRIPE_PAYMENT_LINKS: Partial<Record<CheckoutProductId, string>> = 
   // и пренасочване след плащане към /plati/uspeh?p=…
   "glas-vnedryavane": "https://buy.stripe.com/dRmdR936H2Yk65j6wg53O02",
   "glas-vnedryavane-70": "https://buy.stripe.com/9B614ngXxeH2gJX8Eo53O03",
+  "glas-kaparo-30": "https://buy.stripe.com/28E9ATdLl2Yk8drcUE53O06",
   "avtomatizacia-proces": "https://buy.stripe.com/14AdR9bDd1Ugalzf2M53O04",
   "crm-vnedryavane": "https://buy.stripe.com/bJe3cvePp0Qc65j1bW53O05",
 };
@@ -135,6 +144,7 @@ export function isStripeReadyFor(id: CheckoutProductId): boolean {
 export const VOICE_PAY_PRODUCTS = [
   "glas-vnedryavane",
   "glas-vnedryavane-70",
+  "glas-kaparo-30",
   "avtomatizacia-proces",
   "crm-vnedryavane",
 ] as const satisfies readonly CheckoutProductId[];

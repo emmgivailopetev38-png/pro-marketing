@@ -291,6 +291,8 @@ function speakProduct(p: VoicePayProductId): string {
       return "внедряването на гласовия агент";
     case "glas-vnedryavane-70":
       return "първата вноска за гласовия агент";
+    case "glas-kaparo-30":
+      return "капарото за гласовия агент";
     case "avtomatizacia-proces":
       return "автоматизацията на първия процес";
     case "crm-vnedryavane":
