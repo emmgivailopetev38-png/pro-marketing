@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { CHECKOUT_PRODUCTS } from "@/lib/stripe/products";
+import { CHECKOUT_PRODUCTS, paymentLinkFor } from "@/lib/stripe/products";
 import { siteOrigin, verifyPayToken } from "@/lib/stripe/pay-link";
 import { markPayLinkOpened } from "@/lib/stripe/pay-link-offer";
 
@@ -31,6 +31,21 @@ export async function GET(_request: Request, ctx: { params: Promise<{ token: str
   const product = CHECKOUT_PRODUCTS[payload.p];
 
   const key = process.env.STRIPE_SECRET_KEY;
+  const publicLink = paymentLinkFor(payload.p);
+
+  /**
+   * Без таен ключ, но с публичен Payment Link: пренасочваме към него с
+   * попълнен имейл и с нашия идентификатор в `client_reference_id` — така
+   * webhook-ът (ако е вързан) намира офертата, а човекът плаща веднага.
+   */
+  if (!key && publicLink) {
+    markPayLinkOpened(payload.id).catch((e) => console.error("[plati] opened", e));
+    const u = new URL(publicLink);
+    u.searchParams.set("prefilled_email", payload.e);
+    u.searchParams.set("client_reference_id", payload.id);
+    return NextResponse.redirect(u.toString(), 303);
+  }
+
   if (!key) {
     return page(
       "Плащането онлайн се активира.",

@@ -8,7 +8,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/resend";
 import { escapeHtml } from "@/lib/email/escape";
 import { sendTelegram } from "@/lib/notifications/telegram";
-import { CHECKOUT_PRODUCTS, VOICE_PAY_PRODUCTS, type VoicePayProductId } from "@/lib/stripe/products";
+import { CHECKOUT_PRODUCTS, VOICE_PAY_PRODUCTS, isStripeReadyFor, type VoicePayProductId } from "@/lib/stripe/products";
 import {
   PAY_LINK_DAYS,
   createPayToken,
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const stripeReady = Boolean(process.env.STRIPE_SECRET_KEY);
+  const stripeReady = isStripeReadyFor(d.produkt);
   const sb = createServiceClient();
   const since24 = new Date(Date.now() - 24 * 3600_000).toISOString();
 

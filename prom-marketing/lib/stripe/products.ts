@@ -99,6 +99,35 @@ export function isCheckoutProductId(v: string): v is CheckoutProductId {
 }
 
 /**
+ * Публичните Stripe Payment Links (buy.stripe.com/…) за услугите, които
+ * гласовият агент затваря. Не са тайна — това са адресите, които и без това
+ * стигат до клиента. С тях /plati/<token> работи и БЕЗ `STRIPE_SECRET_KEY`:
+ * пренасочва към линка с попълнен имейл и `client_reference_id` = id-то на
+ * нашия линк, по което webhook-ът после познава офертата.
+ *
+ * Правят се в Stripe → Payment Links (един продукт, еднократно, EUR, след
+ * плащане → пренасочване към promarketing.pw/plati/uspeh?p=…).
+ */
+export const STRIPE_PAYMENT_LINKS: Partial<Record<CheckoutProductId, string>> = {
+  // Създадени на 07.09.2026 в Stripe → Payment Links (Pro Marketing LTD), с „Collect full names“
+  // и пренасочване след плащане към /plati/uspeh?p=…
+  "glas-vnedryavane": "https://buy.stripe.com/dRmdR936H2Yk65j6wg53O02",
+  "glas-vnedryavane-70": "https://buy.stripe.com/9B614ngXxeH2gJX8Eo53O03",
+  "avtomatizacia-proces": "https://buy.stripe.com/14AdR9bDd1Ugalzf2M53O04",
+  "crm-vnedryavane": "https://buy.stripe.com/bJe3cvePp0Qc65j1bW53O05",
+};
+
+export function paymentLinkFor(id: CheckoutProductId): string | null {
+  const url = STRIPE_PAYMENT_LINKS[id];
+  return url && /^https:\/\/buy\.stripe\.com\//.test(url) ? url : null;
+}
+
+/** Има ли изобщо как да се плати онлайн този продукт — през ключ или през публичен линк. */
+export function isStripeReadyFor(id: CheckoutProductId): boolean {
+  return Boolean(process.env.STRIPE_SECRET_KEY) || paymentLinkFor(id) !== null;
+}
+
+/**
  * Само тези може да поиска гласовият агент. Списъкът е нарочно къс: агентът
  * продава едно нещо докрай, а останалото е за срещата. Курсовете и
  * менторството не са тук — те си имат страници и бутони.
