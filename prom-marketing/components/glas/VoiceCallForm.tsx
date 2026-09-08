@@ -29,7 +29,6 @@ import {
   Mail,
   Mic,
   Phone,
-  PhoneOutgoing,
   ShieldCheck,
   User,
 } from "lucide-react";
@@ -67,7 +66,7 @@ const BUSINESSES = [
 ];
 
 type Vars = Record<string, string>;
-type Step = "form" | "connecting" | "live" | "callback" | "closed";
+type Step = "form" | "connecting" | "live" | "closed";
 
 /** User agent-ът не се променя по време на живота на страницата. */
 function subscribeNever() {
@@ -103,12 +102,6 @@ export function VoiceCallForm({ location }: { location: string }) {
     () => false
   );
 
-  /** „Коста да ти звънне" — какво отговори сървърът на заявката за обаждане. */
-  const [cb, setCb] = useState<{ busy: boolean; text: string; mode: "calling" | "manual" | null }>({
-    busy: false,
-    text: "",
-    mode: null,
-  });
 
   /**
    * Свалянето на говорителя от дървото затваря микрофона и връзката —
@@ -155,43 +148,6 @@ export function VoiceCallForm({ location }: { location: string }) {
     };
   }, [step, session]);
 
-  /**
-   * Коста набира човека на телефона, който току-що е написал. Говорителят
-   * си отива в същия миг — две линии към един човек са две сметки.
-   */
-  async function requestCallback(reason: "mikrofon" | "izbor") {
-    if (cb.busy) return;
-    setCb({ busy: true, text: "", mode: null });
-    track("glas_callback_requested", { location, reason });
-    const fallback = "Звънни на +1 475 426 9084 или си запази час от календара.";
-    try {
-      const res = await fetch("/api/voice/public/callback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          email,
-          phone,
-          business: business || undefined,
-          channel: "reklama",
-          page: "/glas",
-          reason,
-        }),
-      });
-      const data = (await res.json().catch(() => ({}))) as { mode?: "calling" | "manual"; spoken?: string };
-      setLiveSince(null);
-      hangUp();
-      setCb({
-        busy: false,
-        mode: res.ok ? (data.mode ?? null) : null,
-        text: data.spoken ?? `Не успях да заявя обаждане. ${fallback}`,
-      });
-      setStep("callback");
-    } catch {
-      setCb({ busy: false, mode: null, text: `Няма връзка със сървъра. ${fallback}` });
-      setStep("callback");
-    }
-  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -276,7 +232,7 @@ export function VoiceCallForm({ location }: { location: string }) {
         <h3 className="mt-3 text-2xl font-bold leading-snug text-white">
           {inApp ? (
             <>
-              Остави Коста да ти <span className="text-cyan-300">звънне</span>
+              Запази си <span className="text-cyan-300">час</span> с Ивайло
             </>
           ) : (
             <>
@@ -293,17 +249,16 @@ export function VoiceCallForm({ location }: { location: string }) {
           <div className="mt-4 rounded-2xl border border-amber-300/40 bg-[rgba(251,191,36,0.08)] p-4 text-sm leading-relaxed text-amber-100">
             <p>
               Отворил си страницата във вградения браузър на Facebook или Instagram — там микрофонът
-              обикновено не тръгва. Най-сигурно е Коста да ти звънне.
+              обикновено не тръгва. Най-сигурно е да си запазиш час направо от календара на Ивайло:
+              двайсет минути, безплатно.
             </p>
-            <button
-              type="button"
-              onClick={() => requestCallback("mikrofon")}
-              disabled={cb.busy}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--color-accent-cyan)] px-6 py-3.5 font-bold text-[var(--color-bg-void)] disabled:opacity-50"
+            <a
+              href="/booking"
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--color-accent-cyan)] px-6 py-3.5 font-bold text-[var(--color-bg-void)]"
             >
-              {cb.busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <PhoneOutgoing className="h-5 w-5" />}
-              Коста да ми звънне на {phone}
-            </button>
+              <CalendarCheck className="h-5 w-5" />
+              Запази си час с Ивайло →
+            </a>
           </div>
         )}
 
@@ -327,15 +282,13 @@ export function VoiceCallForm({ location }: { location: string }) {
         <div ref={holder} className="mt-4" />
 
         {!inApp && (
-          <button
-            type="button"
-            onClick={() => requestCallback("izbor")}
-            disabled={cb.busy}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-white/15 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:border-cyan-400/50 disabled:opacity-50"
+          <a
+            href="/booking"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-white/15 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:border-cyan-400/50"
           >
-            {cb.busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <PhoneOutgoing className="h-4 w-4 text-cyan-300" />}
-            Микрофонът не тръгва? Коста да ти звънне на {phone}
-          </button>
+            <CalendarCheck className="h-4 w-4 text-cyan-300" />
+            Микрофонът не тръгва? Запази си час от календара →
+          </a>
         )}
 
         <div className="mt-4 rounded-2xl border border-white/10 bg-[rgba(255,255,255,0.03)] p-4">
@@ -356,24 +309,6 @@ export function VoiceCallForm({ location }: { location: string }) {
           </a>
           .
         </p>
-      </div>
-    );
-  }
-
-  /* --- Заявено обаждане ------------------------------------------------ */
-  if (step === "callback") {
-    return (
-      <div className="text-center">
-        <p className="text-3xl">{cb.mode === "calling" ? "📞" : "☎️"}</p>
-        <h3 className="mt-3 text-xl font-bold text-white">
-          {cb.mode === "calling" ? "Коста ти звъни" : cb.mode === "manual" ? "Ивайло ще ти звънне" : "Не се получи"}
-        </h3>
-        <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-slate-300">{cb.text}</p>
-        <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:justify-center">
-          <a href="/booking" className="rounded-full border border-white/20 px-6 py-3 font-semibold text-slate-200">
-            Или запази час от календара →
-          </a>
-        </div>
       </div>
     );
   }
