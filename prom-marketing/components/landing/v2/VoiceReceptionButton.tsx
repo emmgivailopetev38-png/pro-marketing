@@ -32,6 +32,16 @@ import {
 
 const WIDGET_SRC = "https://unpkg.com/@elevenlabs/convai-widget-embed";
 
+/** Говорителят се зарежда веднъж за целия живот на страницата. */
+function ensureWidgetScript() {
+  if (document.querySelector(`script[src="${WIDGET_SRC}"]`)) return;
+  const s = document.createElement("script");
+  s.src = WIDGET_SRC;
+  s.async = true;
+  s.type = "text/javascript";
+  document.body.appendChild(s);
+}
+
 type Vars = Record<string, string>;
 type Step = "form" | "connecting" | "live" | "closed";
 
@@ -44,6 +54,8 @@ export function VoiceReceptionButton({ variant = "hero" }: { variant?: "hero" | 
   const [closedText, setClosedText] = useState("");
   /** Мигът, в който линията се отвори — от него тръгва отброяването. */
   const [liveSince, setLiveSince] = useState<number | null>(null);
+  /** Кой агент и с кои данни — говорителят се създава от ефекта по-долу. */
+  const [session, setSession] = useState<{ agentId: string; variables: Vars | null } | null>(null);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -108,6 +120,7 @@ export function VoiceReceptionButton({ variant = "hero" }: { variant?: "hero" | 
     setLimit(null);
     setLiveSince(null);
     setClosedText("");
+    setSession(null);
     // Говорителят се маха от дървото — иначе микрофонът остава отворен.
     if (holder.current) holder.current.innerHTML = "";
     lastFocus.current?.focus?.();
@@ -129,15 +142,31 @@ export function VoiceReceptionButton({ variant = "hero" }: { variant?: "hero" | 
 
   const clock = useVoiceLimit(limit, { startedAt: liveSince, onExpire: expire });
 
-  /* --- Говорителят се зарежда веднъж за целия живот на страницата ------- */
-  function ensureWidgetScript() {
-    if (document.querySelector(`script[src="${WIDGET_SRC}"]`)) return;
-    const s = document.createElement("script");
-    s.src = WIDGET_SRC;
-    s.async = true;
-    s.type = "text/javascript";
-    document.body.appendChild(s);
-  }
+  /**
+   * Говорителят се закача СЛЕД като стъпката „live" е рендерирана.
+   *
+   * До 08.09.2026 се създаваше вътре в `submit`, докато `holder` още сочеше
+   * към нищо: контейнерът е част от JSX-а на „live" и не съществува, преди
+   * `setStep("live")` да мине. `if (holder.current)` мълчаливо прескачаше и
+   * говорителят никога не се появяваше — нито в героя, нито на /glas.
+   */
+  useEffect(() => {
+    if (step !== "live" || !session || !holder.current) return;
+    ensureWidgetScript();
+    const host = holder.current;
+    host.innerHTML = "";
+    const el = document.createElement("elevenlabs-convai");
+    // Идентификаторът, не подписан адрес: агентът е публичен и се пази с
+    // allowlist за promarketing.pw. Виж /api/voice/public/session.
+    el.setAttribute("agent-id", session.agentId);
+    // Агентът знае кой е насреща — затова не пита за имейл на глас.
+    if (session.variables) el.setAttribute("dynamic-variables", JSON.stringify(session.variables));
+    el.setAttribute("variant", "expanded");
+    host.appendChild(el);
+    return () => {
+      host.innerHTML = "";
+    };
+  }, [step, session]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -183,18 +212,7 @@ export function VoiceReceptionButton({ variant = "hero" }: { variant?: "hero" | 
         return;
       }
 
-      ensureWidgetScript();
-      if (holder.current) {
-        holder.current.innerHTML = "";
-        const el = document.createElement("elevenlabs-convai");
-        // Идентификаторът, не подписан адрес: агентът е публичен и се пази с
-        // allowlist за този домейн. Виж коментара в /api/voice/public/session.
-        el.setAttribute("agent-id", data.agent_id);
-        // Агентът знае кой е насреща — затова не пита за имейл на глас.
-        if (data.variables) el.setAttribute("dynamic-variables", JSON.stringify(data.variables));
-        el.setAttribute("variant", "expanded");
-        holder.current.appendChild(el);
-      }
+      setSession({ agentId: data.agent_id, variables: data.variables ?? null });
       setLimit(data.limit ?? null);
       setLiveSince(Date.now());
       setStep("live");
