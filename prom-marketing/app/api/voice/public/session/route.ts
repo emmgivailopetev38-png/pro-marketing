@@ -6,6 +6,7 @@ import { sendEmail } from "@/lib/email/resend";
 import { isCapiConfigured, sendCapiEvent } from "@/lib/meta/conversions-api";
 import { sendTelegram } from "@/lib/notifications/telegram";
 import { checkVoiceBudget, isPublicVoiceEnabled, VOICE_WEB_ACTIVITY } from "@/lib/voice/public-auth";
+import { isOutboundConfigured } from "@/lib/voice/outbound";
 import { clientIp, openVoiceSession } from "@/lib/voice/quota";
 
 export const dynamic = "force-dynamic";
@@ -67,7 +68,16 @@ ${d.page ? `<tr><td style="padding:3px 12px 3px 0;color:#6b7772">Страниц�
 </div>`;
   const text = `Гласов лийд ${from}\nИме: ${d.name}\nТелефон: ${d.phone}\nИмейл: ${d.email}${d.business ? `\nДейност: ${d.business}` : ""}${d.page ? `\nСтраница: ${d.page}` : ""}\n\nCRM: ${crm}`;
   const tg = `🎙️ <b>${d.name.replace(/</g, "&lt;")}</b> отвори гласовия агент ${from}\n☎️ ${d.phone}${d.business ? `\n🏢 ${d.business.replace(/</g, "&lt;")}` : ""}\n<a href="${crm}">Картонът</a>`;
-  await Promise.all([sendEmail({ to, subject, html, text }), sendTelegram(tg)]);
+  const [mail] = await Promise.all([sendEmail({ to, subject, html, text }), sendTelegram(tg)]);
+  if (mail.error) {
+    /**
+     * Четири лийда от рекламата (04–07.09.2026) останаха без имейл, а Ивайло
+     * ги видя чак в сутрешния отчет. Resend не е Telegram — когато мълчи,
+     * поне Telegram казва, че е мълчал, и с кого.
+     */
+    console.error("[voice/public/session] имейлът не тръгна", mail.error);
+    await sendTelegram(`⚠️ Имейлът за гласовия лийд ${d.name.replace(/</g, "&lt;")} (${d.phone}) не тръгна: ${mail.error.replace(/</g, "&lt;")}`);
+  }
 }
 
 /** `_fbp`/`_fbc` са бисквитки на пиксела на същия домейн — четат се от заявката. */
@@ -136,8 +146,9 @@ export async function POST(request: Request) {
    * НЕ е fire-and-forget без `await` — така изчезнаха известията за лийдовете
    * от сайта през август.
    */
+  const notify = notifyOwner(d, channel, contactId).catch((e) => console.error("[voice/public/session] notify", e));
   after(async () => {
-    await notifyOwner(d, channel, contactId).catch((e) => console.error("[voice/public/session] notify", e));
+    await notify;
   });
 
   /**
@@ -200,6 +211,13 @@ export async function POST(request: Request) {
   const minutes = Math.max(1, Math.floor(seat.seconds / 60));
 
   /**
+   * Известието тръгна още при записа на лийда; тук само го изчакваме до две
+   * секунди и половина, за да е пратено ПРЕДИ отговора. Ако Resend се бави
+   * повече — `after()` по-горе го довършва, а човекът не чака.
+   */
+  await Promise.race([notify, new Promise<void>((r) => setTimeout(r, 2500))]);
+
+  /**
    * Връща се ИДЕНТИФИКАТОРЪТ на агента, не подписан адрес — и това е
    * съзнателна размяна, направена на 03.09.2026.
    *
@@ -216,6 +234,8 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: true,
     agent_id: agentId,
+    /** Може ли Коста да набере човека, ако микрофонът не тръгне. */
+    callback: isOutboundConfigured(),
     /**
      * Таймерът за браузъра. Той е ИСТИНСКОТО спиране: ElevenLabs таксува
      * свързаното време, а единственият, който може да затвори линията, е
