@@ -209,12 +209,17 @@ ${excerpt.map((l) => `${l.role === "agent" ? "Агент" : "Клиент"}: ${l
 
 Картонът: ${crm}`;
 
-  await Promise.all([
+  const [mail] = await Promise.all([
     sendEmail({ to, subject, html, text }),
     sendTelegram(
       `🎙️ <b>${esc(who)}</b> говори с агента ${where} · ${c.minutes} мин${ev.booked ? " · ✅ записа си час" : ""}\n${esc(ev.summary ?? "без резюме")}\n<a href="${crm}">Картонът</a>`
     ),
   ]);
+  if (mail.error) {
+    // Разговорът вече е в картона; тук само казваме, че писмото не е стигнало.
+    console.error("[webhooks/elevenlabs] имейлът не тръгна", mail.error);
+    await sendTelegram(`⚠️ Имейлът за разговора с ${esc(who)} не тръгна: ${esc(mail.error)}. Разговорът е в картона: ${crm}`);
+  }
 }
 
 function esc(s: string): string {

@@ -20,7 +20,7 @@
    форма изглежда като капан.
 --------------------------------------------------------------------------- */
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useSyncExternalStore } from "react";
 import {
   ArrowRight,
   Building2,
@@ -29,10 +29,12 @@ import {
   Mail,
   Mic,
   Phone,
+  PhoneOutgoing,
   ShieldCheck,
   User,
 } from "lucide-react";
 import { track } from "@/lib/analytics/track";
+import { isInAppBrowser } from "@/lib/voice/in-app-browser";
 import { newEventId, track as pixelTrack } from "@/lib/meta/pixel-client";
 import {
   useVoiceLimit,
@@ -55,7 +57,12 @@ const BUSINESSES = [
 ];
 
 type Vars = Record<string, string>;
-type Step = "form" | "connecting" | "live" | "closed";
+type Step = "form" | "connecting" | "live" | "callback" | "closed";
+
+/** User agent-ът не се променя по време на живота на страницата. */
+function subscribeNever() {
+  return () => {};
+}
 
 export function VoiceCallForm({ location }: { location: string }) {
   const [step, setStep] = useState<Step>("form");
@@ -71,6 +78,25 @@ export function VoiceCallForm({ location }: { location: string }) {
   const [limit, setLimit] = useState<VoiceLimit | null>(null);
   /** Мигът, в който линията се отвори — от него тръгва отброяването. */
   const [liveSince, setLiveSince] = useState<number | null>(null);
+
+  /**
+   * Вграденият браузър на Facebook/Instagram не дава микрофон на страницата.
+   * Сървърът винаги казва „не" (там `navigator` няма), а клиентът отговаря
+   * след хидратацията — така HTML-ът от сървъра и първият клиентски рендер
+   * съвпадат, без setState в effect.
+   */
+  const inApp = useSyncExternalStore(
+    subscribeNever,
+    () => isInAppBrowser(navigator.userAgent),
+    () => false
+  );
+
+  /** „Коста да ти звънне" — какво отговори сървърът на заявката за обаждане. */
+  const [cb, setCb] = useState<{ busy: boolean; text: string; mode: "calling" | "manual" | null }>({
+    busy: false,
+    text: "",
+    mode: null,
+  });
 
   /**
    * Свалянето на говорителя от дървото затваря микрофона и връзката —
@@ -90,6 +116,44 @@ export function VoiceCallForm({ location }: { location: string }) {
   }, [hangUp, location]);
 
   const clock = useVoiceLimit(limit, { startedAt: liveSince, onExpire: expire });
+
+  /**
+   * Коста набира човека на телефона, който току-що е написал. Говорителят
+   * си отива в същия миг — две линии към един човек са две сметки.
+   */
+  async function requestCallback(reason: "mikrofon" | "izbor") {
+    if (cb.busy) return;
+    setCb({ busy: true, text: "", mode: null });
+    track("glas_callback_requested", { location, reason });
+    const fallback = "Звънни на +1 475 426 9084 или си запази час от календара.";
+    try {
+      const res = await fetch("/api/voice/public/callback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email,
+          phone,
+          business: business || undefined,
+          channel: "reklama",
+          page: "/glas",
+          reason,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { mode?: "calling" | "manual"; spoken?: string };
+      setLiveSince(null);
+      hangUp();
+      setCb({
+        busy: false,
+        mode: res.ok ? (data.mode ?? null) : null,
+        text: data.spoken ?? `Не успях да заявя обаждане. ${fallback}`,
+      });
+      setStep("callback");
+    } catch {
+      setCb({ busy: false, mode: null, text: `Няма връзка със сървъра. ${fallback}` });
+      setStep("callback");
+    }
+  }
 
   /** Говорителят се зарежда веднъж за целия живот на страницата. */
   function ensureWidgetScript() {
@@ -192,12 +256,38 @@ export function VoiceCallForm({ location }: { location: string }) {
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300" /> На линия
         </span>
         <h3 className="mt-3 text-2xl font-bold leading-snug text-white">
-          Натисни микрофона и <span className="text-cyan-300">говори</span>
+          {inApp ? (
+            <>
+              Остави Коста да ти <span className="text-cyan-300">звънне</span>
+            </>
+          ) : (
+            <>
+              Натисни микрофона и <span className="text-cyan-300">говори</span>
+            </>
+          )}
         </h3>
         <p className="mt-2 text-sm leading-relaxed text-slate-300">
           Коста знае кой си — не му диктувай имейл. Кажи му с какво се занимаваш и го помоли
           да ти запише час. Прекъсни го насред изречение: спира и слуша.
         </p>
+
+        {inApp && (
+          <div className="mt-4 rounded-2xl border border-amber-300/40 bg-[rgba(251,191,36,0.08)] p-4 text-sm leading-relaxed text-amber-100">
+            <p>
+              Отворил си страницата във вградения браузър на Facebook или Instagram — там микрофонът
+              обикновено не тръгва. Най-сигурно е Коста да ти звънне.
+            </p>
+            <button
+              type="button"
+              onClick={() => requestCallback("mikrofon")}
+              disabled={cb.busy}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--color-accent-cyan)] px-6 py-3.5 font-bold text-[var(--color-bg-void)] disabled:opacity-50"
+            >
+              {cb.busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <PhoneOutgoing className="h-5 w-5" />}
+              Коста да ми звънне на {phone}
+            </button>
+          </div>
+        )}
 
         {clock.left !== null && (
           <div
@@ -218,6 +308,18 @@ export function VoiceCallForm({ location }: { location: string }) {
 
         <div ref={holder} className="mt-4" />
 
+        {!inApp && (
+          <button
+            type="button"
+            onClick={() => requestCallback("izbor")}
+            disabled={cb.busy}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-white/15 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:border-cyan-400/50 disabled:opacity-50"
+          >
+            {cb.busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <PhoneOutgoing className="h-4 w-4 text-cyan-300" />}
+            Микрофонът не тръгва? Коста да ти звънне на {phone}
+          </button>
+        )}
+
         <div className="mt-4 rounded-2xl border border-white/10 bg-[rgba(255,255,255,0.03)] p-4">
           <strong className="block font-mono text-[11px] uppercase tracking-[0.2em] text-cyan-300">
             Пробвай с
@@ -236,6 +338,24 @@ export function VoiceCallForm({ location }: { location: string }) {
           </a>
           .
         </p>
+      </div>
+    );
+  }
+
+  /* --- Заявено обаждане ------------------------------------------------ */
+  if (step === "callback") {
+    return (
+      <div className="text-center">
+        <p className="text-3xl">{cb.mode === "calling" ? "📞" : "☎️"}</p>
+        <h3 className="mt-3 text-xl font-bold text-white">
+          {cb.mode === "calling" ? "Коста ти звъни" : cb.mode === "manual" ? "Ивайло ще ти звънне" : "Не се получи"}
+        </h3>
+        <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-slate-300">{cb.text}</p>
+        <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:justify-center">
+          <a href="/booking" className="rounded-full border border-white/20 px-6 py-3 font-semibold text-slate-200">
+            Или запази час от календара →
+          </a>
+        </div>
       </div>
     );
   }
