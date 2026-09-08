@@ -20,7 +20,7 @@
    форма изглежда като капан.
 --------------------------------------------------------------------------- */
 
-import { useCallback, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   ArrowRight,
   Building2,
@@ -44,6 +44,16 @@ import {
 } from "@/components/voice/use-voice-limit";
 
 const WIDGET_SRC = "https://unpkg.com/@elevenlabs/convai-widget-embed";
+
+/** Говорителят се зарежда веднъж за целия живот на страницата. */
+function ensureWidgetScript() {
+  if (document.querySelector(`script[src="${WIDGET_SRC}"]`)) return;
+  const s = document.createElement("script");
+  s.src = WIDGET_SRC;
+  s.async = true;
+  s.type = "text/javascript";
+  document.body.appendChild(s);
+}
 
 /** Падащото меню е по-бързо от писане на телефон и дава чист текст на агента. */
 const BUSINESSES = [
@@ -78,6 +88,8 @@ export function VoiceCallForm({ location }: { location: string }) {
   const [limit, setLimit] = useState<VoiceLimit | null>(null);
   /** Мигът, в който линията се отвори — от него тръгва отброяването. */
   const [liveSince, setLiveSince] = useState<number | null>(null);
+  /** Кой агент и с кои данни — говорителят се създава от ефекта по-долу. */
+  const [session, setSession] = useState<{ agentId: string; variables: Vars | null } | null>(null);
 
   /**
    * Вграденият браузър на Facebook/Instagram не дава микрофон на страницата.
@@ -118,6 +130,32 @@ export function VoiceCallForm({ location }: { location: string }) {
   const clock = useVoiceLimit(limit, { startedAt: liveSince, onExpire: expire });
 
   /**
+   * Говорителят се закача СЛЕД като стъпката „live" е рендерирана.
+   *
+   * До 08.09.2026 се създаваше вътре в `submit`, докато `holder` още сочеше
+   * към нищо: контейнерът е част от JSX-а на „live" и не съществува, преди
+   * `setStep("live")` да мине. `if (holder.current)` мълчаливо прескачаше и
+   * говорителят никога не се появяваше — нито на /glas, нито в героя.
+   */
+  useEffect(() => {
+    if (step !== "live" || !session || !holder.current) return;
+    ensureWidgetScript();
+    const host = holder.current;
+    host.innerHTML = "";
+    const el = document.createElement("elevenlabs-convai");
+    // Идентификаторът, не подписан адрес: агентът е публичен и се пази с
+    // allowlist за promarketing.pw. Виж /api/voice/public/session.
+    el.setAttribute("agent-id", session.agentId);
+    // Агентът знае кой е насреща — затова не пита за имейл на глас.
+    if (session.variables) el.setAttribute("dynamic-variables", JSON.stringify(session.variables));
+    el.setAttribute("variant", "expanded");
+    host.appendChild(el);
+    return () => {
+      host.innerHTML = "";
+    };
+  }, [step, session]);
+
+  /**
    * Коста набира човека на телефона, който току-що е написал. Говорителят
    * си отива в същия миг — две линии към един човек са две сметки.
    */
@@ -153,16 +191,6 @@ export function VoiceCallForm({ location }: { location: string }) {
       setCb({ busy: false, mode: null, text: `Няма връзка със сървъра. ${fallback}` });
       setStep("callback");
     }
-  }
-
-  /** Говорителят се зарежда веднъж за целия живот на страницата. */
-  function ensureWidgetScript() {
-    if (document.querySelector(`script[src="${WIDGET_SRC}"]`)) return;
-    const s = document.createElement("script");
-    s.src = WIDGET_SRC;
-    s.async = true;
-    s.type = "text/javascript";
-    document.body.appendChild(s);
   }
 
   async function submit(e: React.FormEvent) {
@@ -221,17 +249,7 @@ export function VoiceCallForm({ location }: { location: string }) {
 
       pixelTrack("Lead", { eventID: eventId, params: { content_name: "glas_reklama" } });
 
-      ensureWidgetScript();
-      if (holder.current) {
-        holder.current.innerHTML = "";
-        const el = document.createElement("elevenlabs-convai");
-        // Идентификаторът, не подписан адрес: агентът е публичен и се пази с
-        // allowlist за promarketing.pw. Виж /api/voice/public/session.
-        el.setAttribute("agent-id", data.agent_id);
-        if (data.variables) el.setAttribute("dynamic-variables", JSON.stringify(data.variables));
-        el.setAttribute("variant", "expanded");
-        holder.current.appendChild(el);
-      }
+      setSession({ agentId: data.agent_id, variables: data.variables ?? null });
       setLimit(data.limit ?? null);
       setLiveSince(Date.now());
       setStep("live");
