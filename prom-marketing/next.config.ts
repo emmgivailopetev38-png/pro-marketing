@@ -64,6 +64,8 @@ const nextConfig: NextConfig = {
       // Самостоятелна статична страница (Велко) — обслужва се от public/velko/index.html.
       // Скоупната само за /velko; не засяга нито един app/CRM маршрут.
       { source: "/velko", destination: "/velko/index.html" },
+      // Демото за Арт Сувенири (Бургас) е статична страница — виж /oferta/art-suveniri.
+      { source: "/oferta/art-suveniri/demo", destination: "/oferta/art-suveniri/demo/index.html" },
     ];
   },
 
