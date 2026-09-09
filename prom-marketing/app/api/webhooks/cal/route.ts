@@ -143,24 +143,39 @@ export async function POST(request: Request) {
   // Only fire on the first creation, not on reschedules/cancellations.
   if (triggerEvent === "BOOKING_CREATED" && isCapiConfigured()) {
     const [firstName, ...rest] = (row.attendee_name ?? "").split(/\s+/);
-    void sendCapiEvent({
-      event_name: "CompleteRegistration",
-      event_id: `cal_${row.cal_booking_id}`,
-      event_source_url: `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/`,
-      action_source: "website",
-      user_data: {
-        email: row.attendee_email,
-        phone: row.attendee_phone,
-        firstName,
-        lastName: rest.join(" ") || null,
-        external_id: row.cal_booking_id,
-      },
-      custom_data: {
-        content_name: "Cal.com consultation",
-        content_category: "lead",
-        status: row.status,
-      },
-    });
+    const user_data = {
+      email: row.attendee_email,
+      phone: row.attendee_phone,
+      firstName,
+      lastName: rest.join(" ") || null,
+      external_id: row.cal_booking_id,
+    };
+    const custom_data = {
+      content_name: "Cal.com consultation",
+      content_category: "lead",
+      status: row.status,
+    };
+    // Three events, one booking. The event ids match the ones the browser
+    // sends from trackBookingSuccess (lib/cal/embed), so Meta deduplicates
+    // each pair instead of counting the booking twice.
+    //   Schedule — the clean "meeting booked" number.
+    //   Lead     — what the ad sets optimise on; it carries the volume history.
+    //   CompleteRegistration — kept, so the existing event history stays intact.
+    const events: Array<[string, string]> = [
+      ["Schedule", `cal_sched_${row.cal_booking_id}`],
+      ["Lead", `cal_lead_${row.cal_booking_id}`],
+      ["CompleteRegistration", `cal_${row.cal_booking_id}`],
+    ];
+    for (const [event_name, event_id] of events) {
+      void sendCapiEvent({
+        event_name,
+        event_id,
+        event_source_url: `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/booking`,
+        action_source: "website",
+        user_data,
+        custom_data,
+      });
+    }
   }
 
   return NextResponse.json({ ok: true });

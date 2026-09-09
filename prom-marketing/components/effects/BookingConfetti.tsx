@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 import confetti from "canvas-confetti";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
-import { track } from "@/lib/meta/pixel-client";
+import { trackBookingSuccess } from "@/lib/cal/embed";
 
 export function BookingConfetti() {
   const reduced = useReducedMotion();
@@ -22,10 +22,8 @@ export function BookingConfetti() {
     const onMessage = (e: MessageEvent) => {
       const data = e.data as { type?: string };
       if (data?.type === "bookingSuccessful" || data?.type === "calcom:booking_successful") {
-        // Always send the conversion event — confetti is the cherry on top.
-        track("CompleteRegistration", {
-          params: { content_name: "Cal.com booking confirmed", status: "confirmed" },
-        });
+        // Always send the conversion events — confetti is the cherry on top.
+        trackBookingSuccess(e.data);
         fire();
       }
     };
