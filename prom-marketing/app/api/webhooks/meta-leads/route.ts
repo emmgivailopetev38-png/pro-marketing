@@ -61,6 +61,28 @@ interface MetaLeadDetail {
   field_data: MetaLeadFieldData[];
 }
 
+/** Стандартните полета вече са извадени поотделно — тук остават отговорите на
+ *  въпросите от формата, които казват КАКВО иска човекът. Без тях сегментиращата
+ *  форма върши работа само в Leads Center, а картонът в CRM-а остава празен. */
+const STANDARD_LEAD_FIELDS = new Set([
+  "email", "email_address", "phone_number", "phone", "full_name", "name",
+  "first_name", "last_name", "city", "state", "country", "zip", "post_code",
+]);
+
+function formatFormAnswers(fieldData: MetaLeadFieldData[]): string[] {
+  const lines: string[] = [];
+  for (const f of fieldData ?? []) {
+    const key = (f.name ?? "").toLowerCase();
+    if (!key || STANDARD_LEAD_FIELDS.has(key)) continue;
+    const value = (f.values ?? []).filter(Boolean).join(", ").trim();
+    if (!value) continue;
+    // Ключът идва от Meta като етикета на въпроса с долни черти вместо интервали.
+    const label = (f.name ?? "").replace(/_/g, " ").trim();
+    lines.push(`${label}: ${value}`);
+  }
+  return lines;
+}
+
 async function fetchLeadDetail(leadgenId: string, pageAccessToken: string): Promise<MetaLeadDetail | null> {
   const fields = [
     "id", "created_time", "ad_id", "ad_name", "adset_id", "adset_name",
@@ -185,7 +207,13 @@ async function processLead(leadgenId: string, formId: string | null) {
     contact_id: contactId,
     activity_type: "meta_lead",
     title: `Meta lead · ${detail.campaign_name ?? detail.ad_name ?? "Lead Form"}`,
-    body: detail.ad_name ? `Реклама: ${detail.ad_name}` : null,
+    body: [
+      detail.ad_name ? `Реклама: ${detail.ad_name}` : null,
+      ...(() => {
+        const answers = formatFormAnswers(detail.field_data);
+        return answers.length ? ["", "— От формата —", ...answers] : [];
+      })(),
+    ].filter((l) => l !== null).join("\n") || null,
     occurred_at: detail.created_time,
     metadata: {
       meta_lead_id: leadgenId,
@@ -260,7 +288,11 @@ async function processLead(leadgenId: string, formId: string | null) {
 </table>
 <p style="margin-top:18px;">📊 <a href="https://promarketing.pw/admin/clients/${contactId}">Виж в CRM-а</a></p>
 </div>`,
-      text: `Нов Meta lead:\nИме: ${fullName ?? "—"}\nИмейл: ${email ?? "—"}\nТелефон: ${phone ?? "—"}\nКампания: ${detail.campaign_name ?? "—"}\nРеклама: ${detail.ad_name ?? "—"}\n\nCRM: https://promarketing.pw/admin/clients/${contactId}`,
+      text: `Нов Meta lead:\nИме: ${fullName ?? "—"}\nИмейл: ${email ?? "—"}\nТелефон: ${phone ?? "—"}\nКампания: ${detail.campaign_name ?? "—"}\nРеклама: ${detail.ad_name ?? "—"}${
+        formatFormAnswers(detail.field_data).length
+          ? `\n\nОт формата:\n${formatFormAnswers(detail.field_data).join("\n")}`
+          : ""
+      }\n\nCRM: https://promarketing.pw/admin/clients/${contactId}`,
     }).catch(() => {});
   }
 
