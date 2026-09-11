@@ -45,3 +45,6 @@ next-env.d.ts
 
 .vercel
 .env*.local
+
+# Изходът на scripts/seo/compare.py — снимка, не изходен код.
+scripts/seo/compare.json
