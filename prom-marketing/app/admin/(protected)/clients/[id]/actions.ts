@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/service";
 import { requireAdmin } from "@/lib/admin/require-admin";
 import { CONTACT_STAGES, type ContactStage } from "@/lib/contacts/types";
+import { SOCIAL_NETWORKS, normalizeSocialValue, type SocialLinks } from "@/lib/contacts/social";
 
 export async function updateStageAction(formData: FormData) {
   const email = await requireAdmin();
@@ -44,6 +45,14 @@ export async function updateContactFieldsAction(formData: FormData) {
   const followupRaw = String(formData.get("next_followup_at") ?? "").trim();
   const followup = followupRaw ? new Date(followupRaw).toISOString() : null;
 
+  // Мрежите идват като отделни полета („social_instagram"), а се пазят в един
+  // jsonb. Празно поле маха мрежата — така сгрешен линк се чисти на място.
+  const socialLinks: SocialLinks = {};
+  for (const net of SOCIAL_NETWORKS) {
+    const url = normalizeSocialValue(net.key, formData.get(`social_${net.key}`));
+    if (url) socialLinks[net.key] = url;
+  }
+
   const svc = createServiceClient();
   await svc
     .from("contacts")
@@ -53,6 +62,7 @@ export async function updateContactFieldsAction(formData: FormData) {
       notes,
       deal_value_eur: Number.isFinite(dealValue ?? NaN) ? dealValue : null,
       next_followup_at: followup,
+      social_links: socialLinks,
     })
     .eq("id", contactId);
 
