@@ -22,6 +22,7 @@ const DISALLOW = [
   "/oferta/",
   "/prezentacia/",
   "/razgovorat/",
+  "/pregled/",
   "/pitch",
   "/webinar",
   "/trading",
@@ -59,7 +60,7 @@ export default function robots(): MetadataRoute.Robots {
       ...AI_CRAWLERS.map((userAgent) => ({
         userAgent,
         allow: "/",
-        disallow: ["/admin", "/api/", "/oferta/", "/prezentacia/", "/razgovorat/"],
+        disallow: ["/admin", "/api/", "/oferta/", "/prezentacia/", "/razgovorat/", "/pregled/"],
       })),
       // Скрейпъри за чужди SEO инструменти — ядат ресурс, не носят клиенти.
       { userAgent: ["SemrushBot", "AhrefsBot", "MJ12bot", "DotBot", "PetalBot"], disallow: "/" },
