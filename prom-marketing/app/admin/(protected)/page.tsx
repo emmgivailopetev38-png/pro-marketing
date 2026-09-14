@@ -17,6 +17,13 @@ import { KpiCard } from "@/components/admin/KpiCard";
 import { RadialGauge } from "@/components/admin/RadialGauge";
 import { CommandCore } from "@/components/admin/CommandCore";
 import { formatMoney } from "@/lib/crm/labels";
+import {
+  isBillableInvoice,
+  isUnpaidInvoice,
+  signedAmount,
+  paidByInvoice,
+  invoiceOutstanding,
+} from "@/lib/crm/accounting-metrics";
 import { PipelineBars } from "@/components/admin/charts/PipelineBars";
 import { DonutChart } from "@/components/admin/charts/DonutChart";
 import { Sparkline, type SparklinePoint } from "@/components/admin/charts/Sparkline";
@@ -24,11 +31,6 @@ import { Sparkline, type SparklinePoint } from "@/components/admin/charts/Sparkl
 export const dynamic = "force-dynamic";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const REVENUE_EXCLUDED_STATUSES = new Set(["draft", "cancelled", "excluded"]);
-
-function isBillableInvoice(status: string): boolean {
-  return !REVENUE_EXCLUDED_STATUSES.has(status);
-}
 
 const SOURCE_PALETTE: Record<string, { label: string; color: string }> = {
   meta_lead: { label: "Meta реклама", color: "#1877F2" },
@@ -141,7 +143,7 @@ export default async function AdminDashboard() {
     supabase.from("meta_leads").select("id, processed, created_at"),
     supabase.from("invoices").select("id, status, amount_gross, due_date, issue_date, contact_id, invoice_type, service_type, currency"),
     supabase.from("manual_review_items").select("id").in("status", ["open", "needs_user", "blocked"]),
-    supabase.from("payments").select("amount, paid_at, created_at, match_status"),
+    supabase.from("payments").select("invoice_id, amount, paid_at, created_at, match_status"),
     supabase.from("expenses").select("amount_gross, status, expense_date, created_at"),
     supabase
       .from("meta_ads_reports")
@@ -189,7 +191,7 @@ export default async function AdminDashboard() {
     service_type: string | null;
     currency: string;
   }>;
-  const payments = (paymentsRes.data ?? []) as Array<{ amount: number | null; paid_at: string | null; created_at: string; match_status: string }>;
+  const payments = (paymentsRes.data ?? []) as Array<{ invoice_id: string | null; amount: number | null; paid_at: string | null; created_at: string; match_status: string }>;
   const expenses = (expensesRes.data ?? []) as Array<{ amount_gross: number | null; status: string; expense_date: string | null; created_at: string | null }>;
   const metaReports = ((metaReportsRes.data ?? []) as Array<{ report_date: string; spend: number | null; leads: number | null; cpl: number | null; currency: string; raw?: Record<string, unknown> | null }>).filter((r) => r.raw?.audit_status !== "archived_duplicate" && r.currency !== "MIXED");
   const gpsDevices = (gpsRes.data ?? []) as Array<{ status: string; monthly_fee: number | null; currency: string }>;
@@ -290,9 +292,8 @@ export default async function AdminDashboard() {
   const presentationSentCount = active.filter(
     (c) => c.stage === "presentation_sent" || c.followup_status === "sent_presentation"
   ).length;
-  const awaitingPaymentCount = invoices.filter((i) =>
-    ["sent", "awaiting_payment", "partially_paid", "overdue"].includes(i.status)
-  ).length;
+  // Проформите и кредитните известия не са дълг — виж isUnpaidInvoice.
+  const awaitingPaymentCount = invoices.filter(isUnpaidInvoice).length;
   const manualReviewOpen = (manualReviewRes.data ?? []).length;
 
   // ── Accounting + Meta (YTD за обединения Преглед) ──────────────────────
@@ -303,8 +304,10 @@ export default async function AdminDashboard() {
   };
   const isGpsInvoice = (i: { invoice_type: string; service_type: string | null }) =>
     i.invoice_type === "gps_fee" || /gps/i.test(i.service_type ?? "");
-  const ytdInvoices = invoices.filter((i) => isYtd(i.issue_date) && isBillableInvoice(i.status));
-  const revenueYtd = ytdInvoices.reduce((s, i) => s + (Number(i.amount_gross) || 0), 0);
+  // Приход = само данъчни документи (без проформи, без чернови/анулирани);
+  // кредитното известие влиза с минус.
+  const ytdInvoices = invoices.filter((i) => isYtd(i.issue_date) && isBillableInvoice(i));
+  const revenueYtd = ytdInvoices.reduce((s, i) => s + signedAmount(i, i.amount_gross), 0);
   const receivedYtd = payments
     .filter((p) => p.match_status !== "ignored" && isYtd(p.paid_at ?? p.created_at))
     .reduce((s, p) => s + (Number(p.amount) || 0), 0);
@@ -312,12 +315,15 @@ export default async function AdminDashboard() {
     .filter((e) => e.status !== "cancelled" && isYtd(e.expense_date ?? e.created_at))
     .reduce((s, e) => s + (Number(e.amount_gross) || 0), 0);
   const profitYtd = receivedYtd - expensesYtd;
+  // Неплатено = остатъкът по фактурата след вече получените плащания,
+  // не цялото бруто (960 € с 300 € платени дължи 660 €, не 960 €).
+  const paidPerInvoice = paidByInvoice(payments);
   const unpaidInvoicesTotal = invoices
-    .filter((i) => ["sent", "awaiting_payment", "partially_paid", "overdue"].includes(i.status))
-    .reduce((s, i) => s + (Number(i.amount_gross) || 0), 0);
+    .filter(isUnpaidInvoice)
+    .reduce((s, i) => s + invoiceOutstanding(i, paidPerInvoice), 0);
   const gpsInvoicesYtd = ytdInvoices.filter(isGpsInvoice);
   const gpsRevenueYtd = gpsInvoicesYtd.reduce((s, i) => s + (Number(i.amount_gross) || 0), 0);
-  const gpsOpenYtd = gpsInvoicesYtd.filter((i) => ["sent", "awaiting_payment", "partially_paid", "overdue"].includes(i.status)).length;
+  const gpsOpenYtd = gpsInvoicesYtd.filter(isUnpaidInvoice).length;
   const metaSpendByCurrency = metaReports.reduce((acc, r) => {
     const cur = r.currency || "EUR";
     acc[cur] = (acc[cur] ?? 0) + (Number(r.spend) || 0);

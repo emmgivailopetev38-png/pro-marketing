@@ -2,18 +2,24 @@ import { createServiceClient } from "@/lib/supabase/service";
 import type { InvoiceRow } from "@/lib/crm/types";
 import { InvoicesTable } from "@/components/admin/InvoicesTable";
 import { formatMoney } from "@/lib/crm/labels";
+import { isUnpaidInvoice, paidByInvoice, invoiceOutstanding } from "@/lib/crm/accounting-metrics";
 
 export const dynamic = "force-dynamic";
 
 export default async function InvoicesPage() {
   const sb = createServiceClient();
-  const { data } = await sb.from("invoices").select("*").order("created_at", { ascending: false });
+  const [{ data }, { data: pay }] = await Promise.all([
+    sb.from("invoices").select("*").order("created_at", { ascending: false }),
+    sb.from("payments").select("invoice_id, amount, match_status"),
+  ]);
   const rows = (data ?? []) as InvoiceRow[];
-
-  const unpaid = rows.filter((r) =>
-    ["sent", "awaiting_payment", "partially_paid", "overdue"].includes(r.status)
+  const paid = paidByInvoice(
+    (pay ?? []) as Array<{ invoice_id: string | null; amount: number | null; match_status: string }>
   );
-  const unpaidTotal = unpaid.reduce((s, r) => s + (Number(r.amount_gross) || 0), 0);
+
+  // Проформи и кредитни известия не са дълг; частично платените дължат остатъка.
+  const unpaid = rows.filter(isUnpaidInvoice);
+  const unpaidTotal = unpaid.reduce((s, r) => s + invoiceOutstanding(r, paid), 0);
 
   return (
     <div className="space-y-6 p-6 md:p-10">

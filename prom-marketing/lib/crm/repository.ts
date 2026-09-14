@@ -1534,8 +1534,8 @@ export async function getAccountingSummary(opts?: {
   const now = new Date();
 
   const [{ data: inv }, { data: pay }, { data: exp }] = await Promise.all([
-    sb.from("invoices").select("status, amount_gross, amount_net, vat_amount, issue_date, due_date"),
-    sb.from("payments").select("amount, paid_at, created_at, match_status"),
+    sb.from("invoices").select("id, invoice_type, status, amount_gross, amount_net, vat_amount, issue_date, due_date"),
+    sb.from("payments").select("invoice_id, amount, paid_at, created_at, match_status"),
     sb.from("expenses").select("amount_gross, amount_net, vat_amount, category, status, expense_date, created_at, is_personal"),
   ]);
 

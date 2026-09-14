@@ -29,6 +29,8 @@ export interface Period {
 
 // ── raw редове (точно както идват от Supabase select '*') ──────────────────
 export interface InvoiceLike {
+  /** Нужен, за да се вържат плащанията към фактурата (остатък за плащане). */
+  id?: string | null;
   status: string;
   amount_gross: number | null;
   amount_net: number | null;
@@ -40,6 +42,8 @@ export interface InvoiceLike {
 }
 
 export interface PaymentLike {
+  /** Към коя фактура е плащането — за остатъка по частично платените. */
+  invoice_id?: string | null;
   amount: number | null;
   paid_at: string | null;
   created_at: string;
@@ -99,10 +103,62 @@ function parseDate(iso: string | null | undefined): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-/** Билируеми фактури (влизат в начисления приход и в изходящото ДДС). */
-const NON_BILLABLE_INVOICE_STATUSES = new Set(["draft", "cancelled", "excluded"]);
+/** Статуси, които НЕ влизат в приход/ДДС. */
+export const NON_BILLABLE_INVOICE_STATUSES = new Set(["draft", "cancelled", "excluded"]);
 /** Статуси, които броим за неплатени (за unpaid справката). */
-const UNPAID_INVOICE_STATUSES = new Set(["sent", "awaiting_payment", "partially_paid", "overdue"]);
+export const UNPAID_INVOICE_STATUSES = new Set(["sent", "awaiting_payment", "partially_paid", "overdue"]);
+
+type InvoiceKind = { status: string; invoice_type?: string | null };
+
+/**
+ * Билируема фактура — влиза в начисления приход и в изходящото ДДС.
+ * Проформата НЕ е данъчен документ: тя е искане за плащане, а после за същата
+ * сума излиза истинска фактура. Броенето ѝ удвоява прихода (Ф-ра 323 + проформи
+ * 11 и 12 даваха 360 € при сделка за 180 €).
+ */
+export function isBillableInvoice(inv: InvoiceKind): boolean {
+  if (NON_BILLABLE_INVOICE_STATUSES.has(inv.status)) return false;
+  return inv.invoice_type !== "proforma";
+}
+
+/**
+ * Неплатена фактура — чака пари. Проформата и кредитното известие не са дълг
+ * към нас (проформата се повтаря от фактурата; известието е наше задължение).
+ */
+export function isUnpaidInvoice(inv: InvoiceKind): boolean {
+  if (!UNPAID_INVOICE_STATUSES.has(inv.status)) return false;
+  return inv.invoice_type !== "proforma" && inv.invoice_type !== "credit_note";
+}
+
+/**
+ * Сумата със знак: кредитното известие НАМАЛЯВА прихода, независимо дали е
+ * записано с минус или с плюс.
+ */
+export function signedAmount(inv: { invoice_type?: string | null }, amount: number | null | undefined): number {
+  const n = num(amount);
+  return inv.invoice_type === "credit_note" ? -Math.abs(n) : n;
+}
+
+/** Σ получени плащания по фактура (без 'ignored'), ключ = invoice_id. */
+export function paidByInvoice(
+  payments: Array<{ invoice_id?: string | null; amount: number | null; match_status: string }>
+): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const p of payments) {
+    if (!p.invoice_id || p.match_status === "ignored") continue;
+    m.set(p.invoice_id, (m.get(p.invoice_id) ?? 0) + num(p.amount));
+  }
+  return m;
+}
+
+/** Колко още се дължи по фактурата: брутото минус вече получените плащания (не под 0). */
+export function invoiceOutstanding(
+  inv: { id?: string | null; amount_gross: number | null },
+  paid: Map<string, number>
+): number {
+  const got = inv.id ? (paid.get(inv.id) ?? 0) : 0;
+  return Math.max(0, round2(num(inv.amount_gross) - got));
+}
 
 /**
  * В периода ли е дадена дата? `from` е включващо, `to` е изключващо
@@ -232,14 +288,14 @@ export function computeAccountingMetrics(args: {
   let vat_output = 0;
   let invoiceCount = 0;
   for (const inv of invoices) {
-    const billable = !NON_BILLABLE_INVOICE_STATUSES.has(inv.status);
-    if (!billable) continue;
+    if (!isBillableInvoice(inv)) continue;
     if (!inPeriod(inv.issue_date, period)) continue;
     invoiceCount++;
-    const gross = num(inv.amount_gross);
-    const vat = num(inv.vat_amount);
+    const gross = signedAmount(inv, inv.amount_gross);
+    const vat = signedAmount(inv, inv.vat_amount);
     // net: предпочети явния amount_net; иначе gross − vat.
-    const net = inv.amount_net !== null && inv.amount_net !== undefined ? num(inv.amount_net) : gross - vat;
+    const net =
+      inv.amount_net !== null && inv.amount_net !== undefined ? signedAmount(inv, inv.amount_net) : gross - vat;
     revenue_accrued += gross;
     revenue_net += net;
     vat_output += vat;
@@ -297,10 +353,11 @@ export function computeAccountingMetrics(args: {
   let unpaidCount = 0;
   let unpaidGross = 0;
   let overdueCount = 0;
+  const paid = paidByInvoice(payments);
   for (const inv of invoices) {
-    if (!UNPAID_INVOICE_STATUSES.has(inv.status)) continue;
+    if (!isUnpaidInvoice(inv)) continue;
     unpaidCount++;
-    unpaidGross += num(inv.amount_gross);
+    unpaidGross += invoiceOutstanding(inv, paid);
     const due = parseDate(inv.due_date);
     if (due && due.getTime() < now.getTime()) overdueCount++;
   }
