@@ -6,14 +6,15 @@ import { INVOICE_STATUS_COLOR, INVOICE_STATUS_LABEL, EXPENSE_CATEGORY_LABEL, for
 import {
   computeAccountingMetrics,
   resolvePeriod,
+  isBillableInvoice,
+  isUnpaidInvoice,
+  signedAmount,
   type InvoiceLike,
   type PaymentLike,
   type ExpenseLike,
 } from "@/lib/crm/accounting-metrics";
 
 export const dynamic = "force-dynamic";
-
-const UNPAID = ["sent", "awaiting_payment", "partially_paid", "overdue"];
 const MONTHS_BG = ["Яну", "Фев", "Мар", "Апр", "Май", "Юни", "Юли", "Авг", "Сеп", "Окт", "Ное", "Дек"];
 
 // Период-превключвателят е чисто server-side: всеки таб е линк с ?period=…,
@@ -86,15 +87,15 @@ export default async function AccountingPage({
   const trendMax = Math.max(1, ...trend.map((t) => t.value));
 
   // ── Оперативни сигнали (не са част от метрик-контракта) ──
-  const unpaidList = invoices.filter((i) => UNPAID.includes(i.status));
+  const unpaidList = invoices.filter(isUnpaidInvoice);
   const overdueList = unpaidList.filter((i) => i.due_date && new Date(i.due_date) < now);
   const awaitingConfirmation = payments.filter((p) => p.match_status === "unmatched").length;
   const ambiguous = payments.filter((p) => p.match_status === "ambiguous").length;
 
-  const ytdInvoices = invoices.filter((i) => inYtd(i.issue_date) && !["draft", "cancelled", "excluded"].includes(i.status));
+  const ytdInvoices = invoices.filter((i) => inYtd(i.issue_date) && isBillableInvoice(i));
   const gpsInvoicesYtd = ytdInvoices.filter((i) => i.invoice_type === "gps_fee" || /gps/i.test(i.service_type ?? ""));
   const gpsSent = gpsInvoicesYtd.length;
-  const gpsRevenueYtd = gpsInvoicesYtd.reduce((s, i) => s + (Number(i.amount_gross) || 0), 0);
+  const gpsRevenueYtd = gpsInvoicesYtd.reduce((s, i) => s + signedAmount(i, i.amount_gross), 0);
   const gpsActive = recurring.filter((r) => r.service_type === "gps" && r.active && !r.excluded_from_auto_send).length;
   const gpsNotSent = Math.max(0, gpsActive - gpsInvoicesYtd.filter((i) => monthOf(i.issue_date) === curMonth).length);
 

@@ -3,6 +3,11 @@ import {
   resolvePeriod,
   computeAccountingMetrics,
   inPeriod,
+  isBillableInvoice,
+  isUnpaidInvoice,
+  signedAmount,
+  invoiceOutstanding,
+  paidByInvoice,
   type InvoiceLike,
   type PaymentLike,
   type ExpenseLike,
@@ -323,5 +328,116 @@ describe("computeAccountingMetrics — defensive null handling", () => {
     expect(m.revenue_accrued).toBe(120);
     expect(m.revenue_net).toBe(100); // (120 − 20) + (0 − 0)
     expect(m.vat_output).toBe(20);
+  });
+});
+
+// ── проформи, кредитни известия и частични плащания ────────────────────────
+// Реалният случай от 14.09.2026: Ф-ра 323 (180 €) + проформи 11 и 12 (по 90 €)
+// за ЕДНА сделка даваха 360 € приход и 270 € „неплатени"; КИ 14 сторнираше
+// Ф-ра 318, а таблото го събираше; Ф-ра 330 с 300 € платени стоеше като 960 € дълг.
+describe("computeAccountingMetrics — проформи, кредитни известия, частични плащания", () => {
+  const period = resolvePeriod({ period: "month", now: NOW });
+
+  it("проформата не е приход и не е дълг — брои се само истинската фактура", () => {
+    const m = computeAccountingMetrics({
+      ...empty(),
+      invoices: [
+        inv({ id: "p11", invoice_type: "proforma", status: "paid", amount_gross: 90, amount_net: 75, vat_amount: 15, issue_date: "2026-06-02" }),
+        inv({ id: "p12", invoice_type: "proforma", status: "sent", amount_gross: 90, amount_net: 75, vat_amount: 15, issue_date: "2026-06-03", due_date: "2026-06-10" }),
+        inv({ id: "f323", invoice_type: "invoice", status: "partially_paid", amount_gross: 180, amount_net: 150, vat_amount: 30, issue_date: "2026-06-03" }),
+      ],
+      payments: [pay({ amount: 90, paid_at: "2026-06-02T00:00:00.000Z", invoice_id: "f323" })],
+      period,
+      now: NOW,
+    });
+    expect(m.revenue_accrued).toBe(180);
+    expect(m.revenue_net).toBe(150);
+    expect(m.vat_output).toBe(30);
+    expect(m.counts.invoices).toBe(1);
+    expect(m.unpaid.count).toBe(1);
+    expect(m.unpaid.gross_total).toBe(90);
+    // просрочената проформа не е просрочена фактура
+    expect(m.unpaid.overdue_count).toBe(0);
+  });
+
+  it("кредитното известие сваля прихода и ДДС-то и не е дълг към нас", () => {
+    const m = computeAccountingMetrics({
+      ...empty(),
+      invoices: [
+        inv({ id: "f318", status: "sent", amount_gross: 1200, amount_net: 1000, vat_amount: 200, issue_date: "2026-06-01" }),
+        inv({ id: "ki14", invoice_type: "credit_note", status: "sent", amount_gross: 1200, amount_net: 1000, vat_amount: 200, issue_date: "2026-06-05" }),
+      ],
+      period,
+      now: NOW,
+    });
+    expect(m.revenue_accrued).toBe(0);
+    expect(m.revenue_net).toBe(0);
+    expect(m.vat_output).toBe(0);
+    expect(m.unpaid.count).toBe(1);
+    expect(m.unpaid.gross_total).toBe(1200);
+  });
+
+  it("кредитно известие, записано с минус, дава същия резултат", () => {
+    const m = computeAccountingMetrics({
+      ...empty(),
+      invoices: [
+        inv({ id: "f318", status: "sent", amount_gross: 1200, amount_net: 1000, vat_amount: 200, issue_date: "2026-06-01" }),
+        inv({ id: "ki14", invoice_type: "credit_note", status: "sent", amount_gross: -1200, amount_net: -1000, vat_amount: -200, issue_date: "2026-06-05" }),
+      ],
+      period,
+      now: NOW,
+    });
+    expect(m.revenue_accrued).toBe(0);
+    expect(m.vat_output).toBe(0);
+  });
+
+  it("неплатеното е остатъкът след частичните плащания, а 'ignored' не се брои", () => {
+    const m = computeAccountingMetrics({
+      ...empty(),
+      invoices: [inv({ id: "f330", status: "partially_paid", amount_gross: 960, amount_net: 800, vat_amount: 160, issue_date: "2026-06-11" })],
+      payments: [
+        pay({ amount: 300, paid_at: "2026-06-11T00:00:00.000Z", invoice_id: "f330" }),
+        pay({ amount: 50, paid_at: "2026-06-12T00:00:00.000Z", invoice_id: "f330", match_status: "ignored" }),
+      ],
+      period,
+      now: NOW,
+    });
+    expect(m.payments_received).toBe(300);
+    expect(m.unpaid.count).toBe(1);
+    expect(m.unpaid.gross_total).toBe(660);
+  });
+
+  it("плащане над фактурата не дава отрицателен дълг", () => {
+    const paid = paidByInvoice([{ invoice_id: "a", amount: 120, match_status: "matched" }]);
+    expect(invoiceOutstanding({ id: "a", amount_gross: 100 }, paid)).toBe(0);
+    expect(invoiceOutstanding({ id: "b", amount_gross: 100 }, paid)).toBe(100);
+    expect(invoiceOutstanding({ id: null, amount_gross: 100 }, paid)).toBe(100);
+  });
+});
+
+describe("isBillableInvoice / isUnpaidInvoice / signedAmount", () => {
+  it("проформата никога не е билируема; черновата и анулираната също", () => {
+    expect(isBillableInvoice({ status: "sent", invoice_type: "proforma" })).toBe(false);
+    expect(isBillableInvoice({ status: "paid", invoice_type: "proforma" })).toBe(false);
+    expect(isBillableInvoice({ status: "draft", invoice_type: "invoice" })).toBe(false);
+    expect(isBillableInvoice({ status: "cancelled", invoice_type: "gps_fee" })).toBe(false);
+    expect(isBillableInvoice({ status: "sent", invoice_type: "gps_fee" })).toBe(true);
+    expect(isBillableInvoice({ status: "sent" })).toBe(true);
+  });
+
+  it("неплатени са само истинските фактури в чакащ статус", () => {
+    expect(isUnpaidInvoice({ status: "sent", invoice_type: "invoice" })).toBe(true);
+    expect(isUnpaidInvoice({ status: "partially_paid", invoice_type: "gps_fee" })).toBe(true);
+    expect(isUnpaidInvoice({ status: "sent", invoice_type: "proforma" })).toBe(false);
+    expect(isUnpaidInvoice({ status: "sent", invoice_type: "credit_note" })).toBe(false);
+    expect(isUnpaidInvoice({ status: "paid", invoice_type: "invoice" })).toBe(false);
+    expect(isUnpaidInvoice({ status: "draft", invoice_type: "invoice" })).toBe(false);
+  });
+
+  it("signedAmount обръща знака само на кредитното известие", () => {
+    expect(signedAmount({ invoice_type: "credit_note" }, 1200)).toBe(-1200);
+    expect(signedAmount({ invoice_type: "credit_note" }, -1200)).toBe(-1200);
+    expect(signedAmount({ invoice_type: "invoice" }, 1200)).toBe(1200);
+    expect(signedAmount({}, null)).toBe(0);
   });
 });

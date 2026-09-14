@@ -9,6 +9,7 @@ import {
   type CrmRow,
 } from "@/lib/crm/list-read";
 import { createServiceClient } from "@/lib/supabase/service";
+import { isUnpaidInvoice, paidByInvoice, invoiceOutstanding } from "@/lib/crm/accounting-metrics";
 
 export const dynamic = "force-dynamic";
 
@@ -74,15 +75,30 @@ export async function GET(request: Request) {
     return t !== null && t < dayStart.getTime();
   });
 
-  const unpaid = invoices.items.filter((i: CrmRow) => !["paid", "cancelled"].includes(String(i.status)));
+  // Неплатени = истински фактури, които чакат пари (без чернови, проформи и
+  // кредитни известия); сумата е остатъкът след вече получените плащания.
+  const paidPerInvoice = paidByInvoice(
+    payments.items.map((p: CrmRow) => ({
+      invoice_id: (p.invoice_id as string | null) ?? null,
+      amount: Number(p.amount) || 0,
+      match_status: String(p.match_status),
+    }))
+  );
+  const unpaid = invoices.items.filter((i: CrmRow) =>
+    isUnpaidInvoice({ status: String(i.status), invoice_type: (i.invoice_type as string | null) ?? null })
+  );
+  const outstanding = (rows: CrmRow[]) =>
+    Math.round(
+      rows.reduce(
+        (n, r) => n + invoiceOutstanding({ id: r.id as string, amount_gross: Number(r.amount_gross) || 0 }, paidPerInvoice),
+        0
+      ) * 100
+    ) / 100;
   const overdueInvoices = unpaid.filter((i: CrmRow) => {
     const t = at(i.due_date);
     return t !== null && t < dayStart.getTime();
   });
   const unmatchedPayments = payments.items.filter((p: CrmRow) => String(p.match_status) !== "matched");
-
-  const sum = (rows: Array<Record<string, unknown>>, key: string) =>
-    Math.round(rows.reduce((n, r) => n + (Number(r[key]) || 0), 0) * 100) / 100;
 
   const slim = (rows: Array<Record<string, unknown>>, keys: string[]) =>
     rows.map((r) => Object.fromEntries(keys.filter((k) => k in r).map((k) => [k, r[k]])));
@@ -109,9 +125,9 @@ export async function GET(request: Request) {
 
     pari: {
       neplateni_fakturi: unpaid.length,
-      neplateno_obshto: sum(unpaid, "amount_gross"),
+      neplateno_obshto: outstanding(unpaid),
       prosrocheni_fakturi: overdueInvoices.length,
-      prosracheno_obshto: sum(overdueInvoices, "amount_gross"),
+      prosracheno_obshto: outstanding(overdueInvoices),
       nesvereni_plashtaniya: unmatchedPayments.length,
     },
 
