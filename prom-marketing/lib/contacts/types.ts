@@ -95,6 +95,7 @@ export const ACTIVITY_LABEL: Record<string, string> = {
   work_started: "Старт на работа",
   work_completed: "Завършена работа",
   stage_change: "Промяна на статус",
+  client_review: "Одобри видеата (страница за преглед)",
 };
 
 export const ACTIVITY_ICON: Record<string, string> = {
@@ -118,6 +119,7 @@ export const ACTIVITY_ICON: Record<string, string> = {
   work_started: "🚀",
   work_completed: "✅",
   stage_change: "🔄",
+  client_review: "🎬",
 };
 
 export interface ContactRow {
