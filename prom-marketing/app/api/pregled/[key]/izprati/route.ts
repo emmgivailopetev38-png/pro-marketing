@@ -4,7 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/resend";
 import { escapeHtml } from "@/lib/email/escape";
 import { sendTelegram } from "@/lib/notifications/telegram";
-import { loadReview, markSubmitted, upsertAnswers } from "@/lib/pregled/repository";
+import { loadReview, markSubmitted, saveGeneralComment, upsertAnswers } from "@/lib/pregled/repository";
 import { buildSummary, summaryHeadline, summaryText, type Summary, type SummaryLine } from "@/lib/pregled/summary";
 import { isValidKey } from "@/lib/pregled/types";
 
@@ -36,6 +36,7 @@ const schema = z.object({
     )
     .max(60)
     .optional(),
+  general: z.string().max(3000).optional(),
 });
 
 function adminEmail(): string {
@@ -61,16 +62,18 @@ function htmlList(lines: SummaryLine[], mark: string, color: string): string {
     .join("")}</ul>`;
 }
 
-function buildEmail(s: Summary, clientName: string | null, title: string, contactId: string | null, nth: number) {
+function buildEmail(s: Summary, clientName: string | null, title: string, contactId: string | null, nth: number, general: string | null) {
   const headline = summaryHeadline(s, clientName);
   const suffix = nth > 1 ? ` · промяна №${nth}` : "";
   const subject = `🎬 ${headline}${suffix}`;
   const crmLink = contactId ? `${SITE}/admin/clients/${contactId}` : `${SITE}/admin/clients`;
-  const text = [`${headline}${suffix}`, title, "", summaryText(s), "", `Картонът в CRM-а: ${crmLink}`].join("\n");
+  const text = [`${headline}${suffix}`, title, "", summaryText(s, general), "", `Картонът в CRM-а: ${crmLink}`].join("\n");
+  const g = (general ?? "").trim();
   const html = `
     <div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;color:#111">
       <h2 style="margin:0 0 4px">🎬 ${escapeHtml(headline)}${escapeHtml(suffix)}</h2>
       <p style="margin:0 0 16px;color:#555">${escapeHtml(title)}</p>
+      ${g ? `<p style="margin:0 0 16px;padding:10px 14px;border-left:3px solid #7c1a24;background:#faf3ee"><b>Насоки към нас:</b><br/>${escapeHtml(g).replace(/\n/g, "<br/>")}</p>` : ""}
       <p style="margin:0 0 4px"><b>Одобрени (${s.approved.length})</b></p>
       ${htmlList(s.approved, "✓", "#1f7a3a")}
       <p style="margin:14px 0 4px"><b>За преправяне (${s.rejected.length})</b></p>
@@ -102,6 +105,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ key
       if (error) return NextResponse.json({ ok: false, error: "Save failed" }, { status: 500 });
       loaded = (await loadReview(key)) ?? loaded;
     }
+    if (typeof parsed.data.general === "string") {
+      await saveGeneralComment(loaded.review.id, parsed.data.general);
+      loaded = (await loadReview(key)) ?? loaded;
+    }
 
     const { review, answers } = loaded;
     const summary = buildSummary(review.items, answers);
@@ -109,7 +116,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ key
     await markSubmitted(review.id, review.submit_count);
 
     // 1. имейл
-    const mail = buildEmail(summary, review.client_name, review.title, review.contact_id, nth);
+    const general = review.general_comment ?? null;
+    const mail = buildEmail(summary, review.client_name, review.title, review.contact_id, nth, general);
     const sent = await sendEmail({ to: adminEmail(), subject: mail.subject, html: mail.html, text: mail.text });
     if (sent.error) console.error("[pregled/izprati] email failed:", sent.error);
 
@@ -117,7 +125,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ key
     const headline = summaryHeadline(summary, review.client_name);
     await sendTelegram(
       `🎬 <b>${escapeHtml(headline)}</b>${nth > 1 ? ` (промяна №${nth})` : ""}\n${escapeHtml(review.title)}\n\n${escapeHtml(
-        summaryText(summary)
+        summaryText(summary, general)
       )}`,
       review.contact_id ? { buttons: [{ text: "👤 Картонът", url: `${SITE}/admin/clients/${review.contact_id}` }] } : undefined
     );
@@ -130,13 +138,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ key
         contact_id: review.contact_id,
         activity_type: "client_review",
         title: `${headline}${nth > 1 ? ` (промяна №${nth})` : ""}`,
-        body: summaryText(summary),
+        body: summaryText(summary, general),
         occurred_at: now,
         created_by: "website",
         metadata: {
           review_key: review.key,
           review_title: review.title,
           submit_count: nth,
+          general_comment: general,
           approved: summary.approved.map((l) => l.code),
           rejected: summary.rejected.map((l) => l.code),
           pending: summary.pending.map((l) => l.code),

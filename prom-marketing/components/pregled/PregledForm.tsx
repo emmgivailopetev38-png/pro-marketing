@@ -21,6 +21,8 @@ interface Props {
   reviewKey: string;
   items: ReviewItem[];
   initialAnswers: AnswerRow[];
+  /** Общите насоки към нас, ако вече е писала. */
+  initialGeneral?: string | null;
 }
 
 function initialState(items: ReviewItem[], rows: AnswerRow[]): Record<string, Answer> {
@@ -33,8 +35,12 @@ function initialState(items: ReviewItem[], rows: AnswerRow[]): Record<string, An
   return out;
 }
 
-export function PregledForm({ reviewKey, items, initialAnswers }: Props) {
+export function PregledForm({ reviewKey, items, initialAnswers, initialGeneral }: Props) {
   const [answers, setAnswers] = useState<Record<string, Answer>>(() => initialState(items, initialAnswers));
+  const [general, setGeneral] = useState<string>(initialGeneral ?? "");
+  const [generalState, setGeneralState] = useState<SaveState>("idle");
+  const generalRef = useRef<string>(initialGeneral ?? "");
+  const generalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [saveState, setSaveState] = useState<Record<string, SaveState>>({});
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<{ approved: number; rejected: number; pending: number } | null>(null);
@@ -98,6 +104,43 @@ export function PregledForm({ reviewKey, items, initialAnswers }: Props) {
     }, 700);
   };
 
+  // Общите насоки — същата механика като бележките: 700 ms след последната буква и при blur.
+  const saveGeneral = useCallback(
+    async (text: string) => {
+      setGeneralState("saving");
+      try {
+        const res = await fetch(`/api/pregled/${encodeURIComponent(reviewKey)}/otgovor`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ answers: [], general: text }),
+        });
+        const json = await res.json().catch(() => ({}));
+        setGeneralState(res.ok && json?.ok ? "saved" : "error");
+      } catch {
+        setGeneralState("error");
+      }
+    },
+    [reviewKey]
+  );
+
+  const setGeneralText = (text: string) => {
+    generalRef.current = text;
+    setGeneral(text);
+    if (generalTimer.current) clearTimeout(generalTimer.current);
+    generalTimer.current = setTimeout(() => {
+      generalTimer.current = null;
+      void saveGeneral(generalRef.current);
+    }, 700);
+  };
+
+  const generalBlur = () => {
+    if (generalTimer.current) {
+      clearTimeout(generalTimer.current);
+      generalTimer.current = null;
+      void saveGeneral(generalRef.current);
+    }
+  };
+
   const commentBlur = (code: string) => {
     if (timers.current[code]) {
       flushTimer(code);
@@ -119,16 +162,21 @@ export function PregledForm({ reviewKey, items, initialAnswers }: Props) {
     setSubmitting(true);
     setSubmitError(null);
     for (const code of Object.keys(timers.current)) flushTimer(code);
+    if (generalTimer.current) {
+      clearTimeout(generalTimer.current);
+      generalTimer.current = null;
+    }
     const current = answersRef.current;
     const payload = items.map((it) => ({ code: it.code, verdict: current[it.code].verdict, comment: current[it.code].comment }));
     try {
       const res = await fetch(`/api/pregled/${encodeURIComponent(reviewKey)}/izprati`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers: payload }),
+        body: JSON.stringify({ answers: payload, general: generalRef.current }),
       });
       const json = await res.json().catch(() => ({}));
       if (res.ok && json?.ok) {
+        setGeneralState("saved");
         setDone({ approved: json.approved, rejected: json.rejected, pending: json.pending });
         setSaveState(Object.fromEntries(items.map((it) => [it.code, "saved" as SaveState])));
         setTimeout(() => doneRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
@@ -153,6 +201,7 @@ export function PregledForm({ reviewKey, items, initialAnswers }: Props) {
     const t = timers.current;
     return () => {
       for (const id of Object.values(t)) clearTimeout(id);
+      if (generalTimer.current) clearTimeout(generalTimer.current);
     };
   }, []);
 
@@ -280,6 +329,29 @@ export function PregledForm({ reviewKey, items, initialAnswers }: Props) {
         </div>
       </section>
 
+      <section className="pg-nasoki" id="nasoki">
+        <h3>Насоки към нас</h3>
+        <p>
+          Тук е мястото за всичко общо: кой стил Ви е най-близък, какво да има повече и какво по-малко, кои
+          продукти и поводи да покажем, дума или тон, които да избягваме. Колкото по-конкретно, толкова по-точни
+          ще са следващите клипове.
+        </p>
+        <textarea
+          className="pg-belezhka pg-belezhka-golyama"
+          value={general}
+          maxLength={3000}
+          placeholder="Например: „Повече от смешните сцени. Тъмният е любимият ми. Кутията винаги да се вижда цяла. Без надписи на английски.“"
+          onChange={(e) => setGeneralText(e.target.value)}
+          onBlur={generalBlur}
+          aria-label="Общи насоки към нас"
+        />
+        <div className={`pg-sastoyanie ${generalState === "saved" ? "e-ok" : generalState === "error" ? "e-greshka" : ""}`}>
+          {generalState === "saving" && "Запазва се…"}
+          {generalState === "saved" && "Запазено ✓"}
+          {generalState === "error" && "Не се записа — проверете връзката"}
+        </div>
+      </section>
+
       <section className="pg-final" id="izprati">
         <h3>Готови ли сте?</h3>
         <p>
@@ -301,8 +373,9 @@ export function PregledForm({ reviewKey, items, initialAnswers }: Props) {
               {done.pending ? `, ${done.pending} без отговор` : ""}.
             </p>
             <p>
-              Одобрените клипове влизат в графика. За върнатите ще получите нова версия по бележките Ви. Ако
-              промените нещо тук, натиснете „Изпрати избора“ отново.
+              Одобрените клипове влизат в графика. За върнатите ще получите нова версия по бележките Ви. Ивайло ще
+              се чуе с Вас за достъпите до страниците, за да тръгнат публикациите. Ако промените нещо тук, натиснете
+              „Изпрати избора“ отново.
             </p>
           </div>
         ) : null}

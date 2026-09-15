@@ -37,6 +37,8 @@ export interface ReviewRow {
   last_seen_at: string | null;
   submit_count: number;
   submitted_at: string | null;
+  /** Общите насоки на клиента към нас (не към отделен клип). */
+  general_comment: string | null;
 }
 
 export interface AnswerRow {

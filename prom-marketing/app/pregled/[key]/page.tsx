@@ -83,6 +83,10 @@ const CSS = `
   padding:10px 12px;font:400 14px/1.5 var(--pg-sans),sans-serif}
 .pg-belezhka::placeholder{color:rgba(182,167,141,.7)}
 .pg-belezhka:focus{border-color:var(--zlato);outline:none}
+.pg-belezhka-golyama{min-height:150px;font-size:15px}
+.pg-nasoki{margin-top:44px;padding:26px 24px;border:1px solid var(--linia);border-left:3px solid var(--zlato);border-radius:8px;background:var(--kadife)}
+.pg-nasoki h3{font:400 26px/1.2 var(--pg-serif),Georgia,serif;margin:0 0 8px;color:var(--krem)}
+.pg-nasoki p{margin:0 0 14px;color:var(--krem-tih);max-width:62ch}
 .pg-sastoyanie{font-size:12px;color:var(--krem-tih);min-height:16px;display:flex;justify-content:flex-end;gap:6px}
 .pg-sastoyanie.e-ok{color:var(--ok)}
 .pg-sastoyanie.e-greshka{color:#e08a8a}
@@ -168,13 +172,14 @@ export default async function PregledPage({ params }: { params: Promise<{ key: s
             <li>
               <span className="n">2</span>
               <span>
-                <b>Одобрявам</b> или <b>Не този</b> — и, ако искате, бележка отдолу.
+                <b>Одобрявам</b> или <b>Не този</b> — и под всеки клип пишете какво да променим.
               </span>
             </li>
             <li>
               <span className="n">3</span>
               <span>
-                Накрая <b>Изпрати избора</b>. Ако бързате: „Одобри всички“ горе, после махнете само тези, които не искате.
+                Най-долу има място за <b>общи насоки</b> към нас, после <b>Изпрати избора</b>. Ако бързате: „Одобри
+                всички“ горе и махнете само тези, които не искате.
               </span>
             </li>
           </ol>
@@ -196,6 +201,7 @@ export default async function PregledPage({ params }: { params: Promise<{ key: s
           reviewKey={review.key}
           items={review.items}
           initialAnswers={answers}
+          initialGeneral={review.general_comment}
         />
 
         <section className="pg-kutia">
