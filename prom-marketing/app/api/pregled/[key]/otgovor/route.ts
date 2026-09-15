@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { loadReview, upsertAnswers } from "@/lib/pregled/repository";
+import { loadReview, saveGeneralComment, upsertAnswers } from "@/lib/pregled/repository";
 import { isValidKey } from "@/lib/pregled/types";
 
 export const dynamic = "force-dynamic";
@@ -23,8 +23,10 @@ const answersSchema = z.object({
         comment: z.string().max(1500).default(""),
       })
     )
-    .min(1)
-    .max(60),
+    .max(60)
+    .default([]),
+  /** Общите насоки към нас — идват отделно от бележките по клип. */
+  general: z.string().max(3000).optional(),
 });
 
 export async function POST(request: Request, { params }: { params: Promise<{ key: string }> }) {
@@ -38,7 +40,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ key
   const loaded = await loadReview(key);
   if (!loaded) return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
 
-  const { saved, error } = await upsertAnswers(loaded.review.id, loaded.review.items, parsed.data.answers);
-  if (error) return NextResponse.json({ ok: false, error: "Save failed" }, { status: 500 });
+  let saved = 0;
+  if (parsed.data.answers.length) {
+    const r = await upsertAnswers(loaded.review.id, loaded.review.items, parsed.data.answers);
+    if (r.error) return NextResponse.json({ ok: false, error: "Save failed" }, { status: 500 });
+    saved = r.saved;
+  }
+  if (typeof parsed.data.general === "string") {
+    const g = await saveGeneralComment(loaded.review.id, parsed.data.general);
+    if (g.error) return NextResponse.json({ ok: false, error: "Save failed" }, { status: 500 });
+  }
   return NextResponse.json({ ok: true, saved });
 }

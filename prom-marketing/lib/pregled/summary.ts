@@ -48,8 +48,13 @@ function lineText(l: SummaryLine): string {
 }
 
 /** Плоският текст — влиза в CRM активността и в text-версията на имейла. */
-export function summaryText(s: Summary): string {
+export function summaryText(s: Summary, general?: string | null): string {
   const out: string[] = [];
+  const g = cleanComment(general);
+  if (g) {
+    out.push(`Насоки към нас: „${g}“`);
+    out.push("");
+  }
   out.push(`Одобрени (${s.approved.length}):`);
   out.push(...(s.approved.length ? s.approved.map((l) => `  ✓ ${lineText(l)}`) : ["  —"]));
   out.push("");

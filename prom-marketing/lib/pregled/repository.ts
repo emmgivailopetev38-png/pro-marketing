@@ -20,7 +20,7 @@ export async function loadReview(key: string): Promise<LoadedReview | null> {
   const { data: review, error } = await sb
     .from("client_reviews")
     .select(
-      "id, key, contact_id, client_name, title, intro, items, view_count, last_seen_at, submit_count, submitted_at"
+      "id, key, contact_id, client_name, title, intro, items, view_count, last_seen_at, submit_count, submitted_at, general_comment"
     )
     .eq("key", key)
     .maybeSingle();
@@ -86,6 +86,20 @@ export async function upsertAnswers(
     return { saved: 0, error: error.message };
   }
   return { saved: rows.length, error: null };
+}
+
+/** Общите насоки — едно поле за целия пакет, записва се като бележките: при пауза в писането. */
+export async function saveGeneralComment(reviewId: string, text: string): Promise<{ error: string | null }> {
+  const sb = createServiceClient();
+  const { error } = await sb
+    .from("client_reviews")
+    .update({ general_comment: text.trim().slice(0, 3000) || null, updated_at: new Date().toISOString() })
+    .eq("id", reviewId);
+  if (error) {
+    console.error("[pregled] saveGeneralComment failed:", error.message);
+    return { error: error.message };
+  }
+  return { error: null };
 }
 
 export async function markSubmitted(reviewId: string, submitCount: number): Promise<void> {

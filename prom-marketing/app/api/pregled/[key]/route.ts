@@ -29,6 +29,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ key:
       last_seen_at: review.last_seen_at,
       submit_count: review.submit_count,
       submitted_at: review.submitted_at,
+      general_comment: review.general_comment,
       items: review.items.map((i) => ({ code: i.code, name: i.name })),
     },
     answers,
