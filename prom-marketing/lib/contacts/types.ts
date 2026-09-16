@@ -128,6 +128,8 @@ export interface ContactRow {
   email: string | null;
   phone: string | null;
   company: string | null;
+  /** „С какво се занимава“ — записва го човекът за срещите след първия разговор. */
+  business?: string | null;
   stage: ContactStage;
   source: string;
   source_ref: string | null;

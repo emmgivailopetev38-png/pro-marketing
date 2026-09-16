@@ -1618,6 +1618,10 @@ export async function upsertBooking(input: {
   notes?: string;
   /** `uid`-ът от Cal.com — без него отмяната не може да стигне до календара. */
   cal_uid?: string;
+  /** Кой записва срещата: `hermes` (по подразбиране), `ekip` (човек от екипа)… */
+  source?: string;
+  /** `false`, когато извикващият сам записва по-богата активност `meeting` в картона. */
+  log_activity?: boolean;
 }): Promise<{ id: string | null; created: boolean; error: string | null }> {
   const sb = createServiceClient();
 
@@ -1647,7 +1651,7 @@ export async function upsertBooking(input: {
     timeline: input.timeline?.trim() ?? null,
     meeting_url: input.meeting_url?.trim() ?? null,
     services_interested: input.services_interested ?? null,
-    raw_payload: { source: "hermes", notes: input.notes ?? null, cal_uid: input.cal_uid ?? null },
+    raw_payload: { source: input.source ?? "hermes", notes: input.notes ?? null, cal_uid: input.cal_uid ?? null },
     updated_at: new Date().toISOString(),
   };
 
@@ -1668,14 +1672,14 @@ export async function upsertBooking(input: {
     .select("id")
     .eq("email", payload.attendee_email as string)
     .maybeSingle();
-  if (contact) {
+  if (contact && input.log_activity !== false) {
     await logActivity(sb, {
       contact_id: contact.id,
       type: "meeting",
       title: `Среща · ${when.toISOString().slice(0, 10)}`,
       body: input.notes ?? null,
       occurred_at: when.toISOString(),
-      metadata: { booking_id: data.id, meeting_url: payload.meeting_url, source: "hermes" },
+      metadata: { booking_id: data.id, meeting_url: payload.meeting_url, source: input.source ?? "hermes" },
     }).catch(() => {});
   }
 

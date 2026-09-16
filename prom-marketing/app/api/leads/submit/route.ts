@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/resend";
 import { sendWelcomeEmail } from "@/lib/email/welcome";
 import { escapeHtml } from "@/lib/email/escape";
+import { notifyTeamNewLead } from "@/lib/team/notify";
 
 export const dynamic = "force-dynamic";
 
@@ -161,6 +162,19 @@ CRM: https://promarketing.pw/admin/clients/${contactId}`,
   } else {
     console.error("[leads/submit] no admin recipient configured (ALLOWED_ADMIN_EMAILS / EMAIL_REPLY_TO)");
   }
+
+  // Екипът, който звъни на лийдовете — с линк към опашката за звънене.
+  await notifyTeamNewLead({
+    contactId,
+    fullName: full_name,
+    email: email || null,
+    phone,
+    sourceLabel: "Формата на сайта",
+    extra: [
+      { label: "Фирма / дейност", value: company_activity },
+      { label: "Съобщение", value: message },
+    ],
+  }).catch(() => {});
 
   return NextResponse.json({ ok: true });
 }

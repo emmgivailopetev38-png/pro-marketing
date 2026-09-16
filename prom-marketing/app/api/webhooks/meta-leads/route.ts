@@ -6,6 +6,7 @@ import { LEAD_SEQUENCE, sendSequenceStep } from "@/lib/email/lead-sequence";
 import { getPageAccessToken } from "@/lib/meta/page-token";
 import { sendCapiEvent, isCapiConfigured } from "@/lib/meta/conversions-api";
 import { escapeHtml } from "@/lib/email/escape";
+import { notifyTeamNewLead } from "@/lib/team/notify";
 
 export const dynamic = "force-dynamic";
 
@@ -263,6 +264,20 @@ async function processLead(leadgenId: string, formId: string | null) {
       text: `Нов Meta lead:\nИме: ${fullName ?? "—"}\nИмейл: ${email ?? "—"}\nТелефон: ${phone ?? "—"}\nКампания: ${detail.campaign_name ?? "—"}\nРеклама: ${detail.ad_name ?? "—"}\n\nCRM: https://promarketing.pw/admin/clients/${contactId}`,
     }).catch(() => {});
   }
+
+  // Човекът, който звъни на лийдовете, получава същия лийд — с отговорите
+  // от формата и линк към опашката за звънене (/ekip), не към /admin.
+  // Awaited: fire-and-forget се губи, щом функцията върне (виж leads/submit).
+  await notifyTeamNewLead({
+    contactId,
+    fullName: fullName ?? null,
+    email: emailLower || null,
+    phone: phone || null,
+    sourceLabel: "Meta реклама",
+    adName: detail.ad_name ?? null,
+    campaignName: detail.campaign_name ?? null,
+    fieldData: detail.field_data,
+  }).catch(() => {});
 
   return { ok: true, contact_id: contactId, leadgen_id: leadgenId };
 }
