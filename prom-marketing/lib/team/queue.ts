@@ -3,6 +3,15 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { decodeFormAnswers } from "@/lib/leads/form-labels";
 import type { BookedRow, QueueLead } from "./types";
 import { todayEndIso } from "./time";
+import {
+  looksLikePhone,
+  phoneDigits,
+  safeTextQuery,
+  splitTeamDue,
+  summarizeAttempts,
+  type AttemptRow,
+  type AttemptSummary,
+} from "./queue-rules";
 
 /**
  * Опашката за звънене на човека за срещите.
@@ -16,6 +25,12 @@ import { todayEndIso } from "./time";
  * „За повторно“ = хора, на които САМИЯТ екип е звънял и е насрочил ново
  * чуване, чийто ден е дошъл. Обещанията на Ивайло („ти обеща да звъннеш“)
  * остават в неговия сутрешен списък, не тук.
+ *
+ * „Чакат обратно обаждане“ = „Не вдигна“ / „чуване пак“ за друг ден. Картата
+ * остава на екрана, защото хората връщат обаждане десет минути по-късно и
+ * срещата трябва да се запише от нея (16.09.2026: два такива случая за един
+ * следобед). Изчезва само когато човекът я скрие или часът ѝ дойде.
+ * Правилата са в queue-rules.ts, за да се тестват без база.
  */
 
 const COLS =
@@ -23,6 +38,7 @@ const COLS =
 const ATTEMPT_TYPES = ["call", "meeting", "viber_sent"];
 const WINDOW_DAYS = 90;
 const MAX_FRESH = 200;
+const MAX_SEARCH = 20;
 
 interface ContactLite {
   id: string;
@@ -40,21 +56,63 @@ interface ContactLite {
   notes: string | null;
 }
 
-interface AttemptRow {
-  contact_id: string;
-  activity_type: string;
-  title: string;
-  occurred_at: string;
-  created_by: string | null;
-  metadata: Record<string, unknown> | null;
-}
+type Sb = ReturnType<typeof createServiceClient>;
+type FormInfo = { ad_name: string | null; field_data: unknown };
 
 export interface SetterQueue {
   fresh: QueueLead[];
   retry: QueueLead[];
+  /** Не вдигнаха / чуване по-късно — може да върнат обаждане, картата е под ръка. */
+  waiting: QueueLead[];
   /** Насрочени от екипа за по-нататък — само брой, за да се знае, че не са изгубени. */
   later: number;
   booked: BookedRow[];
+}
+
+async function loadAttempts(sb: Sb, ids: string[]): Promise<Map<string, AttemptSummary>> {
+  if (ids.length === 0) return new Map();
+  const { data } = await sb
+    .from("contact_activities")
+    .select("contact_id, activity_type, title, occurred_at, created_by, metadata")
+    .in("contact_id", ids)
+    .in("activity_type", ATTEMPT_TYPES)
+    .order("occurred_at", { ascending: false });
+  return summarizeAttempts((data ?? []) as AttemptRow[]);
+}
+
+/** Отговорите от формата — по meta_lead_id (source_ref на картона). */
+async function loadForms(sb: Sb, contacts: ContactLite[]): Promise<Map<string, FormInfo>> {
+  const forms = new Map<string, FormInfo>();
+  const refs = contacts.filter((c) => c.source === "meta_lead" && c.source_ref).map((c) => c.source_ref as string);
+  if (refs.length === 0) return forms;
+  const { data } = await sb.from("meta_leads").select("meta_lead_id, ad_name, field_data").in("meta_lead_id", refs);
+  for (const m of (data ?? []) as Array<{ meta_lead_id: string; ad_name: string | null; field_data: unknown }>) {
+    forms.set(m.meta_lead_id, { ad_name: m.ad_name, field_data: m.field_data });
+  }
+  return forms;
+}
+
+function toLead(c: ContactLite, attempts: Map<string, AttemptSummary>, forms: Map<string, FormInfo>): QueueLead {
+  const form = c.source_ref ? forms.get(c.source_ref) : undefined;
+  const att = attempts.get(c.id);
+  return {
+    id: c.id,
+    full_name: c.full_name,
+    phone: c.phone as string,
+    email: c.email,
+    company: c.company,
+    business: c.business,
+    source: c.source,
+    stage: c.stage,
+    followup_status: c.followup_status,
+    next_followup_at: c.next_followup_at,
+    created_at: c.created_at,
+    notes: c.notes,
+    ad_name: form?.ad_name ?? null,
+    form_answers: form ? decodeFormAnswers(form.field_data) : [],
+    attempts: att?.count ?? 0,
+    last_attempt: att?.last ?? null,
+  };
 }
 
 export async function loadSetterQueue(now: Date = new Date()): Promise<SetterQueue> {
@@ -91,66 +149,12 @@ export async function loadSetterQueue(now: Date = new Date()): Promise<SetterQue
 
   const leads = (leadRows ?? []) as ContactLite[];
   const due = (dueRows ?? []) as ContactLite[];
-  const ids = [...new Set([...leads, ...due].map((c) => c.id))];
-
-  const attempts = new Map<string, { count: number; last: AttemptRow; team: boolean }>();
-  if (ids.length > 0) {
-    const { data } = await sb
-      .from("contact_activities")
-      .select("contact_id, activity_type, title, occurred_at, created_by, metadata")
-      .in("contact_id", ids)
-      .in("activity_type", ATTEMPT_TYPES)
-      .order("occurred_at", { ascending: false });
-    for (const a of (data ?? []) as AttemptRow[]) {
-      const cur = attempts.get(a.contact_id);
-      const team = a.metadata?.team === true;
-      if (!cur) attempts.set(a.contact_id, { count: 1, last: a, team });
-      else {
-        cur.count += 1;
-        cur.team = cur.team || team;
-      }
-    }
-  }
+  const attempts = await loadAttempts(sb, [...new Set([...leads, ...due].map((c) => c.id))]);
 
   const freshContacts = leads.filter((c) => !attempts.has(c.id));
-  const dueTeam = due.filter((c) => attempts.get(c.id)?.team);
-  const retryContacts = dueTeam.filter((c) => (c.next_followup_at ?? "") <= todayEnd);
-  const later = dueTeam.length - retryContacts.length;
-
-  // Отговорите от формата — по meta_lead_id (source_ref на картона).
-  const refs = [...freshContacts, ...retryContacts]
-    .filter((c) => c.source === "meta_lead" && c.source_ref)
-    .map((c) => c.source_ref as string);
-  const forms = new Map<string, { ad_name: string | null; field_data: unknown }>();
-  if (refs.length > 0) {
-    const { data } = await sb.from("meta_leads").select("meta_lead_id, ad_name, field_data").in("meta_lead_id", refs);
-    for (const m of (data ?? []) as Array<{ meta_lead_id: string; ad_name: string | null; field_data: unknown }>) {
-      forms.set(m.meta_lead_id, { ad_name: m.ad_name, field_data: m.field_data });
-    }
-  }
-
-  const toLead = (c: ContactLite): QueueLead => {
-    const form = c.source_ref ? forms.get(c.source_ref) : undefined;
-    const att = attempts.get(c.id);
-    return {
-      id: c.id,
-      full_name: c.full_name,
-      phone: c.phone as string,
-      email: c.email,
-      company: c.company,
-      business: c.business,
-      source: c.source,
-      stage: c.stage,
-      followup_status: c.followup_status,
-      next_followup_at: c.next_followup_at,
-      created_at: c.created_at,
-      notes: c.notes,
-      ad_name: form?.ad_name ?? null,
-      form_answers: form ? decodeFormAnswers(form.field_data) : [],
-      attempts: att?.count ?? 0,
-      last_attempt: att ? { title: att.last.title, at: att.last.occurred_at, by: att.last.created_by } : null,
-    };
-  };
+  const { retry, waiting, later } = splitTeamDue(due, attempts, todayEnd);
+  const forms = await loadForms(sb, [...freshContacts, ...retry, ...waiting]);
+  const lead = (c: ContactLite) => toLead(c, attempts, forms);
 
   const booked: BookedRow[] = ((bookedRows ?? []) as Array<Record<string, unknown>>).map((b) => ({
     id: String(b.id),
@@ -163,9 +167,31 @@ export async function loadSetterQueue(now: Date = new Date()): Promise<SetterQue
   }));
 
   return {
-    fresh: freshContacts.map(toLead),
-    retry: retryContacts.map(toLead),
+    fresh: freshContacts.map(lead),
+    retry: retry.map(lead),
+    waiting: waiting.map(lead),
     later,
     booked,
   };
+}
+
+/**
+ * Търсачката: „върна ми обаждане, кой беше?“. Цифри → по телефона (както е
+ * изписан на екрана на телефона му: с +359, с 0 или само последните цифри);
+ * букви → по име, имейл или фирма. Всеки етап, всяко състояние — картата
+ * излиза с всичките си бутони, за да се запише срещата от нея.
+ */
+export async function searchLeads(raw: string): Promise<QueueLead[]> {
+  const q = safeTextQuery(raw);
+  if (q.length < 2) return [];
+  const sb = createServiceClient();
+  const base = () =>
+    sb.from("contacts").select(COLS).not("phone", "is", null).order("created_at", { ascending: false }).limit(MAX_SEARCH);
+  const { data } = looksLikePhone(q)
+    ? await base().ilike("phone", `%${phoneDigits(q)}%`)
+    : await base().or(`full_name.ilike.%${q}%,email.ilike.%${q}%,company.ilike.%${q}%`);
+  const found = (data ?? []) as ContactLite[];
+  if (found.length === 0) return [];
+  const [attempts, forms] = await Promise.all([loadAttempts(sb, found.map((c) => c.id)), loadForms(sb, found)]);
+  return found.map((c) => toLead(c, attempts, forms));
 }

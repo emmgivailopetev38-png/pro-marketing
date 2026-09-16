@@ -3,7 +3,7 @@ import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { ekipAction } from "@/app/ekip/actions";
 import { guessBusinessOption } from "@/lib/leads/form-labels";
-import { BUSINESS_OPTIONS, type EkipActionResult, type QueueLead } from "@/lib/team/types";
+import { BUSINESS_OPTIONS, type EkipActionResult, type LeadCardMode, type QueueLead } from "@/lib/team/types";
 
 const CAL_URL = "https://cal.com/promarketing/consultation";
 
@@ -45,6 +45,18 @@ const SOURCE_LABEL: Record<string, string> = {
   manual: "Ръчно",
 };
 
+/** Етапът с думи — само в търсачката, където излизат и хора извън опашката. */
+const STAGE_LABEL: Record<string, string> = {
+  lead: "нов лийд",
+  contacted: "говорено",
+  discovery: "среща уговорена",
+  presentation_sent: "презентация пратена",
+  offer_sent: "оферта пратена",
+  negotiating: "преговори",
+  won: "клиент",
+  lost: "отказал / затворен",
+};
+
 function splitBusiness(b: string | null): { option: string; detail: string } {
   if (!b) return { option: "", detail: "" };
   const [first, ...rest] = b.split(" · ");
@@ -52,9 +64,19 @@ function splitBusiness(b: string | null): { option: string; detail: string } {
   return { option: guessBusinessOption(b), detail: b };
 }
 
-export function LeadCard({ lead, mode }: { lead: QueueLead; mode: "fresh" | "retry" }) {
+const FIELD =
+  "mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent-cyan)]/60";
+
+/**
+ * Една карта = един човек = един разговор. `mode` казва откъде идва картата и
+ * кои бутони са отпред: при „чака обратно обаждане“ първият бутон е
+ * „Върна обаждане“, защото точно това се случва — човекът звъни десет минути
+ * след „Не вдигна“ и срещата трябва да се запише от същата карта.
+ */
+export function LeadCard({ lead, mode }: { lead: QueueLead; mode: LeadCardMode }) {
   const [state, formAction] = useActionState<EkipActionResult | null, FormData>(ekipAction, null);
   const [open, setOpen] = useState(mode === "retry");
+  const waiting = mode === "waiting";
 
   const fromForm = lead.form_answers.find((a) => a.question === "С какво се занимава")?.answer ?? null;
   const saved = splitBusiness(lead.business);
@@ -79,7 +101,11 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: "fresh" | "ret
   return (
     <article
       id={`lead-${lead.id}`}
-      className="scroll-mt-20 rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_10px_40px_-30px_rgba(6,182,212,0.6)]"
+      className={`scroll-mt-20 rounded-2xl border p-4 ${
+        waiting
+          ? "border-amber-400/25 bg-amber-400/[0.04]"
+          : "border-white/10 bg-white/[0.04] shadow-[0_10px_40px_-30px_rgba(6,182,212,0.6)]"
+      }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -92,6 +118,16 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: "fresh" | "ret
         {mode === "retry" && lead.next_followup_at && (
           <span className="shrink-0 rounded-full border border-amber-400/40 px-2 py-0.5 text-[11px] text-amber-300">
             ⏰ {when(lead.next_followup_at)}
+          </span>
+        )}
+        {waiting && lead.next_followup_at && (
+          <span className="shrink-0 rounded-full border border-amber-400/40 px-2 py-0.5 text-[11px] text-amber-300">
+            📵 пак {when(lead.next_followup_at)}
+          </span>
+        )}
+        {mode === "search" && (
+          <span className="shrink-0 rounded-full border border-white/15 px-2 py-0.5 text-[11px] text-[var(--color-text-secondary)]">
+            {STAGE_LABEL[lead.stage] ?? lead.stage}
           </span>
         )}
       </div>
@@ -127,6 +163,10 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: "fresh" | "ret
         </dl>
       )}
 
+      {lead.business && mode !== "fresh" && (
+        <p className="mt-2 text-xs text-[var(--color-text-secondary)]">🧭 {lead.business}</p>
+      )}
+
       {lead.notes && (
         <p className="mt-2 whitespace-pre-line rounded-lg bg-black/25 p-2 text-xs text-[var(--color-text-secondary)]">
           {lead.notes}
@@ -146,27 +186,44 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: "fresh" | "ret
 
         {!open ? (
           <div className="flex flex-wrap gap-2">
-            <SubmitBtn action="no_answer" className="border-white/15 text-[var(--color-text-secondary)]">
-              📵 Не вдигна
-            </SubmitBtn>
-            <button
-              type="button"
-              onClick={() => setOpen(true)}
-              className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-accent-cyan)]/50 px-3 py-2 text-sm font-semibold text-[var(--color-accent-cyan)]"
-            >
-              💬 Говорихме…
-            </button>
+            {waiting ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setOpen(true)}
+                  className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold"
+                  style={{ background: "var(--color-accent-cyan)", color: "var(--color-bg-void)" }}
+                >
+                  💬 Върна обаждане / говорихме…
+                </button>
+                <SubmitBtn action="no_answer" className="border-white/15 text-[var(--color-text-secondary)]">
+                  📵 Пак не вдигна
+                </SubmitBtn>
+                <SubmitBtn action="hide" className="border-white/15 text-[var(--color-text-tertiary)]">
+                  🙈 Скрий
+                </SubmitBtn>
+              </>
+            ) : (
+              <>
+                <SubmitBtn action="no_answer" className="border-white/15 text-[var(--color-text-secondary)]">
+                  📵 Не вдигна
+                </SubmitBtn>
+                <button
+                  type="button"
+                  onClick={() => setOpen(true)}
+                  className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-accent-cyan)]/50 px-3 py-2 text-sm font-semibold text-[var(--color-accent-cyan)]"
+                >
+                  💬 Говорихме…
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <div className="space-y-3">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <label className="text-xs text-[var(--color-text-tertiary)]">
                 С какво се занимава
-                <select
-                  name="business"
-                  defaultValue={defaultOption}
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent-cyan)]/60"
-                >
+                <select name="business" defaultValue={defaultOption} className={FIELD}>
                   <option value="">— избери —</option>
                   {BUSINESS_OPTIONS.map((o) => (
                     <option key={o} value={o}>
@@ -181,7 +238,7 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: "fresh" | "ret
                   name="business_detail"
                   defaultValue={defaultDetail}
                   placeholder="напр. фризьорски салон в Русе"
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent-cyan)]/60"
+                  className={FIELD}
                 />
               </label>
             </div>
@@ -191,7 +248,7 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: "fresh" | "ret
                 name="note"
                 rows={2}
                 placeholder="напр. „губя по 2 часа на ден в отговори на запитвания“"
-                className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent-cyan)]/60"
+                className={FIELD}
               />
             </label>
 
@@ -234,6 +291,16 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: "fresh" | "ret
               </div>
             </div>
 
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-violet-500/30 bg-violet-500/5 p-2">
+              <p className="min-w-0 flex-1 text-[11px] leading-snug text-violet-200/80">
+                🤝 Иска да се чуе направо с Ивайло — ще дойде на място, пита за цени, не иска час сега. Ивайло получава
+                известие и човекът влиза в неговия списък; при теб картата изчезва.
+              </p>
+              <SubmitBtn action="handoff" className="border-violet-400/60 bg-violet-500/15 text-violet-200">
+                🤝 Ивайло да му звънне
+              </SubmitBtn>
+            </div>
+
             <div className="flex flex-wrap gap-2">
               <SubmitBtn action="no_answer" className="border-white/15 text-[var(--color-text-secondary)]">
                 📵 Не вдигна
@@ -241,6 +308,11 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: "fresh" | "ret
               <SubmitBtn action="note" className="border-white/15 text-[var(--color-text-secondary)]">
                 📝 Само бележка
               </SubmitBtn>
+              {waiting && (
+                <SubmitBtn action="hide" className="border-white/15 text-[var(--color-text-tertiary)]">
+                  🙈 Скрий
+                </SubmitBtn>
+              )}
               <SubmitBtn action="not_interested" className="border-white/15 text-[var(--color-text-tertiary)]">
                 ✕ Не се интересува
               </SubmitBtn>
