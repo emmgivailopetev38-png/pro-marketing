@@ -65,6 +65,9 @@ const contactPatchSchema = z.object({
   followup_status: z.enum(FOLLOWUP_STATUSES).nullable().optional(),
   next_followup_at: z.string().nullable().optional(),
   last_heard_from_at: z.string().optional(),
+  // Мрежите се пращат както са под ръка („@spi.milo.dete", гол домейн, пълен
+  // адрес) — repository ги нормализира и изхвърля непознатите ключове.
+  social_links: z.record(z.string(), z.string()).optional(),
 });
 
 /**

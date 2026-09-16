@@ -16,6 +16,12 @@ import {
   updateContactFieldsAction,
   updateStageAction,
 } from "@/app/admin/(protected)/clients/[id]/actions";
+import {
+  SOCIAL_NETWORKS,
+  filledSocialLinks,
+  parseSocialLinks,
+  shortSocialLabel,
+} from "@/lib/contacts/social";
 import { FilesPanel } from "./FilesPanel";
 
 const LOGGER_TYPES: Array<{ v: string; label: string }> = [
@@ -109,6 +115,9 @@ export function ContactDetail({
   const lastActivity = activities[0];
   const firstActivity = activities[activities.length - 1];
 
+  const socials = useMemo(() => filledSocialLinks(contact.social_links), [contact.social_links]);
+  const socialValues = useMemo(() => parseSocialLinks(contact.social_links), [contact.social_links]);
+
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_400px]">
       {/* LEFT — header + stats + timeline */}
@@ -139,6 +148,23 @@ export function ContactDetail({
           {contact.company && <span>🏢 {contact.company}</span>}
           {contact.business && <span>🧭 {contact.business}</span>}
         </div>
+
+        {socials.length > 0 && (
+          <div className="mb-4 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            {socials.map(({ net, url }) => (
+              <a
+                key={net.key}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={shortSocialLabel(url)}
+                className="text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-accent-cyan)]"
+              >
+                {net.icon} {net.label}
+              </a>
+            ))}
+          </div>
+        )}
 
         {/* Stats strip */}
         <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -250,6 +276,21 @@ export function ContactDetail({
                   : ""
               }
             />
+            <fieldset className="space-y-2 border-t border-[var(--color-border-default)] pt-3">
+              <legend className="text-xs uppercase tracking-wider text-[var(--color-text-tertiary)]">
+                Социални мрежи
+              </legend>
+              {SOCIAL_NETWORKS.map((net) => (
+                <Field
+                  key={net.key}
+                  label={`${net.icon} ${net.label}`}
+                  name={`social_${net.key}`}
+                  defaultValue={socialValues[net.key] ?? ""}
+                  placeholder={net.placeholder}
+                />
+              ))}
+            </fieldset>
+
             <label className="block">
               <span className="mb-1 block text-xs uppercase tracking-wider text-[var(--color-text-tertiary)]">
                 Бележки

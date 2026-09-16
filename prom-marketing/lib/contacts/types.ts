@@ -1,3 +1,5 @@
+import type { SocialLinks } from "./social";
+
 export const CONTACT_STAGES = [
   "lead",
   "contacted",
@@ -138,6 +140,8 @@ export interface ContactRow {
   next_followup_at: string | null;
   followup_status: FollowupStatus | null;
   last_heard_from_at: string | null;
+  /** Профили по мрежи: { instagram: "https://…" }. Виж lib/contacts/social. */
+  social_links: SocialLinks | null;
   created_at: string;
   updated_at: string;
 }

@@ -2,6 +2,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { phoneVariants } from "@/lib/contacts/repository";
 import { alignStage, alignStatus, dayKey, nextWorkingDayAt } from "@/lib/contacts/followup";
 import type { ContactStage, FollowupStatus } from "@/lib/contacts/types";
+import { parseSocialLinks, type SocialLinks } from "@/lib/contacts/social";
 import { evaluatePaymentMatch, invoiceStatusAfterPayment, type MatchConfidence } from "./match";
 import { toEur, convertWith, fxColumns } from "./fx";
 import { INVOICE_STATUSES, type InvoiceStatus } from "./types";
@@ -900,6 +901,7 @@ const CONTACT_PATCH_FIELDS = [
   "followup_status",
   "next_followup_at",
   "last_heard_from_at",
+  "social_links",
 ] as const;
 
 /**
@@ -921,6 +923,8 @@ export async function updateContact(args: {
   next_followup_at?: string | null;
   /** Кога сме се чули за последно — Хермес го слага след истински разговор. */
   last_heard_from_at?: string | null;
+  /** Профилите на клиента по мрежи; пази се нормализиран (виж lib/contacts/social). */
+  social_links?: SocialLinks;
 }): Promise<{ error: string | null }> {
   const sb = createServiceClient();
   const { data: contact } = await sb
@@ -932,7 +936,10 @@ export async function updateContact(args: {
 
   const patch: Record<string, unknown> = {};
   for (const key of CONTACT_PATCH_FIELDS) {
-    if (args[key] !== undefined) patch[key] = key === "email" ? String(args[key]).toLowerCase() : args[key];
+    if (args[key] === undefined) continue;
+    if (key === "email") patch[key] = String(args[key]).toLowerCase();
+    else if (key === "social_links") patch[key] = parseSocialLinks(args[key]);
+    else patch[key] = args[key];
   }
 
   // Статусът дърпа етапа напред, а спечеленият остава без статус — същите
@@ -958,16 +965,20 @@ export async function updateContact(args: {
   const before: Record<string, unknown> = {};
   const after: Record<string, unknown> = {};
   const lines: string[] = [];
+  // jsonb полетата (social_links) минават през JSON — иначе `String(obj)` дава
+  // „[object Object]" и сравнението по-долу обявява всяка промяна за липсваща.
+  const asText = (v: unknown) =>
+    v === null || v === undefined ? "" : typeof v === "object" ? JSON.stringify(v) : String(v);
   const show = (v: unknown, max: number) => {
     if (v === null || v === undefined || v === "") return "(празно)";
-    const s = String(v).replace(/\s+/g, " ").trim();
+    const s = asText(v).replace(/\s+/g, " ").trim();
     return s.length > max ? `${s.slice(0, max)}…` : s;
   };
   const changed: string[] = [];
   for (const key of Object.keys(patch)) {
     const prev = prevRow[key] ?? null;
     const next = patch[key];
-    if (String(prev ?? "") === String(next ?? "")) continue; // без промяна — не го брой
+    if (asText(prev) === asText(next)) continue; // без промяна — не го брой
     changed.push(key);
     before[key] = typeof prev === "string" ? show(prev, 500) : prev;
     after[key] = typeof next === "string" ? show(next, 500) : next;
