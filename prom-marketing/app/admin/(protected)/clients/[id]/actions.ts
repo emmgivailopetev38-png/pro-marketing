@@ -38,6 +38,7 @@ export async function updateContactFieldsAction(formData: FormData) {
 
   const fullName = String(formData.get("full_name") ?? "").trim() || null;
   const company = String(formData.get("company") ?? "").trim() || null;
+  const business = String(formData.get("business") ?? "").trim() || null;
   const notes = String(formData.get("notes") ?? "").trim() || null;
   const dealValueRaw = String(formData.get("deal_value_eur") ?? "").trim();
   const dealValue = dealValueRaw ? Math.round(Number(dealValueRaw)) : null;
@@ -50,6 +51,7 @@ export async function updateContactFieldsAction(formData: FormData) {
     .update({
       full_name: fullName,
       company,
+      business,
       notes,
       deal_value_eur: Number.isFinite(dealValue ?? NaN) ? dealValue : null,
       next_followup_at: followup,

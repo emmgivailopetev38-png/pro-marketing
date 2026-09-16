@@ -137,6 +137,7 @@ export function ContactDetail({
             </a>
           )}
           {contact.company && <span>🏢 {contact.company}</span>}
+          {contact.business && <span>🧭 {contact.business}</span>}
         </div>
 
         {/* Stats strip */}
@@ -231,6 +232,7 @@ export function ContactDetail({
             <input type="hidden" name="contact_id" value={contact.id} />
             <Field label="Име" name="full_name" defaultValue={contact.full_name ?? ""} placeholder="Иван Иванов" />
             <Field label="Фирма" name="company" defaultValue={contact.company ?? ""} placeholder="Acme Ltd." />
+            <Field label="Дейност" name="business" defaultValue={contact.business ?? ""} placeholder="Услуги / кабинет / салон · фризьорски салон" />
             <Field
               label="Стойност (€)"
               name="deal_value_eur"
