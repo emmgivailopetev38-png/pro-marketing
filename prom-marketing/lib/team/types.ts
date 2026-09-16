@@ -44,6 +44,21 @@ export interface FormAnswer {
   answer: string;
 }
 
+/**
+ * Последният опит за контакт от картона (call / meeting / viber_sent).
+ * `outcome` е бутонът, който човекът от екипа е натиснал; `hidden` — той сам е
+ * махнал картата от „чакат обратно обаждане“; `handoff` — предал е човека на
+ * Ивайло и картата вече не е в неговия списък.
+ */
+export interface LastAttempt {
+  title: string;
+  at: string;
+  by: string | null;
+  outcome: string | null;
+  hidden: boolean;
+  handoff: boolean;
+}
+
 /** Ред в опашката за звънене — картонът плюс каквото трябва за разговора. */
 export interface QueueLead {
   id: string;
@@ -61,7 +76,7 @@ export interface QueueLead {
   ad_name: string | null;
   form_answers: FormAnswer[];
   attempts: number;
-  last_attempt: { title: string; at: string; by: string | null } | null;
+  last_attempt: LastAttempt | null;
 }
 
 export interface BookedRow {
@@ -74,13 +89,23 @@ export interface BookedRow {
   notes: string | null;
 }
 
+/**
+ * Откъде идва картата на екрана — определя кои бутони са отпред:
+ * fresh — нов, за първи разговор · retry — обещано чуване, чийто ден е дошъл ·
+ * waiting — не е вдигнал / чуване по-късно, може да върне обаждане ·
+ * search — намерен през търсачката (върнал е обаждане, който и да е).
+ */
+export type LeadCardMode = "fresh" | "retry" | "waiting" | "search";
+
 export const EKIP_ACTIONS = [
   "no_answer",
   "callback",
   "meeting",
+  "handoff",
   "not_interested",
   "wrong_number",
   "note",
+  "hide",
 ] as const;
 export type EkipActionKind = (typeof EKIP_ACTIONS)[number];
 

@@ -142,3 +142,50 @@ export async function notifyOwnerBooking(b: BookingByTeam): Promise<void> {
     }).catch(() => ({ id: null, error: "send failed" })),
   ]);
 }
+
+export interface HandoffByTeam {
+  actorName: string;
+  contactId: string;
+  contactName: string;
+  phone: string | null;
+  email: string | null;
+  business: string | null;
+  note: string | null;
+  /** докога Ивайло да звънне (UTC ISO) */
+  whenIso: string;
+}
+
+/** Човек от екипа предава лийд на собственика — той ще звъни лично. */
+export async function notifyOwnerHandoff(h: HandoffByTeam): Promise<void> {
+  const when = fmtSofia(h.whenIso);
+  const card = `${SITE}/admin/clients/${h.contactId}`;
+  const lines = [
+    `🤝 <b>${escapeHtml(h.actorName)} ти предава човек — звънни му до ${escapeHtml(when)}</b>`,
+    escapeHtml(h.contactName),
+    h.phone ? `📞 ${escapeHtml(h.phone)}` : null,
+    h.email ? `✉️ ${escapeHtml(h.email)}` : null,
+    h.business ? `🧭 ${escapeHtml(h.business)}` : null,
+    h.note ? `📝 ${escapeHtml(h.note)}` : null,
+  ].filter(Boolean) as string[];
+
+  await Promise.all([
+    sendTelegram(lines.join("\n"), { buttons: [{ text: "Картонът в CRM-а", url: card }] }).catch(() => false),
+    sendEmail({
+      to: ownerEmail(),
+      subject: `🤝 ${h.actorName} ти предава ${h.contactName} · звънни до ${when}`,
+      html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#0d1221;">
+<p><strong>${escapeHtml(h.actorName)} говори с човека и той иска да се чуе направо с теб.</strong></p>
+<table style="border-collapse:collapse;">
+<tr><td style="padding:4px 12px 4px 0;color:#777;">Кой:</td><td><strong>${escapeHtml(h.contactName)}</strong></td></tr>
+<tr><td style="padding:4px 12px 4px 0;color:#777;">Звънни до:</td><td><strong>${escapeHtml(when)}</strong> (София) — в сутрешния ти списък е</td></tr>
+<tr><td style="padding:4px 12px 4px 0;color:#777;">Телефон:</td><td>${h.phone ? `<a href="tel:${escapeHtml(h.phone)}">${escapeHtml(h.phone)}</a>` : "—"}</td></tr>
+<tr><td style="padding:4px 12px 4px 0;color:#777;">Имейл:</td><td>${h.email ? escapeHtml(h.email) : "—"}</td></tr>
+<tr><td style="padding:4px 12px 4px 0;color:#777;">Дейност:</td><td>${escapeHtml(h.business ?? "") || "—"}</td></tr>
+<tr><td style="padding:4px 12px 4px 0;color:#777;vertical-align:top;">Какво каза:</td><td>${escapeHtml(h.note ?? "").replace(/\n/g, "<br/>") || "—"}</td></tr>
+</table>
+<p style="margin-top:18px;">📊 <a href="${card}">Картонът в CRM-а</a> · <a href="${SITE}/admin/follow-up">Списъкът за звънене</a></p>
+</div>`,
+      text: `${h.actorName} ти предава: ${h.contactName} · звънни до ${when} (София)\nТелефон: ${h.phone ?? "—"}\nИмейл: ${h.email ?? "—"}\nДейност: ${h.business ?? "—"}\nКакво каза: ${h.note ?? "—"}\n\nКартон: ${card}`,
+    }).catch(() => ({ id: null, error: "send failed" })),
+  ]);
+}
