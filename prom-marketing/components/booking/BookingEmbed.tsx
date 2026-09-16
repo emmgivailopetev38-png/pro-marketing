@@ -6,7 +6,21 @@ import { trackBookingSuccess } from "@/lib/cal/embed";
 const USERNAME = process.env.NEXT_PUBLIC_CAL_USERNAME ?? "promarketing";
 const SLUG = process.env.NEXT_PUBLIC_CAL_EVENT_SLUG ?? "consultation";
 
-export function BookingEmbed() {
+/**
+ * Данните, с които календарът тръгва попълнен.
+ *
+ * Личната страница (/z/<код>) знае кой е човекът — да го кара да си пише пак
+ * името и имейла е точно фрикшънът, който яде срещи. Cal.com приема стойностите
+ * в `config` и полетата излизат готови.
+ */
+export interface BookingPrefill {
+  name?: string | null;
+  email?: string | null;
+  /** Cal.com иска телефона в международен формат — иначе събитието не се създава. */
+  phone?: string | null;
+}
+
+export function BookingEmbed({ prefill }: { prefill?: BookingPrefill } = {}) {
   useEffect(() => {
     (async () => {
       const cal = await getCalApi({ namespace: "booking-inline" });
@@ -49,7 +63,13 @@ export function BookingEmbed() {
       namespace="booking-inline"
       calLink={`${USERNAME}/${SLUG}`}
       style={{ width: "100%", height: "auto", minHeight: "560px", overflow: "visible" }}
-      config={{ layout: "month_view", theme: "dark" }}
+      config={{
+        layout: "month_view",
+        theme: "dark",
+        ...(prefill?.name ? { name: prefill.name } : {}),
+        ...(prefill?.email ? { email: prefill.email } : {}),
+        ...(prefill?.phone ? { attendeePhoneNumber: prefill.phone } : {}),
+      }}
     />
   );
 }

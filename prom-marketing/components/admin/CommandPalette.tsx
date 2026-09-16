@@ -26,6 +26,7 @@ import {
   LineChart,
   Clapperboard,
   Settings,
+  Flame,
   type LucideIcon,
 } from "lucide-react";
 
@@ -35,6 +36,7 @@ const COMMANDS: Cmd[] = [
   { href: "/admin", label: "Преглед", group: "Команден център", icon: LayoutDashboard, kw: "dashboard home nachalo pregled" },
   { href: "/admin/new-leads", label: "Нови лидове", group: "Команден център", icon: Sparkles, kw: "new leads novi" },
   { href: "/admin/clients", label: "Клиенти", group: "CRM", icon: Users, kw: "clients klienti contacts kontakti" },
+  { href: "/admin/zatopli", label: "Затопли", group: "CRM", icon: Flame, kw: "zatopli warm viber whatsapp telegram opashka" },
   { href: "/admin/follow-up", label: "Follow-up", group: "CRM", icon: Target, kw: "followup proslejavane" },
   { href: "/admin/bookings", label: "Срещи", group: "CRM", icon: Calendar, kw: "bookings meetings srehti calendar" },
   { href: "/admin/leads", label: "Meta лидове", group: "CRM", icon: Inbox, kw: "meta leads lidove facebook" },
