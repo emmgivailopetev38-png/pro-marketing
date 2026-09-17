@@ -39,6 +39,17 @@ for f in glob.glob(os.path.join(ROOT, "app/**/page.tsx"), recursive=True):
         rel = re.sub(r"\([^)]*\)/?", "", rel).strip("/")
         REDIRECTS.add("/" + rel if rel else "/")
 
+# Пренасочванията, обявени в next.config.ts. Те нямат своя page.tsx, затова
+# горният обход не ги вижда и всяка връзка към тях изглеждаше счупена —
+# „/rabota" се водеше счупена от 23 страници, макар да работи на живо.
+CONFIG_REDIRECTS = set()
+_cfg = os.path.join(os.path.dirname(ROOT), "next.config.ts")
+_cfg = _cfg if os.path.exists(_cfg) else os.path.join(ROOT, "next.config.ts")
+if os.path.exists(_cfg):
+    _src = open(_cfg, encoding="utf-8", errors="replace").read()
+    CONFIG_REDIRECTS = {m.rstrip("/") or "/"
+                        for m in re.findall(r'source:\s*"(/[^"]*)"', _src)}
+
 pages = {}
 for f in glob.glob(os.path.join(APP, "**/*.html"), recursive=True):
     rel = os.path.relpath(f, APP)[:-5]
@@ -143,7 +154,7 @@ for p, n in sorted(links.items()):
     if p in known or dynamic_ok.match(p): continue
     if p.startswith("/_next") or p.startswith("/videa") or p.startswith("/images"): continue
     if p in ("/manifest.webmanifest","/sitemap.xml","/robots.txt","/llms.txt"): continue
-    if p in REDIRECTS: continue
+    if p in REDIRECTS or p in CONFIG_REDIRECTS: continue
     if os.path.exists(os.path.join(ROOT, "public", p.lstrip("/"))): continue
     bad("високо","връзки", f"счупена вътрешна връзка към {p} (от {len(targets[p])} страници)")
 
