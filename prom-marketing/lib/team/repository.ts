@@ -31,6 +31,23 @@ export async function listMembers(): Promise<TeamMember[]> {
   return (data ?? []) as TeamMember[];
 }
 
+/**
+ * Човекът, на когото се дават картоните за звънене: първият активен `setter`.
+ * Днес е един; ако станат повече, тук се избира съзнателно, а не по случайност.
+ */
+export async function firstActiveSetter(): Promise<TeamMember | null> {
+  const sb = createServiceClient();
+  const { data } = await sb
+    .from("team_members")
+    .select(COLS)
+    .eq("active", true)
+    .eq("role", "setter")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return (data as TeamMember | null) ?? null;
+}
+
 export async function getMemberById(id: string): Promise<TeamMember | null> {
   const sb = createServiceClient();
   const { data } = await sb.from("team_members").select(COLS).eq("id", id).maybeSingle();

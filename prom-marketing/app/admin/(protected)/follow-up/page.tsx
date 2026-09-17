@@ -3,6 +3,8 @@ import type { ContactRow } from "@/lib/contacts/types";
 import { followupState } from "@/lib/contacts/followup";
 import { entryFromMetadata } from "@/lib/contacts/dnevnik";
 import { openPromisesByContact, photoSrcMany } from "@/lib/contacts/dnevnik-repository";
+import { ASSIGN_TYPE, summarizeAttempts, type AttemptRow } from "@/lib/team/queue-rules";
+import { firstActiveSetter } from "@/lib/team/repository";
 import { FollowupQueue, type FollowupRow } from "@/components/admin/FollowupQueue";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +26,8 @@ export default async function FollowupPage() {
   const sb = createServiceClient();
   const now = new Date();
 
-  const [{ data: contacts }, { data: sentActs }, { data: attemptActs }, { data: dnevnikActs }] = await Promise.all([
+  const [{ data: contacts }, { data: sentActs }, { data: attemptActs }, { data: dnevnikActs }, { data: teamActs }] =
+    await Promise.all([
     sb.from("contacts").select("*").neq("stage", "lost").order("updated_at", { ascending: false }),
     sb
       .from("contact_activities")
@@ -45,7 +48,16 @@ export default async function FollowupPage() {
       .eq("metadata->>kind", "dnevnik")
       .order("occurred_at", { ascending: false })
       .limit(3000),
+    // Кой е даден на екипа и още не е докоснат — за да не звъннем и двамата.
+    sb
+      .from("contact_activities")
+      .select("contact_id, activity_type, title, occurred_at, created_by, metadata")
+      .or(`activity_type.eq.${ASSIGN_TYPE},metadata->>team.eq.true`)
+      .order("occurred_at", { ascending: false })
+      .limit(2000),
   ]);
+
+  const atTeam = summarizeAttempts((teamActs ?? []) as AttemptRow[]);
 
   const allContacts = (contacts ?? []) as ContactRow[];
 
@@ -75,9 +87,10 @@ export default async function FollowupPage() {
       lastDnevnik.has(c.id)
   );
 
-  const [promises, photos] = await Promise.all([
+  const [promises, photos, setter] = await Promise.all([
     openPromisesByContact(picked.map((c) => c.id)),
     photoSrcMany(picked.map((c) => c.photo_url ?? null)),
+    firstActiveSetter(),
   ]);
 
   const rows: FollowupRow[] = picked.map((c) => ({
@@ -90,6 +103,7 @@ export default async function FollowupPage() {
     last_dnevnik: lastDnevnik.get(c.id) ?? null,
     dnevnik_count: dnevnikCount.get(c.id) ?? 0,
     open_promises: promises.get(c.id) ?? [],
+    at_team: atTeam.get(c.id)?.given?.to ?? null,
   }));
 
   return (
@@ -104,7 +118,7 @@ export default async function FollowupPage() {
           </p>
         </header>
 
-        <FollowupQueue rows={rows} nowIso={now.toISOString()} />
+        <FollowupQueue rows={rows} nowIso={now.toISOString()} setterName={setter?.full_name ?? null} />
       </div>
     </div>
   );

@@ -77,6 +77,7 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: LeadCardMode }
   const [state, formAction] = useActionState<EkipActionResult | null, FormData>(ekipAction, null);
   const [open, setOpen] = useState(mode === "retry");
   const waiting = mode === "waiting";
+  const given = mode === "given";
 
   const fromForm = lead.form_answers.find((a) => a.question === "С какво се занимава")?.answer ?? null;
   const saved = splitBusiness(lead.business);
@@ -104,7 +105,9 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: LeadCardMode }
       className={`scroll-mt-20 rounded-2xl border p-4 ${
         waiting
           ? "border-amber-400/25 bg-amber-400/[0.04]"
-          : "border-white/10 bg-white/[0.04] shadow-[0_10px_40px_-30px_rgba(6,182,212,0.6)]"
+          : given
+            ? "border-violet-400/25 bg-violet-400/[0.04]"
+            : "border-white/10 bg-white/[0.04] shadow-[0_10px_40px_-30px_rgba(6,182,212,0.6)]"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -123,6 +126,11 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: LeadCardMode }
         {waiting && lead.next_followup_at && (
           <span className="shrink-0 rounded-full border border-amber-400/40 px-2 py-0.5 text-[11px] text-amber-300">
             📵 пак {when(lead.next_followup_at)}
+          </span>
+        )}
+        {given && (
+          <span className="shrink-0 rounded-full border border-violet-400/40 px-2 py-0.5 text-[11px] text-violet-200">
+            🤝 от Ивайло
           </span>
         )}
         {mode === "search" && (
@@ -165,6 +173,12 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: LeadCardMode }
 
       {lead.business && mode !== "fresh" && (
         <p className="mt-2 text-xs text-[var(--color-text-secondary)]">🧭 {lead.business}</p>
+      )}
+
+      {given && lead.given_reason && (
+        <p className="mt-3 rounded-lg border border-violet-400/25 bg-violet-400/[0.06] px-3 py-2 text-xs text-violet-100">
+          {lead.given_reason}
+        </p>
       )}
 
       {lead.notes && (

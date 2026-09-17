@@ -6,6 +6,8 @@ import { FOLLOWUP_STATUSES, type ContactStage, type FollowupStatus } from "@/lib
 import { alignStage, dayKey } from "@/lib/contacts/followup";
 import { resolveRemindAt } from "@/lib/contacts/dnevnik";
 import { fmtSofia } from "@/lib/team/time";
+import { firstActiveSetter } from "@/lib/team/repository";
+import { ASSIGN_TYPE } from "@/lib/team/queue-rules";
 
 /**
  * Single dispatcher for the follow-up queue quick actions. Each action records
@@ -23,7 +25,7 @@ export async function followupQuickAction(formData: FormData) {
   const svc = createServiceClient();
   const nowIso = new Date().toISOString();
   const patch: Record<string, unknown> = {};
-  let activity: { type: string; title: string; body?: string | null } | null = null;
+  let activity: { type: string; title: string; body?: string | null; metadata?: Record<string, unknown> } | null = null;
 
   // Текущото състояние — за да не стои напомнянето „просрочено" след като
   // бутонът е натиснат, и за да върви етапът със статуса.
@@ -96,6 +98,21 @@ export async function followupQuickAction(formData: FormData) {
       activity = { type: "note", title: `🔔 Да го чуя пак: ${fmtSofia(iso)}` };
       break;
     }
+    case "give_to_team": {
+      // Картонът отива в списъка на човека за срещите („🤝 От Ивайло“) и стои
+      // там, докато той не го докосне. Тук НЕ се пипат датата и статусът —
+      // обещанията на Ивайло си остават негови.
+      const setter = await firstActiveSetter();
+      if (!setter) throw new Error("Няма активен човек за звънене в „Екип“");
+      const reason = String(formData.get("reason") ?? "").trim() || "Ивайло го дава за звънене";
+      activity = {
+        type: ASSIGN_TYPE,
+        title: `🤝 Дадено на ${setter.full_name} за звънене`,
+        body: reason,
+        metadata: { to_team: true, to_name: setter.full_name, to_member_id: setter.id, reason },
+      };
+      break;
+    }
     case "set_followup_status": {
       const fs = String(formData.get("followup_status") ?? "");
       if (!FOLLOWUP_STATUSES.includes(fs as FollowupStatus)) throw new Error("Invalid status");
@@ -129,6 +146,7 @@ export async function followupQuickAction(formData: FormData) {
       activity_type: activity.type,
       title: activity.title,
       body: activity.body ?? null,
+      metadata: activity.metadata ?? null,
       created_by: email,
     });
   }
@@ -136,4 +154,5 @@ export async function followupQuickAction(formData: FormData) {
   revalidatePath("/admin/follow-up");
   revalidatePath(`/admin/clients/${contactId}`);
   revalidatePath("/admin");
+  revalidatePath("/ekip");
 }
