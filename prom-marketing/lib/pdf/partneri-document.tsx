@@ -366,7 +366,7 @@ export function PartneriDocument() {
         <View style={s.ctaBar}>
           <View style={s.ctaLeft}>
             <Text style={s.ctaHeadline}>Готов да тестваш партньорството?</Text>
-            <Text style={s.ctaSub}>Запази безплатна 30-мин discovery call</Text>
+            <Text style={s.ctaSub}>Запази безплатна 45-мин discovery call</Text>
           </View>
           <View style={s.ctaRight}>
             <Text style={s.ctaPhone}>+359 877 399 963</Text>

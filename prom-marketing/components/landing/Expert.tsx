@@ -174,7 +174,7 @@ export function Expert() {
                   }}
                 >
                   <Calendar className="h-4 w-4" />
-                  Запази 30-мин разговор
+                  Запази 45-мин разговор
                 </a>
                 <a
                   href="mailto:emmgivailopetev38@gmail.com"

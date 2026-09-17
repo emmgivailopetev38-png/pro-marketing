@@ -2,7 +2,7 @@ const STEPS = [
   {
     n: "01",
     title: "Discovery call",
-    body: "30-минутен разговор. Обсъждаме клиента, целите, обхвата. Ти решаваш дали white-label или ProMarketing-branded.",
+    body: "45-минутен разговор. Обсъждаме клиента, целите, обхвата. Ти решаваш дали white-label или ProMarketing-branded.",
     tag: "Безплатно",
   },
   {

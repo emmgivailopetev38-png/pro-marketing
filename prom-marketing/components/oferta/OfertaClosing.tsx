@@ -30,7 +30,7 @@ export function OfertaClosing() {
         </h2>
 
         <p className="mx-auto mt-12 max-w-2xl text-lg leading-relaxed text-[var(--color-text-secondary)] md:text-xl">
-          30 минути разговор. Запознаваме се, чуваме всичко конкретно за твоя бранд, отговаряме на въпроси. Излизаш с финален план и точна стартова дата.
+          45 минути разговор. Запознаваме се, чуваме всичко конкретно за твоя бранд, отговаряме на въпроси. Излизаш с финален план и точна стартова дата.
         </p>
 
         <div className="mt-16 flex flex-col items-center gap-6">
@@ -44,7 +44,7 @@ export function OfertaClosing() {
               borderRadius: "9999px",
             }}
           >
-            Запази 30-минутен разговор
+            Запази 45-минутен разговор
             <span aria-hidden className="transition-transform group-hover:translate-x-1">
               →
             </span>

@@ -398,7 +398,7 @@ export default function MentorPage() {
             Следваща стъпка
           </p>
           <h2 className="mb-8 font-[family-name:var(--font-editorial)] text-[clamp(32px,5vw,56px)] font-extrabold leading-[1.05]">
-            Безплатен 30-мин разговор. <br />
+            Безплатен 45-мин разговор. <br />
             <span className="text-[var(--color-violet-bright)]">Виж дали си пасваме.</span>
           </h2>
           <p className="mb-12 mx-auto max-w-2xl text-base leading-relaxed text-[var(--color-text-secondary)]">

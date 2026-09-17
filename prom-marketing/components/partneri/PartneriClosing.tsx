@@ -28,7 +28,7 @@ export function PartneriClosing() {
         </h2>
 
         <p className="mx-auto mt-12 max-w-2xl text-lg leading-relaxed text-[var(--color-text-secondary)] md:text-xl">
-          30-минутен разговор. Носи си конкретен клиент или сценарий — излизаш с
+          45-минутен разговор. Носи си конкретен клиент или сценарий — излизаш с
           реален план как изглежда изпълнението и колко струва.
         </p>
 

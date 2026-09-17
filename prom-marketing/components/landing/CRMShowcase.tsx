@@ -102,7 +102,7 @@ function KpiSlide() {
 function ClientTimelineSlide() {
   // Demo timeline — fictional client. Real CRM activities live in /admin only.
   const activities: Array<{ icon: string; title: string; time: string; color: string }> = [
-    { icon: "🤝", title: "Среща проведена · 30 мин", time: "днес 14:00", color: "#22c55e" },
+    { icon: "🤝", title: "Среща проведена · 45 мин", time: "днес 14:00", color: "#22c55e" },
     { icon: "💎", title: "Оферта изпратена · €2,000", time: "вчера 11:20", color: "#facc15" },
     { icon: "🎯", title: "Презентация пратена", time: "преди 2 дни", color: "#ec4899" },
     { icon: "📅", title: "Cal.com резервация", time: "преди 3 дни", color: "#a78bfa" },
