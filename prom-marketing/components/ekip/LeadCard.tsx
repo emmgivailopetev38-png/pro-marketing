@@ -4,6 +4,7 @@ import { useFormStatus } from "react-dom";
 import { ekipAction } from "@/app/ekip/actions";
 import { guessBusinessOption } from "@/lib/leads/form-labels";
 import { BUSINESS_OPTIONS, type EkipActionResult, type LeadCardMode, type QueueLead } from "@/lib/team/types";
+import { MEETING_MINUTES } from "@/lib/cal/types";
 
 const CAL_URL = "https://cal.com/promarketing/consultation";
 
@@ -269,7 +270,7 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: LeadCardMode }
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-2">
                 <label className="text-[11px] text-emerald-200/80">
-                  📅 Среща с Ивайло на
+                  📅 Среща с Ивайло ({MEETING_MINUTES} мин) на
                   <input
                     type="datetime-local"
                     name="meeting_at"

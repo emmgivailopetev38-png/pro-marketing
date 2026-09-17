@@ -20,7 +20,7 @@ export function ClosingCTA() {
             <HolographicText>стартираш</HolographicText>?
           </h2>
           <p className="mx-auto mt-8 max-w-2xl text-lg text-[var(--color-text-secondary)] md:text-xl">
-            30 минути разговор. Без презентации. Излизаш с конкретен план и числа за ROI.
+            45 минути разговор. Без презентации. Излизаш с конкретен план и числа за ROI.
           </p>
         </SectionReveal>
 
