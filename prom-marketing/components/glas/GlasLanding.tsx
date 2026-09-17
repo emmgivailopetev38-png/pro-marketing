@@ -127,7 +127,7 @@ export function GlasLanding() {
             AI гласов агент, който <span className="text-cyan-300">вдига телефона</span> на магазина ти.
             <br />
             <span className="bg-gradient-to-r from-violet-300 to-cyan-200 bg-clip-text text-transparent">
-              Денонощно. На български.
+              Поръчки, пратки, наложен платеж.
             </span>
           </h1>
           <p className="mt-5 max-w-xl text-base text-slate-300 md:text-lg">
@@ -137,7 +137,7 @@ export function GlasLanding() {
           </p>
           <ul className="mt-6 space-y-2.5">
             {[
-              "Чуваш го за трийсет секунди — с твоите данни, не с презентация",
+              "Денонощно, на естествен български — чуваш го за трийсет секунди",
               "Записва ти среща сам, докато говорите — в истинския календар",
               "Пуска се на твоя номер за две до три седмици",
             ].map((t) => (
