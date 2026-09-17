@@ -189,3 +189,127 @@ export async function notifyOwnerHandoff(h: HandoffByTeam): Promise<void> {
     }).catch(() => ({ id: null, error: "send failed" })),
   ]);
 }
+
+// ── Напомняне за недокоснат лийд ────────────────────────────────────────────
+
+import { createServiceClient } from "@/lib/supabase/service";
+import {
+  MAX_AGE_MINUTES,
+  dueReminders,
+  levelLabel,
+  reminderKey,
+  withinWorkingHours,
+  type ReminderCandidate,
+} from "./lead-reminders";
+
+const ATTEMPT_TYPES = ["call", "meeting", "viber_sent"];
+
+export interface LeadReminderResult {
+  ok: boolean;
+  skipped?: "quiet_hours" | "no_recipients" | "nothing_due";
+  reminded: number;
+  recipients: number;
+  names?: string[];
+}
+
+/**
+ * Проверява недокоснатите нови лийдове и праща ЕДНО писмо с всички, които
+ * чакат. Извиква се от крона на всеки половин час; безопасно е да се пусне
+ * пак — вече пратените напомняния се пазят в `automation_events`.
+ */
+export async function runLeadReminders(opts: { now?: Date; force?: boolean } = {}): Promise<LeadReminderResult> {
+  const now = opts.now ?? new Date();
+  if (!opts.force && !withinWorkingHours(now)) {
+    return { ok: true, skipped: "quiet_hours", reminded: 0, recipients: 0 };
+  }
+
+  const to = (await newLeadNotifyEmails().catch(() => [] as string[])).filter((e) => !ownerAddresses().has(e));
+  if (to.length === 0) return { ok: true, skipped: "no_recipients", reminded: 0, recipients: 0 };
+
+  const sb = createServiceClient();
+  const since = new Date(now.getTime() - MAX_AGE_MINUTES * 60_000).toISOString();
+  const { data: rows } = await sb
+    .from("contacts")
+    .select("id, full_name, phone, email, business, source, created_at")
+    .eq("stage", "lead")
+    .not("phone", "is", null)
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  const fresh = (rows ?? []) as ReminderCandidate[];
+  if (fresh.length === 0) return { ok: true, skipped: "nothing_due", reminded: 0, recipients: to.length };
+
+  const ids = fresh.map((c) => c.id);
+  const [{ data: touched }, { data: sent }] = await Promise.all([
+    sb.from("contact_activities").select("contact_id").in("contact_id", ids).in("activity_type", ATTEMPT_TYPES),
+    sb.from("automation_events").select("idempotency_key").eq("event_type", "lead_reminder").gte("created_at", since),
+  ]);
+  const touchedIds = new Set(((touched ?? []) as Array<{ contact_id: string }>).map((t) => t.contact_id));
+  const alreadySent = new Set(
+    ((sent ?? []) as Array<{ idempotency_key: string | null }>).map((s) => s.idempotency_key ?? "").filter(Boolean)
+  );
+
+  const due = dueReminders(
+    fresh.filter((c) => !touchedIds.has(c.id)),
+    alreadySent,
+    now
+  );
+  if (due.length === 0) return { ok: true, skipped: "nothing_due", reminded: 0, recipients: to.length };
+
+  const rowsHtml = due
+    .map((d) => {
+      const c = d.contact;
+      const name = c.full_name?.trim() || c.phone || "без име";
+      const bits = [levelLabel(d.level), c.business, c.source === "meta_lead" ? "от реклама" : null]
+        .filter(Boolean)
+        .map((b) => escapeHtml(String(b)))
+        .join(" · ");
+      return `<tr>
+<td style="padding:6px 12px 6px 0;vertical-align:top;"><strong>${escapeHtml(name)}</strong><br/><span style="color:#777;font-size:13px;">${bits}</span></td>
+<td style="padding:6px 0;vertical-align:top;">${c.phone ? escapeHtml(c.phone) : "—"}<br/>
+<a href="${SITE}/ekip#lead-${c.id}" style="color:#0891b2;font-size:13px;">отвори картата</a></td>
+</tr>`;
+    })
+    .join("\n");
+
+  const subject =
+    due.length === 1
+      ? `🔔 ${due[0].contact.full_name?.trim() || due[0].contact.phone || "Лийд"} още чака обаждане`
+      : `🔔 ${due.length} души чакат обаждане`;
+
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#0d1221;">
+<p><strong>${due.length === 1 ? "Един човек" : `${due.length} души`} от рекламите още не е чул нищо от нас.</strong></p>
+<p>Най-топли са през първия час — колкото по-късно звъннеш, толкова по-студен е разговорът.</p>
+<table style="border-collapse:collapse;">
+${rowsHtml}
+</table>
+<p style="margin-top:18px;"><a href="${SITE}/ekip" style="display:inline-block;background:#0891b2;color:#fff;padding:10px 18px;border-radius:999px;text-decoration:none;font-weight:bold;">Отвори опашката за звънене</a></p>
+<p style="color:#777;font-size:13px;">Ако вече си звънял и не са вдигнали, натисни „Не вдигна“ — картата остава при теб и напомнянето спира.</p>
+</div>`;
+
+  const text = [
+    `${due.length} души чакат обаждане:`,
+    ...due.map((d) => `• ${d.contact.full_name ?? d.contact.phone ?? "без име"} · ${d.contact.phone ?? "—"} · ${levelLabel(d.level)}`),
+    "",
+    `Опашката: ${SITE}/ekip`,
+  ].join("\n");
+
+  const res = await sendEmail({ to, subject, html, text }).catch(() => ({ id: null, error: "send failed" }));
+  if (res.error) return { ok: false, reminded: 0, recipients: to.length };
+
+  await sb
+    .from("automation_events")
+    .insert(
+      due.map((d) => ({
+        event_type: "lead_reminder",
+        status: "done",
+        related_contact_id: d.contact.id,
+        summary: `Напомняне ниво ${d.level} — ${d.contact.full_name ?? d.contact.phone ?? "лийд"} ${levelLabel(d.level)}`,
+        detail: { level: d.level, age_minutes: d.ageMinutes, to },
+        idempotency_key: reminderKey(d.contact.id, d.level),
+      }))
+    )
+    .then(() => null, () => null);
+
+  return { ok: true, reminded: due.length, recipients: to.length, names: due.map((d) => d.contact.full_name ?? d.contact.phone ?? "—") };
+}

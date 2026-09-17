@@ -4,6 +4,8 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { requireAdmin } from "@/lib/admin/require-admin";
 import { FOLLOWUP_STATUSES, type ContactStage, type FollowupStatus } from "@/lib/contacts/types";
 import { alignStage, dayKey } from "@/lib/contacts/followup";
+import { resolveRemindAt } from "@/lib/contacts/dnevnik";
+import { fmtSofia } from "@/lib/team/time";
 
 /**
  * Single dispatcher for the follow-up queue quick actions. Each action records
@@ -82,6 +84,16 @@ export async function followupQuickAction(formData: FormData) {
           timeZone: "Europe/Sofia",
         })}`,
       };
+      break;
+    }
+    case "remind_preset": {
+      // „Да го чуя пак“: утре / след 3 дни / седмица / 2 седмици / месец —
+      // работен ден, 10:00 София, влиза в сутрешния списък.
+      const iso = resolveRemindAt(String(formData.get("preset") ?? ""), String(formData.get("remind_at") ?? ""));
+      if (!iso) throw new Error("Избери кога да го чуеш пак");
+      patch.next_followup_at = iso;
+      patch.followup_status = "needs_call";
+      activity = { type: "note", title: `🔔 Да го чуя пак: ${fmtSofia(iso)}` };
       break;
     }
     case "set_followup_status": {
