@@ -28,6 +28,8 @@ export interface FollowupRow extends ContactRow {
   last_dnevnik: { at: string; entry: DnevnikEntry } | null;
   dnevnik_count: number;
   open_promises: PromiseRow[];
+  /** даден на екипа за звънене и още недокоснат — да не звъннем и двамата */
+  at_team: string | null;
 }
 
 // Pipeline priority: negotiating → offer_sent → presentation_sent → contacted → rest.
@@ -101,7 +103,15 @@ function matches(r: FollowupRow, f: FilterKey): boolean {
   }
 }
 
-export function FollowupQueue({ rows, nowIso }: { rows: FollowupRow[]; nowIso: string }) {
+export function FollowupQueue({
+  rows,
+  nowIso,
+  setterName,
+}: {
+  rows: FollowupRow[];
+  nowIso: string;
+  setterName?: string | null;
+}) {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [q, setQ] = useState("");
 
@@ -163,7 +173,7 @@ export function FollowupQueue({ rows, nowIso }: { rows: FollowupRow[]; nowIso: s
 
       <div className="space-y-3">
         {visible.map((r) => (
-          <FollowupCard key={r.id} row={r} nowIso={nowIso} />
+          <FollowupCard key={r.id} row={r} nowIso={nowIso} setterName={setterName ?? null} />
         ))}
         {visible.length === 0 && (
           <p className="rounded-lg border border-dashed border-[var(--color-border-default)] p-8 text-center text-sm text-[var(--color-text-tertiary)]">
@@ -194,7 +204,7 @@ function StateChip({ r }: { r: FollowupRow }) {
   }
 }
 
-function FollowupCard({ row: r, nowIso }: { row: FollowupRow; nowIso: string }) {
+function FollowupCard({ row: r, nowIso, setterName }: { row: FollowupRow; nowIso: string; setterName: string | null }) {
   const [writing, setWriting] = useState(false);
   const overdue = r.state === "overdue";
   const mood = moodOf(r.mood);
@@ -237,6 +247,15 @@ function FollowupCard({ row: r, nowIso }: { row: FollowupRow; nowIso: string }) 
               {mood && (
                 <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: `${mood.color}22`, color: mood.color }}>
                   {mood.emoji} {mood.label}
+                </span>
+              )}
+              {r.at_team && (
+                <span
+                  className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                  style={{ background: "rgba(167,139,250,0.15)", color: "rgb(196,181,253)" }}
+                  title="Даден е на екипа за звънене и още не е докоснат — не звъни ти, за да не звъннете двамата."
+                >
+                  🤝 при {r.at_team}
                 </span>
               )}
             </div>
@@ -308,6 +327,16 @@ function FollowupCard({ row: r, nowIso }: { row: FollowupRow; nowIso: string }) 
         {REMIND_PRESETS.map((p) => (
           <RemindButton key={p.key} contactId={r.id} preset={p.key} label={p.label} />
         ))}
+        {setterName && r.phone && !r.at_team && (
+          <QuickButton
+            contactId={r.id}
+            action="give_to_team"
+            className="border-violet-400/40 text-violet-300 hover:bg-violet-500/10"
+            title={`Влиза в списъка за звънене на ${setterName} и стои там, докато не го чуе. Датата ти за чуване не се пипа.`}
+          >
+            🤝 Дай на {setterName.split(" ")[0]}
+          </QuickButton>
+        )}
         <QuickButton contactId={r.id} action="not_interested" className="ml-auto border-white/10 text-[var(--color-text-tertiary)] hover:bg-white/5">
           ✕ Не се интересува
         </QuickButton>
@@ -326,18 +355,24 @@ function QuickButton({
   contactId,
   action,
   className,
+  title,
   children,
 }: {
   contactId: string;
   action: string;
   className?: string;
+  title?: string;
   children: React.ReactNode;
 }) {
   return (
     <form action={followupQuickAction} className="inline">
       <input type="hidden" name="contact_id" value={contactId} />
       <input type="hidden" name="action" value={action} />
-      <button type="submit" className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs transition-colors ${className ?? ""}`}>
+      <button
+        type="submit"
+        title={title}
+        className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs transition-colors ${className ?? ""}`}
+      >
         {children}
       </button>
     </form>

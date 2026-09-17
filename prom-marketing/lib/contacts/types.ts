@@ -96,9 +96,11 @@ export const ACTIVITY_LABEL: Record<string, string> = {
   work_completed: "Завършена работа",
   stage_change: "Промяна на статус",
   client_review: "Одобри видеата (страница за преглед)",
+  team_assigned: "Даден на екипа за звънене",
 };
 
 export const ACTIVITY_ICON: Record<string, string> = {
+  team_assigned: "🤝",
   meta_lead: "📥",
   website_form: "🌐",
   booking: "📅",

@@ -4,8 +4,10 @@ import { decodeFormAnswers } from "@/lib/leads/form-labels";
 import type { BookedRow, QueueLead } from "./types";
 import { todayEndIso } from "./time";
 import {
+  ASSIGN_TYPE,
   looksLikePhone,
   phoneDigits,
+  pickGiven,
   safeTextQuery,
   splitTeamDue,
   summarizeAttempts,
@@ -21,6 +23,11 @@ import {
  * не по next_followup_at — иначе тъмната опашка е невидима (виж
  * crm-tumnata-opashka-liidove). Най-новите най-горе: топлият лийд е този
  * отпреди пет минути.
+ *
+ * „От Ивайло“ = картони, които Ивайло изрично е дал на екипа (не вдигат,
+ * разбрали сте се да се чуете и не се обадиха, контактът е бил съвсем лек).
+ * Стоят там, докато екипът не ги докосне веднъж — после текат по общите
+ * правила. Датата за чуване няма значение: в списъка са, защото са дадени.
  *
  * „За повторно“ = хора, на които САМИЯТ екип е звънял и е насрочил ново
  * чуване, чийто ден е дошъл. Обещанията на Ивайло („ти обеща да звъннеш“)
@@ -39,6 +46,7 @@ const ATTEMPT_TYPES = ["call", "meeting", "viber_sent"];
 const WINDOW_DAYS = 90;
 const MAX_FRESH = 200;
 const MAX_SEARCH = 20;
+const MAX_ASSIGNED = 400;
 
 interface ContactLite {
   id: string;
@@ -61,6 +69,8 @@ type FormInfo = { ad_name: string | null; field_data: unknown };
 
 export interface SetterQueue {
   fresh: QueueLead[];
+  /** Дадени от Ивайло и още недокоснати от екипа. */
+  given: QueueLead[];
   retry: QueueLead[];
   /** Не вдигнаха / чуване по-късно — може да върнат обаждане, картата е под ръка. */
   waiting: QueueLead[];
@@ -75,7 +85,7 @@ async function loadAttempts(sb: Sb, ids: string[]): Promise<Map<string, AttemptS
     .from("contact_activities")
     .select("contact_id, activity_type, title, occurred_at, created_by, metadata")
     .in("contact_id", ids)
-    .in("activity_type", ATTEMPT_TYPES)
+    .in("activity_type", [...ATTEMPT_TYPES, ASSIGN_TYPE])
     .order("occurred_at", { ascending: false });
   return summarizeAttempts((data ?? []) as AttemptRow[]);
 }
@@ -112,7 +122,27 @@ function toLead(c: ContactLite, attempts: Map<string, AttemptSummary>, forms: Ma
     form_answers: form ? decodeFormAnswers(form.field_data) : [],
     attempts: att?.count ?? 0,
     last_attempt: att?.last ?? null,
+    given_reason: att?.given?.reason ?? null,
   };
+}
+
+/** Картоните с маркер „дадено на екипа“ — id-тата идват от активностите. */
+async function loadAssigned(sb: Sb): Promise<ContactLite[]> {
+  const { data: marks } = await sb
+    .from("contact_activities")
+    .select("contact_id")
+    .eq("activity_type", ASSIGN_TYPE)
+    .order("occurred_at", { ascending: false })
+    .limit(MAX_ASSIGNED);
+  const ids = [...new Set((marks ?? []).map((m) => m.contact_id as string))];
+  if (ids.length === 0) return [];
+  const { data } = await sb
+    .from("contacts")
+    .select(COLS)
+    .in("id", ids)
+    .not("phone", "is", null)
+    .not("stage", "in", "(won,lost)");
+  return (data ?? []) as ContactLite[];
 }
 
 export async function loadSetterQueue(now: Date = new Date()): Promise<SetterQueue> {
@@ -120,7 +150,7 @@ export async function loadSetterQueue(now: Date = new Date()): Promise<SetterQue
   const since = new Date(now.getTime() - WINDOW_DAYS * 86_400_000).toISOString();
   const todayEnd = todayEndIso(now);
 
-  const [{ data: leadRows }, { data: dueRows }, { data: bookedRows }] = await Promise.all([
+  const [{ data: leadRows }, { data: dueRows }, { data: bookedRows }, assigned] = await Promise.all([
     sb
       .from("contacts")
       .select(COLS)
@@ -145,15 +175,21 @@ export async function loadSetterQueue(now: Date = new Date()): Promise<SetterQue
       .gte("scheduled_at", new Date(now.getTime() - 3_600_000).toISOString())
       .order("scheduled_at", { ascending: true })
       .limit(30),
+    loadAssigned(sb),
   ]);
 
   const leads = (leadRows ?? []) as ContactLite[];
   const due = (dueRows ?? []) as ContactLite[];
-  const attempts = await loadAttempts(sb, [...new Set([...leads, ...due].map((c) => c.id))]);
+  const attempts = await loadAttempts(sb, [...new Set([...leads, ...due, ...assigned].map((c) => c.id))]);
 
+  const givenContacts = pickGiven(assigned, attempts);
+  const givenIds = new Set(givenContacts.map((c) => c.id));
   const freshContacts = leads.filter((c) => !attempts.has(c.id));
-  const { retry, waiting, later } = splitTeamDue(due, attempts, todayEnd);
-  const forms = await loadForms(sb, [...freshContacts, ...retry, ...waiting]);
+  const split = splitTeamDue(due, attempts, todayEnd);
+  const retry = split.retry.filter((c) => !givenIds.has(c.id));
+  const waiting = split.waiting.filter((c) => !givenIds.has(c.id));
+  const later = split.later;
+  const forms = await loadForms(sb, [...freshContacts, ...givenContacts, ...retry, ...waiting]);
   const lead = (c: ContactLite) => toLead(c, attempts, forms);
 
   const booked: BookedRow[] = ((bookedRows ?? []) as Array<Record<string, unknown>>).map((b) => ({
@@ -168,6 +204,7 @@ export async function loadSetterQueue(now: Date = new Date()): Promise<SetterQue
 
   return {
     fresh: freshContacts.map(lead),
+    given: givenContacts.map(lead),
     retry: retry.map(lead),
     waiting: waiting.map(lead),
     later,
