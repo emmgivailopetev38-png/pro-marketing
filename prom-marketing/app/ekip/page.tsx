@@ -14,7 +14,9 @@ export const dynamic = "force-dynamic";
  * Опашката за звънене — „Моят ден“ на човека за срещите.
  * Отгоре: търсачката (върнал е обаждане — кой е?), после за повторно (обещал е
  * да звънне днес), после „чакат обратно обаждане“ (не вдигнаха — картата стои,
- * докато той сам не я скрие), после новите, най-новите най-горе. Накрая е
+ * докато той сам не я скрие), после новите, най-новите най-горе. Най-отгоре
+ * обаче са отказаните срещи: отказът е прясна рана и се лекува същия ден.
+ * Накрая е
  * купчината от Ивайло — стари картони, които той е дал на екипа: работи се
  * след живия списък за деня. Всяка карта е един разговор: набираш, говориш,
  * натискаш изхода.
@@ -33,12 +35,13 @@ export default async function EkipPage({ searchParams }: { searchParams: Promise
       <EkipHeader name={actor.name} isOwner={actor.kind === "owner"} />
 
       <main className="space-y-6 px-4 py-4">
-        <section className="grid grid-cols-5 gap-2 text-center">
+        <section className="grid grid-cols-3 gap-2 text-center sm:grid-cols-6">
           <Stat label="нови" value={queue.fresh.length} accent="cyan" />
+          <Stat label="отказали" value={queue.cancelled.length} accent="rose" />
           <Stat label="от Ивайло" value={queue.given.length} accent="violet" />
           <Stat label="за повторно" value={queue.retry.length} accent="amber" />
           <Stat label="чакат обратно" value={queue.waiting.length} accent="amber" />
-          <Stat label="срещи напред" value={todayMeetings.length} accent="emerald" />
+          <Stat label="срещи" value={todayMeetings.length} accent="emerald" />
         </section>
 
         <SearchForm q={q} />
@@ -60,6 +63,21 @@ export default async function EkipPage({ searchParams }: { searchParams: Promise
             ) : (
               found.map((l) => <LeadCard key={`s-${l.id}`} lead={l} mode="search" />)
             )}
+          </section>
+        )}
+
+        {queue.cancelled.length > 0 && (
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-rose-300">
+              ❌ Отказаха срещата · {queue.cancelled.length}
+            </h2>
+            <p className="-mt-1 text-xs text-[var(--color-text-tertiary)]">
+              Отмениха си часа. Звънни им ДНЕС и го премести — отказът най-често е за часа, не за разговора. Новият час
+              се записва от същата карта с „Записах среща“.
+            </p>
+            {queue.cancelled.map((l) => (
+              <LeadCard key={`c-${l.id}`} lead={l} mode="cancelled" />
+            ))}
           </section>
         )}
 
@@ -176,6 +194,7 @@ const STAT_COLOR = {
   amber: "rgb(252 211 77)",
   emerald: "rgb(110 231 183)",
   violet: "rgb(196 181 253)",
+  rose: "rgb(253 164 175)",
 } as const;
 
 function Stat({ label, value, accent }: { label: string; value: number; accent: keyof typeof STAT_COLOR }) {

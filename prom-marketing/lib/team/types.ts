@@ -77,7 +77,7 @@ export interface QueueLead {
   form_answers: FormAnswer[];
   attempts: number;
   last_attempt: LastAttempt | null;
-  /** Ако Ивайло го е дал на екипа: защо — „не вдига“, „разбрахте се…“, „лек контакт“. */
+  /** Ако е при екипа: защо — „не вдига“, „разбрахте се…“, „отказа срещата“. */
   given_reason?: string | null;
 }
 
@@ -94,11 +94,12 @@ export interface BookedRow {
 /**
  * Откъде идва картата на екрана — определя кои бутони са отпред:
  * fresh — нов, за първи разговор · given — Ивайло го е дал на екипа ·
+ * cancelled — човекът е отказал срещата и трябва да се премести ·
  * retry — обещано чуване, чийто ден е дошъл ·
  * waiting — не е вдигнал / чуване по-късно, може да върне обаждане ·
  * search — намерен през търсачката (върнал е обаждане, който и да е).
  */
-export type LeadCardMode = "fresh" | "given" | "retry" | "waiting" | "search";
+export type LeadCardMode = "fresh" | "given" | "cancelled" | "retry" | "waiting" | "search";
 
 export const EKIP_ACTIONS = [
   "no_answer",

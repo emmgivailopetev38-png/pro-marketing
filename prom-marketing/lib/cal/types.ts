@@ -41,6 +41,8 @@ export const calBookingSchema = z.object({
     responses: z.record(z.string(), responseValueSchema).optional(),
     userFieldsResponses: z.record(z.string(), responseValueSchema).optional(),
     status: z.string().optional(),
+    /** Каквото човекът е написал, когато си е отменил часа. */
+    cancellationReason: z.string().optional(),
     // Google Meet/Cal Video URL lives here; Cal also mirrors it in `location`
     // when the location resolves to a remote URL.
     metadata: z

@@ -24,6 +24,10 @@ import {
  * crm-tumnata-opashka-liidove). Най-новите най-горе: топлият лийд е този
  * отпреди пет минути.
  *
+ * „Отказаха срещата“ = човекът е отменил часа си (през Cal.com или по
+ * телефона). Излиза най-отгоре: отказът е прясна рана и се лекува с едно
+ * обаждане още същия ден.
+ *
  * „От Ивайло“ = картони, които Ивайло изрично е дал на екипа (не вдигат,
  * разбрали сте се да се чуете и не се обадиха, контактът е бил съвсем лек).
  * Стоят там, докато екипът не ги докосне веднъж — после текат по общите
@@ -71,6 +75,8 @@ export interface SetterQueue {
   fresh: QueueLead[];
   /** Дадени от Ивайло и още недокоснати от екипа. */
   given: QueueLead[];
+  /** Отказали срещата — звъни се да се премести. */
+  cancelled: QueueLead[];
   retry: QueueLead[];
   /** Не вдигнаха / чуване по-късно — може да върнат обаждане, картата е под ръка. */
   waiting: QueueLead[];
@@ -182,14 +188,16 @@ export async function loadSetterQueue(now: Date = new Date()): Promise<SetterQue
   const due = (dueRows ?? []) as ContactLite[];
   const attempts = await loadAttempts(sb, [...new Set([...leads, ...due, ...assigned].map((c) => c.id))]);
 
-  const givenContacts = pickGiven(assigned, attempts);
-  const givenIds = new Set(givenContacts.map((c) => c.id));
+  const assignedOpen = pickGiven(assigned, attempts);
+  const cancelledContacts = assignedOpen.filter((c) => attempts.get(c.id)?.given?.kind === "cancelled");
+  const givenContacts = assignedOpen.filter((c) => attempts.get(c.id)?.given?.kind !== "cancelled");
+  const givenIds = new Set(assignedOpen.map((c) => c.id));
   const freshContacts = leads.filter((c) => !attempts.has(c.id));
   const split = splitTeamDue(due, attempts, todayEnd);
   const retry = split.retry.filter((c) => !givenIds.has(c.id));
   const waiting = split.waiting.filter((c) => !givenIds.has(c.id));
   const later = split.later;
-  const forms = await loadForms(sb, [...freshContacts, ...givenContacts, ...retry, ...waiting]);
+  const forms = await loadForms(sb, [...freshContacts, ...cancelledContacts, ...givenContacts, ...retry, ...waiting]);
   const lead = (c: ContactLite) => toLead(c, attempts, forms);
 
   const booked: BookedRow[] = ((bookedRows ?? []) as Array<Record<string, unknown>>).map((b) => ({
@@ -205,6 +213,7 @@ export async function loadSetterQueue(now: Date = new Date()): Promise<SetterQue
   return {
     fresh: freshContacts.map(lead),
     given: givenContacts.map(lead),
+    cancelled: cancelledContacts.map(lead),
     retry: retry.map(lead),
     waiting: waiting.map(lead),
     later,

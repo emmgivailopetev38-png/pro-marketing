@@ -30,14 +30,14 @@ describe("последният опит и кой е звънял", () => {
   });
 });
 
-function assign(contact_id: string, occurred_at: string, reason: string): AttemptRow {
+function assign(contact_id: string, occurred_at: string, reason: string, kind = "given"): AttemptRow {
   return {
     contact_id,
     activity_type: ASSIGN_TYPE,
-    title: "🤝 Ивайло дава картона на екипа",
+    title: kind === "cancelled" ? "❌ Отказана среща" : "🤝 Ивайло дава картона на екипа",
     occurred_at,
-    created_by: "Ивайло",
-    metadata: { reason, to_team: true },
+    created_by: kind === "cancelled" ? "Cal.com" : "Ивайло",
+    metadata: { reason, to_team: true, kind },
   };
 }
 
@@ -59,6 +59,8 @@ describe("картоните, които Ивайло дава на екипа",
     row("varnat", "2026-09-16T14:00:00Z", { ...member, outcome: "handoff", handoff: true }),
     // само маркер, без нито един опит (нов лийд, който Ивайло е заделил)
     assign("samo-marker", "2026-09-16T08:00:00Z", "Стар лийд"),
+    // отказана среща — същият механизъм, друг вид
+    assign("otkazal", "2026-09-16T09:00:00Z", "❌ Отказа срещата за пт 18.09", "cancelled"),
   ]);
   const s = summarizeAttempts(rows);
 
@@ -87,6 +89,13 @@ describe("картоните, които Ивайло дава на екипа",
       s
     );
     expect(got.map((c) => c.id)).toEqual(["varnat", "dadeno", "samo-marker"]);
+  });
+
+  it("отказаната среща се различава от дадения картон по вида", () => {
+    expect(s.get("otkazal")?.given).toMatchObject({ kind: "cancelled", reason: "❌ Отказа срещата за пт 18.09" });
+    expect(s.get("dadeno")?.given?.kind).toBe("given");
+    // и двата вида минават през pickGiven — страницата ги разделя
+    expect(pickGiven([{ id: "otkazal" }, { id: "dadeno" }], s).map((c) => c.id)).toEqual(["otkazal", "dadeno"]);
   });
 });
 

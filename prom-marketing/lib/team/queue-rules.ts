@@ -25,8 +25,11 @@ export interface AttemptRow {
   metadata: Record<string, unknown> | null;
 }
 
-/** Маркерът „Ивайло дава този картон на екипа“ — не е опит за контакт. */
+/** Маркерът „този картон е на екипа“ — не е опит за контакт. */
 export const ASSIGN_TYPE = "team_assigned";
+
+/** Защо картонът е при екипа: Ивайло го е дал, или човекът е отказал срещата. */
+export type GivenKind = "given" | "cancelled";
 
 /** Защо картонът е даден — излиза на картата, за да знае човекът с какво влиза. */
 export interface GivenMark {
@@ -34,6 +37,7 @@ export interface GivenMark {
   by: string | null;
   /** на кого е дадено — за да се вижда в списъка на Ивайло кой го държи */
   to: string | null;
+  kind: GivenKind;
   reason: string | null;
 }
 
@@ -76,7 +80,13 @@ export function summarizeAttempts(rows: AttemptRow[]): Map<string, AttemptSummar
     if (a.activity_type === ASSIGN_TYPE) {
       // Най-новият маркер, стига екипът да не е звънял след него.
       if (!cur.given && !touchedAfter.has(a.contact_id)) {
-        cur.given = { at: a.occurred_at, by: a.created_by, to: strOf(a.metadata?.to_name), reason: reasonOf(a) };
+        cur.given = {
+          at: a.occurred_at,
+          by: a.created_by,
+          to: strOf(a.metadata?.to_name),
+          kind: a.metadata?.kind === "cancelled" ? "cancelled" : "given",
+          reason: reasonOf(a),
+        };
       }
       continue;
     }
