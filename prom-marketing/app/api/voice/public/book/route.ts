@@ -6,6 +6,7 @@ import { parseWhen } from "@/lib/voice/when";
 import { upsertBooking, updateBooking } from "@/lib/crm/repository";
 import { upsertContactAndLog } from "@/lib/contacts/repository";
 import { createCalBooking, isCalWriteConfigured } from "@/lib/cal/create-booking";
+import { MEETING_MINUTES } from "@/lib/cal/types";
 import { sendTelegram } from "@/lib/notifications/telegram";
 import { identityForSessionKey, phoneKey } from "@/lib/voice/quota";
 import { checkBookingAllowed } from "@/lib/voice/booking-guard";
@@ -202,7 +203,7 @@ export async function POST(request: Request) {
       attendee_email: email ?? NO_EMAIL,
       attendee_phone: telefon ?? undefined,
       scheduled_at: start.toISOString(),
-      duration_minutes: 30,
+      duration_minutes: MEETING_MINUTES,
       status: inCalendar ? "accepted" : "pending",
       business: d.deynost,
       meeting_url: meetingUrl ?? undefined,

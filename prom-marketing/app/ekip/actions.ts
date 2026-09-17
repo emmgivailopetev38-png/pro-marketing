@@ -5,6 +5,7 @@ import { requireTeamActor, type TeamActor } from "@/lib/team/session";
 import { alignStage, nextWorkingDayAt } from "@/lib/contacts/followup";
 import { defaultRetryAt, fmtSofia, sofiaLocalToIso } from "@/lib/team/time";
 import { upsertBooking } from "@/lib/crm/repository";
+import { MEETING_MINUTES } from "@/lib/cal/types";
 import { notifyOwnerBooking, notifyOwnerHandoff } from "@/lib/team/notify";
 import { EKIP_ACTIONS, type EkipActionKind, type EkipActionResult } from "@/lib/team/types";
 import { joinBusiness } from "@/lib/team/business";
@@ -108,7 +109,7 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
           attendee_email: email ?? NO_EMAIL,
           attendee_phone: c.phone ?? undefined,
           scheduled_at: meetingIso,
-          duration_minutes: 30,
+          duration_minutes: MEETING_MINUTES,
           status: "accepted",
           business: business ?? undefined,
           notes: [note, `Записа: ${actor.name}`].filter(Boolean).join(" · "),
