@@ -120,3 +120,103 @@ export async function addContactAction(formData: FormData) {
   revalidatePath("/admin/clients");
   return data?.id ?? null;
 }
+
+// ── Дневникът на връзката ───────────────────────────────────────────────────
+
+import { CHANNELS, MOODS, resolveRemindAt, type ChannelKey, type MoodKey } from "@/lib/contacts/dnevnik";
+import { addPromise, recordDnevnik, setPromiseDone } from "@/lib/contacts/dnevnik-repository";
+import { fmtSofia } from "@/lib/team/time";
+
+export interface DnevnikResult {
+  ok: boolean;
+  message?: string;
+  error?: string;
+}
+
+function s(fd: FormData, key: string): string {
+  return String(fd.get(key) ?? "").trim();
+}
+
+function revalidateContact(contactId: string) {
+  revalidatePath(`/admin/clients/${contactId}`);
+  revalidatePath("/admin/follow-up");
+  revalidatePath("/admin/clients");
+  revalidatePath("/admin");
+}
+
+/**
+ * „Записах разговор“: как се е чувствал, какво говорихме, какво обеща той,
+ * какво обещах аз, какво стана и кога да го чуя пак. Всичко в един запис.
+ */
+export async function recordDnevnikAction(_prev: DnevnikResult | null, formData: FormData): Promise<DnevnikResult> {
+  let actor: string;
+  try {
+    actor = await requireAdmin();
+  } catch {
+    return { ok: false, error: "Сесията е изтекла — влез отново." };
+  }
+  const contactId = s(formData, "contact_id");
+  if (!contactId) return { ok: false, error: "Липсва картон" };
+
+  const channelRaw = s(formData, "channel");
+  const channel = (CHANNELS.some((c) => c.key === channelRaw) ? channelRaw : "phone") as ChannelKey;
+  const moodRaw = s(formData, "mood");
+  const mood = (MOODS.some((m) => m.key === moodRaw) ? moodRaw : null) as MoodKey | null;
+  const talked = s(formData, "talked");
+  const they = s(formData, "they_promised");
+  const we = s(formData, "we_promised");
+  const happened = s(formData, "happened");
+  const next = s(formData, "next_step");
+  if (!talked && !they && !we && !happened && !next && !mood) {
+    return { ok: false, error: "Напиши поне едно нещо — какво говорихте или как се чувстваше." };
+  }
+  const remindAt = resolveRemindAt(s(formData, "remind_preset"), s(formData, "remind_at"));
+  const occurredRaw = s(formData, "occurred_at");
+  const occurredAt = occurredRaw ? (resolveRemindAt("", occurredRaw) ?? null) : null;
+
+  const res = await recordDnevnik({
+    contactId,
+    actor,
+    occurredAt,
+    entry: {
+      kind: "dnevnik",
+      channel,
+      mood,
+      talked,
+      they_promised: they,
+      we_promised: we,
+      happened,
+      next_step: next,
+      remind_at: remindAt,
+    },
+  });
+  if (!res.ok) return res;
+  revalidateContact(contactId);
+  const parts = ["Записано."];
+  if (res.promises > 0) parts.push(`${res.promises} обещани${res.promises === 1 ? "е" : "я"} за отмятане.`);
+  if (res.remindAt) parts.push(`Ще ти напомня ${fmtSofia(res.remindAt)}.`);
+  return { ok: true, message: parts.join(" ") };
+}
+
+export async function togglePromiseAction(formData: FormData) {
+  await requireAdmin();
+  const id = s(formData, "promise_id");
+  const contactId = s(formData, "contact_id");
+  const done = s(formData, "done") === "1";
+  if (!id) throw new Error("Липсва обещание");
+  const { error } = await setPromiseDone(id, done);
+  if (error) throw new Error(error);
+  if (contactId) revalidateContact(contactId);
+}
+
+export async function addPromiseAction(formData: FormData) {
+  const actor = await requireAdmin();
+  const contactId = s(formData, "contact_id");
+  const who = s(formData, "who") === "us" ? "us" : "them";
+  const text = s(formData, "text");
+  if (!contactId || !text) throw new Error("Празно обещание");
+  const dueAt = resolveRemindAt(s(formData, "due_preset"), s(formData, "due_at"));
+  const { error } = await addPromise({ contactId, who, text, dueAt, actor });
+  if (error) throw new Error(error);
+  revalidateContact(contactId);
+}

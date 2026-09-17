@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/service";
 import { ContactDetail } from "@/components/admin/clients/ContactDetail";
 import { ContactLedger } from "@/components/admin/clients/ContactLedger";
+import { listPromises, photoSrc } from "@/lib/contacts/dnevnik-repository";
 import type { ActivityRow, ContactRow } from "@/lib/contacts/types";
 import type {
   InvoiceRow,
@@ -53,6 +54,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
   if (!contact) notFound();
 
+  const [promises, photo] = await Promise.all([listPromises(id), photoSrc((contact as ContactRow).photo_url ?? null)]);
+
   // Задачите на проектите на този контакт (за прогрес x/y).
   const projectIds = ((projects ?? []) as ProjectRow[]).map((p) => p.id);
   const { data: tasks } = projectIds.length
@@ -70,6 +73,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       <ContactDetail
         contact={contact as ContactRow}
         initialActivities={(activities ?? []) as ActivityRow[]}
+        photoSrc={photo}
+        promises={promises}
+        nowIso={new Date().toISOString()}
       />
       <div className="mt-8">
         <ContactLedger

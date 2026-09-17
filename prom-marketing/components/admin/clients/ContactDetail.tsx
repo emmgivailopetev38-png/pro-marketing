@@ -17,6 +17,12 @@ import {
   updateStageAction,
 } from "@/app/admin/(protected)/clients/[id]/actions";
 import { FilesPanel } from "./FilesPanel";
+import { ContactPhoto } from "./ContactPhoto";
+import { PromisesList } from "./PromisesList";
+import { DnevnikForm } from "./DnevnikForm";
+import { DnevnikEntryView } from "./DnevnikEntryView";
+import { entryFromMetadata, moodOf, moodTrend, type DnevnikEntry, type PromiseRow } from "@/lib/contacts/dnevnik";
+import { fmtSofia } from "@/lib/team/time";
 
 const LOGGER_TYPES: Array<{ v: string; label: string }> = [
   { v: "note", label: "📝 Бележка" },
@@ -51,9 +57,15 @@ function daysSince(iso: string) {
 export function ContactDetail({
   contact,
   initialActivities,
+  photoSrc = null,
+  promises = [],
+  nowIso,
 }: {
   contact: ContactRow;
   initialActivities: ActivityRow[];
+  photoSrc?: string | null;
+  promises?: PromiseRow[];
+  nowIso?: string;
 }) {
   const [stage, setStage] = useState<ContactStage>(contact.stage);
   const [activities, setActivities] = useState<ActivityRow[]>(initialActivities);
@@ -109,21 +121,43 @@ export function ContactDetail({
   const lastActivity = activities[0];
   const firstActivity = activities[activities.length - 1];
 
+  // Записите от дневника — за настроението през времето.
+  const dnevnikEntries = useMemo(
+    () =>
+      activities
+        .map((a) => ({ at: a.occurred_at, entry: entryFromMetadata(a.metadata) }))
+        .filter((x): x is { at: string; entry: DnevnikEntry } => x.entry !== null),
+    [activities]
+  );
+  const mood = moodOf(contact.mood);
+
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_400px]">
       {/* LEFT — header + stats + timeline */}
       <div>
         {/* Header */}
-        <header className="mb-2 flex flex-wrap items-baseline gap-3">
-          <h1 className="font-[family-name:var(--font-editorial)] text-3xl font-bold text-[var(--color-text-primary)] md:text-4xl">
-            {contact.full_name || "Без име"}
-          </h1>
-          <span
-            className="rounded-full px-3 py-1 text-xs font-medium"
-            style={{ background: `${STAGE_COLOR[stage]}22`, color: STAGE_COLOR[stage] }}
-          >
-            {STAGE_LABEL[stage]}
-          </span>
+        <header className="mb-2 flex flex-wrap items-center gap-4">
+          <ContactPhoto contactId={contact.id} name={contact.full_name} src={photoSrc} mood={contact.mood} size="lg" editable />
+          <div className="flex flex-wrap items-baseline gap-3">
+            <h1 className="font-[family-name:var(--font-editorial)] text-3xl font-bold text-[var(--color-text-primary)] md:text-4xl">
+              {contact.full_name || "Без име"}
+            </h1>
+            <span
+              className="rounded-full px-3 py-1 text-xs font-medium"
+              style={{ background: `${STAGE_COLOR[stage]}22`, color: STAGE_COLOR[stage] }}
+            >
+              {STAGE_LABEL[stage]}
+            </span>
+            {mood && (
+              <span
+                className="rounded-full px-3 py-1 text-xs font-medium"
+                style={{ background: `${mood.color}22`, color: mood.color }}
+                title={contact.mood_updated_at ? `записано ${fmtSofia(contact.mood_updated_at)}` : undefined}
+              >
+                {mood.emoji} {mood.label}
+              </span>
+            )}
+          </div>
         </header>
         <div className="mb-4 flex flex-wrap gap-x-6 gap-y-1 text-sm text-[var(--color-text-secondary)]">
           {contact.email && (
@@ -165,8 +199,33 @@ export function ContactDetail({
           />
         </div>
 
-        {/* Activity logger */}
-        <ActivityLogger contactId={contact.id} />
+        {/* Дневникът на връзката */}
+        <section
+          className="mb-6 rounded-lg border border-[var(--color-border-default)] p-4"
+          style={{ background: "rgba(0,212,255,0.04)" }}
+        >
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.3em] text-[var(--color-accent-violet)]">
+              Дневник на връзката · {dnevnikEntries.length} разговора
+            </h2>
+            <MoodStrip entries={dnevnikEntries} />
+          </div>
+          <div className="mb-4">
+            <p className="mb-1 text-[11px] uppercase tracking-wider text-[var(--color-text-tertiary)]">Обещания</p>
+            <PromisesList contactId={contact.id} promises={promises} nowIso={nowIso} />
+          </div>
+          <DnevnikForm contactId={contact.id} />
+        </section>
+
+        {/* Other events */}
+        <details className="mb-2">
+          <summary className="cursor-pointer text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-accent-cyan)]">
+            + друго събитие (имейл, оферта, договор, плащане…)
+          </summary>
+          <div className="mt-3">
+            <ActivityLogger contactId={contact.id} />
+          </div>
+        </details>
 
         {/* Timeline header + filters */}
         <div className="mt-12 mb-4 flex flex-wrap items-baseline justify-between gap-3">
@@ -389,8 +448,27 @@ function Timeline({ activities }: { activities: ActivityRow[] }) {
   );
 }
 
+function MoodStrip({ entries }: { entries: Array<{ at: string; entry: DnevnikEntry }> }) {
+  const moods = entries.map((e) => e.entry.mood);
+  const trend = moodTrend(moods);
+  const last = entries.filter((e) => e.entry.mood).slice(0, 6);
+  if (last.length === 0) return <span className="text-[11px] text-[var(--color-text-tertiary)]">още няма записано настроение</span>;
+  const arrow = trend.arrow === "up" ? "↗ върви нагоре" : trend.arrow === "down" ? "↘ охлажда се" : trend.arrow === "flat" ? "→ същото" : "";
+  return (
+    <span className="flex items-center gap-1 text-[11px] text-[var(--color-text-tertiary)]" title="най-новото вляво">
+      {last.map((e) => (
+        <span key={e.at} className="text-base" title={`${moodOf(e.entry.mood)?.label} · ${fmtSofia(e.at)}`}>
+          {moodOf(e.entry.mood)?.emoji}
+        </span>
+      ))}
+      {arrow && <span className="ml-1">{arrow}</span>}
+    </span>
+  );
+}
+
 function ActivityCard({ activity: a }: { activity: ActivityRow }) {
   const meta = a.metadata as Record<string, unknown> | null;
+  const entry = entryFromMetadata(meta);
   const time = new Date(a.occurred_at).toLocaleTimeString("bg-BG", {
     hour: "2-digit",
     minute: "2-digit",
@@ -411,14 +489,20 @@ function ActivityCard({ activity: a }: { activity: ActivityRow }) {
             {time}
           </span>
         </div>
-        {a.body && (
-          <p className="mt-1 whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">
-            {a.body}
-          </p>
+        {entry ? (
+          <div className="mt-1">
+            <DnevnikEntryView entry={entry} />
+          </div>
+        ) : (
+          a.body && (
+            <p className="mt-1 whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">
+              {a.body}
+            </p>
+          )
         )}
 
         {/* Metadata expansion */}
-        {meta && Object.keys(meta).length > 0 && (
+        {!entry && meta && Object.keys(meta).length > 0 && (
           <details className="mt-2 group">
             <summary className="cursor-pointer text-[10px] uppercase tracking-wider text-[var(--color-text-tertiary)] hover:text-[var(--color-accent-cyan)]">
               <span className="group-open:hidden">▸ Покажи метаданни ({Object.keys(meta).length})</span>
