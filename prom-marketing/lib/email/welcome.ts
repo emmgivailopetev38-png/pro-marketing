@@ -57,7 +57,7 @@ export async function sendWelcomeEmail(args: WelcomeArgs): Promise<WelcomeResult
   <p>Благодаря, че се свързахте с <strong>ProMarketing</strong>. Получихме запитването ви за AI автоматизация и маркетинг и ще ви се обадим съвсем скоро, за да уточним как най-бързо можем да помогнем.</p>
   <p>Междувременно можете да:</p>
   <ul style="padding-left:20px;margin:10px 0;">
-    <li>📅 Резервирате безплатна 30-мин консултация: <a href="https://promarketing.pw/booking" style="color:#0066cc;">promarketing.pw/booking</a></li>
+    <li>📅 Резервирате безплатна 45-мин консултация: <a href="https://promarketing.pw/booking" style="color:#0066cc;">promarketing.pw/booking</a></li>
     <li>🌐 Разгледате какво правим: <a href="https://promarketing.pw" style="color:#0066cc;">promarketing.pw</a></li>
     <li>↩️ Просто да отговорите на този имейл, ако имате конкретен въпрос</li>
   </ul>
@@ -72,7 +72,7 @@ export async function sendWelcomeEmail(args: WelcomeArgs): Promise<WelcomeResult
 Благодаря, че се свързахте с ProMarketing. Получихме запитването ви за AI автоматизация и маркетинг и ще ви се обадим съвсем скоро.
 
 Междувременно можете да:
-- Резервирате безплатна 30-мин консултация: https://promarketing.pw/booking
+- Резервирате безплатна 45-мин консултация: https://promarketing.pw/booking
 - Разгледате какво правим: https://promarketing.pw
 - Просто да отговорите на този имейл, ако имате конкретен въпрос
 

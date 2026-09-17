@@ -18,7 +18,7 @@ export function FinalCTA() {
             Готов ли си да автоматизираш?
           </h2>
           <p className="mx-auto mt-6 max-w-xl text-lg text-[var(--color-text-secondary)]">
-            30 минути разговор. Без презентации. Излизаш с конкретен план.
+            45 минути разговор. Без презентации. Излизаш с конкретен план.
           </p>
         </SectionReveal>
 
