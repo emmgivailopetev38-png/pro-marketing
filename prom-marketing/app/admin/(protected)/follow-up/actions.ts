@@ -6,8 +6,7 @@ import { FOLLOWUP_STATUSES, type ContactStage, type FollowupStatus } from "@/lib
 import { alignStage, dayKey } from "@/lib/contacts/followup";
 import { resolveRemindAt } from "@/lib/contacts/dnevnik";
 import { fmtSofia } from "@/lib/team/time";
-import { firstActiveSetter } from "@/lib/team/repository";
-import { ASSIGN_TYPE } from "@/lib/team/queue-rules";
+import { giveToTeam } from "@/lib/team/assign";
 
 /**
  * Single dispatcher for the follow-up queue quick actions. Each action records
@@ -102,16 +101,13 @@ export async function followupQuickAction(formData: FormData) {
       // Картонът отива в списъка на човека за срещите („🤝 От Ивайло“) и стои
       // там, докато той не го докосне. Тук НЕ се пипат датата и статусът —
       // обещанията на Ивайло си остават негови.
-      const setter = await firstActiveSetter();
-      if (!setter) throw new Error("Няма активен човек за звънене в „Екип“");
       const reason = String(formData.get("reason") ?? "").trim() || "Ивайло го дава за звънене";
-      activity = {
-        type: ASSIGN_TYPE,
-        title: `🤝 Дадено на ${setter.full_name} за звънене`,
-        body: reason,
-        metadata: { to_team: true, to_name: setter.full_name, to_member_id: setter.id, reason },
-      };
-      break;
+      const given = await giveToTeam({ contactId, reason, createdBy: email });
+      if (!given.ok) throw new Error(given.error ?? "Няма активен човек за звънене в „Екип“");
+      revalidatePath("/admin/follow-up");
+      revalidatePath(`/admin/clients/${contactId}`);
+      revalidatePath("/ekip");
+      return;
     }
     case "set_followup_status": {
       const fs = String(formData.get("followup_status") ?? "");

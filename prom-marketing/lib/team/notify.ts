@@ -96,6 +96,101 @@ ${rows.map(([k, v]) => `<tr><td style="padding:4px 12px 4px 0;color:#777;vertica
   }).catch(() => {});
 }
 
+export interface CancelledBooking {
+  /** null, ако картонът не е намерен — писмото пак тръгва, само без линк */
+  contactId: string | null;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  scheduledAtIso: string;
+  /** причината, ако човекът е написал такава в Cal.com */
+  reason: string | null;
+  /** кой я отмени, както ще се чете: „човекът“ · „Ивайло“ */
+  by: string;
+}
+
+/**
+ * Някой се отказа от среща. Научават и двамата: Ивайло — за да знае, че часът
+ * му се е освободил; човекът за срещите — за да звънне и да я премести, вместо
+ * срещата да се изпари тихо. Известието е странично: никога не хвърля.
+ */
+export async function notifyCancelledBooking(c: CancelledBooking): Promise<void> {
+  const when = fmtSofia(c.scheduledAtIso);
+  const tel = c.phone ? `<a href="tel:${escapeHtml(c.phone)}">${escapeHtml(c.phone)}</a>` : "—";
+  const queue = c.contactId ? `${SITE}/ekip#lead-${c.contactId}` : `${SITE}/ekip`;
+  const card = c.contactId ? `${SITE}/admin/clients/${c.contactId}` : `${SITE}/admin/bookings`;
+  const rows: Array<[string, string]> = [
+    ["Кой", `<strong>${escapeHtml(c.name)}</strong>`],
+    ["Кога беше", `<strong>${escapeHtml(when)}</strong> (София)`],
+    ["Телефон", tel],
+    ["Имейл", c.email ? escapeHtml(c.email) : "—"],
+    ["Отмени я", escapeHtml(c.by)],
+    ["Причина", escapeHtml(c.reason ?? "") || "— (не е посочена)"],
+  ];
+  const table = `<table style="border-collapse:collapse;">${rows
+    .map(([k, v]) => `<tr><td style="padding:4px 12px 4px 0;color:#777;vertical-align:top;">${k}:</td><td>${v}</td></tr>`)
+    .join("")}</table>`;
+
+  // 1) Човекът за срещите — той ще звънне и ще я премести.
+  let team: string[] = [];
+  try {
+    const owners = ownerAddresses();
+    team = (await newLeadNotifyEmails()).filter((e) => !owners.has(e));
+  } catch {
+    team = [];
+  }
+  const teamMail = team.length
+    ? sendEmail({
+        to: team,
+        subject: `❌ Отказана среща · ${c.name} · ${when}`,
+        html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#0d1221;">
+<p><strong>${escapeHtml(c.name)} отказа срещата си.</strong></p>
+<p>Звънни му днес и я премести — отказът най-често е за часа, не за разговора. Ако не вдигне, натисни „Не вдигна“ и картата остава под ръка.</p>
+${table}
+<p style="margin-top:18px;"><a href="${queue}" style="display:inline-block;background:#0891b2;color:#fff;padding:10px 18px;border-radius:999px;text-decoration:none;font-weight:bold;">Отвори го в опашката за звънене</a></p>
+<p style="color:#777;font-size:13px;">Новият час се записва от същата карта — „Записах среща“.</p>
+</div>`,
+        text: [
+          `${c.name} отказа срещата си (${when}, София).`,
+          `Телефон: ${c.phone ?? "—"}`,
+          `Имейл: ${c.email ?? "—"}`,
+          `Отмени я: ${c.by}`,
+          `Причина: ${c.reason ?? "— (не е посочена)"}`,
+          "",
+          `Звънни и я премести: ${queue}`,
+        ].join("\n"),
+      }).catch(() => {})
+    : Promise.resolve();
+
+  // 2) Ивайло — часът му се е освободил.
+  const lines = [
+    `❌ <b>Отказана среща</b>`,
+    `${escapeHtml(c.name)} · ${escapeHtml(when)}`,
+    c.phone ? `📞 ${escapeHtml(c.phone)}` : null,
+    `Отмени я: ${escapeHtml(c.by)}`,
+    c.reason ? `📝 ${escapeHtml(c.reason)}` : null,
+    team.length
+      ? `→ ${escapeHtml(team.join(", "))} получи известие да звънне и да я премести.`
+      : `⚠️ Никой от екипа не получи известие.`,
+  ].filter(Boolean) as string[];
+
+  await Promise.all([
+    teamMail,
+    sendTelegram(lines.join("\n"), { buttons: [{ text: "Картонът в CRM-а", url: card }] }).catch(() => false),
+    sendEmail({
+      to: ownerEmail(),
+      subject: `❌ Отказана среща · ${c.name} · ${when}`,
+      html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#0d1221;">
+<p><strong>${escapeHtml(c.name)} отказа срещата си.</strong> Часът ти е свободен.</p>
+${table}
+<p style="margin-top:18px;">📊 <a href="${card}">Картонът в CRM-а</a> · <a href="${SITE}/admin/bookings">Срещи</a></p>
+<p style="color:#777;font-size:13px;">${team.length ? "Екипът е уведомен да звънне и да я премести." : "⚠️ Няма активен човек за звънене — никой не е уведомен."}</p>
+</div>`,
+      text: `${c.name} отказа срещата си: ${when} (София)\nТелефон: ${c.phone ?? "—"}\nОтмени я: ${c.by}\nПричина: ${c.reason ?? "—"}\n\nКартон: ${card}`,
+    }).catch(() => ({ id: null, error: "send failed" })),
+  ]);
+}
+
 export interface BookingByTeam {
   actorName: string;
   contactId: string;
