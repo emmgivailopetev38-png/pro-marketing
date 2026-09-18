@@ -1,15 +1,8 @@
 "use client";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
-import {
-  addTaskAction,
-  noteAction,
-  setProjectStatusAction,
-  setTaskStatusAction,
-  takeProjectAction,
-} from "@/app/ekip/proekti/actions";
+import { addTaskAction, noteAction, setTaskStatusAction } from "@/app/ekip/proekti/actions";
 import { PROJECT_STATUS_COLOR, PROJECT_STATUS_LABEL, formatMoney } from "@/lib/crm/labels";
-import { PROJECT_STATUSES } from "@/lib/crm/types";
 import type { BoardProject } from "@/lib/team/projects";
 import type { EkipActionResult } from "@/lib/team/types";
 
@@ -62,11 +55,9 @@ function Result({ res }: { res: EkipActionResult | null }) {
 
 export function ProjectCard({ project, mode }: { project: BoardProject; mode: "mine" | "free" | "other" | "done" }) {
   const [openNote, setOpenNote] = useState(false);
-  const [takeRes, take] = useActionState(takeProjectAction, null);
   const [taskRes, task] = useActionState(setTaskStatusAction, null);
   const [addRes, add] = useActionState(addTaskAction, null);
   const [noteRes, note] = useActionState(noteAction, null);
-  const [statusRes, status] = useActionState(setProjectStatusAction, null);
 
   const today = new Date().toISOString().slice(0, 10);
   const late = project.due_date != null && project.due_date < today && project.status !== "done";
@@ -123,7 +114,7 @@ export function ProjectCard({ project, mode }: { project: BoardProject; mode: "m
         </div>
       )}
 
-      {mode !== "other" && open.length > 0 && (
+      {mode !== "done" && open.length > 0 && (
         <ul className="mt-3 space-y-1.5">
           {open.map((t) => (
             <li key={t.id} className="flex items-center gap-2">
@@ -144,40 +135,22 @@ export function ProjectCard({ project, mode }: { project: BoardProject; mode: "m
       <Result res={taskRes} />
 
       {mode === "free" && (
-        <form action={take} className="mt-3">
-          <input type="hidden" name="project_id" value={project.id} />
-          <Submit tone="go">🙋 Вземам го</Submit>
-        </form>
+        <p className="mt-3 text-xs text-[var(--color-text-tertiary)]">
+          Още не е разпределен — Ивайло решава кой го поема. Дотогава пиши тук какво си свършил по него.
+        </p>
       )}
-      <Result res={takeRes} />
 
-      {mode === "mine" && (
+      {mode !== "done" && (
         <>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <form action={status} className="flex items-center gap-2">
-              <input type="hidden" name="project_id" value={project.id} />
-              <select
-                name="status"
-                defaultValue={project.status}
-                className="rounded-xl border border-white/15 bg-black/30 px-2.5 py-2 text-xs text-[var(--color-text-secondary)] outline-none"
-              >
-                {PROJECT_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {PROJECT_STATUS_LABEL[s] ?? s}
-                  </option>
-                ))}
-              </select>
-              <Submit>Запази</Submit>
-            </form>
             <button
               type="button"
               onClick={() => setOpenNote((v) => !v)}
               className="rounded-xl border border-white/15 px-3 py-2 text-xs font-semibold text-[var(--color-text-secondary)]"
             >
-              📝 Бележка
+              📝 Какво свърших
             </button>
           </div>
-          <Result res={statusRes} />
 
           {openNote && (
             <form action={note} className="mt-3 space-y-2">

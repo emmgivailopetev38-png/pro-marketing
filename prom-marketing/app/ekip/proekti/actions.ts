@@ -3,15 +3,16 @@ import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getTeamActor } from "@/lib/team/session";
 import { PROJECT_ACTIVITY } from "@/lib/team/projects";
-import { PROJECT_STATUSES, PROJECT_TASK_STATUSES, type ProjectStatus, type ProjectTaskStatus } from "@/lib/crm/types";
-import { PROJECT_STATUS_LABEL } from "@/lib/crm/labels";
+import { PROJECT_TASK_STATUSES, type ProjectTaskStatus } from "@/lib/crm/types";
 import type { EkipActionResult } from "@/lib/team/types";
 
 /**
- * Действията от таблото за проекти. Всяко от тях прави две неща: променя
- * проекта и оставя следа в картона на клиента с името на човека, който го е
- * направил. Втората половина е по-важната — тя е причината таблото да
- * съществува.
+ * Действията от таблото за проекти — само отбелязване на свършена работа.
+ *
+ * Самите проекти НЕ се местят оттук: нито се поемат, нито им се сменя
+ * състоянието. Това стои при Ивайло, в /admin/projects. Тук човекът чеква
+ * задачи, добавя нови и пише какво е свършил — и всяко от тези неща оставя
+ * следа в картона на клиента с неговото име. Следата е смисълът на таблото.
  */
 
 function str(v: FormDataEntryValue | null): string {
@@ -42,22 +43,6 @@ async function trace(
     metadata: { project_id: projectId, project_title: project.title, team: true },
     created_by: by,
   });
-}
-
-/** „Вземам го“ — проектът застава на негово име и излиза от „без отговорник“. */
-export async function takeProjectAction(_prev: EkipActionResult | null, formData: FormData): Promise<EkipActionResult> {
-  const actor = await getTeamActor();
-  if (!actor) return { ok: false, error: "Влез отново." };
-  const projectId = str(formData.get("project_id"));
-  if (!projectId) return { ok: false, error: "Липсва проект." };
-  if (!actor.member) return { ok: false, error: "Само човек от екипа може да поеме проект." };
-
-  const sb = createServiceClient();
-  const { error } = await sb.from("projects").update({ owner_id: actor.member.id }).eq("id", projectId);
-  if (error) return { ok: false, error: `Не се записа: ${error.message}` };
-  await trace(sb, projectId, actor.name, `${actor.name} пое проекта`, null);
-  revalidate();
-  return { ok: true, message: "Проектът е твой. Стои най-горе, докато не го завършиш." };
 }
 
 /** Задача: чака → работи се → готова, и обратно. */
@@ -127,26 +112,4 @@ export async function noteAction(_prev: EkipActionResult | null, formData: FormD
   await trace(sb, projectId, actor.name, "Бележка по проекта", text);
   revalidate();
   return { ok: true, message: "Записано в картона на клиента." };
-}
-
-/** Състоянието на проекта — включително „Завършен“. */
-export async function setProjectStatusAction(
-  _prev: EkipActionResult | null,
-  formData: FormData
-): Promise<EkipActionResult> {
-  const actor = await getTeamActor();
-  if (!actor) return { ok: false, error: "Влез отново." };
-  const projectId = str(formData.get("project_id"));
-  const status = str(formData.get("status")) as ProjectStatus;
-  if (!projectId || !PROJECT_STATUSES.includes(status)) return { ok: false, error: "Непознато състояние." };
-
-  const sb = createServiceClient();
-  const { error } = await sb
-    .from("projects")
-    .update({ status, done_at: status === "done" ? new Date().toISOString() : null })
-    .eq("id", projectId);
-  if (error) return { ok: false, error: `Не се записа: ${error.message}` };
-  await trace(sb, projectId, actor.name, `Проектът е „${PROJECT_STATUS_LABEL[status] ?? status}“`, null);
-  revalidate();
-  return { ok: true, message: "Записано." };
 }

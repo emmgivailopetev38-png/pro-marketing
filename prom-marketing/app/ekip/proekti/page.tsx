@@ -8,9 +8,11 @@ export const dynamic = "force-dynamic";
 
 /**
  * „Моите проекти“ — денят на човека по доставката, огледално на опашката за
- * звънене. Отгоре моите живи проекти (със срок най-напред), после свободните,
- * които може да поеме, най-долу чуждите — за да вижда картината, без да ги
- * пипа. Всяко докосване оттук се записва в картона на клиента с неговото име.
+ * звънене. Отгоре неговите, после още неразпределените, най-долу чуждите.
+ *
+ * Той вижда всички живи проекти и може да отбележи работа по всеки от тях, но
+ * НЕ ги мести: разпределянето и състоянието стоят при Ивайло. Всяко
+ * отбелязване влиза в картона на клиента с неговото име.
  */
 export default async function EkipProjectsPage() {
   const actor = await getTeamActor();
@@ -28,7 +30,7 @@ export default async function EkipProjectsPage() {
           <Stat label="мои" value={n.mine} accent="cyan" />
           <Stat label="задачи" value={n.openTasks} accent="amber" />
           <Stat label="просрочени" value={n.overdue} accent="rose" />
-          <Stat label="свободни" value={n.free} accent="violet" />
+          <Stat label="неразпред." value={n.free} accent="violet" />
         </section>
 
         <section className="space-y-3">
@@ -37,8 +39,8 @@ export default async function EkipProjectsPage() {
           </h2>
           {board.mine.length === 0 ? (
             <p className="rounded-2xl border border-white/10 p-6 text-center text-sm text-[var(--color-text-secondary)]">
-              Още нямаш проект на свое име. Вземи някой от свободните отдолу — щом го поемеш, застава тук и всичко по
-              него тръгва с твоето име.
+              Още нямаш проект на свое име — Ивайло ги разпределя. Дотогава виждаш всички отдолу и можеш да отбележиш
+              по всеки от тях какво си свършил.
             </p>
           ) : (
             board.mine.map((p) => <ProjectCard key={p.id} project={p} mode="mine" />)
@@ -48,10 +50,11 @@ export default async function EkipProjectsPage() {
         {board.free.length > 0 && (
           <section className="space-y-3">
             <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-violet-300">
-              🙋 Свободни · {board.free.length}
+              📋 Още неразпределени · {board.free.length}
             </h2>
             <p className="-mt-1 text-xs text-[var(--color-text-tertiary)]">
-              Живи проекти без отговорник — засега при Ивайло. Натисни „Вземам го“ и минава при теб.
+              Живи проекти, които още нямат отговорник — стоят при Ивайло, той решава кой ги поема. Ако си работил
+              по някой от тях, отбележи го тук.
             </p>
             {board.free.map((p) => (
               <ProjectCard key={p.id} project={p} mode="free" />
@@ -64,6 +67,9 @@ export default async function EkipProjectsPage() {
             <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--color-text-tertiary)]">
               👥 При другите · {board.others.length}
             </h2>
+            <p className="-mt-1 text-xs text-[var(--color-text-tertiary)]">
+              Движи ги друг от екипа. Виждаш ги, за да е ясна картината — и ако си помогнал по някой, го отбележи.
+            </p>
             {board.others.map((p) => (
               <ProjectCard key={p.id} project={p} mode="other" />
             ))}
