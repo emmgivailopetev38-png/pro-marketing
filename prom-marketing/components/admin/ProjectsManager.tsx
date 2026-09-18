@@ -8,6 +8,7 @@ import {
   setProjectStatusAction,
   setTaskStatusAction,
   addTaskAction,
+  setProjectOwnerAction,
 } from "@/app/admin/(protected)/projects/actions";
 import type { ContactLite } from "@/components/admin/OffersManager";
 
@@ -15,14 +16,22 @@ const STATUS_OPTIONS = Object.keys(PROJECT_STATUS_LABEL);
 const inputCls =
   "w-full rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent-cyan)]/60";
 
+export interface TeamMemberLite {
+  id: string;
+  full_name: string;
+  role: string;
+}
+
 export function ProjectsManager({
   projects,
   tasks,
   contacts,
+  members = [],
 }: {
   projects: ProjectRow[];
   tasks: ProjectTaskRow[];
   contacts: ContactLite[];
+  members?: TeamMemberLite[];
 }) {
   const [showCreate, setShowCreate] = useState(false);
   const contactsById = useMemo(() => new Map(contacts.map((c) => [c.id, c])), [contacts]);
@@ -136,6 +145,27 @@ export function ProjectsManager({
                   </select>
                 </form>
               </div>
+
+              {/* Кой го движи. Празно = при Ивайло, точно както беше досега. */}
+              <form action={setProjectOwnerAction} className="mt-2 flex items-center gap-2">
+                <input type="hidden" name="project_id" value={p.id} />
+                <span className="text-[11px] uppercase tracking-[0.12em] text-[var(--color-text-tertiary)]">
+                  отговорник
+                </span>
+                <select
+                  name="owner_id"
+                  defaultValue={p.owner_id ?? ""}
+                  onChange={(e) => e.currentTarget.form?.requestSubmit()}
+                  className="rounded-md border border-white/10 bg-black/30 px-2 py-1 text-[11px] text-[var(--color-text-secondary)] outline-none focus:border-[var(--color-accent-cyan)]/60"
+                >
+                  <option value="">— при Ивайло</option>
+                  {members.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.full_name}
+                    </option>
+                  ))}
+                </select>
+              </form>
 
               {pt.length > 0 && (
                 <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-black/30">

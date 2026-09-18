@@ -1478,6 +1478,19 @@ export async function setProjectStatus(args: {
   return { error: null };
 }
 
+/**
+ * Кой от екипа движи проекта. Празно = при Ивайло — така беше досега и така
+ * остава, докато някой не го поеме.
+ */
+export async function setProjectOwner(args: {
+  id: string;
+  owner_id: string | null;
+}): Promise<{ error: string | null }> {
+  const sb = createServiceClient();
+  const { error } = await sb.from("projects").update({ owner_id: args.owner_id }).eq("id", args.id);
+  return { error: error?.message ?? null };
+}
+
 export async function addProjectTask(args: {
   project_id: string;
   title: string;
