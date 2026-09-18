@@ -24,6 +24,9 @@ export const dynamic = "force-dynamic";
 export default async function EkipPage({ searchParams }: { searchParams: Promise<{ q?: string | string[] }> }) {
   const actor = await getTeamActor();
   if (!actor) redirect("/ekip/login");
+  // Човекът по проектите няма работа в опашката за звънене — неговият ден е
+  // на другото табло. Собственикът вижда и двете и минава между тях от шапката.
+  if (actor.member?.role === "delivery") redirect("/ekip/proekti");
 
   const sp = await searchParams;
   const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q ?? "").trim();

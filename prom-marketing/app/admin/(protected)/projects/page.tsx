@@ -8,14 +8,17 @@ export const dynamic = "force-dynamic";
 
 export default async function ProjectsPage() {
   const sb = createServiceClient();
-  const [{ data: projectsData }, { data: tasksData }, { data: contactsData }] = await Promise.all([
-    sb.from("projects").select("*").order("created_at", { ascending: false }),
-    sb.from("project_tasks").select("*").order("sort_order", { ascending: true }),
-    sb.from("contacts").select("id, full_name, email, company"),
-  ]);
+  const [{ data: projectsData }, { data: tasksData }, { data: contactsData }, { data: membersData }] =
+    await Promise.all([
+      sb.from("projects").select("*").order("created_at", { ascending: false }),
+      sb.from("project_tasks").select("*").order("sort_order", { ascending: true }),
+      sb.from("contacts").select("id, full_name, email, company"),
+      sb.from("team_members").select("id, full_name, role").eq("active", true).order("full_name"),
+    ]);
   const projects = (projectsData ?? []) as ProjectRow[];
   const tasks = (tasksData ?? []) as ProjectTaskRow[];
   const contacts = (contactsData ?? []) as ContactLite[];
+  const members = (membersData ?? []) as { id: string; full_name: string; role: string }[];
 
   const active = projects.filter((p) => p.status === "planned" || p.status === "in_progress" || p.status === "waiting_client");
   const activeSum = active.reduce((s, p) => s + (Number(p.amount_gross) || 0), 0);
@@ -32,10 +35,11 @@ export default async function ProjectsPage() {
 
       <p className="rounded-lg border border-[var(--color-border-default)] bg-[var(--color-bg-deep)]/40 px-4 py-3 text-xs text-[var(--color-text-secondary)]">
         💡 Проектите идват автоматично от приета оферта или ги създаваш ръчно. Чеквай задачите докато доставяш — Hermes
-        чете прогреса и напомня за зависалите.
+        чете прогреса и напомня за зависалите. Дай проекта на човек от екипа с полето „отговорник“ — оттам нататък той го
+        вижда в своето табло на /ekip/proekti и всяко негово движение влиза в картона на клиента с неговото име.
       </p>
 
-      <ProjectsManager projects={projects} tasks={tasks} contacts={contacts} />
+      <ProjectsManager projects={projects} tasks={tasks} contacts={contacts} members={members} />
     </div>
   );
 }

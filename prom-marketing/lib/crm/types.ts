@@ -625,6 +625,8 @@ export interface ProjectRow {
   done_at: string | null;
   notes: string | null;
   dedupe_key: string | null;
+  /** Кой от екипа движи проекта; NULL = при Ивайло. */
+  owner_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -637,6 +639,8 @@ export interface ProjectTaskRow {
   due_date: string | null;
   sort_order: number;
   done_at: string | null;
+  /** Кой я изпълнява; NULL = наследява отговорника на проекта. */
+  assignee_id: string | null;
   created_at: string;
   updated_at: string;
 }

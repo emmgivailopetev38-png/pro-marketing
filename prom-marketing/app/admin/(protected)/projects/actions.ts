@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/require-admin";
-import { upsertProject, setProjectStatus, setProjectTaskStatus, addProjectTask } from "@/lib/crm/repository";
+import { upsertProject, setProjectStatus, setProjectTaskStatus, addProjectTask, setProjectOwner } from "@/lib/crm/repository";
 import {
   PROJECT_STATUSES,
   PROJECT_TASK_STATUSES,
@@ -79,5 +79,16 @@ export async function addTaskAction(formData: FormData) {
   if (!projectId || !title) throw new Error("Invalid input");
   const res = await addProjectTask({ project_id: projectId, title, due_date: str(formData.get("due_date")) });
   if (res.error) throw new Error(res.error);
+  revalidateDelivery();
+}
+
+/** Отговорник по проекта — празно значи „при Ивайло“. */
+export async function setProjectOwnerAction(formData: FormData) {
+  await requireAdmin();
+  const id = str(formData.get("project_id"));
+  if (!id) throw new Error("Invalid input");
+  const res = await setProjectOwner({ id, owner_id: str(formData.get("owner_id")) ?? null });
+  if (res.error) throw new Error(res.error);
+  revalidatePath("/ekip/proekti");
   revalidateDelivery();
 }
