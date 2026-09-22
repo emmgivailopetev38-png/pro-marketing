@@ -5,7 +5,7 @@ import { contactMessages, postMessage } from "@/lib/team/messages";
 import type { MessageLite } from "@/lib/team/messages-rules";
 import { createTask } from "@/lib/team/tasks";
 import { nextWorkingDayAt } from "@/lib/contacts/followup";
-import { cleanClientText, isValidToken, type PortalProject, type PortalTask } from "./rules";
+import { cleanClientText, isValidToken, progressOf, type PortalProject, type PortalTask } from "./rules";
 
 /**
  * Порталът на клиента — данните и действията. Правилата са в rules.ts.
@@ -86,7 +86,8 @@ export async function loadPortal(token: string): Promise<PortalData | null> {
     : { data: [] };
   const allTasks = new Map<string, PortalTask>();
   for (const t of [...((tasks ?? []) as PortalTask[]), ...((tasks2 ?? []) as PortalTask[])]) allTasks.set(t.id, t);
-  const taskList = [...allTasks.values()].filter((t) => t.client_visible || t.kind === "client_request");
+  const everyTask = [...allTasks.values()];
+  const taskList = everyTask.filter((t) => t.client_visible || t.kind === "client_request");
 
   const visibleUpdates = ((updates ?? []) as Array<{ id: string; title: string; body: string | null; occurred_at: string; created_by: string | null; metadata: Record<string, unknown> | null }>)
     .filter((u) => u.metadata?.client_visible === true)
@@ -113,7 +114,11 @@ export async function loadPortal(token: string): Promise<PortalData | null> {
 
   return {
     contact: { id: contact.id, full_name: contact.full_name, company: contact.company, email: contact.email, phone: contact.phone, owner_id: contact.owner_id },
-    projects: projectRows.map((p) => ({ ...p, tasks: taskList.filter((t) => t.project_id === p.id) })),
+    projects: projectRows.map((p) => ({
+      ...p,
+      tasks: taskList.filter((t) => t.project_id === p.id),
+      progress: progressOf({ status: p.status, tasks: everyTask.filter((t) => t.project_id === p.id) }),
+    })),
     updates: visibleUpdates,
     messages,
     next_meeting: meeting ? { at: meeting.scheduled_at, url: meeting.meeting_url } : null,
