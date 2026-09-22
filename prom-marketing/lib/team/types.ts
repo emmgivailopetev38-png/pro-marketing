@@ -3,14 +3,69 @@
  * компоненти (картата на лийда, страницата „Екип“).
  */
 
-export const TEAM_ROLES = ["owner", "setter", "delivery"] as const;
+export const TEAM_ROLES = ["owner", "setter", "sales", "delivery", "marketing"] as const;
 export type TeamRole = (typeof TEAM_ROLES)[number];
 
 export const TEAM_ROLE_LABEL: Record<TeamRole, string> = {
   owner: "Собственик",
   setter: "Срещи · звъни на лийдовете",
-  delivery: "Проекти · изпълнение",
+  sales: "Продавач · води разговорите и затваря",
+  delivery: "Проекти · изпълнение и CRM системи",
+  marketing: "Маркетинг · реклами и съдържание",
 };
+
+/** Кратък етикет за шапката и списъците. */
+export const TEAM_ROLE_SHORT: Record<TeamRole, string> = {
+  owner: "собственик",
+  setter: "сетър",
+  sales: "продавач",
+  delivery: "изпълнение",
+  marketing: "маркетинг",
+};
+
+/**
+ * Модулите на /ekip. Кой какво вижда идва от ролята (lib/team/roles.ts), а
+ * `permissions.modules` на човека го променя — така Ивайло сглобява „варианти
+ * на профили“ без нова роля.
+ */
+export const TEAM_MODULES = [
+  "zvanene",
+  "prodazhbi",
+  "proekti",
+  "zadachi",
+  "saobshtenia",
+  "materiali",
+  "ceni",
+  "komisioni",
+] as const;
+export type TeamModule = (typeof TEAM_MODULES)[number];
+
+export const TEAM_MODULE_LABEL: Record<TeamModule, string> = {
+  zvanene: "Звънене · опашка",
+  prodazhbi: "Продажби · моите хора",
+  proekti: "Проекти · изпълнение",
+  zadachi: "Задачи",
+  saobshtenia: "Съобщения",
+  materiali: "Материали · обучение",
+  ceni: "Цени",
+  komisioni: "Комисионни",
+};
+
+export const TEAM_MODULE_HREF: Record<TeamModule, string> = {
+  zvanene: "/ekip",
+  prodazhbi: "/ekip/prodazhbi",
+  proekti: "/ekip/proekti",
+  zadachi: "/ekip/zadachi",
+  saobshtenia: "/ekip/saobshtenia",
+  materiali: "/ekip/materiali",
+  ceni: "/ekip/ceni",
+  komisioni: "/ekip/komisioni",
+};
+
+export interface TeamPermissions {
+  /** true = вижда модула, false = не го вижда; липсващ ключ = по ролята */
+  modules?: Partial<Record<TeamModule, boolean>>;
+}
 
 export interface TeamMember {
   id: string;
@@ -19,6 +74,9 @@ export interface TeamMember {
   email: string;
   phone: string | null;
   role: TeamRole;
+  /** длъжност, както се показва на екрана („appointment setter“, „маркетинг“) */
+  title?: string | null;
+  permissions?: TeamPermissions | null;
   active: boolean;
   notify_new_leads: boolean;
   notes: string | null;

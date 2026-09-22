@@ -1,9 +1,10 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 import { generatePassword, hashPassword } from "./password";
-import { TEAM_ROLES, type TeamMember, type TeamRole } from "./types";
+import { TEAM_ROLES, type TeamMember, type TeamPermissions, type TeamRole } from "./types";
 
-const COLS = "id, slug, full_name, email, phone, role, active, notify_new_leads, notes, last_login_at, created_at";
+const COLS =
+  "id, slug, full_name, email, phone, role, title, permissions, active, notify_new_leads, notes, last_login_at, created_at";
 
 const CYR: Record<string, string> = {
   а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ж: "zh", з: "z", и: "i", й: "y", к: "k", л: "l", м: "m",
@@ -31,6 +32,13 @@ export async function listMembers(): Promise<TeamMember[]> {
   return (data ?? []) as TeamMember[];
 }
 
+/** Само активните — за списъци „дай на…“, изпълнител, получатели. */
+export async function listActiveMembers(): Promise<TeamMember[]> {
+  const sb = createServiceClient();
+  const { data } = await sb.from("team_members").select(COLS).eq("active", true).order("created_at", { ascending: true });
+  return (data ?? []) as TeamMember[];
+}
+
 /**
  * Човекът, на когото се дават картоните за звънене: първият активен `setter`.
  * Днес е един; ако станат повече, тук се избира съзнателно, а не по случайност.
@@ -42,6 +50,20 @@ export async function firstActiveSetter(): Promise<TeamMember | null> {
     .select(COLS)
     .eq("active", true)
     .eq("role", "setter")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return (data as TeamMember | null) ?? null;
+}
+
+/** Първият активен човек с дадена роля — за изпълнител по подразбиране. */
+export async function firstActiveByRole(role: TeamRole): Promise<TeamMember | null> {
+  const sb = createServiceClient();
+  const { data } = await sb
+    .from("team_members")
+    .select(COLS)
+    .eq("active", true)
+    .eq("role", role)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
@@ -78,8 +100,10 @@ export async function createMember(input: {
   email: string;
   phone?: string | null;
   role?: TeamRole;
+  title?: string | null;
   notes?: string | null;
   notify_new_leads?: boolean;
+  permissions?: TeamPermissions;
 }): Promise<{ member: TeamMember; password: string } | { error: string }> {
   const full_name = input.full_name.trim();
   const email = normEmail(input.email);
@@ -104,6 +128,8 @@ export async function createMember(input: {
       email,
       phone: input.phone?.trim() || null,
       role,
+      title: input.title?.trim() || null,
+      permissions: input.permissions ?? {},
       password_hash: hashPassword(password),
       notes: input.notes?.trim() || null,
       notify_new_leads: input.notify_new_leads ?? true,
@@ -130,7 +156,7 @@ export async function resetMemberPassword(id: string): Promise<{ password: strin
 
 export async function updateMember(
   id: string,
-  patch: Partial<Pick<TeamMember, "active" | "notify_new_leads" | "phone" | "notes" | "role" | "full_name">>
+  patch: Partial<Pick<TeamMember, "active" | "notify_new_leads" | "phone" | "notes" | "role" | "full_name" | "title" | "permissions">>
 ): Promise<{ error: string | null }> {
   const sb = createServiceClient();
   const { error } = await sb
@@ -149,4 +175,11 @@ export async function newLeadNotifyEmails(): Promise<string[]> {
     .eq("active", true)
     .eq("notify_new_leads", true);
   return [...new Set((data ?? []).map((r) => normEmail(String(r.email))).filter(Boolean))];
+}
+
+/** Имената по id — за списъци, в които стои само id-то. */
+export async function memberNames(): Promise<Map<string, string>> {
+  const sb = createServiceClient();
+  const { data } = await sb.from("team_members").select("id, full_name");
+  return new Map(((data ?? []) as Array<{ id: string; full_name: string }>).map((m) => [m.id, m.full_name]));
 }

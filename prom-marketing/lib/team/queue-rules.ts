@@ -78,6 +78,8 @@ export function summarizeAttempts(rows: AttemptRow[]): Map<string, AttemptSummar
     const cur = out.get(a.contact_id) ?? { count: 0, team: false, last: null, given: null };
     if (!out.has(a.contact_id)) out.set(a.contact_id, cur);
     if (a.activity_type === ASSIGN_TYPE) {
+      // Даден на продавач (owner_id) — това не е маркер за опашката за звънене.
+      if (a.metadata?.kind === "sales") continue;
       // Най-новият маркер, стига екипът да не е звънял след него.
       if (!cur.given && !touchedAfter.has(a.contact_id)) {
         cur.given = {
