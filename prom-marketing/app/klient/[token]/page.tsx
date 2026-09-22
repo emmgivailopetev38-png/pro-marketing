@@ -1,5 +1,5 @@
 import { loadPortal, touchPortal } from "@/lib/portal/repository";
-import { isValidToken, progressOf, waitingOnClient, PORTAL_STATUS_LABEL } from "@/lib/portal/rules";
+import { isValidToken, waitingOnClient, PORTAL_STATUS_LABEL } from "@/lib/portal/rules";
 import { labelFor } from "@/lib/team/service-types";
 import { PortalApp } from "@/components/klient/PortalApp";
 
@@ -110,7 +110,7 @@ export default async function KlientPage({ params }: { params: Promise<{ token: 
             <h2>Напредък</h2>
             {live.length === 0 && data.projects.length === 0 && <p className="kl-muted">Още няма стартиран проект — ще се появи тук в деня, в който започнем.</p>}
             {data.projects.map((p) => {
-              const pr = progressOf(p);
+              const pr = p.progress;
               return (
                 <div key={p.id} style={{ marginBottom: 16 }}>
                   <h3>
