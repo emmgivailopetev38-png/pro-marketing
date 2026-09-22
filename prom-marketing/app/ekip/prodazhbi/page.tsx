@@ -7,6 +7,7 @@ import { STAGE_COLOR, STAGE_LABEL, type ContactStage } from "@/lib/contacts/type
 import { fmtSofia } from "@/lib/team/time";
 import { EkipHeader } from "@/components/ekip/EkipHeader";
 import { SalesCard } from "@/components/ekip/SalesCard";
+import { NapredakStrip } from "@/components/ekip/NapredakStrip";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,8 @@ export default async function ProdazhbiPage() {
           <Stat label="срещи 14 дни" value={board.meetings.length} accent="emerald" />
           <Stat label="спечелени 30д" value={board.won.length} accent="emerald" />
         </section>
+
+        <NapredakStrip actor={actor} />
 
         <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
           <p className="text-[10px] uppercase tracking-[0.15em] text-[var(--color-text-tertiary)]">Тръбата ти сега</p>

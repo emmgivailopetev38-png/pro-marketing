@@ -5,6 +5,7 @@ import { allowed, ekipNav } from "@/lib/team/nav";
 import { homeFor } from "@/lib/team/roles";
 import { EkipHeader } from "@/components/ekip/EkipHeader";
 import { ProjectCard } from "@/components/ekip/ProjectCard";
+import { NapredakStrip } from "@/components/ekip/NapredakStrip";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,8 @@ export default async function EkipProjectsPage() {
           <Stat label="просрочени" value={n.overdue} accent="rose" />
           <Stat label="неразпред." value={n.free} accent="violet" />
         </section>
+
+        <NapredakStrip actor={actor} />
 
         <section className="space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--color-accent-cyan)]">

@@ -114,3 +114,79 @@ export function assigneeOf(
 export function isPriority(v: unknown): v is TaskPriority {
   return typeof v === "string" && (TASK_PRIORITIES as readonly string[]).includes(v);
 }
+
+// ── Срокът: всяка задача има срок, най-много 3 дни ─────────────────────────
+//
+// Правило на Ивайло (22.09.2026): „ако работник има таск, трябва да си има и
+// срок; всичко трябва да се изпълнява в максимум 3 дни; първо зелено, после
+// оранжево, накрая червено, че закъснява“. Собственикът може да даде по-дълъг
+// срок, човекът от екипа — не.
+
+export const DEFAULT_DUE_DAYS = 3;
+export const MAX_DUE_DAYS = 3;
+
+/** Днес + n дни като YYYY-MM-DD в София. */
+export function dayPlus(now: Date, days: number, tz: string = TZ): string {
+  return dayKey(new Date(now.getTime() + days * 86_400_000), tz);
+}
+
+export function defaultDueDate(now: Date = new Date(), tz: string = TZ): string {
+  return dayPlus(now, DEFAULT_DUE_DAYS, tz);
+}
+
+/** Срокът на човек от екипа: между днес и днес + 3 дни; празно или невалидно → 3 дни. */
+export function clampDueForMember(due: string | null | undefined, now: Date = new Date(), tz: string = TZ): string {
+  const min = dayKey(now, tz);
+  const max = dayPlus(now, MAX_DUE_DAYS, tz);
+  const d = (due ?? "").trim().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return max;
+  if (d < min) return min;
+  if (d > max) return max;
+  return d;
+}
+
+export type DueTone = "green" | "orange" | "red" | "done" | "none";
+
+export const DUE_TONE_COLOR: Record<DueTone, string> = {
+  green: "#22c55e",
+  orange: "#f59e0b",
+  red: "#ef4444",
+  done: "#64748b",
+  none: "#94a3b8",
+};
+
+export const DUE_TONE_LABEL: Record<DueTone, string> = {
+  green: "има време",
+  orange: "днес / утре",
+  red: "закъснява",
+  done: "готова",
+  none: "без срок",
+};
+
+/** Дни между две дати YYYY-MM-DD (b − a). */
+export function daysBetween(a: string, b: string): number {
+  const [y1, m1, d1] = a.slice(0, 10).split("-").map(Number);
+  const [y2, m2, d2] = b.slice(0, 10).split("-").map(Number);
+  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86_400_000);
+}
+
+/** Зелено = поне два дни; оранжево = днес или утре; червено = срокът е минал. */
+export function dueTone(task: Pick<TaskLite, "status" | "due_date">, now: Date = new Date(), tz: string = TZ): DueTone {
+  if (task.status === "done") return "done";
+  if (!task.due_date) return "none";
+  const diff = daysBetween(dayKey(now, tz), task.due_date);
+  if (diff < 0) return "red";
+  if (diff <= 1) return "orange";
+  return "green";
+}
+
+/** „днес“, „утре“, „след 3 дни“, „закъснява с 2 дни“ — за етикета на задачата. */
+export function dueLabel(task: Pick<TaskLite, "status" | "due_date">, now: Date = new Date(), tz: string = TZ): string {
+  if (task.status === "done") return "готова";
+  if (!task.due_date) return "без срок";
+  const diff = daysBetween(dayKey(now, tz), task.due_date);
+  if (diff < 0) return `закъснява с ${-diff} ${-diff === 1 ? "ден" : "дни"}`;
+  if (diff === 0) return "днес";
+  if (diff === 1) return "утре";
+  return `след ${diff} дни`;
+}

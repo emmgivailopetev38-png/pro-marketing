@@ -11,6 +11,7 @@ import { LeadCard } from "@/components/ekip/LeadCard";
 import { EkipHeader } from "@/components/ekip/EkipHeader";
 import { ScriptPanel } from "@/components/ekip/ScriptPanel";
 import { MeetingMessages } from "@/components/ekip/MeetingMessages";
+import { NapredakStrip } from "@/components/ekip/NapredakStrip";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,8 @@ export default async function EkipPage({ searchParams }: { searchParams: Promise
           <Stat label="срещи" value={todayMeetings.length} accent="emerald" />
           <Stat label="съобщения" value={msgsDue} accent="fuchsia" />
         </section>
+
+        <NapredakStrip actor={actor} />
 
         <SearchForm q={q} />
 
