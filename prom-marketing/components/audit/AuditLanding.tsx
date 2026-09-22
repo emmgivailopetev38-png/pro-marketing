@@ -49,7 +49,7 @@ function PhoneForm({ location }: { location: string }) {
         <p className="text-3xl">📞</p>
         <h3 className="mt-3 text-xl font-bold text-white">Прието! Ще ти позвъним днес.</h3>
         <p className="mx-auto mt-2 max-w-xs text-sm text-slate-300">
-          Одитът е 30 минути, по телефона или в Zoom — както ти е удобно. Междувременно:
+          Одитът е 45 минути, по телефона или в Zoom — както ти е удобно. Междувременно:
         </p>
         <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:justify-center">
           <a href="/demo" className="rounded-full bg-[var(--color-accent-cyan)] px-6 py-3 font-bold text-[var(--color-bg-void)]">
@@ -114,7 +114,7 @@ export function AuditLanding() {
       <section className="relative mx-auto grid max-w-6xl items-center gap-10 px-6 pb-16 pt-20 lg:grid-cols-[1.1fr_0.9fr]">
         <div>
           <span className="inline-flex items-center gap-2.5 rounded-full border border-emerald-300/40 bg-[rgba(52,211,153,0.08)] px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.22em] text-emerald-300">
-            <Timer className="h-3.5 w-3.5" /> 30 минути · безплатно · без ангажимент
+            <Timer className="h-3.5 w-3.5" /> 45 минути · безплатно · без ангажимент
           </span>
           <h1 className="mt-5 text-[clamp(34px,5.4vw,60px)] font-bold leading-[1.06] tracking-tight">
             Безплатен <span className="text-cyan-300">AI одит</span>:
@@ -127,7 +127,7 @@ export function AuditLanding() {
           </p>
           <ul className="mt-6 space-y-2.5">
             {[
-              "Звъним ти още днес — 30 минути по телефона или в Zoom",
+              "Звъним ти още днес — 45 минути по телефона или в Zoom",
               "Излизаш с конкретен план: какво, в какъв ред, какво връща",
               "Без ангажимент — планът е твой, каквото и да решиш",
             ].map((t) => (

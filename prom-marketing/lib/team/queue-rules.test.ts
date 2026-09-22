@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
+  ASSIGN_TYPE,
   looksLikePhone,
   phoneDigits,
+  pickGiven,
   safeTextQuery,
   splitTeamDue,
   summarizeAttempts,
@@ -25,6 +27,75 @@ describe("последният опит и кой е звънял", () => {
     expect(s.get("a")).toMatchObject({ count: 2, team: true, last: { title: "Не вдигна", outcome: "no_answer", hidden: false, handoff: false } });
     expect(s.get("b")).toMatchObject({ count: 1, team: false, last: { outcome: null } });
     expect(s.has("c")).toBe(false);
+  });
+});
+
+function assign(contact_id: string, occurred_at: string, reason: string, kind = "given"): AttemptRow {
+  return {
+    contact_id,
+    activity_type: ASSIGN_TYPE,
+    title: kind === "cancelled" ? "❌ Отказана среща" : "🤝 Ивайло дава картона на екипа",
+    occurred_at,
+    created_by: kind === "cancelled" ? "Cal.com" : "Ивайло",
+    metadata: { reason, to_team: true, kind },
+  };
+}
+
+/** Редовете идват от базата подредени по occurred_at НИЗХОДЯЩО. */
+function desc(rows: AttemptRow[]): AttemptRow[] {
+  return [...rows].sort((a, b) => b.occurred_at.localeCompare(a.occurred_at));
+}
+
+describe("картоните, които Ивайло дава на екипа", () => {
+  const rows: AttemptRow[] = desc([
+    // даден вчера, екипът още не го е пипнал — стои при екипа
+    assign("dadeno", "2026-09-16T08:00:00Z", "Не вдига · Ивайло е звънял 2 пъти"),
+    row("dadeno", "2026-09-10T09:00:00Z", { outcome: null }, "Звъннах · не вдига"),
+    // даден, но екипът вече е звънял ПОСЛЕ — влиза в обичайния поток
+    assign("pipnat", "2026-09-16T08:00:00Z", "Лек контакт"),
+    row("pipnat", "2026-09-16T12:00:00Z", { ...member, outcome: "no_answer" }, "Не вдигна"),
+    // предаден обратно на Ивайло, после пак даден на екипа — важи новото
+    assign("varnat", "2026-09-16T15:00:00Z", "Пак на екипа"),
+    row("varnat", "2026-09-16T14:00:00Z", { ...member, outcome: "handoff", handoff: true }),
+    // само маркер, без нито един опит (нов лийд, който Ивайло е заделил)
+    assign("samo-marker", "2026-09-16T08:00:00Z", "Стар лийд"),
+    // отказана среща — същият механизъм, друг вид
+    assign("otkazal", "2026-09-16T09:00:00Z", "❌ Отказа срещата за пт 18.09", "cancelled"),
+  ]);
+  const s = summarizeAttempts(rows);
+
+  it("маркерът не е опит за контакт — не се брои и не става „последно“", () => {
+    expect(s.get("dadeno")).toMatchObject({ count: 1, team: false });
+    expect(s.get("dadeno")?.last?.title).toBe("Звъннах · не вдига");
+    expect(s.get("samo-marker")).toMatchObject({ count: 0, last: null });
+  });
+
+  it("причината пътува до картата", () => {
+    expect(s.get("dadeno")?.given?.reason).toBe("Не вдига · Ивайло е звънял 2 пъти");
+  });
+
+  it("щом екипът звънне след маркера, картонът излиза от „от Ивайло“", () => {
+    expect(s.get("pipnat")?.given).toBeNull();
+    expect(s.get("pipnat")?.team).toBe(true);
+  });
+
+  it("нов маркер връща картона на екипа и след предаване на Ивайло", () => {
+    expect(s.get("varnat")?.given?.reason).toBe("Пак на екипа");
+  });
+
+  it("pickGiven връща само недокоснатите, най-скоро дадените най-горе", () => {
+    const got = pickGiven(
+      [{ id: "dadeno" }, { id: "pipnat" }, { id: "varnat" }, { id: "samo-marker" }, { id: "nqma" }],
+      s
+    );
+    expect(got.map((c) => c.id)).toEqual(["varnat", "dadeno", "samo-marker"]);
+  });
+
+  it("отказаната среща се различава от дадения картон по вида", () => {
+    expect(s.get("otkazal")?.given).toMatchObject({ kind: "cancelled", reason: "❌ Отказа срещата за пт 18.09" });
+    expect(s.get("dadeno")?.given?.kind).toBe("given");
+    // и двата вида минават през pickGiven — страницата ги разделя
+    expect(pickGiven([{ id: "otkazal" }, { id: "dadeno" }], s).map((c) => c.id)).toEqual(["otkazal", "dadeno"]);
   });
 });
 

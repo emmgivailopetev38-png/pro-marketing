@@ -29,7 +29,7 @@ export function EduardClosing() {
         </h2>
 
         <p className="mx-auto mt-12 max-w-2xl text-lg leading-relaxed text-[var(--color-text-secondary)] md:text-xl">
-          30 минути разговор. Уточняваме кой пакет e правилното начало, свързваме акаунтите и задаваме старт дата. Излизаш с конкретен план в ръка.
+          45 минути разговор. Уточняваме кой пакет e правилното начало, свързваме акаунтите и задаваме старт дата. Излизаш с конкретен план в ръка.
         </p>
 
         <div className="mt-16 flex flex-col items-center gap-6">

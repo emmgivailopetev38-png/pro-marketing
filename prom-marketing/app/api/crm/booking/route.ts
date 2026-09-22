@@ -3,6 +3,8 @@ import { z } from "zod";
 import { checkHermesAuth } from "@/lib/crm/auth";
 import { upsertBooking, updateBooking } from "@/lib/crm/repository";
 import { clampLimit, parseOffset, parseCsv, listBookings } from "@/lib/crm/list-read";
+import { createServiceClient } from "@/lib/supabase/service";
+import { handleCancelledBooking } from "@/lib/team/cancelled";
 
 export const dynamic = "force-dynamic";
 
@@ -109,5 +111,36 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: false, error: result.error }, { status: 400 });
   }
   const { id, ...fields } = parsed.data;
+  // Отмяна = същата последица като през Cal.com: екипът получава картона и
+  // известие, за да звънне и да премести срещата.
+  if (parsed.data.status === "cancelled") {
+    await notifyCancelledFromCrm(id, parsed.data.notes ?? null);
+  }
   return NextResponse.json({ ok: true, id, updated: Object.keys(fields) });
+}
+
+/**
+ * Прочита отменената среща и пуска общия път: картонът отива при човека за
+ * срещите и двамата получават известие. Тихо е — отмяната вече е записана.
+ */
+async function notifyCancelledFromCrm(bookingId: string, note: string | null): Promise<void> {
+  try {
+    const sb = createServiceClient();
+    const { data } = await sb
+      .from("bookings")
+      .select("attendee_name, attendee_email, attendee_phone, scheduled_at")
+      .eq("id", bookingId)
+      .maybeSingle();
+    if (!data) return;
+    await handleCancelledBooking({
+      attendeeName: (data.attendee_name as string | null) ?? null,
+      attendeeEmail: (data.attendee_email as string | null) ?? null,
+      attendeePhone: (data.attendee_phone as string | null) ?? null,
+      scheduledAtIso: String(data.scheduled_at),
+      reason: note,
+      by: "Ивайло",
+    });
+  } catch {
+    // известието не бива да вали отмяната
+  }
 }

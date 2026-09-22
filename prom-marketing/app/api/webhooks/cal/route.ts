@@ -13,6 +13,7 @@ import { verifyCalSignature } from "@/lib/cal/verify-webhook";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendCapiEvent, isCapiConfigured } from "@/lib/meta/conversions-api";
 import { upsertContactAndLog } from "@/lib/contacts/repository";
+import { handleCancelledBooking } from "@/lib/team/cancelled";
 
 export const dynamic = "force-dynamic";
 
@@ -138,6 +139,19 @@ export async function POST(request: Request) {
       dedupe_key: `cal:${row.cal_booking_id}:${triggerEvent}`,
     },
   }).catch(() => null);
+
+  // Човекът сам си отмени часа от писмото на Cal.com. Дотук това минаваше
+  // мълчаливо — срещата изчезваше от календара и никой не звънеше.
+  if (triggerEvent === "BOOKING_CANCELLED") {
+    await handleCancelledBooking({
+      attendeeName: row.attendee_name,
+      attendeeEmail: row.attendee_email,
+      attendeePhone: row.attendee_phone,
+      scheduledAtIso: row.scheduled_at,
+      reason: payload.cancellationReason ?? extractString(payload, "cancellationReason"),
+      by: "човекът (през Cal.com)",
+    });
+  }
 
   // Mirror the conversion to Meta's Conversions API for accurate ad attribution.
   // Only fire on the first creation, not on reschedules/cancellations.

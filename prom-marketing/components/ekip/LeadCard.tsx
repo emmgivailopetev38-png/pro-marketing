@@ -4,6 +4,7 @@ import { useFormStatus } from "react-dom";
 import { ekipAction } from "@/app/ekip/actions";
 import { guessBusinessOption } from "@/lib/leads/form-labels";
 import { BUSINESS_OPTIONS, type EkipActionResult, type LeadCardMode, type QueueLead } from "@/lib/team/types";
+import { MEETING_MINUTES } from "@/lib/cal/types";
 
 const CAL_URL = "https://cal.com/promarketing/consultation";
 
@@ -75,8 +76,12 @@ const FIELD =
  */
 export function LeadCard({ lead, mode }: { lead: QueueLead; mode: LeadCardMode }) {
   const [state, formAction] = useActionState<EkipActionResult | null, FormData>(ekipAction, null);
-  const [open, setOpen] = useState(mode === "retry");
+  // При отказана среща формата е отворена веднага — целта е нов час, не бутон.
+  const [open, setOpen] = useState(mode === "retry" || mode === "cancelled");
   const waiting = mode === "waiting";
+  const given = mode === "given";
+  const cancelled = mode === "cancelled";
+  const fromIvailo = given || cancelled;
 
   const fromForm = lead.form_answers.find((a) => a.question === "С какво се занимава")?.answer ?? null;
   const saved = splitBusiness(lead.business);
@@ -102,9 +107,13 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: LeadCardMode }
     <article
       id={`lead-${lead.id}`}
       className={`scroll-mt-20 rounded-2xl border p-4 ${
-        waiting
-          ? "border-amber-400/25 bg-amber-400/[0.04]"
-          : "border-white/10 bg-white/[0.04] shadow-[0_10px_40px_-30px_rgba(6,182,212,0.6)]"
+        cancelled
+          ? "border-rose-400/30 bg-rose-400/[0.05]"
+          : waiting
+            ? "border-amber-400/25 bg-amber-400/[0.04]"
+            : given
+              ? "border-violet-400/25 bg-violet-400/[0.04]"
+              : "border-white/10 bg-white/[0.04] shadow-[0_10px_40px_-30px_rgba(6,182,212,0.6)]"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -123,6 +132,16 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: LeadCardMode }
         {waiting && lead.next_followup_at && (
           <span className="shrink-0 rounded-full border border-amber-400/40 px-2 py-0.5 text-[11px] text-amber-300">
             📵 пак {when(lead.next_followup_at)}
+          </span>
+        )}
+        {given && (
+          <span className="shrink-0 rounded-full border border-violet-400/40 px-2 py-0.5 text-[11px] text-violet-200">
+            🤝 от Ивайло
+          </span>
+        )}
+        {cancelled && (
+          <span className="shrink-0 rounded-full border border-rose-400/45 px-2 py-0.5 text-[11px] text-rose-200">
+            ❌ отказа срещата
           </span>
         )}
         {mode === "search" && (
@@ -165,6 +184,18 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: LeadCardMode }
 
       {lead.business && mode !== "fresh" && (
         <p className="mt-2 text-xs text-[var(--color-text-secondary)]">🧭 {lead.business}</p>
+      )}
+
+      {fromIvailo && lead.given_reason && (
+        <p
+          className={`mt-3 rounded-lg border px-3 py-2 text-xs ${
+            cancelled
+              ? "border-rose-400/30 bg-rose-400/[0.07] text-rose-100"
+              : "border-violet-400/25 bg-violet-400/[0.06] text-violet-100"
+          }`}
+        >
+          {lead.given_reason}
+        </p>
       )}
 
       {lead.notes && (
@@ -255,7 +286,7 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: LeadCardMode }
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-2">
                 <label className="text-[11px] text-emerald-200/80">
-                  📅 Среща с Ивайло на
+                  📅 Среща с Ивайло ({MEETING_MINUTES} мин) на
                   <input
                     type="datetime-local"
                     name="meeting_at"

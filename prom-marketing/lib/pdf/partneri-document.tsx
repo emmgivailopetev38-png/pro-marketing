@@ -35,7 +35,7 @@ const SERVICES = [
 ];
 
 const STEPS = [
-  { n: "01", tag: "Безплатно", title: "Discovery call", body: "30 мин. Обсъждаме клиента и обхвата. White-label или явно — ти избираш." },
+  { n: "01", tag: "Безплатно", title: "Discovery call", body: "45 мин. Обсъждаме клиента и обхвата. White-label или явно — ти избираш." },
   { n: "02", tag: "2 раб. дни", title: "Оферта по scope", body: "Фиксирана цена за проекта в рамките на 2 работни дни. Без скрити такси." },
   { n: "03", tag: "30–60 дни", title: "Изпълнение + handover", body: "Изграждаме, тестваме, пускаме. Playbook + видео обучение + достъп." },
 ];
@@ -366,7 +366,7 @@ export function PartneriDocument() {
         <View style={s.ctaBar}>
           <View style={s.ctaLeft}>
             <Text style={s.ctaHeadline}>Готов да тестваш партньорството?</Text>
-            <Text style={s.ctaSub}>Запази безплатна 30-мин discovery call</Text>
+            <Text style={s.ctaSub}>Запази безплатна 45-мин discovery call</Text>
           </View>
           <View style={s.ctaRight}>
             <Text style={s.ctaPhone}>+359 877 399 963</Text>

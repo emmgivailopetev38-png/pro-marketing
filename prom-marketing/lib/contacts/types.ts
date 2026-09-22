@@ -96,9 +96,11 @@ export const ACTIVITY_LABEL: Record<string, string> = {
   work_completed: "Завършена работа",
   stage_change: "Промяна на статус",
   client_review: "Одобри видеата (страница за преглед)",
+  team_assigned: "Даден на екипа за звънене",
 };
 
 export const ACTIVITY_ICON: Record<string, string> = {
+  team_assigned: "🤝",
   meta_lead: "📥",
   website_form: "🌐",
   booking: "📅",
@@ -138,6 +140,13 @@ export interface ContactRow {
   next_followup_at: string | null;
   followup_status: FollowupStatus | null;
   last_heard_from_at: string | null;
+  /** Снимката: път в бъкета contact-photos или външен адрес; източник upload | url | fathom. */
+  photo_url?: string | null;
+  photo_source?: string | null;
+  photo_updated_at?: string | null;
+  /** Последното записано настроение (lib/contacts/dnevnik.ts → MOODS). */
+  mood?: string | null;
+  mood_updated_at?: string | null;
   created_at: string;
   updated_at: string;
 }

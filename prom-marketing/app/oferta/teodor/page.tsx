@@ -73,7 +73,7 @@ const MODULES = [
 ];
 
 const PROCESS = [
-  { step: "1", title: "Разговор", body: "30 минути — обсъждаме процесите, болезнените места, какво искате да отпадне." },
+  { step: "1", title: "Разговор", body: "45 минути — обсъждаме процесите, болезнените места, какво искате да отпадне." },
   { step: "2", title: "Демо", body: "Подготвям конкретно демо на dashboard-а с примерни данни от вашия бранш." },
   { step: "3", title: "Изграждане", body: "От 30 до 60 дни до пълно стартиране — според големината на проекта. Работим с екипа ви, не само на хартия." },
   { step: "4", title: "Инсталация", body: "1-3 работни дни на място при вас. Настройка с реалните ви данни и тренинг." },
@@ -258,7 +258,7 @@ export default function TeodorOfertaPage() {
             Следваща стъпка
           </p>
           <h2 className="mb-8 font-[family-name:var(--font-editorial)] text-[clamp(40px,7vw,84px)] font-extrabold leading-[0.95]">
-            Готов ли сте за <span className="text-[var(--color-accent-amber)]">30 мин разговор</span>?
+            Готов ли сте за <span className="text-[var(--color-accent-amber)]">45 мин разговор</span>?
           </h2>
           <p className="mx-auto mb-12 max-w-2xl text-lg leading-relaxed text-[var(--color-text-secondary)]">
             Обсъждаме вашите процеси, болезнените места и какво конкретно искате да отпадне. След разговора подготвям конкретно демо.

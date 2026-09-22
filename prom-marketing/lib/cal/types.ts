@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+/**
+ * Дължината на консултацията с Ивайло — ЕДНО място за целия код.
+ * 17.09.2026: 30 → 45 минути, защото разговорът с човека отнема повече време.
+ * ⚠️ Cal.com има собствена настройка на типа събитие `consultation` — тя е
+ * господар за свободните часове и за блока в календара. Смени ли се тук,
+ * смени се и там, иначе часовете в сайта и в календара се разминават.
+ */
+export const MEETING_MINUTES = 45;
+
 // Cal.com sends ~15 different trigger events. We only act on these three; the
 // rest are accepted and logged but produce no row in `bookings`.
 export const KNOWN_BOOKING_TRIGGERS = [
@@ -32,6 +41,8 @@ export const calBookingSchema = z.object({
     responses: z.record(z.string(), responseValueSchema).optional(),
     userFieldsResponses: z.record(z.string(), responseValueSchema).optional(),
     status: z.string().optional(),
+    /** Каквото човекът е написал, когато си е отменил часа. */
+    cancellationReason: z.string().optional(),
     // Google Meet/Cal Video URL lives here; Cal also mirrors it in `location`
     // when the location resolves to a remote URL.
     metadata: z

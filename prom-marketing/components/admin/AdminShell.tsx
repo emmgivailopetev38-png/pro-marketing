@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Gauge,
   Menu,
   X,
   LayoutDashboard,
@@ -70,6 +71,7 @@ const LINK_GROUPS: LinkGroup[] = [
     items: [
       { href: "/admin/clients", label: "Клиенти", icon: Users },
       { href: "/admin/follow-up", label: "Follow-up", icon: Target },
+      { href: "/admin/efektivnost", label: "Моята ефективност", icon: Gauge },
       { href: "/admin/bookings", label: "Срещи", icon: Calendar },
       { href: "/admin/leads", label: "Meta лидове", icon: Inbox },
       { href: "/admin/email", label: "Имейл", icon: Mail },

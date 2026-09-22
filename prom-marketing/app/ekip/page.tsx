@@ -14,8 +14,12 @@ export const dynamic = "force-dynamic";
  * Опашката за звънене — „Моят ден“ на човека за срещите.
  * Отгоре: търсачката (върнал е обаждане — кой е?), после за повторно (обещал е
  * да звънне днес), после „чакат обратно обаждане“ (не вдигнаха — картата стои,
- * докато той сам не я скрие), после новите, най-новите най-горе. Всяка карта е
- * един разговор: набираш, говориш, натискаш изхода.
+ * докато той сам не я скрие), после новите, най-новите най-горе. Най-отгоре
+ * обаче са отказаните срещи: отказът е прясна рана и се лекува същия ден.
+ * Накрая е
+ * купчината от Ивайло — стари картони, които той е дал на екипа: работи се
+ * след живия списък за деня. Всяка карта е един разговор: набираш, говориш,
+ * натискаш изхода.
  */
 export default async function EkipPage({ searchParams }: { searchParams: Promise<{ q?: string | string[] }> }) {
   const actor = await getTeamActor();
@@ -31,11 +35,13 @@ export default async function EkipPage({ searchParams }: { searchParams: Promise
       <EkipHeader name={actor.name} isOwner={actor.kind === "owner"} />
 
       <main className="space-y-6 px-4 py-4">
-        <section className="grid grid-cols-4 gap-2 text-center">
+        <section className="grid grid-cols-3 gap-2 text-center sm:grid-cols-6">
           <Stat label="нови" value={queue.fresh.length} accent="cyan" />
+          <Stat label="отказали" value={queue.cancelled.length} accent="rose" />
+          <Stat label="от Ивайло" value={queue.given.length} accent="violet" />
           <Stat label="за повторно" value={queue.retry.length} accent="amber" />
           <Stat label="чакат обратно" value={queue.waiting.length} accent="amber" />
-          <Stat label="срещи напред" value={todayMeetings.length} accent="emerald" />
+          <Stat label="срещи" value={todayMeetings.length} accent="emerald" />
         </section>
 
         <SearchForm q={q} />
@@ -57,6 +63,21 @@ export default async function EkipPage({ searchParams }: { searchParams: Promise
             ) : (
               found.map((l) => <LeadCard key={`s-${l.id}`} lead={l} mode="search" />)
             )}
+          </section>
+        )}
+
+        {queue.cancelled.length > 0 && (
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-rose-300">
+              ❌ Отказаха срещата · {queue.cancelled.length}
+            </h2>
+            <p className="-mt-1 text-xs text-[var(--color-text-tertiary)]">
+              Отмениха си часа. Звънни им ДНЕС и го премести — отказът най-често е за часа, не за разговора. Новият час
+              се записва от същата карта с „Записах среща“.
+            </p>
+            {queue.cancelled.map((l) => (
+              <LeadCard key={`c-${l.id}`} lead={l} mode="cancelled" />
+            ))}
           </section>
         )}
 
@@ -100,6 +121,22 @@ export default async function EkipPage({ searchParams }: { searchParams: Promise
             queue.fresh.map((l) => <LeadCard key={l.id} lead={l} mode="fresh" />)
           )}
         </section>
+
+        {queue.given.length > 0 && (
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-violet-300">
+              🤝 От Ивайло · {queue.given.length}
+            </h2>
+            <p className="-mt-1 text-xs text-[var(--color-text-tertiary)]">
+              Хора, с които Ивайло вече е говорил веднъж — не вдигат, разбрали са се да се чуят и не са се обадили, или
+              контактът е бил съвсем кратък. Влизаш с повода отдолу („преди време говорихте с Ивайло…“) и търсиш час за
+              среща. Щом натиснеш изход, картата тръгва по обичайния път и излиза оттук.
+            </p>
+            {queue.given.map((l) => (
+              <LeadCard key={`g-${l.id}`} lead={l} mode="given" />
+            ))}
+          </section>
+        )}
 
         {queue.later > 0 && (
           <p className="text-center text-xs text-[var(--color-text-tertiary)]">
@@ -152,9 +189,16 @@ function SearchForm({ q }: { q: string }) {
   );
 }
 
-function Stat({ label, value, accent }: { label: string; value: number; accent: "cyan" | "amber" | "emerald" }) {
-  const color =
-    accent === "cyan" ? "var(--color-accent-cyan)" : accent === "amber" ? "rgb(252 211 77)" : "rgb(110 231 183)";
+const STAT_COLOR = {
+  cyan: "var(--color-accent-cyan)",
+  amber: "rgb(252 211 77)",
+  emerald: "rgb(110 231 183)",
+  violet: "rgb(196 181 253)",
+  rose: "rgb(253 164 175)",
+} as const;
+
+function Stat({ label, value, accent }: { label: string; value: number; accent: keyof typeof STAT_COLOR }) {
+  const color = STAT_COLOR[accent];
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-1 py-3">
       <p className="text-2xl font-bold" style={{ color }}>
