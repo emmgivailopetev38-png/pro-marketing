@@ -4,6 +4,13 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { ContactDetail } from "@/components/admin/clients/ContactDetail";
 import { ContactLedger } from "@/components/admin/clients/ContactLedger";
 import { listPromises, photoSrc } from "@/lib/contacts/dnevnik-repository";
+import { ContactTeamPanel } from "@/components/admin/clients/ContactTeamPanel";
+import { listActiveMembers } from "@/lib/team/repository";
+import { tasksForContact } from "@/lib/team/tasks";
+import { buildBoard } from "@/lib/team/tasks-rules";
+import { contactMessages, participants } from "@/lib/team/messages";
+import { summarizeThreads } from "@/lib/team/messages-rules";
+import { templatesFor } from "@/lib/team/service-types";
 import type { ActivityRow, ContactRow } from "@/lib/contacts/types";
 import type {
   InvoiceRow,
@@ -54,7 +61,27 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
   if (!contact) notFound();
 
-  const [promises, photo] = await Promise.all([listPromises(id), photoSrc((contact as ContactRow).photo_url ?? null)]);
+  const [promises, photo, members, contactTasks, msgs, people] = await Promise.all([
+    listPromises(id),
+    photoSrc((contact as ContactRow).photo_url ?? null),
+    listActiveMembers(),
+    tasksForContact(id),
+    contactMessages(id),
+    participants(),
+  ]);
+  const threadKey = `contact:${id}`;
+  const threadTitle = `👤 ${(contact as ContactRow).full_name ?? (contact as ContactRow).company ?? "клиент"}`;
+  const threadSummary = summarizeThreads(msgs, "owner", new Map(), () => threadTitle)[0] ?? {
+    key: threadKey,
+    kind: "contact" as const,
+    ref: id,
+    title: threadTitle,
+    last: null,
+    unread: 0,
+    total: 0,
+  };
+  void people;
+  const latestProject = ((projects ?? []) as ProjectRow[]).find((p) => p.status !== "cancelled");
 
   // Задачите на проектите на този контакт (за прогрес x/y).
   const projectIds = ((projects ?? []) as ProjectRow[]).map((p) => p.id);
@@ -76,6 +103,22 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         photoSrc={photo}
         promises={promises}
         nowIso={new Date().toISOString()}
+      />
+      <ContactTeamPanel
+        contactId={id}
+        ownerId={(contact as ContactRow).owner_id ?? null}
+        members={members.map((m) => ({ id: m.id, name: m.full_name }))}
+        portal={{
+          enabled: (contact as ContactRow).portal_enabled === true,
+          token: (contact as ContactRow).portal_token ?? null,
+          views: (contact as ContactRow).portal_views ?? 0,
+          lastSeen: (contact as ContactRow).portal_last_seen_at ?? null,
+          hasEmail: !!(contact as ContactRow).email,
+        }}
+        board={buildBoard(contactTasks)}
+        thread={{ messages: msgs, title: threadTitle, summary: threadSummary }}
+        me="owner"
+        templates={templatesFor(latestProject?.service_type ?? null).map((t) => ({ id: t.id, label: t.label, text: t.text }))}
       />
       <div className="mt-8">
         <ContactLedger

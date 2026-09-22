@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { getTeamActor } from "@/lib/team/session";
 import { loadSetterQueue, searchLeads } from "@/lib/team/queue";
 import { fmtSofia } from "@/lib/team/time";
+import { allowed, ekipNav } from "@/lib/team/nav";
+import { homeFor } from "@/lib/team/roles";
 import type { QueueLead } from "@/lib/team/types";
 import { LeadCard } from "@/components/ekip/LeadCard";
 import { EkipHeader } from "@/components/ekip/EkipHeader";
@@ -16,26 +18,28 @@ export const dynamic = "force-dynamic";
  * да звънне днес), после „чакат обратно обаждане“ (не вдигнаха — картата стои,
  * докато той сам не я скрие), после новите, най-новите най-горе. Най-отгоре
  * обаче са отказаните срещи: отказът е прясна рана и се лекува същия ден.
- * Накрая е
- * купчината от Ивайло — стари картони, които той е дал на екипа: работи се
- * след живия списък за деня. Всяка карта е един разговор: набираш, говориш,
- * натискаш изхода.
+ * Накрая е купчината от Ивайло — стари картони, които той е дал на екипа.
+ *
+ * Човек, който няма модула „Звънене“ (продавач, изпълнение, маркетинг), не
+ * вижда чужд екран — /ekip го праща на неговия дом.
  */
 export default async function EkipPage({ searchParams }: { searchParams: Promise<{ q?: string | string[] }> }) {
   const actor = await getTeamActor();
   if (!actor) redirect("/ekip/login");
-  // Човекът по проектите няма работа в опашката за звънене — неговият ден е
-  // на другото табло. Собственикът вижда и двете и минава между тях от шапката.
-  if (actor.member?.role === "delivery") redirect("/ekip/proekti");
+  if (!allowed(actor, "zvanene")) redirect(homeFor(actor.member));
 
   const sp = await searchParams;
   const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q ?? "").trim();
-  const [queue, found] = await Promise.all([loadSetterQueue(), q ? searchLeads(q) : Promise.resolve([] as QueueLead[])]);
+  const [queue, found, nav] = await Promise.all([
+    loadSetterQueue(),
+    q ? searchLeads(q) : Promise.resolve([] as QueueLead[]),
+    ekipNav(actor),
+  ]);
   const todayMeetings = queue.booked;
 
   return (
     <div className="mx-auto max-w-2xl pb-24">
-      <EkipHeader name={actor.name} isOwner={actor.kind === "owner"} />
+      <EkipHeader name={actor.name} isOwner={actor.kind === "owner"} nav={nav.items} section="zvanene" unread={nav.unread} />
 
       <main className="space-y-6 px-4 py-4">
         <section className="grid grid-cols-3 gap-2 text-center sm:grid-cols-6">

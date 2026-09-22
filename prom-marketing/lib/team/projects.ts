@@ -202,3 +202,56 @@ export function boardCounts(board: DeliveryBoard) {
   const overdue = board.mine.filter((p) => p.due_date != null && p.due_date < today).length;
   return { mine: board.mine.length, free: board.free.length, openTasks, overdue, done: board.recentlyDone.length };
 }
+
+// ── Вид услуга → чеклист ────────────────────────────────────────────────────
+
+import { firstActiveByRole } from "./repository";
+import { SERVICE_DEFAULT_ROLE, isServiceType, tasksForService } from "./service-types";
+
+/**
+ * Прилага чеклиста за вида услуга върху нов проект: задачите със срокове от
+ * старта, видимите за клиента стъпки, и отговорник по подразбиране (първият
+ * активен човек с ролята за този вид), ако още няма.
+ */
+export async function applyServiceTemplate(args: {
+  projectId: string;
+  serviceType: string;
+  startedAt?: string | null;
+  createdBy: string;
+  /** ако вече има ръчно написани задачи — не се добавят от шаблона */
+  skipTasks?: boolean;
+}): Promise<{ tasks: number; ownerId: string | null }> {
+  if (!isServiceType(args.serviceType)) return { tasks: 0, ownerId: null };
+  const sb = createServiceClient();
+  const patch: Record<string, unknown> = { service_type: args.serviceType };
+  let ownerId: string | null = null;
+  const { data: p } = await sb.from("projects").select("owner_id").eq("id", args.projectId).maybeSingle();
+  if (!p?.owner_id) {
+    const role = SERVICE_DEFAULT_ROLE[args.serviceType];
+    if (role !== "owner") {
+      const m = await firstActiveByRole(role);
+      if (m) {
+        ownerId = m.id;
+        patch.owner_id = m.id;
+      }
+    }
+  } else {
+    ownerId = p.owner_id as string;
+  }
+  await sb.from("projects").update(patch).eq("id", args.projectId);
+  if (args.skipTasks) return { tasks: 0, ownerId };
+  const tasks = tasksForService(args.serviceType, args.startedAt ?? new Date());
+  const { error } = await sb.from("project_tasks").insert(
+    tasks.map((t, i) => ({
+      project_id: args.projectId,
+      title: t.title,
+      status: "todo",
+      due_date: t.due_date,
+      sort_order: i,
+      client_visible: t.client_visible,
+      assignee_id: ownerId,
+      created_by: args.createdBy,
+    }))
+  );
+  return { tasks: error ? 0 : tasks.length, ownerId };
+}

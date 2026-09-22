@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { getTeamActor } from "@/lib/team/session";
 import { boardCounts, loadDeliveryBoard } from "@/lib/team/projects";
+import { allowed, ekipNav } from "@/lib/team/nav";
+import { homeFor } from "@/lib/team/roles";
 import { EkipHeader } from "@/components/ekip/EkipHeader";
 import { ProjectCard } from "@/components/ekip/ProjectCard";
 
@@ -17,13 +19,14 @@ export const dynamic = "force-dynamic";
 export default async function EkipProjectsPage() {
   const actor = await getTeamActor();
   if (!actor) redirect("/ekip/login");
+  if (!allowed(actor, "proekti")) redirect(homeFor(actor.member));
 
-  const board = await loadDeliveryBoard(actor.member?.id ?? null);
+  const [board, nav] = await Promise.all([loadDeliveryBoard(actor.member?.id ?? null), ekipNav(actor)]);
   const n = boardCounts(board);
 
   return (
     <div className="mx-auto max-w-2xl pb-24">
-      <EkipHeader name={actor.name} isOwner={actor.kind === "owner"} section="proekti" />
+      <EkipHeader name={actor.name} isOwner={actor.kind === "owner"} nav={nav.items} section="proekti" unread={nav.unread} />
 
       <main className="space-y-6 px-4 py-4">
         <section className="grid grid-cols-4 gap-2 text-center">

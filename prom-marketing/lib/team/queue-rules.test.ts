@@ -163,3 +163,20 @@ describe("търсене по телефона, който звъни обрат
     expect(safeTextQuery("Христо, (Христов) 100%")).toBe("Христо Христов 100");
   });
 });
+
+describe("queue-rules: маркерът за продавач не е за опашката", () => {
+  it("team_assigned с kind sales не прави картона „от Ивайло“", async () => {
+    const { summarizeAttempts } = await import("./queue-rules");
+    const m = summarizeAttempts([
+      {
+        contact_id: "c1",
+        activity_type: "team_assigned",
+        title: "🤝 Даден на продавач",
+        occurred_at: "2026-09-22T08:00:00Z",
+        created_by: "Ивайло",
+        metadata: { kind: "sales", to_member_id: "s1" },
+      },
+    ]);
+    expect(m.get("c1")?.given ?? null).toBeNull();
+  });
+});
