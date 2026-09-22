@@ -12,7 +12,7 @@ import { firstActiveSetter } from "./repository";
 export async function giveToTeam(args: {
   contactId: string;
   reason: string;
-  /** „given“ = Ивайло го дава · „cancelled“ = човекът отказа срещата */
+  /** „given“ = Ивайло го дава · „cancelled“ = човекът отказа срещата · „noshow“ = не се яви на нея */
   kind?: GivenKind;
   createdBy?: string | null;
   /** допълнително в metadata — напр. коя среща е отказана */
@@ -25,7 +25,9 @@ export async function giveToTeam(args: {
   const title =
     kind === "cancelled"
       ? `❌ Отказана среща · ${setter.full_name} да звънне`
-      : `🤝 Дадено на ${setter.full_name} за звънене`;
+      : kind === "noshow"
+        ? `🙈 Не се яви на срещата · ${setter.full_name} да звънне`
+        : `🤝 Дадено на ${setter.full_name} за звънене`;
 
   const sb = createServiceClient();
   const { error } = await sb.from("contact_activities").insert({

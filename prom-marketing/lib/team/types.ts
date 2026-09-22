@@ -37,6 +37,8 @@ export const TEAM_MODULES = [
   "materiali",
   "ceni",
   "komisioni",
+  "napredak",
+  "belezhki",
 ] as const;
 export type TeamModule = (typeof TEAM_MODULES)[number];
 
@@ -49,6 +51,8 @@ export const TEAM_MODULE_LABEL: Record<TeamModule, string> = {
   materiali: "Материали · обучение",
   ceni: "Цени",
   komisioni: "Комисионни",
+  napredak: "Напредък · моите числа",
+  belezhki: "Бележки · за системата",
 };
 
 export const TEAM_MODULE_HREF: Record<TeamModule, string> = {
@@ -60,6 +64,8 @@ export const TEAM_MODULE_HREF: Record<TeamModule, string> = {
   materiali: "/ekip/materiali",
   ceni: "/ekip/ceni",
   komisioni: "/ekip/komisioni",
+  napredak: "/ekip/napredak",
+  belezhki: "/ekip/belezhki",
 };
 
 export interface TeamPermissions {
@@ -137,6 +143,10 @@ export interface QueueLead {
   last_attempt: LastAttempt | null;
   /** Ако е при екипа: защо — „не вдига“, „разбрахте се…“, „отказа срещата“. */
   given_reason?: string | null;
+  /** При „не се яви“: коя среща е пропуснал (ISO) и линкът ѝ — за готовото съобщение. */
+  missed_at?: string | null;
+  missed_url?: string | null;
+  missed_booking_id?: string | null;
 }
 
 export interface BookedRow {
@@ -153,15 +163,17 @@ export interface BookedRow {
  * Откъде идва картата на екрана — определя кои бутони са отпред:
  * fresh — нов, за първи разговор · given — Ивайло го е дал на екипа ·
  * cancelled — човекът е отказал срещата и трябва да се премести ·
+ * noshow — не се е явил на срещата: звъни се пак и се записва нов час ·
  * retry — обещано чуване, чийто ден е дошъл ·
  * waiting — не е вдигнал / чуване по-късно, може да върне обаждане ·
  * search — намерен през търсачката (върнал е обаждане, който и да е).
  */
-export type LeadCardMode = "fresh" | "given" | "cancelled" | "retry" | "waiting" | "search";
+export type LeadCardMode = "fresh" | "given" | "cancelled" | "noshow" | "retry" | "waiting" | "search";
 
 export const EKIP_ACTIONS = [
   "no_answer",
   "callback",
+  "talked",
   "meeting",
   "handoff",
   "not_interested",

@@ -5,6 +5,7 @@ import type { BookedRow, QueueLead } from "./types";
 import { todayEndIso } from "./time";
 import {
   ASSIGN_TYPE,
+  ESCALATED_TYPE,
   looksLikePhone,
   phoneDigits,
   pickGiven,
@@ -77,6 +78,8 @@ export interface SetterQueue {
   given: QueueLead[];
   /** Отказали срещата — звъни се да се премести. */
   cancelled: QueueLead[];
+  /** Не се явили на срещата — звъни се и се записва нов час. */
+  noshow: QueueLead[];
   retry: QueueLead[];
   /** Не вдигнаха / чуване по-късно — може да върнат обаждане, картата е под ръка. */
   waiting: QueueLead[];
@@ -91,7 +94,7 @@ async function loadAttempts(sb: Sb, ids: string[]): Promise<Map<string, AttemptS
     .from("contact_activities")
     .select("contact_id, activity_type, title, occurred_at, created_by, metadata")
     .in("contact_id", ids)
-    .in("activity_type", [...ATTEMPT_TYPES, ASSIGN_TYPE])
+    .in("activity_type", [...ATTEMPT_TYPES, ASSIGN_TYPE, ESCALATED_TYPE])
     .order("occurred_at", { ascending: false });
   return summarizeAttempts((data ?? []) as AttemptRow[]);
 }
@@ -129,6 +132,9 @@ function toLead(c: ContactLite, attempts: Map<string, AttemptSummary>, forms: Ma
     attempts: att?.count ?? 0,
     last_attempt: att?.last ?? null,
     given_reason: att?.given?.reason ?? null,
+    missed_at: att?.given?.missed_at ?? null,
+    missed_url: att?.given?.missed_url ?? null,
+    missed_booking_id: att?.given?.missed_booking_id ?? null,
   };
 }
 
@@ -190,14 +196,18 @@ export async function loadSetterQueue(now: Date = new Date()): Promise<SetterQue
 
   const assignedOpen = pickGiven(assigned, attempts);
   const cancelledContacts = assignedOpen.filter((c) => attempts.get(c.id)?.given?.kind === "cancelled");
-  const givenContacts = assignedOpen.filter((c) => attempts.get(c.id)?.given?.kind !== "cancelled");
+  const noshowContacts = assignedOpen.filter((c) => attempts.get(c.id)?.given?.kind === "noshow");
+  const givenContacts = assignedOpen.filter((c) => {
+    const k = attempts.get(c.id)?.given?.kind;
+    return k !== "cancelled" && k !== "noshow";
+  });
   const givenIds = new Set(assignedOpen.map((c) => c.id));
   const freshContacts = leads.filter((c) => !attempts.has(c.id));
   const split = splitTeamDue(due, attempts, todayEnd);
   const retry = split.retry.filter((c) => !givenIds.has(c.id));
   const waiting = split.waiting.filter((c) => !givenIds.has(c.id));
   const later = split.later;
-  const forms = await loadForms(sb, [...freshContacts, ...cancelledContacts, ...givenContacts, ...retry, ...waiting]);
+  const forms = await loadForms(sb, [...freshContacts, ...cancelledContacts, ...noshowContacts, ...givenContacts, ...retry, ...waiting]);
   const lead = (c: ContactLite) => toLead(c, attempts, forms);
 
   const booked: BookedRow[] = ((bookedRows ?? []) as Array<Record<string, unknown>>).map((b) => ({
@@ -214,6 +224,7 @@ export async function loadSetterQueue(now: Date = new Date()): Promise<SetterQue
     fresh: freshContacts.map(lead),
     given: givenContacts.map(lead),
     cancelled: cancelledContacts.map(lead),
+    noshow: noshowContacts.map(lead),
     retry: retry.map(lead),
     waiting: waiting.map(lead),
     later,

@@ -34,7 +34,7 @@ import {
   Clapperboard,
   Settings,
   LogOut,
-  type LucideIcon, Mic, Presentation, Route, Gamepad2, UserCog, PhoneCall, TrendingUp, ListChecks, MessagesSquare, HandCoins, BookOpen, PiggyBank} from "lucide-react";
+  type LucideIcon, Mic, Presentation, Route, Gamepad2, UserCog, PhoneCall, TrendingUp, ListChecks, MessagesSquare, HandCoins, BookOpen, PiggyBank, Activity, StickyNote} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/landing/Logo";
 import { cn } from "@/lib/utils";
@@ -72,6 +72,7 @@ const LINK_GROUPS: LinkGroup[] = [
       { href: "/admin/clients", label: "Клиенти", icon: Users },
       { href: "/admin/follow-up", label: "Follow-up", icon: Target },
       { href: "/admin/efektivnost", label: "Моята ефективност", icon: Gauge },
+      { href: "/admin/napredak", label: "Напредък на екипа", icon: Activity },
       { href: "/admin/bookings", label: "Срещи", icon: Calendar },
       { href: "/admin/leads", label: "Meta лидове", icon: Inbox },
       { href: "/admin/email", label: "Имейл", icon: Mail },
@@ -81,6 +82,7 @@ const LINK_GROUPS: LinkGroup[] = [
       { href: "/admin/zadachi", label: "Задачи", icon: ListChecks },
       { href: "/admin/saobshtenia", label: "Съобщения", icon: MessagesSquare },
       { href: "/admin/ekip", label: "Екип", icon: UserCog },
+      { href: "/admin/belezhki", label: "Бележки от екипа", icon: StickyNote },
       { href: "/admin/komisioni", label: "Комисионни", icon: HandCoins },
       { href: "/admin/materiali", label: "Материали · обучение", icon: BookOpen },
       { href: "/ekip", label: "Звънене · опашка", icon: PhoneCall },

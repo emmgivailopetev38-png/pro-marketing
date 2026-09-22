@@ -5,6 +5,9 @@ import { ekipAction } from "@/app/ekip/actions";
 import { guessBusinessOption } from "@/lib/leads/form-labels";
 import { BUSINESS_OPTIONS, type EkipActionResult, type LeadCardMode, type QueueLead } from "@/lib/team/types";
 import { MEETING_MINUTES } from "@/lib/cal/types";
+import { RETRY_PRESETS, RETRY_PRESET_LABEL, TALKED_AFTER_DAYS, TALKED_DEFAULT_DAYS } from "@/lib/team/retry-rules";
+import { meetingMessage } from "@/lib/team/sreshta-saobshtenia";
+import { MessageBox } from "./MessageBox";
 
 const CAL_URL = "https://cal.com/promarketing/consultation";
 
@@ -74,14 +77,16 @@ const FIELD =
  * „Върна обаждане“, защото точно това се случва — човекът звъни десет минути
  * след „Не вдигна“ и срещата трябва да се запише от същата карта.
  */
-export function LeadCard({ lead, mode }: { lead: QueueLead; mode: LeadCardMode }) {
+export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: QueueLead; mode: LeadCardMode; setterName?: string }) {
   const [state, formAction] = useActionState<EkipActionResult | null, FormData>(ekipAction, null);
-  // При отказана среща формата е отворена веднага — целта е нов час, не бутон.
-  const [open, setOpen] = useState(mode === "retry" || mode === "cancelled");
+  // При отказана или пропусната среща формата е отворена веднага — целта е нов час, не бутон.
+  const [open, setOpen] = useState(mode === "retry" || mode === "cancelled" || mode === "noshow");
+  const [preset, setPreset] = useState<string>("3h");
   const waiting = mode === "waiting";
   const given = mode === "given";
   const cancelled = mode === "cancelled";
-  const fromIvailo = given || cancelled;
+  const noshow = mode === "noshow";
+  const fromIvailo = given || cancelled || noshow;
 
   const fromForm = lead.form_answers.find((a) => a.question === "С какво се занимава")?.answer ?? null;
   const saved = splitBusiness(lead.business);
@@ -107,7 +112,7 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: LeadCardMode }
     <article
       id={`lead-${lead.id}`}
       className={`scroll-mt-20 rounded-2xl border p-4 ${
-        cancelled
+        cancelled || noshow
           ? "border-rose-400/30 bg-rose-400/[0.05]"
           : waiting
             ? "border-amber-400/25 bg-amber-400/[0.04]"
@@ -142,6 +147,11 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: LeadCardMode }
         {cancelled && (
           <span className="shrink-0 rounded-full border border-rose-400/45 px-2 py-0.5 text-[11px] text-rose-200">
             ❌ отказа срещата
+          </span>
+        )}
+        {noshow && (
+          <span className="shrink-0 rounded-full border border-rose-400/45 px-2 py-0.5 text-[11px] text-rose-200">
+            🙈 не се яви{lead.missed_at ? ` · ${when(lead.missed_at)}` : ""}
           </span>
         )}
         {mode === "search" && (
@@ -189,13 +199,25 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: LeadCardMode }
       {fromIvailo && lead.given_reason && (
         <p
           className={`mt-3 rounded-lg border px-3 py-2 text-xs ${
-            cancelled
+            cancelled || noshow
               ? "border-rose-400/30 bg-rose-400/[0.07] text-rose-100"
               : "border-violet-400/25 bg-violet-400/[0.06] text-violet-100"
           }`}
         >
           {lead.given_reason}
         </p>
+      )}
+
+      {noshow && lead.missed_at && (
+        <MessageBox
+          title="💜 Готово съобщение след пропуснатата среща"
+          formal={meetingMessage("noshow", { name: lead.full_name, whenIso: lead.missed_at, meetingUrl: lead.missed_url ?? null, setterName, formal: true })}
+          informal={meetingMessage("noshow", { name: lead.full_name, whenIso: lead.missed_at, meetingUrl: lead.missed_url ?? null, setterName, formal: false })}
+          phone={lead.phone}
+          bookingId={lead.missed_booking_id ?? null}
+          contactId={lead.id}
+          kind="noshow"
+        />
       )}
 
       {lead.notes && (
@@ -245,6 +267,14 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: LeadCardMode }
                   className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-accent-cyan)]/50 px-3 py-2 text-sm font-semibold text-[var(--color-accent-cyan)]"
                 >
                   💬 Говорихме…
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOpen(true)}
+                  className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-2 text-xs text-[var(--color-text-tertiary)]"
+                  title="Не вдигна — избери кога да звъннеш пак"
+                >
+                  ⏱ пак друг път…
                 </button>
               </>
             )}
@@ -298,10 +328,17 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: LeadCardMode }
                   <input
                     type="email"
                     name="email"
-                    placeholder="имейл за поканата (по желание)"
+                    placeholder="имейл — за поканата с Meet линк"
                     className="mt-1 w-full rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-[var(--color-text-primary)]"
                   />
                 )}
+                <label className="mt-1.5 flex items-start gap-2 text-[11px] leading-snug text-emerald-200/80">
+                  <input type="checkbox" name="invite" value="1" defaultChecked className="mt-0.5 accent-emerald-400" />
+                  <span>📨 Покана с Meet линк по имейл (през Cal.com). Ти получаваш готово съобщение за Viber с линка.</span>
+                </label>
+                <p className="mt-1 text-[10px] leading-snug text-emerald-200/50">
+                  Без имейл няма линк — Ивайло звъни по телефона в уговорения час.
+                </p>
                 <SubmitBtn action="meeting" className="mt-2 w-full border-emerald-400/60 bg-emerald-500/15 text-emerald-200">
                   ✅ Записах среща
                 </SubmitBtn>
@@ -322,6 +359,26 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: LeadCardMode }
               </div>
             </div>
 
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-2">
+              <label className="min-w-0 flex-1 text-[11px] leading-snug text-amber-200/80">
+                🗣 Говорихме, но не насрочихме среща — не знае кога ще му е удобно. Картата остава под ръка и излиза пак след
+                <select
+                  name="talked_after"
+                  defaultValue={String(TALKED_DEFAULT_DAYS)}
+                  className="mx-1 rounded-md border border-white/10 bg-black/30 px-2 py-1 text-xs text-[var(--color-text-primary)]"
+                >
+                  {TALKED_AFTER_DAYS.map((d) => (
+                    <option key={d} value={d}>
+                      {d} дни
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <SubmitBtn action="talked" className="border-amber-400/60 bg-amber-500/15 text-amber-200">
+                🗣 Говорихме, без среща засега
+              </SubmitBtn>
+            </div>
+
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-violet-500/30 bg-violet-500/5 p-2">
               <p className="min-w-0 flex-1 text-[11px] leading-snug text-violet-200/80">
                 🤝 Иска да се чуе направо с Ивайло — ще дойде на място, пита за цени, не иска час сега. Ивайло получава
@@ -332,10 +389,37 @@ export function LeadCard({ lead, mode }: { lead: QueueLead; mode: LeadCardMode }
               </SubmitBtn>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 p-2">
+              <span className="text-[11px] text-[var(--color-text-tertiary)]">📵 Не вдигна — пак:</span>
+              <select
+                name="retry_preset"
+                value={preset}
+                onChange={(e) => setPreset(e.target.value)}
+                className="rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-[var(--color-text-primary)]"
+              >
+                {RETRY_PRESETS.map((p) => (
+                  <option key={p} value={p}>
+                    {RETRY_PRESET_LABEL[p]}
+                  </option>
+                ))}
+              </select>
+              {preset === "custom" && (
+                <input
+                  type="datetime-local"
+                  name="retry_at_custom"
+                  defaultValue={tomorrowAt(10)}
+                  className="rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-[var(--color-text-primary)]"
+                />
+              )}
               <SubmitBtn action="no_answer" className="border-white/15 text-[var(--color-text-secondary)]">
                 📵 Не вдигна
               </SubmitBtn>
+              <span className="w-full text-[10px] text-[var(--color-text-tertiary)]">
+                След 7 дни без резултат картата се връща на Ивайло сама, с цялата история.
+              </span>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
               <SubmitBtn action="note" className="border-white/15 text-[var(--color-text-secondary)]">
                 📝 Само бележка
               </SubmitBtn>
