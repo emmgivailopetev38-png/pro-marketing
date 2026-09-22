@@ -1,7 +1,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 import type { TeamActor } from "./session";
-import { buildBoard, isPriority, type TaskBoard, type TaskLite, type TaskPriority } from "./tasks-rules";
+import { buildBoard, isPriority, type TaskBoard, type TaskLite, type TaskPriority, defaultDueDate } from "./tasks-rules";
 
 /**
  * Задачите — четене и писане. Правилата (купчини, ред) са в tasks-rules.ts.
@@ -145,7 +145,8 @@ export async function createTask(input: NewTask): Promise<{ id: string | null; e
       status: "todo",
       priority,
       kind: input.kind ?? "task",
-      due_date: input.due_date || null,
+      // Всяка задача има срок — без подаден, след 3 дни (правило от 22.09.2026).
+      due_date: input.due_date || defaultDueDate(),
       sort_order: sort,
       assignee_id: input.assignee_id || null,
       client_visible: input.client_visible ?? false,

@@ -64,3 +64,35 @@ describe("tasks-rules: къде стои задачата", () => {
     expect(assigneeOf(task({ id: "c" }), owners)).toBeNull();
   });
 });
+
+describe("tasks-rules: срокът е задължителен и най-много 3 дни", () => {
+  it("по подразбиране е след 3 дни", async () => {
+    const { defaultDueDate, dayPlus } = await import("./tasks-rules");
+    expect(defaultDueDate(NOW)).toBe("2026-09-25");
+    expect(dayPlus(NOW, 0)).toBe("2026-09-22");
+  });
+
+  it("човек от екипа не може да си сложи срок извън днес…+3 дни", async () => {
+    const { clampDueForMember } = await import("./tasks-rules");
+    expect(clampDueForMember("", NOW)).toBe("2026-09-25");
+    expect(clampDueForMember("2026-10-10", NOW)).toBe("2026-09-25");
+    expect(clampDueForMember("2026-09-01", NOW)).toBe("2026-09-22");
+    expect(clampDueForMember("2026-09-23", NOW)).toBe("2026-09-23");
+    expect(clampDueForMember("nope", NOW)).toBe("2026-09-25");
+  });
+
+  it("цветът: зелено → оранжево → червено", async () => {
+    const { dueTone, dueLabel } = await import("./tasks-rules");
+    expect(dueTone(task({ id: "a", due_date: "2026-09-25" }), NOW)).toBe("green");
+    expect(dueLabel(task({ id: "a", due_date: "2026-09-25" }), NOW)).toBe("след 3 дни");
+    expect(dueTone(task({ id: "b", due_date: "2026-09-23" }), NOW)).toBe("orange");
+    expect(dueLabel(task({ id: "b", due_date: "2026-09-23" }), NOW)).toBe("утре");
+    expect(dueTone(task({ id: "c", due_date: "2026-09-22" }), NOW)).toBe("orange");
+    expect(dueLabel(task({ id: "c", due_date: "2026-09-22" }), NOW)).toBe("днес");
+    expect(dueTone(task({ id: "d", due_date: "2026-09-20" }), NOW)).toBe("red");
+    expect(dueLabel(task({ id: "d", due_date: "2026-09-20" }), NOW)).toBe("закъснява с 2 дни");
+    expect(dueLabel(task({ id: "e", due_date: "2026-09-21" }), NOW)).toBe("закъснява с 1 ден");
+    expect(dueTone(task({ id: "f", due_date: "2026-09-20", status: "done" }), NOW)).toBe("done");
+    expect(dueTone(task({ id: "g" }), NOW)).toBe("none");
+  });
+});

@@ -4,7 +4,10 @@ import { requireTeamActor, type TeamActor } from "@/lib/team/session";
 import { createTask, deleteTask, setTaskStatus, updateTask } from "@/lib/team/tasks";
 import { notifyTaskAssigned } from "@/lib/team/notify";
 import { getMemberById } from "@/lib/team/repository";
-import { TASK_PRIORITY_LABEL, isPriority } from "@/lib/team/tasks-rules";
+import { TASK_PRIORITY_LABEL, clampDueForMember, defaultDueDate, isPriority } from "@/lib/team/tasks-rules";
+import { sendTelegram } from "@/lib/notifications/telegram";
+
+const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://promarketing.pw").replace(/\/$/, "");
 import type { EkipActionResult } from "@/lib/team/types";
 
 /**
@@ -46,10 +49,13 @@ export async function taskAction(_prev: EkipActionResult | null, formData: FormD
       const requested = s(formData, "assignee_id");
       const assigneeId = isOwner ? requested || null : actor.member!.id;
       const priority = isPriority(s(formData, "priority")) ? s(formData, "priority") : "normal";
+      // Срокът е задължителен: собственикът избира какъвто иска (без избор → 3 дни),
+      // човекът от екипа — най-много 3 дни напред.
+      const dueDate = isOwner ? s(formData, "due_date") || defaultDueDate() : clampDueForMember(s(formData, "due_date"));
       const res = await createTask({
         title,
         description: s(formData, "description") || null,
-        due_date: s(formData, "due_date") || null,
+        due_date: dueDate,
         priority,
         assignee_id: assigneeId,
         project_id: s(formData, "project_id") || null,
@@ -60,12 +66,19 @@ export async function taskAction(_prev: EkipActionResult | null, formData: FormD
       if (res.error) return { ok: false, error: res.error };
       const assigneeKey = assigneeId ?? "owner";
       const isSelf = (isOwner && !assigneeId) || (!isOwner && assigneeId === actor.member!.id);
+      if (isSelf && !isOwner) {
+        // Човекът си сложи задача сам — Ивайло я вижда в /admin/zadachi и получава един ред.
+        await sendTelegram(
+          `📝 <b>${actor.name} си добави задача</b>\n${title}\n📅 до ${dueDate}`,
+          { buttons: [{ text: "Задачите на екипа", url: `${SITE}/admin/zadachi` }] }
+        ).catch(() => false);
+      }
       if (!isSelf) {
         await notifyTaskAssigned({
           assigneeKey,
           byName: actor.name,
           title,
-          dueDate: s(formData, "due_date") || null,
+          dueDate,
           priority: TASK_PRIORITY_LABEL[priority as keyof typeof TASK_PRIORITY_LABEL] ?? priority,
           context: s(formData, "context") || null,
         }).catch(() => {});
@@ -89,7 +102,7 @@ export async function taskAction(_prev: EkipActionResult | null, formData: FormD
       const id = s(formData, "task_id");
       if (!id) return { ok: false, error: "Липсва задача." };
       const patch: Parameters<typeof updateTask>[1] = {};
-      if (formData.has("due_date")) patch.due_date = s(formData, "due_date") || null;
+      if (formData.has("due_date")) patch.due_date = isOwner ? s(formData, "due_date") || defaultDueDate() : clampDueForMember(s(formData, "due_date"));
       if (formData.has("priority")) patch.priority = s(formData, "priority");
       if (formData.has("client_visible")) patch.client_visible = s(formData, "client_visible") === "1";
       if (isOwner && formData.has("assignee_id")) patch.assignee_id = s(formData, "assignee_id") || null;

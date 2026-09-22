@@ -3,7 +3,20 @@ import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { taskAction } from "@/app/ekip/zadachi/actions";
-import { TASK_BUCKET_LABEL, TASK_PRIORITIES, TASK_PRIORITY_COLOR, TASK_PRIORITY_LABEL, type TaskBoard as Board, type TaskBucket } from "@/lib/team/tasks-rules";
+import {
+  DUE_TONE_COLOR,
+  MAX_DUE_DAYS,
+  TASK_BUCKET_LABEL,
+  TASK_PRIORITIES,
+  TASK_PRIORITY_COLOR,
+  TASK_PRIORITY_LABEL,
+  dayPlus,
+  defaultDueDate,
+  dueLabel,
+  dueTone,
+  type TaskBoard as Board,
+  type TaskBucket,
+} from "@/lib/team/tasks-rules";
 import type { TaskRow } from "@/lib/team/tasks";
 import type { EkipActionResult } from "@/lib/team/types";
 
@@ -42,8 +55,11 @@ function TaskLine({ t, isOwner, assignees, showAssignee, threadHref }: { t: Task
   const [edit, setEdit] = useState(false);
   const done = t.status === "done";
   const color = TASK_PRIORITY_COLOR[t.priority as keyof typeof TASK_PRIORITY_COLOR] ?? "#7da8cc";
+  const tone = dueTone(t);
+  const toneColor = DUE_TONE_COLOR[tone];
+  const today = dayPlus(new Date(), 0);
   return (
-    <li className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+    <li className="rounded-xl border border-white/10 bg-white/[0.02] p-3" style={{ borderLeft: `4px solid ${toneColor}` }}>
       <div className="flex items-start gap-2">
         <form action={act} className="shrink-0 pt-0.5">
           <input type="hidden" name="task_id" value={t.id} />
@@ -67,7 +83,13 @@ function TaskLine({ t, isOwner, assignees, showAssignee, threadHref }: { t: Task
           </p>
           <p className="mt-0.5 flex flex-wrap gap-x-2 text-[11px] text-[var(--color-text-tertiary)]">
             {t.priority !== "normal" && <span style={{ color }}>● {TASK_PRIORITY_LABEL[t.priority as keyof typeof TASK_PRIORITY_LABEL]}</span>}
-            {t.due_date && <span>📅 {dateBg(t.due_date)}</span>}
+            <span
+              className="rounded-full border px-1.5 py-0.5 font-semibold"
+              style={{ color: toneColor, borderColor: `${toneColor}66`, background: `${toneColor}14` }}
+              title="Зелено: има време · оранжево: днес или утре · червено: закъснява"
+            >
+              📅 {t.due_date ? dateBg(t.due_date) : "—"} · {dueLabel(t)}
+            </span>
             {t.project_title && <span>🛠 {t.project_title}</span>}
             {t.contact_name && (
               <span>
@@ -98,7 +120,15 @@ function TaskLine({ t, isOwner, assignees, showAssignee, threadHref }: { t: Task
           <input type="hidden" name="task_id" value={t.id} />
           <input type="hidden" name="action" value="update" />
           <input type="hidden" name="title" value={t.title} />
-          <input type="date" name="due_date" defaultValue={t.due_date ?? ""} className={FIELD} />
+          <input
+            type="date"
+            name="due_date"
+            defaultValue={t.due_date ?? defaultDueDate()}
+            min={today}
+            max={isOwner ? undefined : dayPlus(new Date(), MAX_DUE_DAYS)}
+            title={isOwner ? "Срок" : `Срок — най-много ${MAX_DUE_DAYS} дни напред`}
+            className={FIELD}
+          />
           <select name="priority" defaultValue={t.priority} className={FIELD}>
             {TASK_PRIORITIES.map((p) => (
               <option key={p} value={p}>
@@ -179,7 +209,18 @@ export function TaskBoard({
             <input name="title" required placeholder="какво трябва да се свърши" className={`${FIELD} w-full`} />
             <textarea name="description" rows={2} placeholder="подробности (по желание)" className={`${FIELD} w-full`} />
             <div className="flex flex-wrap items-center gap-2">
-              <input type="date" name="due_date" className={FIELD} />
+              <label className="flex items-center gap-1 text-xs text-[var(--color-text-secondary)]">
+                срок
+                <input
+                  type="date"
+                  name="due_date"
+                  defaultValue={defaultDueDate()}
+                  min={dayPlus(new Date(), 0)}
+                  max={isOwner ? undefined : dayPlus(new Date(), MAX_DUE_DAYS)}
+                  className={FIELD}
+                />
+                {!isOwner && <span className="text-[10px] text-[var(--color-text-tertiary)]">до {MAX_DUE_DAYS} дни</span>}
+              </label>
               <select name="priority" defaultValue="normal" className={FIELD}>
                 {TASK_PRIORITIES.map((p) => (
                   <option key={p} value={p}>
@@ -208,6 +249,13 @@ export function TaskBoard({
           </form>
         )}
       </div>
+
+      <p className="text-[11px] text-[var(--color-text-tertiary)]">
+        Всяка задача има срок (най-много {MAX_DUE_DAYS} дни).{" "}
+        <span style={{ color: DUE_TONE_COLOR.green }}>● има време</span> ·{" "}
+        <span style={{ color: DUE_TONE_COLOR.orange }}>● днес или утре</span> ·{" "}
+        <span style={{ color: DUE_TONE_COLOR.red }}>● закъснява</span> — закъснелите получават напомняне сутрин и следобед.
+      </p>
 
       {order.map((b) => {
         const list = board[b];
