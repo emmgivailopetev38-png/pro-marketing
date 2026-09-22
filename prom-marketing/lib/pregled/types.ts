@@ -30,6 +30,7 @@ export interface ReviewRow {
   key: string;
   contact_id: string | null;
   client_name: string | null;
+  heading: string | null;
   title: string;
   intro: string | null;
   items: ReviewItem[];
