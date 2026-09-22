@@ -18,6 +18,8 @@ const SHORT: Record<string, string> = {
   materiali: "📚 Материали",
   ceni: "💶 Цени",
   komisioni: "🏆 Комисионни",
+  napredak: "📈 Напредък",
+  belezhki: "📝 Бележки",
 };
 
 /**

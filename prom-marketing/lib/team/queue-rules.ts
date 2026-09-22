@@ -28,8 +28,11 @@ export interface AttemptRow {
 /** Маркерът „този картон е на екипа“ — не е опит за контакт. */
 export const ASSIGN_TYPE = "team_assigned";
 
-/** Защо картонът е при екипа: Ивайло го е дал, или човекът е отказал срещата. */
-export type GivenKind = "given" | "cancelled";
+/** Защо картонът е при екипа: Ивайло го е дал, човекът е отказал срещата, или не се е явил на нея. */
+export type GivenKind = "given" | "cancelled" | "noshow";
+
+/** Активността „върнат на Ивайло след 7 дни без резултат“ — не е опит за контакт. */
+export const ESCALATED_TYPE = "escalated";
 
 /** Защо картонът е даден — излиза на картата, за да знае човекът с какво влиза. */
 export interface GivenMark {
@@ -39,6 +42,10 @@ export interface GivenMark {
   to: string | null;
   kind: GivenKind;
   reason: string | null;
+  /** при „не се яви“: коя среща е пропусната и линкът ѝ */
+  missed_at: string | null;
+  missed_url: string | null;
+  missed_booking_id: string | null;
 }
 
 export interface AttemptSummary {
@@ -49,10 +56,12 @@ export interface AttemptSummary {
   last: LastAttempt | null;
   /** даден от Ивайло и още недокоснат от екипа */
   given: GivenMark | null;
+  /** върнат на Ивайло (7 дни без резултат) и екипът не е звънял след това */
+  escalated: boolean;
 }
 
 /** Изходите, след които човекът може да върне обаждане и картата остава под ръка. */
-export const AWAITING_CALLBACK = new Set(["no_answer", "callback"]);
+export const AWAITING_CALLBACK = new Set(["no_answer", "callback", "talked"]);
 
 export function lastAttemptFromRow(row: AttemptRow): LastAttempt {
   const m = row.metadata ?? {};
@@ -75,8 +84,15 @@ export function summarizeAttempts(rows: AttemptRow[]): Map<string, AttemptSummar
   const out = new Map<string, AttemptSummary>();
   const touchedAfter = new Set<string>();
   for (const a of rows) {
-    const cur = out.get(a.contact_id) ?? { count: 0, team: false, last: null, given: null };
+    const cur = out.get(a.contact_id) ?? { count: 0, team: false, last: null, given: null, escalated: false };
     if (!out.has(a.contact_id)) out.set(a.contact_id, cur);
+    if (a.activity_type === ESCALATED_TYPE) {
+      // Върнат на Ивайло: важи, докато екипът не го докосне отново. По-старите
+      // маркери „дадено на екипа“ вече не важат — затова се брои за „докоснат“.
+      if (!touchedAfter.has(a.contact_id)) cur.escalated = true;
+      touchedAfter.add(a.contact_id);
+      continue;
+    }
     if (a.activity_type === ASSIGN_TYPE) {
       // Даден на продавач (owner_id) — това не е маркер за опашката за звънене.
       if (a.metadata?.kind === "sales") continue;
@@ -86,12 +102,18 @@ export function summarizeAttempts(rows: AttemptRow[]): Map<string, AttemptSummar
           at: a.occurred_at,
           by: a.created_by,
           to: strOf(a.metadata?.to_name),
-          kind: a.metadata?.kind === "cancelled" ? "cancelled" : "given",
+          kind: a.metadata?.kind === "cancelled" ? "cancelled" : a.metadata?.kind === "noshow" ? "noshow" : "given",
           reason: reasonOf(a),
+          missed_at: strOf(a.metadata?.missed_at),
+          missed_url: strOf(a.metadata?.missed_url),
+          missed_booking_id: strOf(a.metadata?.missed_booking_id),
         };
       }
       continue;
     }
+    // Готовите съобщения за срещата (потвърждение, напомняне) не са опит за
+    // контакт: не местят картата и не „докосват“ маркера от Ивайло.
+    if (a.activity_type === "viber_sent" && a.metadata?.booking_msg === true) continue;
     const team = a.metadata?.team === true;
     cur.count += 1;
     cur.team = cur.team || team;
@@ -131,7 +153,8 @@ export interface DueSplit<T> {
  * retry — часът е до края на днешния ден; waiting — още не е дошъл, но
  * последният изход позволява обратно обаждане и картата не е скрита;
  * later — само брой, за да се знае, че не са изгубени.
- * Предадените на Ивайло (последният опит е handoff) не са на екипа изобщо.
+ * Предадените на Ивайло (последният опит е handoff) и върнатите след 7 дни
+ * (escalated) не са на екипа изобщо.
  */
 export function splitTeamDue<T extends { id: string; next_followup_at: string | null }>(
   due: T[],
@@ -140,7 +163,7 @@ export function splitTeamDue<T extends { id: string; next_followup_at: string | 
 ): DueSplit<T> {
   const team = due.filter((c) => {
     const a = attempts.get(c.id);
-    return !!a && a.team && !a.last?.handoff;
+    return !!a && a.team && !a.last?.handoff && !a.escalated;
   });
   const retry = team.filter((c) => (c.next_followup_at ?? "") <= todayEnd);
   const retryIds = new Set(retry.map((c) => c.id));

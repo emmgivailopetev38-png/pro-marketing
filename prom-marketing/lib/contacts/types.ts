@@ -106,10 +106,15 @@ export const ACTIVITY_LABEL: Record<string, string> = {
   call_requested: "Клиентът поиска разговор (портал)",
   portal_sent: "Изпратен линк към портала",
   commission: "Комисионна",
+  viber_sent: "Изпратено по Viber",
+  escalated: "Върнат на Ивайло · 7 дни без отговор",
+  system_note: "Бележка за системата",
 };
 
 export const ACTIVITY_ICON: Record<string, string> = {
   team_assigned: "🤝",
+  escalated: "⏫",
+  viber_sent: "💜",
   meta_lead: "📥",
   website_form: "🌐",
   booking: "📅",

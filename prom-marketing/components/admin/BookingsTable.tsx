@@ -12,6 +12,7 @@ import {
 import { format } from "date-fns";
 import { bg } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
+import { bookingStatusAction } from "@/app/admin/(protected)/bookings/actions";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -114,13 +115,33 @@ export function BookingsTable({ upcoming, past }: { upcoming: BookingRow[]; past
           s === "confirmed" ? "потвърдена" :
           s === "completed" ? "проведена" :
           s === "cancelled" ? "отказана" :
+          s === "no_show" ? "не се яви" :
+          s === "accepted" ? "приета" :
+          s === "pending" ? "чака потвърждение" :
           s === "rescheduled" ? "разместена" : s;
         const tone =
           s === "confirmed" ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" :
           s === "completed" ? "bg-sky-500/15 text-sky-300 border-sky-500/30" :
-          s === "cancelled" ? "bg-red-500/15 text-red-300 border-red-500/30" :
+          s === "cancelled" || s === "no_show" ? "bg-red-500/15 text-red-300 border-red-500/30" :
+          s === "accepted" ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" :
           "bg-amber-500/15 text-amber-300 border-amber-500/30";
         return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider ${tone}`}>{label}</span>;
+      },
+    },
+    {
+      id: "result",
+      header: "Резултат",
+      cell: (info) => {
+        const r = info.row.original;
+        const past = new Date(r.scheduled_at).getTime() < Date.now();
+        if (r.status === "cancelled") return <span className="text-[var(--color-text-tertiary)]">—</span>;
+        return (
+          <div className="flex flex-wrap gap-1">
+            {past && r.status !== "completed" && <StatusBtn id={r.id} status="completed" label="✅ Проведена" />}
+            {past && r.status !== "no_show" && <StatusBtn id={r.id} status="no_show" label="🙈 Не се яви" />}
+            {!past && <StatusBtn id={r.id} status="cancelled" label="❌ Отказана" />}
+          </div>
+        );
       },
     },
     {
@@ -242,7 +263,7 @@ export function BookingsTable({ upcoming, past }: { upcoming: BookingRow[]; past
             ))}
             {table.getRowModel().rows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="py-8 text-center text-[var(--color-text-tertiary)]">
+                <TableCell colSpan={10} className="py-8 text-center text-[var(--color-text-tertiary)]">
                   {tab === "upcoming" ? "Няма предстоящи срещи" : "Няма приключени срещи"}
                 </TableCell>
               </TableRow>
@@ -265,5 +286,24 @@ export function BookingsTable({ upcoming, past }: { upcoming: BookingRow[]; past
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * „Проведена“ / „Не се яви“ / „Отказана“ — една форма, едно натискане.
+ * „Не се яви“ праща картона при човека за срещите с готово съобщение за Viber.
+ */
+function StatusBtn({ id, status, label }: { id: string; status: string; label: string }) {
+  return (
+    <form action={bookingStatusAction}>
+      <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="status" value={status} />
+      <button
+        type="submit"
+        className="rounded-full border border-white/15 px-2 py-0.5 text-[10px] whitespace-nowrap text-[var(--color-text-secondary)] hover:border-[var(--color-accent-cyan)]/60 hover:text-[var(--color-text-primary)]"
+      >
+        {label}
+      </button>
+    </form>
   );
 }

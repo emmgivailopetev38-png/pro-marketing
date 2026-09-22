@@ -29,7 +29,7 @@ export async function handleCancelledBooking(input: CancelledBookingInput): Prom
   try {
     const name = input.attendeeName?.trim() || input.attendeePhone || input.attendeeEmail || "Без име";
     const by = input.by?.trim() || "човекът";
-    const contact = await findContact(input.attendeeEmail, input.attendeePhone);
+    const contact = await findContactByEmailOrPhone(input.attendeeEmail, input.attendeePhone);
 
     if (contact?.id && contact.phone) {
       const reason = [
@@ -63,7 +63,7 @@ export async function handleCancelledBooking(input: CancelledBookingInput): Prom
 }
 
 /** Първо по имейл, после по телефон — същият ред като в recordActivity. */
-async function findContact(
+export async function findContactByEmailOrPhone(
   email: string | null | undefined,
   phone: string | null | undefined
 ): Promise<{ id: string; phone: string | null; email: string | null } | null> {

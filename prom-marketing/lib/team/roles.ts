@@ -18,10 +18,10 @@ import {
 
 const DEFAULTS: Record<TeamRole, TeamModule[]> = {
   owner: [...TEAM_MODULES],
-  setter: ["zvanene", "zadachi", "saobshtenia", "materiali"],
-  sales: ["prodazhbi", "zadachi", "saobshtenia", "materiali", "ceni", "komisioni"],
-  delivery: ["proekti", "zadachi", "saobshtenia", "materiali"],
-  marketing: ["proekti", "zadachi", "saobshtenia", "materiali"],
+  setter: ["zvanene", "zadachi", "saobshtenia", "materiali", "napredak", "belezhki"],
+  sales: ["prodazhbi", "zadachi", "saobshtenia", "materiali", "ceni", "komisioni", "napredak", "belezhki"],
+  delivery: ["proekti", "zadachi", "saobshtenia", "materiali", "napredak", "belezhki"],
+  marketing: ["proekti", "zadachi", "saobshtenia", "materiali", "napredak", "belezhki"],
 };
 
 /** Модулите по подразбиране за роля. */
