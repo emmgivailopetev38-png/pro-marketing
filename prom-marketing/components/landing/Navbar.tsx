@@ -54,7 +54,7 @@ export function Navbar() {
         )}
       >
         <a href="#top" aria-label="ProMarketing начало">
-          <Logo />
+          <Logo markId="pm-nav-a" />
         </a>
         <ul className="hidden md:flex items-center gap-7 text-sm text-[var(--color-text-secondary)]">
           {NAV.map((item) => (
@@ -128,7 +128,7 @@ export function Navbar() {
         >
           <div className="flex items-center justify-between">
             <a href="#top" aria-label="ProMarketing начало" onClick={() => setOpen(false)}>
-              <Logo />
+              <Logo markId="pm-nav-a-menu" />
             </a>
             <button
               type="button"
