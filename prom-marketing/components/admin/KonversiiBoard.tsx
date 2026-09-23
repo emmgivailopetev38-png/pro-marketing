@@ -1,4 +1,5 @@
 import type { KonversiiData } from "@/lib/crm/konversii-data";
+import { PURPOSE_LABEL } from "@/lib/crm/ads-spend";
 import type { FunnelCounts } from "@/lib/crm/konversii";
 import { pct } from "@/lib/crm/konversii";
 
@@ -118,18 +119,67 @@ export function KonversiiBoard({ d }: { d: KonversiiData }) {
         <Panel title="Фунията за периода" hint="докъде е стигнал всеки лийд, по следи в картона — не по етап">
           <Funnel f={f} prev={d.prev} />
         </Panel>
-        <Panel title="Колко струва" hint={`рекламен разход за периода: ${d.adSpend.toLocaleString("bg-BG")} € (от разходите с категория „Реклами“)`}>
+        <Panel
+          title="Колко струва"
+          hint={`за наши лийдове: ${d.adSpend.toLocaleString("bg-BG")} € от ${d.spend.totalEur.toLocaleString("bg-BG")} € общо в акаунта`}
+        >
           <div className="grid grid-cols-2 gap-4">
             <Big value={d.cost.lead} label="за лийд" />
             <Big value={d.cost.talked} label="за разговор" />
             <Big value={d.cost.meeting} label="за среща" />
             <Big value={d.cost.won} label="за клиент" />
           </div>
+          {d.spend.byPurpose.length > 1 && (
+            <div className="mt-4 space-y-1">
+              {d.spend.byPurpose.map((p) => (
+                <div key={p.purpose} className="flex items-center justify-between text-[11px]">
+                  <span className={p.purpose === "leads" ? "text-[var(--color-text-secondary)]" : "text-[var(--color-text-tertiary)]"}>
+                    {p.label}
+                    {p.purpose === "leads" && " · влиза в сметката"}
+                  </span>
+                  <span className="font-[family-name:var(--font-mono)] text-[var(--color-text-secondary)]">
+                    {p.eur.toLocaleString("bg-BG")} €
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
           <p className="mt-3 text-[11px] text-[var(--color-text-tertiary)]">
-            Ако разходът е 0 — фактурите на Meta за периода още не са в „Разходи“. Вкарай ги и числата се появяват сами.
+            {d.spendSource === "sync" ? <SyncNote fresh={d.spendFresh} lastDay={d.spend.lastDay} /> : "Още няма данни от дневния синхрон с Meta за този период — показаното е от ръчните записи в „Разходи“."}
           </p>
         </Panel>
       </div>
+
+      {d.spend.byCampaign.length > 0 && (
+        <Panel title="Къде отидоха парите" hint="разход по кампания за периода — само редовете „наши лийдове“ влизат в цената на резултата">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-[10px] uppercase tracking-wider text-[var(--color-text-tertiary)]">
+                  <th className="py-2 text-left font-medium">Кампания</th>
+                  <th className="py-2 text-left font-medium">За какво</th>
+                  <th className="py-2 text-right font-medium">Разход</th>
+                  <th className="py-2 text-right font-medium">Показвания</th>
+                  <th className="py-2 text-right font-medium">Клика</th>
+                  <th className="py-2 text-right font-medium">Лийда по Meta</th>
+                </tr>
+              </thead>
+              <tbody>
+                {d.spend.byCampaign.map((c) => (
+                  <tr key={c.campaign_id} className="border-t border-white/5">
+                    <td className="py-2 pr-3">{c.name}</td>
+                    <td className="py-2 pr-3 text-[var(--color-text-tertiary)]">{PURPOSE_LABEL[c.purpose]}</td>
+                    <td className="py-2 text-right font-[family-name:var(--font-mono)]">{c.eur.toLocaleString("bg-BG")} €</td>
+                    <td className="py-2 text-right font-[family-name:var(--font-mono)] text-[var(--color-text-tertiary)]">{c.impressions.toLocaleString("bg-BG")}</td>
+                    <td className="py-2 text-right font-[family-name:var(--font-mono)] text-[var(--color-text-tertiary)]">{c.clicks.toLocaleString("bg-BG")}</td>
+                    <td className="py-2 text-right font-[family-name:var(--font-mono)] text-[var(--color-text-tertiary)]">{c.metaLeads.toLocaleString("bg-BG")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+      )}
 
       <Panel title="По източник">
         <div className="overflow-x-auto">
@@ -240,6 +290,15 @@ export function KonversiiBoard({ d }: { d: KonversiiData }) {
         </Panel>
       )}
     </div>
+  );
+}
+
+function SyncNote({ fresh, lastDay }: { fresh: boolean; lastDay: string | null }) {
+  if (fresh) return <>Разходът се тегли сам от Meta всяка сутрин. Последен ден с данни: {lastDay}.</>;
+  return (
+    <span style={{ color: "#fbbf24" }}>
+      ⚠️ Синхронът с Meta изостава — последен ден с данни: {lastDay ?? "няма"}. Цената по-горе е за непълен период.
+    </span>
   );
 }
 
