@@ -121,7 +121,7 @@ export function KonversiiBoard({ d }: { d: KonversiiData }) {
         </Panel>
         <Panel
           title="Колко струва"
-          hint={`за наши лийдове: ${d.adSpend.toLocaleString("bg-BG")} € от ${d.spend.totalEur.toLocaleString("bg-BG")} € общо в акаунта`}
+          hint={`${d.adSpend.toLocaleString("bg-BG")} € за наши лийдове (от ${d.spend.totalEur.toLocaleString("bg-BG")} € общо) ÷ ${d.adFunnel.leads} лийда от реклами`}
         >
           <div className="grid grid-cols-2 gap-4">
             <Big value={d.cost.lead} label="за лийд" />
@@ -144,7 +144,10 @@ export function KonversiiBoard({ d }: { d: KonversiiData }) {
               ))}
             </div>
           )}
-          <p className="mt-3 text-[11px] text-[var(--color-text-tertiary)]">
+          <p className="mt-2 text-[11px] text-[var(--color-text-tertiary)]">
+            Смята се само срещу лийдовете от реклами ({d.adFunnel.leads} от общо {d.funnel.leads} за периода) — останалите не са дошли срещу пари.
+          </p>
+          <p className="mt-2 text-[11px] text-[var(--color-text-tertiary)]">
             {d.spendSource === "sync" ? <SyncNote fresh={d.spendFresh} lastDay={d.spend.lastDay} /> : "Още няма данни от дневния синхрон с Meta за този период — показаното е от ръчните записи в „Разходи“."}
           </p>
         </Panel>

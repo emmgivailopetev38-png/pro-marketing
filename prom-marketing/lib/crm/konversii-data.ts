@@ -32,6 +32,8 @@ export interface KonversiiData {
   spendFresh: boolean;
   /** откъде е взет разходът: дневния синхрон или старите записи в „Разходи“ */
   spendSource: "sync" | "expenses";
+  /** фунията САМО на лийдовете от реклами — срещу нея се смята цената */
+  adFunnel: FunnelCounts;
   cost: ReturnType<typeof costPer>;
   /** екипът: задачи, съобщения, проектни обновления за периода */
   team: Array<{ name: string; tasksDone: number; messages: number; projectUpdates: number; commissionsDue: number }>;
@@ -97,6 +99,11 @@ export async function loadKonversii(days = 30, now: Date = new Date()): Promise<
   const hasSync = (spendRows ?? []).length > 0;
   const adSpend = hasSync ? spend.leadsEur : manualAds;
 
+  // Цената се смята срещу лийдовете ОТ РЕКЛАМИ, не срещу всички. Иначе
+  // лийдовете, които Хермес е намерил сам или са дошли от сайта, свалят
+  // цената на лийда и тя излиза по-евтина, отколкото е в действителност.
+  const adFunnel = countFunnel(cur.filter((t) => t.source === "meta_lead"));
+
   // Екипът за периода.
   const team = new Map<string, { name: string; tasksDone: number; messages: number; projectUpdates: number; commissionsDue: number }>();
   const row = (key: string) => {
@@ -127,7 +134,8 @@ export async function loadKonversii(days = 30, now: Date = new Date()): Promise<
     spend,
     spendFresh: isFresh(spend.lastDay, now),
     spendSource: hasSync ? "sync" : "expenses",
-    cost: costPer(adSpend, funnel),
+    adFunnel,
+    cost: costPer(adSpend, adFunnel),
     team: [...team.values()].sort((a, b) => b.tasksDone + b.projectUpdates + b.messages - (a.tasksDone + a.projectUpdates + a.messages)),
   };
 }
