@@ -18,7 +18,7 @@ export function Footer() {
         {/* Top row — brand + CTA */}
         <div className="mb-12 grid gap-10 border-b border-[var(--color-border-default)] pb-12 md:grid-cols-[1.4fr_1fr] md:gap-16">
           <div>
-            <Logo />
+            <Logo markId="pm-footer-a" />
             <p className="mt-5 max-w-md text-base text-[var(--color-text-secondary)]">
               AI автоматизации, които превръщат рутината в растеж.
               Изграждаме AI агенти, CRM системи и софтуер по поръчка за български бизнеси.

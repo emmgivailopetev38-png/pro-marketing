@@ -45,7 +45,7 @@ export function FooterV2() {
           </div>
 
           <div className="relative z-[1]">
-            <Logo />
+            <Logo markId="pm-footer" />
             <p className="v2-sub mt-5 max-w-md">
               AI автоматизации, които превръщат рутината в растеж.
               Изграждаме AI агенти, CRM системи и софтуер по поръчка за български бизнеси.
