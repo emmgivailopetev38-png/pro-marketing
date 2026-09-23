@@ -97,10 +97,24 @@ export const ACTIVITY_LABEL: Record<string, string> = {
   stage_change: "Промяна на статус",
   client_review: "Одобри видеата (страница за преглед)",
   team_assigned: "Даден на екипа за звънене",
+  project_update: "Обновление по проекта",
+  task_done: "Готова задача",
+  team_message: "Съобщение в CRM-а",
+  client_message: "Съобщение от клиента (портал)",
+  client_request: "Заявка от клиента (портал)",
+  client_approved: "Клиентът отметна стъпка (портал)",
+  call_requested: "Клиентът поиска разговор (портал)",
+  portal_sent: "Изпратен линк към портала",
+  commission: "Комисионна",
+  viber_sent: "Изпратено по Viber",
+  escalated: "Върнат на Ивайло · 7 дни без отговор",
+  system_note: "Бележка за системата",
 };
 
 export const ACTIVITY_ICON: Record<string, string> = {
   team_assigned: "🤝",
+  escalated: "⏫",
+  viber_sent: "💜",
   meta_lead: "📥",
   website_form: "🌐",
   booking: "📅",
@@ -122,6 +136,15 @@ export const ACTIVITY_ICON: Record<string, string> = {
   work_completed: "✅",
   stage_change: "🔄",
   client_review: "🎬",
+  project_update: "🛠",
+  task_done: "✅",
+  team_message: "💬",
+  client_message: "🧑‍💼",
+  client_request: "📩",
+  client_approved: "👍",
+  call_requested: "📞",
+  portal_sent: "🔗",
+  commission: "🏆",
 };
 
 export interface ContactRow {
@@ -147,6 +170,13 @@ export interface ContactRow {
   /** Последното записано настроение (lib/contacts/dnevnik.ts → MOODS). */
   mood?: string | null;
   mood_updated_at?: string | null;
+  /** Продавачът, който води човека; NULL = при Ивайло. */
+  owner_id?: string | null;
+  /** Порталът на клиента: /klient/<token>. */
+  portal_token?: string | null;
+  portal_enabled?: boolean;
+  portal_last_seen_at?: string | null;
+  portal_views?: number;
   created_at: string;
   updated_at: string;
 }

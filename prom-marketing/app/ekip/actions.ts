@@ -4,8 +4,10 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { requireTeamActor, type TeamActor } from "@/lib/team/session";
 import { alignStage, nextWorkingDayAt } from "@/lib/contacts/followup";
 import { defaultRetryAt, fmtSofia, sofiaLocalToIso } from "@/lib/team/time";
+import { retryFromPreset, talkedRetryAt } from "@/lib/team/retry-rules";
 import { upsertBooking } from "@/lib/crm/repository";
 import { MEETING_MINUTES } from "@/lib/cal/types";
+import { createCalBooking, isCalWriteConfigured } from "@/lib/cal/create-booking";
 import { notifyOwnerBooking, notifyOwnerHandoff } from "@/lib/team/notify";
 import { EKIP_ACTIONS, type EkipActionKind, type EkipActionResult } from "@/lib/team/types";
 import { joinBusiness } from "@/lib/team/business";
@@ -73,13 +75,19 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
   try {
     switch (action) {
       case "no_answer": {
+        // Бързите избори („след 3 часа“, „утре“, „след 3 дни“, „след 7 дни“, точен
+        // час) бият полето; без избор важи старото правило (3 ч / утре в 10:00).
+        const preset = str(formData, "retry_preset");
+        const fromPreset = preset ? retryFromPreset(preset, str(formData, "retry_at_custom")) : null;
+        if (preset === "custom" && !fromPreset) return { ok: false, error: "Избери точния час за повторното звънене." };
         const raw = str(formData, "retry_at");
-        const retryIso = (raw && sofiaLocalToIso(raw)) || defaultRetryAt().toISOString();
+        const retryIso = fromPreset?.toISOString() ?? ((raw && sofiaLocalToIso(raw)) || defaultRetryAt().toISOString());
         patch.followup_status = "needs_call";
         patch.next_followup_at = retryIso;
         meta.retry_at = retryIso;
+        meta.retry_preset = preset || null;
         activity = { type: "call", title: `Не вдигна · пак на ${fmtSofia(retryIso)}`, body: note || null };
-        message = `Отбелязано. Картата остава в „чакат обратно обаждане“; за повторно излиза на ${fmtSofia(retryIso)}.`;
+        message = `Отбелязано. Картата остава в „чакат обратно обаждане“; за повторно излиза на ${fmtSofia(retryIso)}. След 7 дни без резултат се връща на Ивайло сама.`;
         break;
       }
       case "callback": {
@@ -94,6 +102,24 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         message = `Записано. Ще излезе пак на ${fmtSofia(retryIso)}.`;
         break;
       }
+      case "talked": {
+        // „Говорихме, но не насрочихме среща“ — човекът не знае кога ще му е
+        // удобно. Не се губи: излиза пак след избраните дни (по подразбиране 3).
+        const retryAt = talkedRetryAt(str(formData, "talked_after"));
+        const retryIso = retryAt.toISOString();
+        patch.last_heard_from_at = nowIso;
+        patch.followup_status = "needs_call";
+        patch.next_followup_at = retryIso;
+        if (stage === "lead") patch.stage = "contacted";
+        meta.retry_at = retryIso;
+        activity = {
+          type: "call",
+          title: `Говорихме · без среща засега · пак на ${fmtSofia(retryIso)}`,
+          body: [business ? `Дейност: ${business}` : null, note || null].filter(Boolean).join("\n") || null,
+        };
+        message = `Записано. Картата остава под ръка; за повторно излиза на ${fmtSofia(retryIso)}. Обади ли се преди това — намираш го с търсачката.`;
+        break;
+      }
       case "meeting": {
         const meetingIso = sofiaLocalToIso(str(formData, "meeting_at"));
         if (!meetingIso) return { ok: false, error: "Избери кога е срещата." };
@@ -103,15 +129,47 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         const typedEmail = str(formData, "email").toLowerCase();
         const email = c.email ?? (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(typedEmail) ? typedEmail : null);
         if (!c.email && email) patch.email = email;
+        const name = c.full_name ?? c.phone ?? "Без име";
+
+        // Покана с Meet линк — през Cal.com, който държи календара на Ивайло.
+        // Първо Cal.com, после CRM-ът със същия ключ (uid): така webhook-ът
+        // на Cal.com попада в същия ред, а не прави втора среща.
+        const wantInvite = str(formData, "invite") === "1";
+        let inviteNote = "";
+        let meetingUrl: string | null = null;
+        let calUid: string | null = null;
+        if (wantInvite && email && isCalWriteConfigured()) {
+          const cal = await createCalBooking({
+            name,
+            email,
+            startISO: meetingIso,
+            phone: c.phone,
+            notes: [business ? `Дейност: ${business}` : null, note || null, `Записа: ${actor.name}`].filter(Boolean).join(" · "),
+          });
+          if (cal.ok) {
+            meetingUrl = cal.meetingUrl;
+            calUid = cal.uid;
+            inviteNote = meetingUrl
+              ? " Човекът получи покана с Meet линка на имейла си; готовото съобщение за Viber с линка е в „Съобщения за срещите“."
+              : " Поканата е пратена по имейл.";
+          } else {
+            inviteNote = ` Поканата през Cal.com не мина (${cal.error ?? "грешка"}) — срещата е записана само в CRM-а; Ивайло ще я сложи в календара.`;
+          }
+        } else if (wantInvite && !email) {
+          inviteNote = " Без имейл няма покана и Meet линк — Ивайло ще звънне по телефона в уговорения час. Готовото съобщение за Viber е в „Съобщения за срещите“.";
+        }
 
         const booking = await upsertBooking({
-          attendee_name: c.full_name ?? c.phone ?? "Без име",
+          cal_booking_id: calUid ?? undefined,
+          attendee_name: name,
           attendee_email: email ?? NO_EMAIL,
           attendee_phone: c.phone ?? undefined,
           scheduled_at: meetingIso,
           duration_minutes: MEETING_MINUTES,
           status: "accepted",
           business: business ?? undefined,
+          meeting_url: meetingUrl ?? undefined,
+          cal_uid: calUid ?? undefined,
           notes: [note, `Записа: ${actor.name}`].filter(Boolean).join(" · "),
           source: "ekip",
           log_activity: false,
@@ -124,21 +182,25 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         if (stage === "lead" || stage === "contacted") patch.stage = "discovery";
         meta.booking_id = booking.id;
         meta.meeting_at = meetingIso;
+        meta.meeting_url = meetingUrl;
         activity = {
           type: "meeting",
           title: `Среща · ${fmtSofia(meetingIso)} · записа ${actor.name}`,
-          body: [business ? `Дейност: ${business}` : null, note || null].filter(Boolean).join("\n") || null,
+          body:
+            [business ? `Дейност: ${business}` : null, meetingUrl ? `Линк: ${meetingUrl}` : null, note || null]
+              .filter(Boolean)
+              .join("\n") || null,
           occurred_at: meetingIso,
         };
-        message = `Срещата е записана за ${fmtSofia(meetingIso)}. Ивайло е уведомен.`;
+        message = `Срещата е записана за ${fmtSofia(meetingIso)}. Ивайло е уведомен.${inviteNote}`;
         await notifyOwnerBooking({
           actorName: actor.name,
           contactId: c.id,
-          contactName: c.full_name ?? c.phone ?? "Без име",
+          contactName: name,
           phone: c.phone,
           email,
           business,
-          note: note || null,
+          note: [note || null, meetingUrl ? `Meet: ${meetingUrl}` : null].filter(Boolean).join("\n") || null,
           scheduledAtIso: meetingIso,
         }).catch(() => {});
         break;

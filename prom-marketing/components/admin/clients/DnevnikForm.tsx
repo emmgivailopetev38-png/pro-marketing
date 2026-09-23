@@ -19,14 +19,17 @@ export function DnevnikForm({
   compact = false,
   defaultChannel = "phone",
   onSaved,
+  action,
 }: {
   contactId: string;
   compact?: boolean;
   defaultChannel?: string;
   onSaved?: () => void;
+  /** Друг записващ (продавачът в /ekip) — по подразбиране този на собственика. */
+  action?: (prev: DnevnikResult | null, formData: FormData) => Promise<DnevnikResult>;
 }) {
   const router = useRouter();
-  const [state, formAction] = useActionState<DnevnikResult | null, FormData>(recordDnevnikAction, null);
+  const [state, formAction] = useActionState<DnevnikResult | null, FormData>(action ?? recordDnevnikAction, null);
   const [channel, setChannel] = useState(defaultChannel);
   const [mood, setMood] = useState<string>("");
   const [remind, setRemind] = useState<string>("none");

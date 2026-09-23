@@ -3,10 +3,15 @@ import { redirect } from "next/navigation";
 import { getTeamActor } from "@/lib/team/session";
 import { loadSetterQueue, searchLeads } from "@/lib/team/queue";
 import { fmtSofia } from "@/lib/team/time";
+import { allowed, ekipNav } from "@/lib/team/nav";
+import { homeFor } from "@/lib/team/roles";
 import type { QueueLead } from "@/lib/team/types";
+import { loadMeetingMessages } from "@/lib/team/sreshti";
 import { LeadCard } from "@/components/ekip/LeadCard";
 import { EkipHeader } from "@/components/ekip/EkipHeader";
 import { ScriptPanel } from "@/components/ekip/ScriptPanel";
+import { MeetingMessages } from "@/components/ekip/MeetingMessages";
+import { NapredakStrip } from "@/components/ekip/NapredakStrip";
 
 export const dynamic = "force-dynamic";
 
@@ -16,33 +21,44 @@ export const dynamic = "force-dynamic";
  * да звънне днес), после „чакат обратно обаждане“ (не вдигнаха — картата стои,
  * докато той сам не я скрие), после новите, най-новите най-горе. Най-отгоре
  * обаче са отказаните срещи: отказът е прясна рана и се лекува същия ден.
- * Накрая е
- * купчината от Ивайло — стари картони, които той е дал на екипа: работи се
- * след живия списък за деня. Всяка карта е един разговор: набираш, говориш,
- * натискаш изхода.
+ * Накрая е купчината от Ивайло — стари картони, които той е дал на екипа.
+ *
+ * Човек, който няма модула „Звънене“ (продавач, изпълнение, маркетинг), не
+ * вижда чужд екран — /ekip го праща на неговия дом.
  */
 export default async function EkipPage({ searchParams }: { searchParams: Promise<{ q?: string | string[] }> }) {
   const actor = await getTeamActor();
   if (!actor) redirect("/ekip/login");
+  if (!allowed(actor, "zvanene")) redirect(homeFor(actor.member));
 
   const sp = await searchParams;
   const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q ?? "").trim();
-  const [queue, found] = await Promise.all([loadSetterQueue(), q ? searchLeads(q) : Promise.resolve([] as QueueLead[])]);
+  const [queue, found, nav, msgs] = await Promise.all([
+    loadSetterQueue(),
+    q ? searchLeads(q) : Promise.resolve([] as QueueLead[]),
+    ekipNav(actor),
+    loadMeetingMessages().catch(() => []),
+  ]);
   const todayMeetings = queue.booked;
+  const msgsDue = msgs.filter((m) => m.due).length;
 
   return (
     <div className="mx-auto max-w-2xl pb-24">
-      <EkipHeader name={actor.name} isOwner={actor.kind === "owner"} />
+      <EkipHeader name={actor.name} isOwner={actor.kind === "owner"} nav={nav.items} section="zvanene" unread={nav.unread} />
 
       <main className="space-y-6 px-4 py-4">
-        <section className="grid grid-cols-3 gap-2 text-center sm:grid-cols-6">
+        <section className="grid grid-cols-4 gap-2 text-center sm:grid-cols-8">
           <Stat label="нови" value={queue.fresh.length} accent="cyan" />
           <Stat label="отказали" value={queue.cancelled.length} accent="rose" />
+          <Stat label="не се явиха" value={queue.noshow.length} accent="rose" />
           <Stat label="от Ивайло" value={queue.given.length} accent="violet" />
           <Stat label="за повторно" value={queue.retry.length} accent="amber" />
           <Stat label="чакат обратно" value={queue.waiting.length} accent="amber" />
           <Stat label="срещи" value={todayMeetings.length} accent="emerald" />
+          <Stat label="съобщения" value={msgsDue} accent="fuchsia" />
         </section>
+
+        <NapredakStrip actor={actor} />
 
         <SearchForm q={q} />
 
@@ -77,6 +93,21 @@ export default async function EkipPage({ searchParams }: { searchParams: Promise
             </p>
             {queue.cancelled.map((l) => (
               <LeadCard key={`c-${l.id}`} lead={l} mode="cancelled" />
+            ))}
+          </section>
+        )}
+
+        {queue.noshow.length > 0 && (
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-rose-300">
+              🙈 Не се явиха на срещата · {queue.noshow.length}
+            </h2>
+            <p className="-mt-1 text-xs text-[var(--color-text-tertiary)]">
+              Имаха час с Ивайло и не влязоха. Звънни, разбери какво е станало и запиши нов час от същата карта. Ако не
+              вдига — прати готовото съобщение по Viber и натисни „Не вдигна“.
+            </p>
+            {queue.noshow.map((l) => (
+              <LeadCard key={`n-${l.id}`} lead={l} mode="noshow" setterName={actor.name} />
             ))}
           </section>
         )}
@@ -145,6 +176,8 @@ export default async function EkipPage({ searchParams }: { searchParams: Promise
           </p>
         )}
 
+        <MeetingMessages rows={msgs} setterName={actor.name} />
+
         {todayMeetings.length > 0 && (
           <section className="space-y-2">
             <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-emerald-300">📅 Уговорени срещи</h2>
@@ -195,6 +228,7 @@ const STAT_COLOR = {
   emerald: "rgb(110 231 183)",
   violet: "rgb(196 181 253)",
   rose: "rgb(253 164 175)",
+  fuchsia: "rgb(240 171 252)",
 } as const;
 
 function Stat({ label, value, accent }: { label: string; value: number; accent: keyof typeof STAT_COLOR }) {

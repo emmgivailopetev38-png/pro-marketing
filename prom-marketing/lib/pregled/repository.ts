@@ -20,7 +20,7 @@ export async function loadReview(key: string): Promise<LoadedReview | null> {
   const { data: review, error } = await sb
     .from("client_reviews")
     .select(
-      "id, key, contact_id, client_name, title, intro, items, view_count, last_seen_at, submit_count, submitted_at, general_comment"
+      "id, key, contact_id, client_name, heading, title, intro, items, view_count, last_seen_at, submit_count, submitted_at, general_comment"
     )
     .eq("key", key)
     .maybeSingle();

@@ -625,6 +625,12 @@ export interface ProjectRow {
   done_at: string | null;
   notes: string | null;
   dedupe_key: string | null;
+  /** Кой от екипа движи проекта; NULL = при Ивайло. */
+  owner_id: string | null;
+  /** Видът услуга (lib/team/service-types.ts) — чеклист + комисионна. */
+  service_type?: string | null;
+  /** Изречението към клиента в портала му. */
+  portal_summary?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -637,6 +643,15 @@ export interface ProjectTaskRow {
   due_date: string | null;
   sort_order: number;
   done_at: string | null;
+  /** Кой я изпълнява; NULL = наследява отговорника на проекта. */
+  assignee_id: string | null;
+  contact_id?: string | null;
+  description?: string | null;
+  priority?: string;
+  kind?: string;
+  client_visible?: boolean;
+  client_done_at?: string | null;
+  created_by?: string | null;
   created_at: string;
   updated_at: string;
 }

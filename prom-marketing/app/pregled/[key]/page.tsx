@@ -159,7 +159,14 @@ export default async function PregledPage({ params }: { params: Promise<{ key: s
         <header className="pg-glava">
           <p className="pg-marka">{review.title}</p>
           <h1 className="pg-h1">
-            {review.client_name ? `Здравейте, ${review.client_name}.` : "Здравейте."} <em>Ето първите видеа.</em>
+            {review.heading ? (
+              review.heading
+            ) : (
+              <>
+                {review.client_name ? `Здравейте, ${review.client_name}.` : "Здравейте."}{" "}
+                <em>Ето първите видеа.</em>
+              </>
+            )}
           </h1>
           <p className="pg-uvod">{intro}</p>
           <ol className="pg-stapki">

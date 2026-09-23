@@ -5,10 +5,12 @@ import { upsertBooking, updateBooking } from "@/lib/crm/repository";
 import { clampLimit, parseOffset, parseCsv, listBookings } from "@/lib/crm/list-read";
 import { createServiceClient } from "@/lib/supabase/service";
 import { handleCancelledBooking } from "@/lib/team/cancelled";
+import { handleNoShowBooking } from "@/lib/team/noshow";
 
 export const dynamic = "force-dynamic";
 
-const BOOKING_STATUSES = ["accepted", "pending", "cancelled", "rejected", "completed"] as const;
+/** `no_show` = човекът не се е явил (проверката по Fathom/календара или Ивайло) — екипът звъни и записва нов час. */
+const BOOKING_STATUSES = ["accepted", "pending", "cancelled", "rejected", "completed", "no_show"] as const;
 
 /**
  * GET /api/crm/booking — срещите.
@@ -93,7 +95,7 @@ const bookingPatch = z.object({
   notes: z.string().optional(),
 });
 
-/** PATCH /api/crm/booking — местене на час, отмяна, потвърждение. */
+/** PATCH /api/crm/booking — местене на час, отмяна, потвърждение, проведена / не се яви. */
 export async function PATCH(request: Request) {
   if (!checkHermesAuth(request)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -115,6 +117,10 @@ export async function PATCH(request: Request) {
   // известие, за да звънне и да премести срещата.
   if (parsed.data.status === "cancelled") {
     await notifyCancelledFromCrm(id, parsed.data.notes ?? null);
+  }
+  // Не се яви = картонът отива при екипа с готово съобщение; Ивайло научава.
+  if (parsed.data.status === "no_show") {
+    await handleNoShowBooking({ bookingId: id, by: "проверката на срещите" });
   }
   return NextResponse.json({ ok: true, id, updated: Object.keys(fields) });
 }

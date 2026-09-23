@@ -163,3 +163,68 @@ describe("търсене по телефона, който звъни обрат
     expect(safeTextQuery("Христо, (Христов) 100%")).toBe("Христо Христов 100");
   });
 });
+
+describe("queue-rules: маркерът за продавач не е за опашката", () => {
+  it("team_assigned с kind sales не прави картона „от Ивайло“", async () => {
+    const { summarizeAttempts } = await import("./queue-rules");
+    const m = summarizeAttempts([
+      {
+        contact_id: "c1",
+        activity_type: "team_assigned",
+        title: "🤝 Даден на продавач",
+        occurred_at: "2026-09-22T08:00:00Z",
+        created_by: "Ивайло",
+        metadata: { kind: "sales", to_member_id: "s1" },
+      },
+    ]);
+    expect(m.get("c1")?.given ?? null).toBeNull();
+  });
+});
+
+describe("върнат на Ивайло след 7 дни и готовите съобщения за срещи", () => {
+  const member = { team: true, team_member_id: "m1", team_member_slug: "dimitar" };
+  const call = (id: string, at: string, outcome: string): AttemptRow => ({
+    contact_id: id,
+    activity_type: "call",
+    title: outcome,
+    occurred_at: at,
+    created_by: "Димитър",
+    metadata: { ...member, outcome },
+  });
+
+  it("escalated маха картата от списъка на екипа и обезсилва старото „от Ивайло“", () => {
+    const rows: AttemptRow[] = [
+      { contact_id: "a", activity_type: "escalated", title: "⏫", occurred_at: "2026-09-22T04:00:00Z", created_by: "система", metadata: { escalated: true } },
+      call("a", "2026-09-20T10:00:00Z", "no_answer"),
+      { contact_id: "a", activity_type: ASSIGN_TYPE, title: "🤝", occurred_at: "2026-09-10T10:00:00Z", created_by: "Ивайло", metadata: { to_team: true, kind: "given", reason: "не вдига" } },
+    ];
+    const s = summarizeAttempts(rows);
+    expect(s.get("a")).toMatchObject({ escalated: true, given: null, count: 1 });
+    const split = splitTeamDue([{ id: "a", next_followup_at: "2026-09-22T07:00:00Z" }], s, "2026-09-22T20:59:59Z");
+    expect(split.retry).toHaveLength(0);
+    expect(split.waiting).toHaveLength(0);
+  });
+
+  it("екипът звънва след връщането → пак е при екипа", () => {
+    const rows: AttemptRow[] = [
+      call("a", "2026-09-23T10:00:00Z", "no_answer"),
+      { contact_id: "a", activity_type: "escalated", title: "⏫", occurred_at: "2026-09-22T04:00:00Z", created_by: "система", metadata: { escalated: true } },
+    ];
+    expect(summarizeAttempts(rows).get("a")).toMatchObject({ escalated: false, count: 1, team: true });
+  });
+
+  it("съобщение за срещата не е опит и не сваля маркера „не се яви“", () => {
+    const rows: AttemptRow[] = [
+      { contact_id: "a", activity_type: "viber_sent", title: "💜", occurred_at: "2026-09-22T09:00:00Z", created_by: "Димитър", metadata: { ...member, booking_msg: true, kind: "noshow", booking_id: "b1" } },
+      { contact_id: "a", activity_type: ASSIGN_TYPE, title: "🙈", occurred_at: "2026-09-22T08:00:00Z", created_by: "система", metadata: { to_team: true, kind: "noshow", reason: "не се яви", missed_at: "2026-09-21T09:00:00Z", missed_booking_id: "b1" } },
+    ];
+    const s = summarizeAttempts(rows).get("a");
+    expect(s).toMatchObject({ count: 0, given: { kind: "noshow", missed_at: "2026-09-21T09:00:00Z", missed_booking_id: "b1" } });
+  });
+
+  it("„говорихме без среща“ държи картата в „чакат обратно обаждане“", () => {
+    const s = summarizeAttempts([call("a", "2026-09-22T09:00:00Z", "talked")]);
+    const split = splitTeamDue([{ id: "a", next_followup_at: "2026-09-25T07:00:00Z" }], s, "2026-09-22T20:59:59Z");
+    expect(split.waiting.map((c) => c.id)).toEqual(["a"]);
+  });
+});

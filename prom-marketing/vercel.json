@@ -18,6 +18,14 @@
     {
       "path": "/api/cron/lead-reminders",
       "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/team-reminders",
+      "schedule": "0 4 * * 1-5"
+    },
+    {
+      "path": "/api/cron/late-tasks",
+      "schedule": "0 11 * * 1-5"
     }
   ],
   "headers": [

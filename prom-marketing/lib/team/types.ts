@@ -3,14 +3,75 @@
  * компоненти (картата на лийда, страницата „Екип“).
  */
 
-export const TEAM_ROLES = ["owner", "setter", "delivery"] as const;
+export const TEAM_ROLES = ["owner", "setter", "sales", "delivery", "marketing"] as const;
 export type TeamRole = (typeof TEAM_ROLES)[number];
 
 export const TEAM_ROLE_LABEL: Record<TeamRole, string> = {
   owner: "Собственик",
   setter: "Срещи · звъни на лийдовете",
-  delivery: "Проекти · изпълнение",
+  sales: "Продавач · води разговорите и затваря",
+  delivery: "Проекти · изпълнение и CRM системи",
+  marketing: "Маркетинг · реклами и съдържание",
 };
+
+/** Кратък етикет за шапката и списъците. */
+export const TEAM_ROLE_SHORT: Record<TeamRole, string> = {
+  owner: "собственик",
+  setter: "сетър",
+  sales: "продавач",
+  delivery: "изпълнение",
+  marketing: "маркетинг",
+};
+
+/**
+ * Модулите на /ekip. Кой какво вижда идва от ролята (lib/team/roles.ts), а
+ * `permissions.modules` на човека го променя — така Ивайло сглобява „варианти
+ * на профили“ без нова роля.
+ */
+export const TEAM_MODULES = [
+  "zvanene",
+  "prodazhbi",
+  "proekti",
+  "zadachi",
+  "saobshtenia",
+  "materiali",
+  "ceni",
+  "komisioni",
+  "napredak",
+  "belezhki",
+] as const;
+export type TeamModule = (typeof TEAM_MODULES)[number];
+
+export const TEAM_MODULE_LABEL: Record<TeamModule, string> = {
+  zvanene: "Звънене · опашка",
+  prodazhbi: "Продажби · моите хора",
+  proekti: "Проекти · изпълнение",
+  zadachi: "Задачи",
+  saobshtenia: "Съобщения",
+  materiali: "Материали · обучение",
+  ceni: "Цени",
+  komisioni: "Комисионни",
+  napredak: "Напредък · моите числа",
+  belezhki: "Бележки · за системата",
+};
+
+export const TEAM_MODULE_HREF: Record<TeamModule, string> = {
+  zvanene: "/ekip",
+  prodazhbi: "/ekip/prodazhbi",
+  proekti: "/ekip/proekti",
+  zadachi: "/ekip/zadachi",
+  saobshtenia: "/ekip/saobshtenia",
+  materiali: "/ekip/materiali",
+  ceni: "/ekip/ceni",
+  komisioni: "/ekip/komisioni",
+  napredak: "/ekip/napredak",
+  belezhki: "/ekip/belezhki",
+};
+
+export interface TeamPermissions {
+  /** true = вижда модула, false = не го вижда; липсващ ключ = по ролята */
+  modules?: Partial<Record<TeamModule, boolean>>;
+}
 
 export interface TeamMember {
   id: string;
@@ -19,6 +80,9 @@ export interface TeamMember {
   email: string;
   phone: string | null;
   role: TeamRole;
+  /** длъжност, както се показва на екрана („appointment setter“, „маркетинг“) */
+  title?: string | null;
+  permissions?: TeamPermissions | null;
   active: boolean;
   notify_new_leads: boolean;
   notes: string | null;
@@ -79,6 +143,10 @@ export interface QueueLead {
   last_attempt: LastAttempt | null;
   /** Ако е при екипа: защо — „не вдига“, „разбрахте се…“, „отказа срещата“. */
   given_reason?: string | null;
+  /** При „не се яви“: коя среща е пропуснал (ISO) и линкът ѝ — за готовото съобщение. */
+  missed_at?: string | null;
+  missed_url?: string | null;
+  missed_booking_id?: string | null;
 }
 
 export interface BookedRow {
@@ -95,15 +163,17 @@ export interface BookedRow {
  * Откъде идва картата на екрана — определя кои бутони са отпред:
  * fresh — нов, за първи разговор · given — Ивайло го е дал на екипа ·
  * cancelled — човекът е отказал срещата и трябва да се премести ·
+ * noshow — не се е явил на срещата: звъни се пак и се записва нов час ·
  * retry — обещано чуване, чийто ден е дошъл ·
  * waiting — не е вдигнал / чуване по-късно, може да върне обаждане ·
  * search — намерен през търсачката (върнал е обаждане, който и да е).
  */
-export type LeadCardMode = "fresh" | "given" | "cancelled" | "retry" | "waiting" | "search";
+export type LeadCardMode = "fresh" | "given" | "cancelled" | "noshow" | "retry" | "waiting" | "search";
 
 export const EKIP_ACTIONS = [
   "no_answer",
   "callback",
+  "talked",
   "meeting",
   "handoff",
   "not_interested",

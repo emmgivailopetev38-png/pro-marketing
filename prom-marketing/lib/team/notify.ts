@@ -408,3 +408,293 @@ ${rowsHtml}
 
   return { ok: true, reminded: due.length, recipients: to.length, names: due.map((d) => d.contact.full_name ?? d.contact.phone ?? "—") };
 }
+
+// ── Съобщения, задачи и порталът ─────────────────────────────────────────────
+
+import { listActiveMembers } from "./repository";
+
+async function emailsForKeys(keys: string[]): Promise<string[]> {
+  if (keys.length === 0) return [];
+  const members = await listActiveMembers().catch(() => []);
+  const out = new Set<string>();
+  for (const k of keys) {
+    if (k === "owner") out.add(ownerEmail());
+    else {
+      const m = members.find((x) => x.id === k);
+      if (m?.email) out.add(m.email);
+    }
+  }
+  return [...out];
+}
+
+/**
+ * Ново съобщение в CRM-а: писмо до получателите (другият в личната нишка,
+ * всички в общата, споменатите) и Telegram до Ивайло, когато е за него.
+ */
+export async function notifyMessage(args: {
+  recipientKeys: string[];
+  authorName: string;
+  body: string;
+  threadTitle: string;
+  href: string;
+}): Promise<void> {
+  const to = await emailsForKeys(args.recipientKeys);
+  const owner = ownerEmail();
+  const teamTo = to.filter((e) => e !== owner);
+  const link = `${SITE}${args.href}`;
+  const text = args.body.length > 600 ? `${args.body.slice(0, 599)}…` : args.body;
+  const jobs: Promise<unknown>[] = [];
+  if (teamTo.length) {
+    jobs.push(
+      sendEmail({
+        to: teamTo,
+        subject: `💬 ${args.authorName} · ${args.threadTitle}`,
+        html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#0d1221;">
+<p><strong>${escapeHtml(args.authorName)}</strong> ти пише в <em>${escapeHtml(args.threadTitle)}</em>:</p>
+<blockquote style="margin:0;padding:10px 14px;border-left:3px solid #0891b2;background:#f3f7fa;white-space:pre-wrap;">${escapeHtml(text)}</blockquote>
+<p style="margin-top:18px;"><a href="${link}" style="display:inline-block;background:#0891b2;color:#fff;padding:10px 18px;border-radius:999px;text-decoration:none;font-weight:bold;">Отговори в CRM-а</a></p>
+<p style="color:#777;font-size:13px;">Отговаря се там, не на това писмо — така всичко стои на едно място.</p>
+</div>`,
+        text: `${args.authorName} · ${args.threadTitle}\n\n${text}\n\n${link}`,
+      }).catch(() => null)
+    );
+  }
+  if (to.includes(owner)) {
+    jobs.push(
+      sendTelegram(`💬 <b>${escapeHtml(args.authorName)}</b> · ${escapeHtml(args.threadTitle)}\n${escapeHtml(text)}`, {
+        buttons: [{ text: "Отговори в CRM-а", url: link }],
+      }).catch(() => false)
+    );
+  }
+  await Promise.all(jobs);
+}
+
+/** Нова задача за човек от екипа — писмо с линк към таблото му. */
+export async function notifyTaskAssigned(args: {
+  assigneeKey: string;
+  byName: string;
+  title: string;
+  dueDate: string | null;
+  priority: string;
+  context: string | null;
+}): Promise<void> {
+  if (args.assigneeKey === "owner") {
+    await sendTelegram(
+      `✅ <b>Нова задача от ${escapeHtml(args.byName)}</b>\n${escapeHtml(args.title)}${args.dueDate ? `\n📅 до ${escapeHtml(args.dueDate)}` : ""}${args.context ? `\n${escapeHtml(args.context)}` : ""}`,
+      { buttons: [{ text: "Задачите", url: `${SITE}/admin/zadachi` }] }
+    ).catch(() => false);
+    return;
+  }
+  const to = await emailsForKeys([args.assigneeKey]);
+  if (to.length === 0) return;
+  await sendEmail({
+    to,
+    subject: `✅ Нова задача · ${args.title}`,
+    html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#0d1221;">
+<p><strong>${escapeHtml(args.byName)}</strong> ти даде задача:</p>
+<p style="font-size:17px;"><strong>${escapeHtml(args.title)}</strong></p>
+<table style="border-collapse:collapse;">
+<tr><td style="padding:4px 12px 4px 0;color:#777;">Срок:</td><td>${args.dueDate ? escapeHtml(args.dueDate) : "без срок"}</td></tr>
+<tr><td style="padding:4px 12px 4px 0;color:#777;">Приоритет:</td><td>${escapeHtml(args.priority)}</td></tr>
+${args.context ? `<tr><td style="padding:4px 12px 4px 0;color:#777;">Към:</td><td>${escapeHtml(args.context)}</td></tr>` : ""}
+</table>
+<p style="margin-top:18px;"><a href="${SITE}/ekip/zadachi" style="display:inline-block;background:#0891b2;color:#fff;padding:10px 18px;border-radius:999px;text-decoration:none;font-weight:bold;">Отвори задачите си</a></p>
+</div>`,
+    text: `${args.byName} ти даде задача: ${args.title}\nСрок: ${args.dueDate ?? "без срок"}\n${SITE}/ekip/zadachi`,
+  }).catch(() => null);
+}
+
+/** Клиентът направи нещо в портала си — Ивайло и отговорникът научават веднага. */
+export async function notifyPortalEvent(args: {
+  contactId: string;
+  contactName: string;
+  ownerKey: string | null;
+  kind: "message" | "approve" | "request" | "call";
+  text: string;
+}): Promise<void> {
+  const label = { message: "💬 Клиентът написа", approve: "✅ Клиентът отметна", request: "📩 Клиентът поиска", call: "📞 Клиентът иска разговор" }[args.kind];
+  const card = `${SITE}/admin/clients/${args.contactId}`;
+  const text = args.text.length > 600 ? `${args.text.slice(0, 599)}…` : args.text;
+  const jobs: Promise<unknown>[] = [
+    sendTelegram(`${label}\n<b>${escapeHtml(args.contactName)}</b>\n${escapeHtml(text)}`, { buttons: [{ text: "Картонът", url: card }] }).catch(() => false),
+  ];
+  const to = await emailsForKeys([...(args.ownerKey ? [args.ownerKey] : []), "owner"]);
+  if (to.length) {
+    jobs.push(
+      sendEmail({
+        to,
+        subject: `${label} · ${args.contactName}`,
+        html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#0d1221;">
+<p><strong>${escapeHtml(args.contactName)}</strong> — ${escapeHtml(label.replace(/^\S+\s/, ""))}:</p>
+<blockquote style="margin:0;padding:10px 14px;border-left:3px solid #0891b2;background:#f3f7fa;white-space:pre-wrap;">${escapeHtml(text)}</blockquote>
+<p style="margin-top:18px;"><a href="${card}" style="display:inline-block;background:#0891b2;color:#fff;padding:10px 18px;border-radius:999px;text-decoration:none;font-weight:bold;">Отвори картона</a></p>
+</div>`,
+        text: `${label} · ${args.contactName}\n\n${text}\n\n${card}`,
+      }).catch(() => null)
+    );
+  }
+  await Promise.all(jobs);
+}
+
+/** Продавач затвори сделка — Ивайло научава веднага, с комисионната. */
+export async function notifyWon(args: {
+  actorName: string;
+  contactId: string;
+  contactName: string;
+  serviceType: string;
+  amount: number | null;
+  commission: number | null;
+}): Promise<void> {
+  const card = `${SITE}/admin/clients/${args.contactId}`;
+  await sendTelegram(
+    `🏆 <b>${escapeHtml(args.actorName)} затвори ${escapeHtml(args.contactName)}</b>\n${escapeHtml(args.serviceType)}${args.amount != null ? ` · ${args.amount.toLocaleString("bg-BG")} €` : ""}${args.commission != null ? `\nКомисионна: ${args.commission.toLocaleString("bg-BG")} €` : ""}`,
+    { buttons: [{ text: "Картонът", url: card }] }
+  ).catch(() => false);
+}
+
+/** Сутрешното писмо до човек от екипа: задачи, просрочени, непрочетени. */
+export async function sendMorningDigest(args: {
+  to: string;
+  name: string;
+  overdue: Array<{ title: string; due: string | null }>;
+  today: Array<{ title: string; due: string | null }>;
+  unread: number;
+  followups: number;
+  home: string;
+  /** допълнителни редове — напр. готови съобщения за срещи, върнати картони */
+  extra?: string[];
+}): Promise<{ sent: boolean }> {
+  const extra = args.extra ?? [];
+  if (args.overdue.length + args.today.length + args.unread + args.followups + extra.length === 0) return { sent: false };
+  const li = (t: { title: string; due: string | null }) => `<li>${escapeHtml(t.title)}${t.due ? ` <span style="color:#777;">· ${escapeHtml(t.due)}</span>` : ""}</li>`;
+  const res = await sendEmail({
+    to: args.to,
+    subject: `☀️ Денят ти · ${args.overdue.length ? `${args.overdue.length} просрочени · ` : ""}${args.today.length} за днес${args.unread ? ` · ${args.unread} непрочетени` : ""}`,
+    html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#0d1221;">
+<p>Добро утро, ${escapeHtml(args.name)}. Ето какво те чака днес.</p>
+${args.overdue.length ? `<p><strong style="color:#b91c1c;">⏰ Просрочени · ${args.overdue.length}</strong></p><ul>${args.overdue.map(li).join("")}</ul>` : ""}
+${args.today.length ? `<p><strong>📌 За днес · ${args.today.length}</strong></p><ul>${args.today.map(li).join("")}</ul>` : ""}
+${args.followups ? `<p>📞 Имаш <strong>${args.followups}</strong> обещани чувания за днес или просрочени.</p>` : ""}
+${args.unread ? `<p>💬 <strong>${args.unread}</strong> непрочетени съобщения в CRM-а.</p>` : ""}
+${extra.map((l) => `<p>${escapeHtml(l)}</p>`).join("")}
+<p style="margin-top:18px;"><a href="${SITE}${args.home}" style="display:inline-block;background:#0891b2;color:#fff;padding:10px 18px;border-radius:999px;text-decoration:none;font-weight:bold;">Отвори деня си</a></p>
+</div>`,
+    text: `Добро утро, ${args.name}.\nПросрочени: ${args.overdue.length}\nЗа днес: ${args.today.length}\nЧувания: ${args.followups}\nНепрочетени: ${args.unread}\n${extra.join("\n")}\n${SITE}${args.home}`,
+  }).catch(() => ({ id: null, error: "send failed" }));
+  return { sent: !res.error };
+}
+
+// ── Не се яви на срещата ────────────────────────────────────────────────────
+
+export interface NoShowBooking {
+  contactId: string | null;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  scheduledAtIso: string;
+  /** кой го е отбелязал — „Ивайло“, „проверката“, „Хермес“ */
+  by: string;
+  /** човекът от екипа, който получи картона; null = никой */
+  memberName: string | null;
+}
+
+/** Пропусната среща: екипът звъни и я премества, Ивайло знае. Никога не хвърля. */
+export async function notifyNoShowBooking(n: NoShowBooking): Promise<void> {
+  const when = fmtSofia(n.scheduledAtIso);
+  const queue = n.contactId ? `${SITE}/ekip#lead-${n.contactId}` : `${SITE}/ekip`;
+  const card = n.contactId ? `${SITE}/admin/clients/${n.contactId}` : `${SITE}/admin/bookings`;
+
+  let team: string[] = [];
+  try {
+    const owners = ownerAddresses();
+    team = (await newLeadNotifyEmails()).filter((e) => !owners.has(e));
+  } catch {
+    team = [];
+  }
+  const teamMail =
+    team.length && n.memberName
+      ? sendEmail({
+          to: team,
+          subject: `🙈 Не се яви на срещата · ${n.name} · ${when}`,
+          html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#0d1221;">
+<p><strong>${escapeHtml(n.name)} не се яви на срещата си с Ивайло (${escapeHtml(when)}).</strong></p>
+<p>Звънни му, разбери какво е станало и запиши нов час от картата. Готовото съобщение за Viber е там — ако не вдига, прати го и натисни „Не вдигна“.</p>
+<p>📞 ${n.phone ? `<a href="tel:${escapeHtml(n.phone)}">${escapeHtml(n.phone)}</a>` : "—"} · ✉️ ${n.email ? escapeHtml(n.email) : "—"}</p>
+<p style="margin-top:18px;"><a href="${queue}" style="display:inline-block;background:#0891b2;color:#fff;padding:10px 18px;border-radius:999px;text-decoration:none;font-weight:bold;">Отвори картата</a></p>
+</div>`,
+          text: `${n.name} не се яви на срещата си (${when}, София).\nТелефон: ${n.phone ?? "—"}\nЗвънни и запиши нов час: ${queue}`,
+        }).catch(() => {})
+      : Promise.resolve();
+
+  const lines = [
+    `🙈 <b>Не се яви на срещата</b>`,
+    `${escapeHtml(n.name)} · ${escapeHtml(when)}`,
+    n.phone ? `📞 ${escapeHtml(n.phone)}` : null,
+    `Отбеляза: ${escapeHtml(n.by)}`,
+    n.memberName
+      ? `→ ${escapeHtml(n.memberName)} получи картата да звънне и да запише нов час.`
+      : `⚠️ Няма картон с телефон в CRM-а — никой от екипа не е получил задача.`,
+  ].filter(Boolean) as string[];
+
+  await Promise.all([
+    teamMail,
+    sendTelegram(lines.join("\n"), { buttons: [{ text: "Картонът в CRM-а", url: card }] }).catch(() => false),
+  ]);
+}
+
+// ── Върнат на Ивайло след 7 дни без резултат ───────────────────────────────
+
+export interface EscalationNotice {
+  contactId: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  business: string | null;
+  source: string;
+  formAnswers: Array<{ question: string; answer: string }>;
+  notes: string | null;
+  /** „3 опита от екипа за 8 дни · 3 × не вдигна“ */
+  summary: string;
+  attempts: Array<{ at: string; title: string; by: string | null }>;
+  /** кога излиза в списъка на Ивайло */
+  whenIso: string;
+}
+
+/** Картонът се връща на собственика с цялата история — той звъни лично. */
+export async function notifyOwnerEscalation(e: EscalationNotice): Promise<void> {
+  const when = fmtSofia(e.whenIso);
+  const card = `${SITE}/admin/clients/${e.contactId}`;
+  const history = e.attempts.slice(0, 8).map((a) => `${fmtSofia(a.at)} · ${a.title}${a.by ? ` · ${a.by}` : ""}`);
+  const lines = [
+    `⏫ <b>Върнат при теб: ${escapeHtml(e.name)}</b> — ${escapeHtml(e.summary)}`,
+    e.phone ? `📞 ${escapeHtml(e.phone)}` : null,
+    e.email ? `✉️ ${escapeHtml(e.email)}` : null,
+    e.business ? `🧭 ${escapeHtml(e.business)}` : null,
+    ...e.formAnswers.slice(0, 3).map((a) => `▫️ ${escapeHtml(a.question)}: ${escapeHtml(a.answer)}`),
+    e.notes ? `📝 ${escapeHtml(e.notes.slice(0, 200))}` : null,
+    `🕘 В списъка ти за ${escapeHtml(when)}. Опитите: ${escapeHtml(history.slice(0, 3).join(" · "))}`,
+  ].filter(Boolean) as string[];
+
+  await Promise.all([
+    sendTelegram(lines.join("\n"), { buttons: [{ text: "Картонът в CRM-а", url: card }] }).catch(() => false),
+    sendEmail({
+      to: ownerEmail(),
+      subject: `⏫ Върнат при теб · ${e.name} · ${e.summary}`,
+      html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#0d1221;">
+<p><strong>${escapeHtml(e.name)} се връща при теб</strong> — ${escapeHtml(e.summary)}. Излиза в списъка ти за <strong>${escapeHtml(when)}</strong> (София).</p>
+<table style="border-collapse:collapse;">
+<tr><td style="padding:4px 12px 4px 0;color:#777;">Телефон:</td><td>${e.phone ? `<a href="tel:${escapeHtml(e.phone)}">${escapeHtml(e.phone)}</a>` : "—"}</td></tr>
+<tr><td style="padding:4px 12px 4px 0;color:#777;">Имейл:</td><td>${e.email ? escapeHtml(e.email) : "—"}</td></tr>
+<tr><td style="padding:4px 12px 4px 0;color:#777;">Дейност:</td><td>${escapeHtml(e.business ?? "") || "—"}</td></tr>
+<tr><td style="padding:4px 12px 4px 0;color:#777;">Откъде:</td><td>${escapeHtml(e.source)}</td></tr>
+${e.formAnswers.map((a) => `<tr><td style="padding:4px 12px 4px 0;color:#777;vertical-align:top;">${escapeHtml(a.question)}:</td><td>${escapeHtml(a.answer)}</td></tr>`).join("")}
+<tr><td style="padding:4px 12px 4px 0;color:#777;vertical-align:top;">Бележки:</td><td>${escapeHtml(e.notes ?? "").replace(/\n/g, "<br/>") || "—"}</td></tr>
+</table>
+<p><strong>Какво е правено:</strong></p>
+<ul>${history.map((h) => `<li>${escapeHtml(h)}</li>`).join("")}</ul>
+<p style="margin-top:18px;">📊 <a href="${card}">Картонът в CRM-а</a> · <a href="${SITE}/admin/follow-up">Списъкът за звънене</a></p>
+</div>`,
+      text: `${e.name} се връща при теб — ${e.summary}. В списъка за ${when} (София).\nТелефон: ${e.phone ?? "—"}\nИмейл: ${e.email ?? "—"}\nДейност: ${e.business ?? "—"}\n${e.formAnswers.map((a) => `${a.question}: ${a.answer}`).join("\n")}\nБележки: ${e.notes ?? "—"}\n\nОпити:\n${history.join("\n")}\n\nКартон: ${card}`,
+    }).catch(() => ({ id: null, error: "send failed" })),
+  ]);
+}
