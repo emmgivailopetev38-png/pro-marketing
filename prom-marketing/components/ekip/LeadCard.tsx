@@ -238,46 +238,42 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
         <input type="hidden" name="contact_id" value={lead.id} />
 
         {!open ? (
-          <div className="flex flex-wrap gap-2">
-            {waiting ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setOpen(true)}
-                  className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold"
-                  style={{ background: "var(--color-accent-cyan)", color: "var(--color-bg-void)" }}
-                >
-                  💬 Върна обаждане / говорихме…
-                </button>
-                <SubmitBtn action="no_answer" className="border-white/15 text-[var(--color-text-secondary)]">
-                  📵 Пак не вдигна
-                </SubmitBtn>
-                <SubmitBtn action="hide" className="border-white/15 text-[var(--color-text-tertiary)]">
-                  🙈 Скрий
-                </SubmitBtn>
-              </>
-            ) : (
-              <>
-                <SubmitBtn action="no_answer" className="border-white/15 text-[var(--color-text-secondary)]">
-                  📵 Не вдигна
-                </SubmitBtn>
-                <button
-                  type="button"
-                  onClick={() => setOpen(true)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-accent-cyan)]/50 px-3 py-2 text-sm font-semibold text-[var(--color-accent-cyan)]"
-                >
-                  💬 Говорихме…
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOpen(true)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-2 text-xs text-[var(--color-text-tertiary)]"
-                  title="Не вдигна — избери кога да звъннеш пак"
-                >
-                  ⏱ пак друг път…
-                </button>
-              </>
-            )}
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              {waiting ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setOpen(true)}
+                    className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold"
+                    style={{ background: "var(--color-accent-cyan)", color: "var(--color-bg-void)" }}
+                  >
+                    💬 Върна обаждане / говорихме…
+                  </button>
+                  <SubmitBtn action="no_answer" className="border-white/15 text-[var(--color-text-secondary)]">
+                    📵 Пак не вдигна
+                  </SubmitBtn>
+                  <SubmitBtn action="hide" className="border-white/15 text-[var(--color-text-tertiary)]">
+                    🙈 Скрий
+                  </SubmitBtn>
+                </>
+              ) : (
+                <>
+                  <SubmitBtn action="no_answer" className="border-white/15 text-[var(--color-text-secondary)]">
+                    📵 Не вдигна
+                  </SubmitBtn>
+                  <button
+                    type="button"
+                    onClick={() => setOpen(true)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-accent-cyan)]/50 px-3 py-2 text-sm font-semibold text-[var(--color-accent-cyan)]"
+                  >
+                    💬 Говорихме…
+                  </button>
+                </>
+              )}
+            </div>
+            {/* Кога да звънне пак — на самата карта, без да се отваря цялата форма. */}
+            <RetryPicker preset={preset} onPreset={setPreset} />
           </div>
         ) : (
           <div className="space-y-3">
@@ -389,34 +385,16 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
               </SubmitBtn>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 p-2">
-              <span className="text-[11px] text-[var(--color-text-tertiary)]">📵 Не вдигна — пак:</span>
-              <select
-                name="retry_preset"
-                value={preset}
-                onChange={(e) => setPreset(e.target.value)}
-                className="rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-[var(--color-text-primary)]"
-              >
-                {RETRY_PRESETS.map((p) => (
-                  <option key={p} value={p}>
-                    {RETRY_PRESET_LABEL[p]}
-                  </option>
-                ))}
-              </select>
-              {preset === "custom" && (
-                <input
-                  type="datetime-local"
-                  name="retry_at_custom"
-                  defaultValue={tomorrowAt(10)}
-                  className="rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-[var(--color-text-primary)]"
-                />
-              )}
-              <SubmitBtn action="no_answer" className="border-white/15 text-[var(--color-text-secondary)]">
-                📵 Не вдигна
-              </SubmitBtn>
-              <span className="w-full text-[10px] text-[var(--color-text-tertiary)]">
+            <div className="space-y-2 rounded-xl border border-white/10 p-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <RetryPicker preset={preset} onPreset={setPreset} />
+                <SubmitBtn action="no_answer" className="border-white/15 text-[var(--color-text-secondary)]">
+                  📵 Не вдигна
+                </SubmitBtn>
+              </div>
+              <p className="text-[10px] text-[var(--color-text-tertiary)]">
                 След 7 дни без резултат картата се връща на Ивайло сама, с цялата история.
-              </span>
+              </p>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -452,6 +430,42 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
         )}
       </form>
     </article>
+  );
+}
+
+/**
+ * „Не вдигна — кога пак?“ Стои и на затворената карта (първо обаждане, „пак не
+ * вдигна“), и в отворената форма: Димитър иска да каже „в четвъртък“ с едно
+ * докосване, без да отваря целия панел. Полетата се четат само от действието
+ * „Не вдигна“ (app/ekip/actions.ts); за другите бутони са безобидни.
+ */
+function RetryPicker({ preset, onPreset }: { preset: string; onPreset: (v: string) => void }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-[11px] text-[var(--color-text-tertiary)]">⏱ Не вдигна → звъня пак:</span>
+      <select
+        name="retry_preset"
+        value={preset}
+        onChange={(e) => onPreset(e.target.value)}
+        aria-label="Кога да звънна пак"
+        className="rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-[var(--color-text-primary)]"
+      >
+        {RETRY_PRESETS.map((p) => (
+          <option key={p} value={p}>
+            {RETRY_PRESET_LABEL[p]}
+          </option>
+        ))}
+      </select>
+      {preset === "custom" && (
+        <input
+          type="datetime-local"
+          name="retry_at_custom"
+          defaultValue={tomorrowAt(10)}
+          aria-label="Точен час за повторното звънене"
+          className="rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-[var(--color-text-primary)]"
+        />
+      )}
+    </div>
   );
 }
 

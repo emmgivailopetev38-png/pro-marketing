@@ -70,3 +70,30 @@ describe("новата карта и намерената през търсач�
     expect(screen.getByRole("button", { name: /Ивайло да му звънне/ })).toBeInTheDocument();
   });
 });
+
+describe("кога да звънна пак — направо от картата", () => {
+  it("новата карта има избора, без да се отваря цялата форма", () => {
+    render(<LeadCard lead={{ ...lead, last_attempt: null, attempts: 0 }} mode="fresh" />);
+    const pick = screen.getByLabelText("Кога да звънна пак") as HTMLSelectElement;
+    expect(pick).toBeInTheDocument();
+    expect(pick.value).toBe("3h");
+    expect(screen.getByRole("button", { name: /^📵 Не вдигна$/ })).toBeInTheDocument();
+    // Старото „пак друг път…“, което отваряше целия панел, вече не е нужно.
+    expect(screen.queryByRole("button", { name: /пак друг път/ })).not.toBeInTheDocument();
+  });
+
+  it("картата с „Пак не вдигна“ също го има", () => {
+    render(<LeadCard lead={lead} mode="waiting" />);
+    expect(screen.getByLabelText("Кога да звънна пак")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Пак не вдигна/ })).toBeInTheDocument();
+  });
+
+  it("„точен час“ отваря поле за датата, което се праща с формата", () => {
+    render(<LeadCard lead={{ ...lead, last_attempt: null }} mode="fresh" />);
+    const pick = screen.getByLabelText("Кога да звънна пак");
+    expect(screen.queryByLabelText("Точен час за повторното звънене")).not.toBeInTheDocument();
+    fireEvent.change(pick, { target: { value: "custom" } });
+    const exact = screen.getByLabelText("Точен час за повторното звънене");
+    expect(exact).toHaveAttribute("name", "retry_at_custom");
+  });
+});
