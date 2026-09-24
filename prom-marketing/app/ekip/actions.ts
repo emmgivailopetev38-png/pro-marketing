@@ -5,6 +5,7 @@ import { requireTeamActor, type TeamActor } from "@/lib/team/session";
 import { alignStage, nextWorkingDayAt } from "@/lib/contacts/followup";
 import { defaultRetryAt, fmtSofia, sofiaLocalToIso } from "@/lib/team/time";
 import { retryFromPreset, talkedRetryAt } from "@/lib/team/retry-rules";
+import { canGiveUp, isNoAnswer, type AttemptRow } from "@/lib/team/queue-rules";
 import { upsertBooking } from "@/lib/crm/repository";
 import { MEETING_MINUTES } from "@/lib/cal/types";
 import { createCalBooking, isCalWriteConfigured } from "@/lib/cal/create-booking";
@@ -58,6 +59,10 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
   if (!c) return { ok: false, error: "Картонът не е намерен" };
 
   const stage = (c.stage ?? "lead") as ContactStage;
+  // Затворен картон („не се интересува“, „спираме да звъним“), чийто човек се
+  // обажда сам: намира се с търсачката и всеки жив изход го отваря пак —
+  // иначе остава „загубен“ и изчезва от опашката, въпреки новото чуване.
+  const reopened = stage === "lost";
   const nowIso = new Date().toISOString();
   const patch: Record<string, unknown> = {};
   if (business && business !== c.business) patch.business = business;
@@ -84,6 +89,7 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         const retryIso = fromPreset?.toISOString() ?? ((raw && sofiaLocalToIso(raw)) || defaultRetryAt().toISOString());
         patch.followup_status = "needs_call";
         patch.next_followup_at = retryIso;
+        if (reopened) patch.stage = "contacted";
         meta.retry_at = retryIso;
         meta.retry_preset = preset || null;
         activity = { type: "call", title: `Не вдигна · пак на ${fmtSofia(retryIso)}`, body: note || null };
@@ -96,7 +102,7 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         patch.last_heard_from_at = nowIso;
         patch.followup_status = "needs_call";
         patch.next_followup_at = retryIso;
-        if (stage === "lead") patch.stage = "contacted";
+        if (stage === "lead" || reopened) patch.stage = "contacted";
         meta.retry_at = retryIso;
         activity = { type: "call", title: `Говорихме · чуване пак на ${fmtSofia(retryIso)}`, body: note || null };
         message = `Записано. Ще излезе пак на ${fmtSofia(retryIso)}.`;
@@ -110,7 +116,7 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         patch.last_heard_from_at = nowIso;
         patch.followup_status = "needs_call";
         patch.next_followup_at = retryIso;
-        if (stage === "lead") patch.stage = "contacted";
+        if (stage === "lead" || reopened) patch.stage = "contacted";
         meta.retry_at = retryIso;
         activity = {
           type: "call",
@@ -179,7 +185,7 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         patch.last_heard_from_at = nowIso;
         patch.followup_status = null;
         patch.next_followup_at = null;
-        if (stage === "lead" || stage === "contacted") patch.stage = "discovery";
+        if (stage === "lead" || stage === "contacted" || reopened) patch.stage = "discovery";
         meta.booking_id = booking.id;
         meta.meeting_at = meetingIso;
         meta.meeting_url = meetingUrl;
@@ -213,7 +219,7 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         patch.last_heard_from_at = nowIso;
         patch.followup_status = "needs_call";
         patch.next_followup_at = whenIso;
-        if (stage === "lead") patch.stage = "contacted";
+        if (stage === "lead" || reopened) patch.stage = "contacted";
         meta.handoff = true;
         meta.handoff_to = "ivailo";
         meta.retry_at = whenIso;
@@ -252,6 +258,37 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         message = "Отбелязано като грешен номер.";
         break;
       }
+      case "give_up": {
+        // Звънено е поне три пъти и човекът не вдига. Картата се затваря, за да
+        // не се върти седмици наред в „за повторно“ и да не се връща на Ивайло
+        // след 7 дни. Писмата от топлия кръг продължават, на половин темпо.
+        const { data: prev } = await sb
+          .from("contact_activities")
+          .select("contact_id, activity_type, title, occurred_at, created_by, metadata")
+          .eq("contact_id", contactId)
+          .in("activity_type", ATTEMPT_TYPES)
+          .order("occurred_at", { ascending: true });
+        const rows = ((prev ?? []) as AttemptRow[]).filter((r) => r.metadata?.booking_msg !== true);
+        const before = rows.filter(isNoAnswer).length;
+        if (!canGiveUp(before)) {
+          return { ok: false, error: "Бутонът е за човек, който вече два пъти не е вдигнал. Засега натисни „Не вдигна“." };
+        }
+        const total = before + 1;
+        const firstAt = rows[0]?.occurred_at ?? nowIso;
+        const days = Math.max(1, Math.round((Date.now() - new Date(firstAt).getTime()) / 86_400_000));
+        patch.followup_status = null;
+        patch.next_followup_at = null;
+        patch.stage = alignStage(stage, "not_interested");
+        meta.no_answers = total;
+        meta.first_attempt_at = firstAt;
+        activity = {
+          type: "call",
+          title: `Не вдига · спираме да звъним (${total} × не вдигна за ${days} ${days === 1 ? "ден" : "дни"})`,
+          body: note || null,
+        };
+        message = `Спряно — ${total} пъти не вдигна. Картата излиза от всички списъци и никой няма да му звъни. Ако се обади сам, намираш го с търсачката и записваш разговора от картата.`;
+        break;
+      }
       case "note": {
         if (!note && !business) return { ok: false, error: "Напиши бележка или избери дейност." };
         activity = {
@@ -259,7 +296,7 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
           title: `Бележка от ${actor.name}`,
           body: [business ? `Дейност: ${business}` : null, note || null].filter(Boolean).join("\n") || null,
         };
-        message = "Бележката е в картона.";
+        message = "Бележката е записана и стои на картата. Ако сте говорили, натисни и изхода от разговора — иначе картата не мърда от мястото си.";
         break;
       }
       case "hide": {
@@ -306,5 +343,5 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
   }
 
   revalidateAll(contactId);
-  return { ok: true, message };
+  return { ok: true, message, keep: action === "note" };
 }

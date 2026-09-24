@@ -179,6 +179,7 @@ describe("изходът от обаждането", () => {
   it("бутоните на екипа", () => {
     for (const o of ["callback", "talked", "meeting", "handoff"]) expect(callOutcome({ metadata: { outcome: o } })).toBe("talked");
     expect(callOutcome({ metadata: { outcome: "no_answer" } })).toBe("no_answer");
+    expect(callOutcome({ metadata: { outcome: "give_up" } })).toBe("no_answer");
     expect(callOutcome({ metadata: { outcome: "not_interested" } })).toBe("not_interested");
     expect(callOutcome({ metadata: { outcome: "wrong_number" } })).toBe("wrong_number");
   });

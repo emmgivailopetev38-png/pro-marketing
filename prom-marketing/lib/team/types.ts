@@ -123,6 +123,13 @@ export interface LastAttempt {
   handoff: boolean;
 }
 
+/** Бележка от картона, както стои на картата в опашката. */
+export interface CardNote {
+  body: string;
+  at: string;
+  by: string | null;
+}
+
 /** Ред в опашката за звънене — картонът плюс каквото трябва за разговора. */
 export interface QueueLead {
   id: string;
@@ -141,6 +148,10 @@ export interface QueueLead {
   form_answers: FormAnswer[];
   attempts: number;
   last_attempt: LastAttempt | null;
+  /** Колко пъти не е вдигнал — от него зависи бутонът „Спираме да звъним“. */
+  no_answers?: number;
+  /** Последните бележки в картона („Само бележка“ и др.), най-новата отгоре. */
+  team_notes?: CardNote[];
   /** Ако е при екипа: защо — „не вдига“, „разбрахте се…“, „отказа срещата“. */
   given_reason?: string | null;
   /** При „не се яви“: коя среща е пропуснал (ISO) и линкът ѝ — за готовото съобщение. */
@@ -178,6 +189,7 @@ export const EKIP_ACTIONS = [
   "handoff",
   "not_interested",
   "wrong_number",
+  "give_up",
   "note",
   "hide",
 ] as const;
@@ -187,4 +199,6 @@ export interface EkipActionResult {
   ok: boolean;
   message?: string;
   error?: string;
+  /** Картата остава на екрана (бележка) — не се заменя със зеленото „готово“. */
+  keep?: boolean;
 }

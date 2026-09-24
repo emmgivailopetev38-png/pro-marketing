@@ -174,7 +174,8 @@ export function callOutcome(a: Pick<NapredakActivity, "metadata">): CallOutcome 
   const o = typeof m.outcome === "string" ? m.outcome : "";
   if (!o) return "unknown";
   if (TALKED_OUTCOMES.has(o) || o.startsWith("answered") || o.startsWith("callback")) return "talked";
-  if (o === "no_answer" || o === "voicemail") return "no_answer";
+  // „Спираме да звъним“ е последното „не вдигна“ — брои се като такова.
+  if (o === "no_answer" || o === "voicemail" || o === "give_up") return "no_answer";
   if (o === "not_interested") return "not_interested";
   if (o === "wrong_number") return "wrong_number";
   return "unknown";

@@ -1,7 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
   ASSIGN_TYPE,
+  GIVE_UP_AFTER_NO_ANSWERS,
+  NOTES_ON_CARD,
+  canGiveUp,
+  isNoAnswer,
   looksLikePhone,
+  notesByContact,
   phoneDigits,
   pickGiven,
   safeTextQuery,
@@ -226,5 +231,61 @@ describe("върнат на Ивайло след 7 дни и готовите �
     const s = summarizeAttempts([call("a", "2026-09-22T09:00:00Z", "talked")]);
     const split = splitTeamDue([{ id: "a", next_followup_at: "2026-09-25T07:00:00Z" }], s, "2026-09-22T20:59:59Z");
     expect(split.waiting.map((c) => c.id)).toEqual(["a"]);
+  });
+});
+
+describe("колко пъти не е вдигнал и кога може да се спре", () => {
+  it("брои бутона на екипа и старите записи на Ивайло по заглавието", () => {
+    const rows: AttemptRow[] = [
+      row("a", "2026-09-23T09:00:00Z", { ...member, outcome: "no_answer" }, "Не вдигна · пак на ср 23.09"),
+      row("a", "2026-09-20T09:00:00Z", {}, "Звъннах · не вдига"),
+      row("a", "2026-09-18T09:00:00Z", { ...member, outcome: "talked" }, "Говорихме · без среща · не вдига телефона вечер"),
+      row("a", "2026-09-17T09:00:00Z", { ...member, outcome: "no_answer" }, "Не вдигна"),
+    ];
+    expect(summarizeAttempts(rows).get("a")).toMatchObject({ count: 4, noAnswer: 3 });
+  });
+
+  it("isNoAnswer: изходът бие заглавието", () => {
+    expect(isNoAnswer({ title: "каквото и да е", metadata: { outcome: "no_answer" } })).toBe(true);
+    expect(isNoAnswer({ title: "Не вдига · спираме", metadata: { outcome: "give_up" } })).toBe(true);
+    expect(isNoAnswer({ title: "не вдига сутрин", metadata: { outcome: "callback" } })).toBe(false);
+    expect(isNoAnswer({ title: "Звъннах · Не вдигна", metadata: null })).toBe(true);
+    expect(isNoAnswer({ title: "Звъннах · говорихме", metadata: {} })).toBe(false);
+  });
+
+  it("спира се от третото обаждане нататък", () => {
+    expect(GIVE_UP_AFTER_NO_ANSWERS).toBe(2);
+    expect(canGiveUp(undefined)).toBe(false);
+    expect(canGiveUp(1)).toBe(false);
+    expect(canGiveUp(2)).toBe(true);
+    expect(canGiveUp(5)).toBe(true);
+  });
+});
+
+describe("бележките по картон", () => {
+  const n = (contact_id: string, occurred_at: string, body: string | null, title = "Бележка от Димитър") => ({
+    contact_id,
+    title,
+    body,
+    occurred_at,
+    created_by: "Димитър",
+  });
+
+  it("най-новата отгоре, най-много три на картон", () => {
+    const m = notesByContact([
+      n("a", "2026-09-24T15:09:00Z", "Бележка тест"),
+      n("a", "2026-09-24T14:54:00Z", "Интересува се от гласов агент"),
+      n("b", "2026-09-24T14:00:00Z", "друг картон"),
+      n("a", "2026-09-20T10:00:00Z", "трета"),
+      n("a", "2026-09-19T10:00:00Z", "четвърта — не влиза"),
+    ]);
+    expect(m.get("a")?.map((x) => x.body)).toEqual(["Бележка тест", "Интересува се от гласов агент", "трета"]);
+    expect(m.get("b")).toHaveLength(1);
+    expect(NOTES_ON_CARD).toBe(3);
+  });
+
+  it("бележка без текст носи заглавието си; съвсем празна не излиза", () => {
+    const m = notesByContact([n("a", "2026-09-24T10:00:00Z", null, "Дейност: Салон"), n("a", "2026-09-24T09:00:00Z", "  ", "  ")]);
+    expect(m.get("a")).toEqual([{ body: "Дейност: Салон", at: "2026-09-24T10:00:00Z", by: "Димитър" }]);
   });
 });
