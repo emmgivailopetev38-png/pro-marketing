@@ -97,3 +97,44 @@ describe("кога да звънна пак — направо от картат
     expect(exact).toHaveAttribute("name", "retry_at_custom");
   });
 });
+
+describe("бележките стоят на картата", () => {
+  it("„Само бележка“ се вижда след опресняване — с автора и часа", () => {
+    const notes = [
+      { body: "Интересува се от гласов агент, но не иска среща все още.", at: "2026-09-24T14:54:59.000Z", by: "Димитър" },
+      { body: "Каза, че ще върне обаждане", at: "2026-09-23T10:00:00.000Z", by: "Ивайло" },
+    ];
+    render(<LeadCard lead={{ ...lead, team_notes: notes }} mode="waiting" />);
+    const list = screen.getByRole("list", { name: "Бележки" });
+    expect(list.querySelectorAll("li")).toHaveLength(2);
+    expect(screen.getByText(/Интересува се от гласов агент/)).toBeInTheDocument();
+    expect(screen.getByText(/^Димитър ·/)).toBeInTheDocument();
+  });
+
+  it("без бележки няма празен списък", () => {
+    render(<LeadCard lead={{ ...lead, team_notes: [] }} mode="fresh" />);
+    expect(screen.queryByRole("list", { name: "Бележки" })).not.toBeInTheDocument();
+  });
+});
+
+describe("„Спираме да звъним“ за хората, които не вдигат", () => {
+  it("след един „не вдигна“ бутонът го няма", () => {
+    render(<LeadCard lead={{ ...lead, no_answers: 1 }} mode="waiting" />);
+    expect(screen.queryByRole("button", { name: /Спираме да звъним/ })).not.toBeInTheDocument();
+  });
+
+  it("след два „не вдигна“ е до „Пак не вдигна“, с подсказка колко пъти", () => {
+    render(<LeadCard lead={{ ...lead, no_answers: 2, attempts: 2 }} mode="retry" />);
+    // При „за повторно“ формата е отворена — бутонът е в долния ред.
+    expect(screen.getByRole("button", { name: /Спираме да звъним/ })).toBeInTheDocument();
+    render(<LeadCard lead={{ ...lead, no_answers: 5, attempts: 5 }} mode="waiting" />);
+    expect(screen.getAllByRole("button", { name: /Спираме да звъним/ }).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText(/Не вдигна 5 пъти/)).toBeInTheDocument();
+    expect(screen.getByText(/5 × не вдигна/)).toBeInTheDocument();
+  });
+
+  it("затворен картон, намерен през търсачката, не го показва пак", () => {
+    render(<LeadCard lead={{ ...lead, stage: "lost", no_answers: 4 }} mode="search" />);
+    expect(screen.queryByRole("button", { name: /Спираме да звъним/ })).not.toBeInTheDocument();
+  });
+});

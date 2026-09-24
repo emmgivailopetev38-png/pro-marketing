@@ -14,7 +14,7 @@
  * - предаден на Ивайло (handoff) = вече не е в списъка на екипа.
  */
 import { TZ, dayKey } from "@/lib/contacts/followup";
-import type { LastAttempt } from "./types";
+import type { CardNote, LastAttempt } from "./types";
 
 export interface AttemptRow {
   contact_id: string;
@@ -58,10 +58,34 @@ export interface AttemptSummary {
   given: GivenMark | null;
   /** върнат на Ивайло (7 дни без резултат) и екипът не е звънял след това */
   escalated: boolean;
+  /** колко от опитите са „не вдигна“ — на екипа и на Ивайло */
+  noAnswer: number;
 }
 
 /** Изходите, след които човекът може да върне обаждане и картата остава под ръка. */
 export const AWAITING_CALLBACK = new Set(["no_answer", "callback", "talked"]);
+
+/**
+ * „Спираме да звъним“ излиза, когато човекът вече два пъти не е вдигнал —
+ * третото обаждане е последното. Не вдигне ли и тогава, картата се затваря
+ * вместо да се върти седмици наред в „за повторно“.
+ */
+export const GIVE_UP_AFTER_NO_ANSWERS = 2;
+
+export function canGiveUp(noAnswers: number | undefined): boolean {
+  return (noAnswers ?? 0) >= GIVE_UP_AFTER_NO_ANSWERS;
+}
+
+/**
+ * Опит „не вдигна“: бутонът на екипа (outcome) или старите записи на Ивайло и
+ * Хермес, които го казват само в заглавието („Звъннах · не вдига“).
+ */
+export function isNoAnswer(row: Pick<AttemptRow, "title" | "metadata">): boolean {
+  const o = row.metadata?.outcome;
+  if (o === "no_answer" || o === "give_up" || o === "voicemail") return true;
+  if (typeof o === "string" && o) return false;
+  return /не вдиг/i.test(row.title ?? "");
+}
 
 export function lastAttemptFromRow(row: AttemptRow): LastAttempt {
   const m = row.metadata ?? {};
@@ -84,7 +108,7 @@ export function summarizeAttempts(rows: AttemptRow[]): Map<string, AttemptSummar
   const out = new Map<string, AttemptSummary>();
   const touchedAfter = new Set<string>();
   for (const a of rows) {
-    const cur = out.get(a.contact_id) ?? { count: 0, team: false, last: null, given: null, escalated: false };
+    const cur = out.get(a.contact_id) ?? { count: 0, team: false, last: null, given: null, escalated: false, noAnswer: 0 };
     if (!out.has(a.contact_id)) out.set(a.contact_id, cur);
     if (a.activity_type === ESCALATED_TYPE) {
       // Върнат на Ивайло: важи, докато екипът не го докосне отново. По-старите
@@ -116,9 +140,40 @@ export function summarizeAttempts(rows: AttemptRow[]): Map<string, AttemptSummar
     if (a.activity_type === "viber_sent" && a.metadata?.booking_msg === true) continue;
     const team = a.metadata?.team === true;
     cur.count += 1;
+    if (isNoAnswer(a)) cur.noAnswer += 1;
     cur.team = cur.team || team;
     if (team) touchedAfter.add(a.contact_id);
     if (!cur.last) cur.last = lastAttemptFromRow(a);
+  }
+  return out;
+}
+
+export interface NoteRow {
+  contact_id: string;
+  title: string | null;
+  body: string | null;
+  occurred_at: string;
+  created_by: string | null;
+}
+
+/** Колко бележки стоят на картата — повече иска картонът в /admin. */
+export const NOTES_ON_CARD = 3;
+
+/**
+ * Бележките по картон, най-новата отгоре. „Само бележка“ пише активност
+ * `note`, а картата до 24.09 четеше само обажданията — бележката се пазеше в
+ * базата, но след опресняване я нямаше на екрана. Празна бележка (само
+ * заглавие) носи заглавието си, за да не изчезне.
+ */
+export function notesByContact(rows: NoteRow[], limit = NOTES_ON_CARD): Map<string, CardNote[]> {
+  const out = new Map<string, CardNote[]>();
+  for (const r of rows) {
+    const text = (r.body ?? "").trim() || (r.title ?? "").trim();
+    if (!text) continue;
+    const list = out.get(r.contact_id) ?? [];
+    if (list.length >= limit) continue;
+    list.push({ body: text, at: r.occurred_at, by: r.created_by });
+    out.set(r.contact_id, list);
   }
   return out;
 }
