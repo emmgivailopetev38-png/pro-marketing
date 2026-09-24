@@ -34,6 +34,14 @@ export function VerticalSeo({ slug }: { slug: Vertical }) {
   const i0 = VERTICAL_ORDER.indexOf(slug);
   const others = [1, 2, 3].map((d) => VERTICAL_ORDER[(i0 + d) % VERTICAL_ORDER.length]);
 
+  // Бранш, който има и своя страница за услуга извън общите стълбове.
+  // Засега само магазинът: /glas е за телефона на онлайн магазина —
+  // пратки, поръчки по телефона и наложени платежи.
+  const EXTRA: Partial<Record<Vertical, { href: string; label: string }>> = {
+    shop: { href: "/glas", label: "AI агент за телефона на магазина" },
+  };
+  const extra = EXTRA[slug];
+
   return (
     <>
       <JsonLd
@@ -178,6 +186,15 @@ export function VerticalSeo({ slug }: { slug: Vertical }) {
             <Link href="/ai-chatbot" style={{ color: "var(--v2-cyan)" }}>
               AI чатбот
             </Link>
+            {extra ? (
+              <>
+                {" "}
+                ·{" "}
+                <Link href={extra.href} style={{ color: "var(--v2-cyan)" }}>
+                  {extra.label}
+                </Link>
+              </>
+            ) : null}
           </p>
         </div>
       </section>
