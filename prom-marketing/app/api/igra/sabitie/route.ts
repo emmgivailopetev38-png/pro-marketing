@@ -24,7 +24,7 @@ const NOTIFY_TO = "emmgivailopetev38@gmail.com";
 const ADMIN_BASE = "https://promarketing.pw";
 
 const schema = z.object({
-  kind: z.enum(["signup", "mission"]),
+  kind: z.enum(["signup", "mission", "abonament", "plashtane"]),
   ref: z.string().min(1).max(200),
 });
 
@@ -123,6 +123,74 @@ export async function POST(request: Request) {
           ${p.motivation ? `<p style="margin:12px 0 4px"><em>„${escapeHtml(p.motivation)}“</em></p>` : ""}
           <p style="margin:16px 0 0"><a href="${ADMIN_BASE}/admin/igra/${p.id}">Виж профила в CRM-а →</a></p>
         </div>`;
+    } else if (kind === "abonament" || kind === "plashtane") {
+      // ЛОСТ ПРО — абонамент през Stripe. ref е user id (абонамент) или
+      // „<user id>:<invoice id>“ (плащане). Истината е в базата: абонаментът
+      // трябва да има ред в sg_subscriptions, а плащането — събитие invoice.paid
+      // в sg_billing_events (пише ги webhook-ът на играта, подписан от Stripe).
+      const [userId, invoiceId] = ref.split(":");
+      const { data: sub } = await sb
+        .from("sg_subscriptions")
+        .select("status, trial_end, current_period_end, email")
+        .eq("user_id", userId)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!sub) return NextResponse.json({ ok: true, skipped: true });
+      if (kind === "plashtane") {
+        const { data: paid } = await sb
+          .from("sg_billing_events")
+          .select("id")
+          .eq("type", "invoice.paid")
+          .eq("object_id", invoiceId ?? "")
+          .maybeSingle();
+        if (!paid) return NextResponse.json({ ok: true, skipped: true });
+      }
+
+      const { data: profile } = await sb
+        .from("sg_profiles")
+        .select("id, display_name, email, phone, motivation, is_candidate, source, profession")
+        .eq("id", userId)
+        .maybeSingle();
+      const p = (profile ?? {}) as Partial<ProfileRow>;
+      const s = sub as { status: string; trial_end: string | null; current_period_end: string | null; email: string | null };
+      const name = p.display_name || "Абонат";
+      const email = p.email || s.email || "—";
+      const bg = (iso: string | null) =>
+        iso ? new Date(iso).toLocaleDateString("bg-BG", { day: "numeric", month: "long", timeZone: "Europe/Sofia" }) : "—";
+
+      if (kind === "abonament") {
+        subject = `🎟 Нов абонат в ЛОСТ ПРО: ${name}`;
+        const lines = [
+          `Име: ${name}`,
+          `Имейл: ${email}`,
+          `Телефон: ${p.phone || "—"}`,
+          `Статус: ${s.status === "trialing" ? `пробен период до ${bg(s.trial_end)}` : s.status}`,
+          ...(p.profession ? [`Занаят: ${p.profession}`] : []),
+        ];
+        text = [`Нов абонат в ЛОСТ ПРО.`, ``, ...lines, ``, `Профил: ${ADMIN_BASE}/admin/igra/${userId}`].join("\n");
+        html = `
+        <div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;color:#111">
+          <h2 style="margin:0 0 12px">🎟 Нов абонат в ЛОСТ ПРО</h2>
+          ${lines.map((l) => `<p style="margin:0 0 4px">${escapeHtml(l)}</p>`).join("")}
+          <p style="margin:16px 0 0"><a href="${ADMIN_BASE}/admin/igra/${userId}">Виж профила в CRM-а →</a></p>
+        </div>`;
+      } else {
+        subject = `💶 ${name} плати ЛОСТ ПРО`;
+        const lines = [
+          `Име: ${name}`,
+          `Имейл: ${email}`,
+          `Следващо плащане: ${bg(s.current_period_end)}`,
+        ];
+        const stripeUrl = `https://dashboard.stripe.com/invoices/${invoiceId}`;
+        text = [`Плащане по абонамента ЛОСТ ПРО.`, ``, ...lines, ``, `Фактурата в Stripe: ${stripeUrl}`].join("\n");
+        html = `
+        <div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;color:#111">
+          <h2 style="margin:0 0 12px">💶 Плащане по ЛОСТ ПРО</h2>
+          ${lines.map((l) => `<p style="margin:0 0 4px">${escapeHtml(l)}</p>`).join("")}
+          <p style="margin:16px 0 0"><a href="${stripeUrl}">Фактурата в Stripe →</a></p>
+        </div>`;
+      }
     } else {
       // kind === "mission"
       const { data: session, error } = await sb
