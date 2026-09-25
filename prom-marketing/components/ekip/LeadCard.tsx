@@ -84,6 +84,7 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
   const [open, setOpen] = useState(mode === "retry" || mode === "cancelled" || mode === "noshow");
   const [preset, setPreset] = useState<string>("3h");
   const waiting = mode === "waiting";
+  const willCall = lead.last_attempt?.outcome === "will_call";
   const given = mode === "given";
   const cancelled = mode === "cancelled";
   const noshow = mode === "noshow";
@@ -141,7 +142,7 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
         )}
         {waiting && lead.next_followup_at && (
           <span className="shrink-0 rounded-full border border-amber-400/40 px-2 py-0.5 text-[11px] text-amber-300">
-            📵 пак {when(lead.next_followup_at)}
+            {willCall ? `📲 той ще се обади · иначе ${when(lead.next_followup_at)}` : `📵 пак ${when(lead.next_followup_at)}`}
           </span>
         )}
         {given && (
@@ -278,6 +279,7 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
                   <SubmitBtn action="no_answer" className="border-white/15 text-[var(--color-text-secondary)]">
                     📵 Пак не вдигна
                   </SubmitBtn>
+                  <WillCallBtn />
                   <SubmitBtn action="hide" className="border-white/15 text-[var(--color-text-tertiary)]">
                     🙈 Скрий
                   </SubmitBtn>
@@ -295,6 +297,7 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
                   >
                     💬 Говорихме…
                   </button>
+                  <WillCallBtn />
                   {giveUp && <GiveUpBtn name={name} noAnswers={noAnswers} />}
                 </>
               )}
@@ -408,6 +411,27 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
               </SubmitBtn>
             </div>
 
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-teal-500/30 bg-teal-500/5 p-2">
+              <label className="min-w-0 flex-1 text-[11px] leading-snug text-teal-200/80">
+                📲 Иска той да се обади — „аз ще Ви звънна“. Картата чака в „чакат обратно обаждане“; ако не се обади, излиза
+                пак след
+                <select
+                  name="will_call_after"
+                  defaultValue={String(TALKED_DEFAULT_DAYS)}
+                  className="mx-1 rounded-md border border-white/10 bg-black/30 px-2 py-1 text-xs text-[var(--color-text-primary)]"
+                >
+                  {TALKED_AFTER_DAYS.map((d) => (
+                    <option key={d} value={d}>
+                      {d} дни
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <SubmitBtn action="will_call" className="border-teal-400/60 bg-teal-500/15 text-teal-200">
+                📲 Иска той да се обади
+              </SubmitBtn>
+            </div>
+
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-violet-500/30 bg-violet-500/5 p-2">
               <p className="min-w-0 flex-1 text-[11px] leading-snug text-violet-200/80">
                 🤝 Иска да се чуе направо с Ивайло — ще дойде на място, пита за цени, не иска час сега. Ивайло получава
@@ -500,6 +524,19 @@ function RetryPicker({ preset, onPreset }: { preset: string; onPreset: (v: strin
         />
       )}
     </div>
+  );
+}
+
+/**
+ * „Аз ще Ви звънна“ — с едно докосване от затворената карта: човекът вдигна,
+ * каза, че ще се обади сам, и затвори. Проверката е след 3 дни; друг срок се
+ * избира от отворената форма.
+ */
+function WillCallBtn() {
+  return (
+    <SubmitBtn action="will_call" className="border-teal-400/50 text-teal-200">
+      📲 Иска той да се обади
+    </SubmitBtn>
   );
 }
 

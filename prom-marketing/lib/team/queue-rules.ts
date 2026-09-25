@@ -63,7 +63,7 @@ export interface AttemptSummary {
 }
 
 /** Изходите, след които човекът може да върне обаждане и картата остава под ръка. */
-export const AWAITING_CALLBACK = new Set(["no_answer", "callback", "talked"]);
+export const AWAITING_CALLBACK = new Set(["no_answer", "callback", "talked", "will_call"]);
 
 /**
  * „Спираме да звъним“ излиза, когато човекът вече два пъти не е вдигнал —
