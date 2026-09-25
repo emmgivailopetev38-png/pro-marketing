@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 /**
  * POST /api/igra/sabitie
  *
- * Известие от играта „ЛОСТ" (тренажорът за наемане): нов кандидат се е
+ * Известие от играта „Мастър Клас Продажби" (тренажорът за наемане): нов кандидат се е
  * регистрирал или кандидат е завършил мисия. Играта и CRM-ът делят един
  * Supabase проект, затова тук няма секрет — защитата е:
  *   1. ref-ът трябва да сочи реален ред в базата (sg_profiles /
@@ -124,7 +124,7 @@ export async function POST(request: Request) {
           <p style="margin:16px 0 0"><a href="${ADMIN_BASE}/admin/igra/${p.id}">Виж профила в CRM-а →</a></p>
         </div>`;
     } else if (kind === "abonament" || kind === "plashtane") {
-      // ЛОСТ ПРО — абонамент през Stripe. ref е user id (абонамент) или
+      // Мастър Клас Продажби · ПРО — абонамент през Stripe. ref е user id (абонамент) или
       // „<user id>:<invoice id>“ (плащане). Истината е в базата: абонаментът
       // трябва да има ред в sg_subscriptions, а плащането — събитие invoice.paid
       // в sg_billing_events (пише ги webhook-ът на играта, подписан от Stripe).
@@ -160,7 +160,7 @@ export async function POST(request: Request) {
         iso ? new Date(iso).toLocaleDateString("bg-BG", { day: "numeric", month: "long", timeZone: "Europe/Sofia" }) : "—";
 
       if (kind === "abonament") {
-        subject = `🎟 Нов абонат в ЛОСТ ПРО: ${name}`;
+        subject = `🎟 Нов абонат в Мастър Клас Продажби: ${name}`;
         const lines = [
           `Име: ${name}`,
           `Имейл: ${email}`,
@@ -168,25 +168,25 @@ export async function POST(request: Request) {
           `Статус: ${s.status === "trialing" ? `пробен период до ${bg(s.trial_end)}` : s.status}`,
           ...(p.profession ? [`Занаят: ${p.profession}`] : []),
         ];
-        text = [`Нов абонат в ЛОСТ ПРО.`, ``, ...lines, ``, `Профил: ${ADMIN_BASE}/admin/igra/${userId}`].join("\n");
+        text = [`Нов абонат в Мастър Клас Продажби · ПРО.`, ``, ...lines, ``, `Профил: ${ADMIN_BASE}/admin/igra/${userId}`].join("\n");
         html = `
         <div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;color:#111">
-          <h2 style="margin:0 0 12px">🎟 Нов абонат в ЛОСТ ПРО</h2>
+          <h2 style="margin:0 0 12px">🎟 Нов абонат в Мастър Клас Продажби · ПРО</h2>
           ${lines.map((l) => `<p style="margin:0 0 4px">${escapeHtml(l)}</p>`).join("")}
           <p style="margin:16px 0 0"><a href="${ADMIN_BASE}/admin/igra/${userId}">Виж профила в CRM-а →</a></p>
         </div>`;
       } else {
-        subject = `💶 ${name} плати ЛОСТ ПРО`;
+        subject = `💶 ${name} плати Мастър Клас Продажби · ПРО`;
         const lines = [
           `Име: ${name}`,
           `Имейл: ${email}`,
           `Следващо плащане: ${bg(s.current_period_end)}`,
         ];
         const stripeUrl = `https://dashboard.stripe.com/invoices/${invoiceId}`;
-        text = [`Плащане по абонамента ЛОСТ ПРО.`, ``, ...lines, ``, `Фактурата в Stripe: ${stripeUrl}`].join("\n");
+        text = [`Плащане по абонамента Мастър Клас Продажби · ПРО.`, ``, ...lines, ``, `Фактурата в Stripe: ${stripeUrl}`].join("\n");
         html = `
         <div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;color:#111">
-          <h2 style="margin:0 0 12px">💶 Плащане по ЛОСТ ПРО</h2>
+          <h2 style="margin:0 0 12px">💶 Плащане по Мастър Клас Продажби · ПРО</h2>
           ${lines.map((l) => `<p style="margin:0 0 4px">${escapeHtml(l)}</p>`).join("")}
           <p style="margin:16px 0 0"><a href="${stripeUrl}">Фактурата в Stripe →</a></p>
         </div>`;
