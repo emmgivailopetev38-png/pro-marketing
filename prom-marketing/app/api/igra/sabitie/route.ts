@@ -129,7 +129,7 @@ export async function POST(request: Request) {
       // клиент: продава сам и иска да го прави по-добре. ref е user id.
       const { data: profile, error } = await sb
         .from("sg_profiles")
-        .select("id, display_name, email, phone, company, sells, profession, source, is_candidate, is_admin")
+        .select("id, display_name, email, phone, company, sells, profession, source, is_candidate, is_admin, call_ok")
         .eq("id", ref)
         .maybeSingle();
       if (error) {
@@ -141,6 +141,7 @@ export async function POST(request: Request) {
             company: string | null;
             sells: string | null;
             is_admin: boolean | null;
+            call_ok: boolean | null;
           })
         | null;
       // Кандидатите имат свое писмо, а админът пробва сам — не се броят.
@@ -149,10 +150,11 @@ export async function POST(request: Request) {
       }
       const name = p.display_name || "Без име";
 
-      subject = `🎯 Започва ПРО в играта: ${name}`;
+      subject = `🎯 Започва ПРО в играта: ${name}${p.call_ok ? " · иска обаждане" : ""}`;
       const lines = [
         `Име: ${name}`,
         `Телефон: ${p.phone}`,
+        p.call_ok ? `Обаждане: ✅ отметна „Искам да ми се обадите“` : `Обаждане: не е отметнал`,
         `Имейл: ${p.email || "—"}`,
         ...(p.company ? [`Фирма: ${p.company}`] : []),
         ...(p.sells ? [`Какво продава: ${p.sells}`] : []),
@@ -171,6 +173,7 @@ export async function POST(request: Request) {
           <h2 style="margin:0 0 12px">🎯 Започва ПРО в играта</h2>
           <p style="margin:0 0 4px"><strong>${escapeHtml(name)}</strong></p>
           <p style="margin:0 0 4px">Телефон: <a href="tel:${escapeHtml(p.phone.replace(/\s/g, ""))}">${escapeHtml(p.phone)}</a></p>
+          <p style="margin:0 0 4px">${p.call_ok ? "✅ <strong>Иска да му се обадим</strong> (отметна го на /pro)" : "Обаждане: не е отметнал"}</p>
           <p style="margin:0 0 4px">Имейл: ${escapeHtml(p.email) || "—"}</p>
           ${p.company ? `<p style="margin:0 0 4px">Фирма: ${escapeHtml(p.company)}</p>` : ""}
           ${p.sells ? `<p style="margin:0 0 4px">Какво продава: ${escapeHtml(p.sells)}</p>` : ""}
