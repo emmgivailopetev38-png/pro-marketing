@@ -7,6 +7,7 @@ import { BUSINESS_OPTIONS, type EkipActionResult, type LeadCardMode, type QueueL
 import { MEETING_MINUTES } from "@/lib/cal/types";
 import { RETRY_PRESETS, RETRY_PRESET_LABEL, TALKED_AFTER_DAYS, TALKED_DEFAULT_DAYS } from "@/lib/team/retry-rules";
 import { meetingMessage } from "@/lib/team/sreshta-saobshtenia";
+import { canGiveUp } from "@/lib/team/queue-rules";
 import { MessageBox } from "./MessageBox";
 
 const CAL_URL = "https://cal.com/promarketing/consultation";
@@ -87,6 +88,10 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
   const cancelled = mode === "cancelled";
   const noshow = mode === "noshow";
   const fromIvailo = given || cancelled || noshow;
+  const noAnswers = lead.no_answers ?? 0;
+  // Два пъти не вдигна → третото обаждане може да е последното.
+  const giveUp = canGiveUp(noAnswers) && lead.stage !== "lost" && lead.stage !== "won";
+  const notes = lead.team_notes ?? [];
 
   const fromForm = lead.form_answers.find((a) => a.question === "С какво се занимава")?.answer ?? null;
   const saved = splitBusiness(lead.business);
@@ -100,7 +105,7 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
   calParams.set("attendeePhoneNumber", lead.phone);
   const calUrl = `${CAL_URL}?${calParams.toString()}`;
 
-  if (state?.ok) {
+  if (state?.ok && !state.keep) {
     return (
       <article className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-200">
         ✅ {name}: {state.message}
@@ -226,11 +231,31 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
         </p>
       )}
 
+      {notes.length > 0 && (
+        <ul aria-label="Бележки" className="mt-2 space-y-1.5">
+          {notes.map((n, i) => (
+            <li key={`${n.at}-${i}`} className="rounded-lg border border-sky-400/20 bg-sky-400/[0.05] px-3 py-2 text-xs">
+              <p className="line-clamp-4 whitespace-pre-line text-[var(--color-text-primary)]">📝 {n.body}</p>
+              <p className="mt-0.5 text-[10px] text-[var(--color-text-tertiary)]">
+                {n.by ?? "—"} · {when(n.at)}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+
       {lead.last_attempt && (
         <p className="mt-2 text-xs text-[var(--color-text-tertiary)]">
           Последно: {lead.last_attempt.title} · {when(lead.last_attempt.at)}
           {lead.last_attempt.by ? ` · ${lead.last_attempt.by}` : ""}
           {lead.attempts > 1 ? ` · ${lead.attempts} опита` : ""}
+          {noAnswers > 1 ? ` · ${noAnswers} × не вдигна` : ""}
+        </p>
+      )}
+
+      {state?.ok && state.keep && (
+        <p className="mt-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+          ✅ {state.message}
         </p>
       )}
 
@@ -238,46 +263,50 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
         <input type="hidden" name="contact_id" value={lead.id} />
 
         {!open ? (
-          <div className="flex flex-wrap gap-2">
-            {waiting ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setOpen(true)}
-                  className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold"
-                  style={{ background: "var(--color-accent-cyan)", color: "var(--color-bg-void)" }}
-                >
-                  💬 Върна обаждане / говорихме…
-                </button>
-                <SubmitBtn action="no_answer" className="border-white/15 text-[var(--color-text-secondary)]">
-                  📵 Пак не вдигна
-                </SubmitBtn>
-                <SubmitBtn action="hide" className="border-white/15 text-[var(--color-text-tertiary)]">
-                  🙈 Скрий
-                </SubmitBtn>
-              </>
-            ) : (
-              <>
-                <SubmitBtn action="no_answer" className="border-white/15 text-[var(--color-text-secondary)]">
-                  📵 Не вдигна
-                </SubmitBtn>
-                <button
-                  type="button"
-                  onClick={() => setOpen(true)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-accent-cyan)]/50 px-3 py-2 text-sm font-semibold text-[var(--color-accent-cyan)]"
-                >
-                  💬 Говорихме…
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOpen(true)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-2 text-xs text-[var(--color-text-tertiary)]"
-                  title="Не вдигна — избери кога да звъннеш пак"
-                >
-                  ⏱ пак друг път…
-                </button>
-              </>
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              {waiting ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setOpen(true)}
+                    className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold"
+                    style={{ background: "var(--color-accent-cyan)", color: "var(--color-bg-void)" }}
+                  >
+                    💬 Върна обаждане / говорихме…
+                  </button>
+                  <SubmitBtn action="no_answer" className="border-white/15 text-[var(--color-text-secondary)]">
+                    📵 Пак не вдигна
+                  </SubmitBtn>
+                  <SubmitBtn action="hide" className="border-white/15 text-[var(--color-text-tertiary)]">
+                    🙈 Скрий
+                  </SubmitBtn>
+                  {giveUp && <GiveUpBtn name={name} noAnswers={noAnswers} />}
+                </>
+              ) : (
+                <>
+                  <SubmitBtn action="no_answer" className="border-white/15 text-[var(--color-text-secondary)]">
+                    📵 Не вдигна
+                  </SubmitBtn>
+                  <button
+                    type="button"
+                    onClick={() => setOpen(true)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-accent-cyan)]/50 px-3 py-2 text-sm font-semibold text-[var(--color-accent-cyan)]"
+                  >
+                    💬 Говорихме…
+                  </button>
+                  {giveUp && <GiveUpBtn name={name} noAnswers={noAnswers} />}
+                </>
+              )}
+            </div>
+            {giveUp && (
+              <p className="text-[11px] leading-snug text-rose-200/70">
+                📵 Не вдигна {noAnswers} пъти. Ако и сега не вдигне — „🚫 Спираме да звъним“: картата се затваря и никой няма
+                да му звъни повече.
+              </p>
             )}
+            {/* Кога да звънне пак — на самата карта, без да се отваря цялата форма. */}
+            <RetryPicker preset={preset} onPreset={setPreset} />
           </div>
         ) : (
           <div className="space-y-3">
@@ -389,34 +418,16 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
               </SubmitBtn>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 p-2">
-              <span className="text-[11px] text-[var(--color-text-tertiary)]">📵 Не вдигна — пак:</span>
-              <select
-                name="retry_preset"
-                value={preset}
-                onChange={(e) => setPreset(e.target.value)}
-                className="rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-[var(--color-text-primary)]"
-              >
-                {RETRY_PRESETS.map((p) => (
-                  <option key={p} value={p}>
-                    {RETRY_PRESET_LABEL[p]}
-                  </option>
-                ))}
-              </select>
-              {preset === "custom" && (
-                <input
-                  type="datetime-local"
-                  name="retry_at_custom"
-                  defaultValue={tomorrowAt(10)}
-                  className="rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-[var(--color-text-primary)]"
-                />
-              )}
-              <SubmitBtn action="no_answer" className="border-white/15 text-[var(--color-text-secondary)]">
-                📵 Не вдигна
-              </SubmitBtn>
-              <span className="w-full text-[10px] text-[var(--color-text-tertiary)]">
+            <div className="space-y-2 rounded-xl border border-white/10 p-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <RetryPicker preset={preset} onPreset={setPreset} />
+                <SubmitBtn action="no_answer" className="border-white/15 text-[var(--color-text-secondary)]">
+                  📵 Не вдигна
+                </SubmitBtn>
+              </div>
+              <p className="text-[10px] text-[var(--color-text-tertiary)]">
                 След 7 дни без резултат картата се връща на Ивайло сама, с цялата история.
-              </span>
+              </p>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -434,6 +445,7 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
               <SubmitBtn action="wrong_number" className="border-white/15 text-[var(--color-text-tertiary)]">
                 ⛔ Грешен номер
               </SubmitBtn>
+              {giveUp && <GiveUpBtn name={name} noAnswers={noAnswers} />}
               <a
                 href={calUrl}
                 target="_blank"
@@ -455,7 +467,66 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
   );
 }
 
-function SubmitBtn({ action, className, children }: { action: string; className?: string; children: React.ReactNode }) {
+/**
+ * „Не вдигна — кога пак?“ Стои и на затворената карта (първо обаждане, „пак не
+ * вдигна“), и в отворената форма: Димитър иска да каже „в четвъртък“ с едно
+ * докосване, без да отваря целия панел. Полетата се четат само от действието
+ * „Не вдигна“ (app/ekip/actions.ts); за другите бутони са безобидни.
+ */
+function RetryPicker({ preset, onPreset }: { preset: string; onPreset: (v: string) => void }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-[11px] text-[var(--color-text-tertiary)]">⏱ Не вдигна → звъня пак:</span>
+      <select
+        name="retry_preset"
+        value={preset}
+        onChange={(e) => onPreset(e.target.value)}
+        aria-label="Кога да звънна пак"
+        className="rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-[var(--color-text-primary)]"
+      >
+        {RETRY_PRESETS.map((p) => (
+          <option key={p} value={p}>
+            {RETRY_PRESET_LABEL[p]}
+          </option>
+        ))}
+      </select>
+      {preset === "custom" && (
+        <input
+          type="datetime-local"
+          name="retry_at_custom"
+          defaultValue={tomorrowAt(10)}
+          aria-label="Точен час за повторното звънене"
+          className="rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-[var(--color-text-primary)]"
+        />
+      )}
+    </div>
+  );
+}
+
+/** Затваря картата на човек, който не вдига — с потвърждение, защото е краен изход. */
+function GiveUpBtn({ name, noAnswers }: { name: string; noAnswers: number }) {
+  return (
+    <SubmitBtn
+      action="give_up"
+      confirmText={`${name} не вдигна ${noAnswers} пъти. Спираме да му звъним? Картата излиза от всички списъци.`}
+      className="border-rose-400/40 text-rose-200"
+    >
+      🚫 Спираме да звъним
+    </SubmitBtn>
+  );
+}
+
+function SubmitBtn({
+  action,
+  className,
+  confirmText,
+  children,
+}: {
+  action: string;
+  className?: string;
+  confirmText?: string;
+  children: React.ReactNode;
+}) {
   const { pending } = useFormStatus();
   return (
     <button
@@ -463,6 +534,7 @@ function SubmitBtn({ action, className, children }: { action: string; className?
       name="action"
       value={action}
       disabled={pending}
+      onClick={confirmText ? (e) => (window.confirm(confirmText) ? undefined : e.preventDefault()) : undefined}
       className={`inline-flex items-center justify-center gap-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${className ?? ""}`}
     >
       {pending ? "…" : children}

@@ -198,7 +198,7 @@ export function AdminShell({ children, email }: { children: React.ReactNode; ema
       {/* Mobile top bar */}
       <div className="md:hidden sticky top-0 z-30 flex items-center justify-between border-b border-[var(--color-border-default)] bg-[var(--color-bg-deep)]/80 px-4 py-3 backdrop-blur">
         <Link href="/admin" onClick={() => setOpen(false)}>
-          <Logo />
+          <Logo markId="pm-admin-a" />
         </Link>
         <button
           type="button"
@@ -233,7 +233,7 @@ export function AdminShell({ children, email }: { children: React.ReactNode; ema
       >
         <div className="flex items-center justify-between">
           <Link href="/admin" onClick={() => setOpen(false)}>
-            <Logo />
+            <Logo markId="pm-admin-b" />
           </Link>
           <button
             type="button"
@@ -256,7 +256,7 @@ export function AdminShell({ children, email }: { children: React.ReactNode; ema
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col gap-2 border-r border-[var(--color-border-default)] bg-[var(--color-bg-deep)]/60 p-6 md:flex">
         <Link href="/admin">
-          <Logo />
+          <Logo markId="pm-admin-c" />
         </Link>
         <NavList path={path} />
         <div className="mt-auto">

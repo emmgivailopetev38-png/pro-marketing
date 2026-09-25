@@ -172,7 +172,7 @@ export function NavbarV2() {
         }
       >
         <a href="/" aria-label="ProMarketing начало" className="min-w-0 shrink">
-          <Logo />
+          <Logo markId="pm-nav" />
         </a>
         <ul
           className="hidden items-center gap-6 whitespace-nowrap text-sm lg:flex"
@@ -324,7 +324,7 @@ export function NavbarV2() {
 
           <div className="relative z-[2] flex items-center justify-between">
             <a href="/" aria-label="ProMarketing начало" onClick={() => setOpen(false)}>
-              <Logo />
+              <Logo markId="pm-nav-menu" />
             </a>
             <button
               type="button"

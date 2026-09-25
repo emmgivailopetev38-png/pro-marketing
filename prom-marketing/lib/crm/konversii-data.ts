@@ -13,6 +13,7 @@ import {
   type KLead,
   type PersonCounts,
 } from "./konversii";
+import { isFresh, summarize, type SpendRow, type SpendSummary } from "./ads-spend";
 
 export interface KonversiiData {
   days: number;
@@ -23,7 +24,16 @@ export interface KonversiiData {
   byWeek: Array<{ key: string; funnel: FunnelCounts }>;
   byOwner: Array<{ key: string; funnel: FunnelCounts }>;
   people: PersonCounts[];
+  /** разходът за НАШИ лийдове в евро — той влиза в цената на резултата */
   adSpend: number;
+  /** целият рекламен разход за периода, разделен по предназначение и по кампании */
+  spend: SpendSummary;
+  /** има ли данни от синхрона за вчера/днес */
+  spendFresh: boolean;
+  /** откъде е взет разходът: дневния синхрон или старите записи в „Разходи“ */
+  spendSource: "sync" | "expenses";
+  /** фунията САМО на лийдовете от реклами — срещу нея се смята цената */
+  adFunnel: FunnelCounts;
   cost: ReturnType<typeof costPer>;
   /** екипът: задачи, съобщения, проектни обновления за периода */
   team: Array<{ name: string; tasksDone: number; messages: number; projectUpdates: number; commissionsDue: number }>;
@@ -40,12 +50,17 @@ export async function loadKonversii(days = 30, now: Date = new Date()): Promise<
   ]);
   const leads = (leadRows ?? []) as KLead[];
   const ids = leads.map((l) => l.id);
-  const [{ data: actRows }, { data: bookRows }, { data: expRows }, { data: taskRows }, { data: msgRows }, { data: commRows }] = await Promise.all([
+  const [{ data: actRows }, { data: bookRows }, { data: expRows }, { data: spendRows }, { data: taskRows }, { data: msgRows }, { data: commRows }] = await Promise.all([
     ids.length
       ? sb.from("contact_activities").select("contact_id, activity_type, occurred_at, created_by, metadata").in("contact_id", ids).order("occurred_at", { ascending: true }).limit(20000)
       : Promise.resolve({ data: [] }),
     sb.from("bookings").select("attendee_email, attendee_phone, scheduled_at, status").gte("created_at", prevFrom.toISOString()).limit(2000),
     sb.from("expenses").select("amount_gross, expense_date, category, is_personal").eq("category", "ads").gte("expense_date", from.toISOString().slice(0, 10)),
+    sb
+      .from("ad_spend_daily")
+      .select("day, campaign_id, campaign_name, purpose, spend, spend_eur, impressions, clicks, leads")
+      .gte("day", from.toISOString().slice(0, 10))
+      .limit(5000),
     sb.from("project_tasks").select("assignee_id, done_at").eq("status", "done").gte("done_at", from.toISOString()),
     sb.from("team_messages").select("author_key").gte("created_at", from.toISOString()).eq("from_client", false),
     sb.from("commissions").select("member_id, amount, status"),
@@ -73,7 +88,21 @@ export async function loadKonversii(days = 30, now: Date = new Date()): Promise<
   const memberName = new Map(((memberRows ?? []) as Array<{ id: string; full_name: string }>).map((m) => [m.id, m.full_name]));
 
   const funnel = countFunnel(cur);
-  const adSpend = ((expRows ?? []) as Array<{ amount_gross: number | null; is_personal: boolean }>).filter((e) => !e.is_personal).reduce((s, e) => s + (Number(e.amount_gross) || 0), 0);
+
+  // Разходът идва от дневния синхрон с Meta. Докато той не е тръгвал за даден
+  // период, падаме към старите ръчни записи в „Разходи“, за да не изчезнат
+  // числата за минали месеци.
+  const spend = summarize((spendRows ?? []) as SpendRow[]);
+  const manualAds = ((expRows ?? []) as Array<{ amount_gross: number | null; is_personal: boolean }>)
+    .filter((e) => !e.is_personal)
+    .reduce((s, e) => s + (Number(e.amount_gross) || 0), 0);
+  const hasSync = (spendRows ?? []).length > 0;
+  const adSpend = hasSync ? spend.leadsEur : manualAds;
+
+  // Цената се смята срещу лийдовете ОТ РЕКЛАМИ, не срещу всички. Иначе
+  // лийдовете, които Хермес е намерил сам или са дошли от сайта, свалят
+  // цената на лийда и тя излиза по-евтина, отколкото е в действителност.
+  const adFunnel = countFunnel(cur.filter((t) => t.source === "meta_lead"));
 
   // Екипът за периода.
   const team = new Map<string, { name: string; tasksDone: number; messages: number; projectUpdates: number; commissionsDue: number }>();
@@ -102,7 +131,11 @@ export async function loadKonversii(days = 30, now: Date = new Date()): Promise<
     byOwner: groupFunnel(cur, (t) => (t.owner_id ? memberName.get(t.owner_id) ?? "екип" : "Ивайло")),
     people: perPerson(cur, activities.filter((a) => a.occurred_at >= fromIso), new Set(cur.map((t) => t.id))),
     adSpend,
-    cost: costPer(adSpend, funnel),
+    spend,
+    spendFresh: isFresh(spend.lastDay, now),
+    spendSource: hasSync ? "sync" : "expenses",
+    adFunnel,
+    cost: costPer(adSpend, adFunnel),
     team: [...team.values()].sort((a, b) => b.tasksDone + b.projectUpdates + b.messages - (a.tasksDone + a.projectUpdates + a.messages)),
   };
 }

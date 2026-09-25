@@ -1,12 +1,13 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 import { decodeFormAnswers } from "@/lib/leads/form-labels";
-import type { BookedRow, QueueLead } from "./types";
+import type { BookedRow, CardNote, QueueLead } from "./types";
 import { todayEndIso } from "./time";
 import {
   ASSIGN_TYPE,
   ESCALATED_TYPE,
   looksLikePhone,
+  notesByContact,
   phoneDigits,
   pickGiven,
   safeTextQuery,
@@ -14,6 +15,7 @@ import {
   summarizeAttempts,
   type AttemptRow,
   type AttemptSummary,
+  type NoteRow,
 } from "./queue-rules";
 
 /**
@@ -99,6 +101,19 @@ async function loadAttempts(sb: Sb, ids: string[]): Promise<Map<string, AttemptS
   return summarizeAttempts((data ?? []) as AttemptRow[]);
 }
 
+/** Бележките в картона — за да стоят на картата и след опресняване. */
+async function loadNotes(sb: Sb, ids: string[]): Promise<Map<string, CardNote[]>> {
+  if (ids.length === 0) return new Map();
+  const { data } = await sb
+    .from("contact_activities")
+    .select("contact_id, title, body, occurred_at, created_by")
+    .in("contact_id", ids)
+    .eq("activity_type", "note")
+    .order("occurred_at", { ascending: false })
+    .limit(2000);
+  return notesByContact((data ?? []) as NoteRow[]);
+}
+
 /** Отговорите от формата — по meta_lead_id (source_ref на картона). */
 async function loadForms(sb: Sb, contacts: ContactLite[]): Promise<Map<string, FormInfo>> {
   const forms = new Map<string, FormInfo>();
@@ -111,7 +126,12 @@ async function loadForms(sb: Sb, contacts: ContactLite[]): Promise<Map<string, F
   return forms;
 }
 
-function toLead(c: ContactLite, attempts: Map<string, AttemptSummary>, forms: Map<string, FormInfo>): QueueLead {
+function toLead(
+  c: ContactLite,
+  attempts: Map<string, AttemptSummary>,
+  forms: Map<string, FormInfo>,
+  notes: Map<string, CardNote[]>
+): QueueLead {
   const form = c.source_ref ? forms.get(c.source_ref) : undefined;
   const att = attempts.get(c.id);
   return {
@@ -131,6 +151,8 @@ function toLead(c: ContactLite, attempts: Map<string, AttemptSummary>, forms: Ma
     form_answers: form ? decodeFormAnswers(form.field_data) : [],
     attempts: att?.count ?? 0,
     last_attempt: att?.last ?? null,
+    no_answers: att?.noAnswer ?? 0,
+    team_notes: notes.get(c.id) ?? [],
     given_reason: att?.given?.reason ?? null,
     missed_at: att?.given?.missed_at ?? null,
     missed_url: att?.given?.missed_url ?? null,
@@ -207,8 +229,9 @@ export async function loadSetterQueue(now: Date = new Date()): Promise<SetterQue
   const retry = split.retry.filter((c) => !givenIds.has(c.id));
   const waiting = split.waiting.filter((c) => !givenIds.has(c.id));
   const later = split.later;
-  const forms = await loadForms(sb, [...freshContacts, ...cancelledContacts, ...noshowContacts, ...givenContacts, ...retry, ...waiting]);
-  const lead = (c: ContactLite) => toLead(c, attempts, forms);
+  const shown = [...freshContacts, ...cancelledContacts, ...noshowContacts, ...givenContacts, ...retry, ...waiting];
+  const [forms, notes] = await Promise.all([loadForms(sb, shown), loadNotes(sb, shown.map((c) => c.id))]);
+  const lead = (c: ContactLite) => toLead(c, attempts, forms, notes);
 
   const booked: BookedRow[] = ((bookedRows ?? []) as Array<Record<string, unknown>>).map((b) => ({
     id: String(b.id),
@@ -249,6 +272,7 @@ export async function searchLeads(raw: string): Promise<QueueLead[]> {
     : await base().or(`full_name.ilike.%${q}%,email.ilike.%${q}%,company.ilike.%${q}%`);
   const found = (data ?? []) as ContactLite[];
   if (found.length === 0) return [];
-  const [attempts, forms] = await Promise.all([loadAttempts(sb, found.map((c) => c.id)), loadForms(sb, found)]);
-  return found.map((c) => toLead(c, attempts, forms));
+  const ids = found.map((c) => c.id);
+  const [attempts, forms, notes] = await Promise.all([loadAttempts(sb, ids), loadForms(sb, found), loadNotes(sb, ids)]);
+  return found.map((c) => toLead(c, attempts, forms, notes));
 }
