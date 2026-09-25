@@ -232,6 +232,13 @@ describe("върнат на Ивайло след 7 дни и готовите �
     const split = splitTeamDue([{ id: "a", next_followup_at: "2026-09-25T07:00:00Z" }], s, "2026-09-22T20:59:59Z");
     expect(split.waiting.map((c) => c.id)).toEqual(["a"]);
   });
+
+  it("„иска той да се обади“ държи картата в „чакат обратно обаждане“ и не е „не вдигна“", () => {
+    const s = summarizeAttempts([call("a", "2026-09-25T09:00:00Z", "will_call")]);
+    expect(s.get("a")).toMatchObject({ noAnswer: 0 });
+    const split = splitTeamDue([{ id: "a", next_followup_at: "2026-09-29T07:00:00Z" }], s, "2026-09-25T20:59:59Z");
+    expect(split.waiting.map((c) => c.id)).toEqual(["a"]);
+  });
 });
 
 describe("колко пъти не е вдигнал и кога може да се спре", () => {

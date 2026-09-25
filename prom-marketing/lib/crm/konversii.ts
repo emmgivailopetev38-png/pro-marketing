@@ -32,7 +32,7 @@ export interface KBooking {
 }
 
 /** Изходите на разговор, които значат „говорихме с човека“ (не само набрахме). */
-const TALKED_OUTCOMES = new Set(["callback", "talked", "meeting", "handoff"]);
+const TALKED_OUTCOMES = new Set(["callback", "talked", "will_call", "meeting", "handoff"]);
 const AUTO = new Set([
   "hermes",
   "lead_sequence",

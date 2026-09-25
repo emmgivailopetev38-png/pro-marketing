@@ -185,6 +185,7 @@ export const EKIP_ACTIONS = [
   "no_answer",
   "callback",
   "talked",
+  "will_call",
   "meeting",
   "handoff",
   "not_interested",
