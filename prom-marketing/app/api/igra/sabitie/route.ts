@@ -24,7 +24,7 @@ const NOTIFY_TO = "emmgivailopetev38@gmail.com";
 const ADMIN_BASE = "https://promarketing.pw";
 
 const schema = z.object({
-  kind: z.enum(["signup", "mission", "abonament", "plashtane"]),
+  kind: z.enum(["signup", "mission", "abonament", "plashtane", "pro_start"]),
   ref: z.string().min(1).max(200),
 });
 
@@ -121,6 +121,61 @@ export async function POST(request: Request) {
           ${p.profession ? `<p style="margin:0 0 4px">Професия: ${escapeHtml(p.profession)}</p>` : ""}
           ${p.source ? `<p style="margin:0 0 4px">Откъде: ${escapeHtml(p.source)}</p>` : ""}
           ${p.motivation ? `<p style="margin:12px 0 4px"><em>„${escapeHtml(p.motivation)}“</em></p>` : ""}
+          <p style="margin:16px 0 0"><a href="${ADMIN_BASE}/admin/igra/${p.id}">Виж профила в CRM-а →</a></p>
+        </div>`;
+    } else if (kind === "pro_start") {
+      // Човек от /pro е дал телефон и отива към плащането в Stripe. Ако спре
+      // там, иначе нямаше да разберем за него — а точно той е търсеният
+      // клиент: продава сам и иска да го прави по-добре. ref е user id.
+      const { data: profile, error } = await sb
+        .from("sg_profiles")
+        .select("id, display_name, email, phone, company, sells, profession, source, is_candidate, is_admin")
+        .eq("id", ref)
+        .maybeSingle();
+      if (error) {
+        console.error("[igra/sabitie] pro_start profile lookup failed:", error.message);
+        return NextResponse.json({ ok: false });
+      }
+      const p = profile as
+        | (Pick<ProfileRow, "id" | "display_name" | "email" | "phone" | "profession" | "source" | "is_candidate"> & {
+            company: string | null;
+            sells: string | null;
+            is_admin: boolean | null;
+          })
+        | null;
+      // Кандидатите имат свое писмо, а админът пробва сам — не се броят.
+      if (!p || p.is_candidate || p.is_admin || !p.phone) {
+        return NextResponse.json({ ok: true, skipped: true });
+      }
+      const name = p.display_name || "Без име";
+
+      subject = `🎯 Започва ПРО в играта: ${name}`;
+      const lines = [
+        `Име: ${name}`,
+        `Телефон: ${p.phone}`,
+        `Имейл: ${p.email || "—"}`,
+        ...(p.company ? [`Фирма: ${p.company}`] : []),
+        ...(p.sells ? [`Какво продава: ${p.sells}`] : []),
+        ...(p.profession ? [`Занаят в играта: ${p.profession}`] : []),
+      ];
+      text = [
+        `Нов човек от страницата на Мастър Клас Продажби · ПРО даде телефон и отиде към плащането.`,
+        `Ако до час не дойде писмо „Нов абонат“, е спрял на картата.`,
+        ``,
+        ...lines,
+        ``,
+        `Профил: ${ADMIN_BASE}/admin/igra/${p.id}`,
+      ].join("\n");
+      html = `
+        <div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;color:#111">
+          <h2 style="margin:0 0 12px">🎯 Започва ПРО в играта</h2>
+          <p style="margin:0 0 4px"><strong>${escapeHtml(name)}</strong></p>
+          <p style="margin:0 0 4px">Телефон: <a href="tel:${escapeHtml(p.phone.replace(/\s/g, ""))}">${escapeHtml(p.phone)}</a></p>
+          <p style="margin:0 0 4px">Имейл: ${escapeHtml(p.email) || "—"}</p>
+          ${p.company ? `<p style="margin:0 0 4px">Фирма: ${escapeHtml(p.company)}</p>` : ""}
+          ${p.sells ? `<p style="margin:0 0 4px">Какво продава: ${escapeHtml(p.sells)}</p>` : ""}
+          ${p.profession ? `<p style="margin:0 0 4px">Занаят в играта: ${escapeHtml(p.profession)}</p>` : ""}
+          <p style="margin:12px 0 4px;color:#444">Даде телефон и отиде към плащането. Ако до час не дойде писмо „Нов абонат“, е спрял на картата.</p>
           <p style="margin:16px 0 0"><a href="${ADMIN_BASE}/admin/igra/${p.id}">Виж профила в CRM-а →</a></p>
         </div>`;
     } else if (kind === "abonament" || kind === "plashtane") {
