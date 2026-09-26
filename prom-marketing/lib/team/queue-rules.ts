@@ -40,6 +40,8 @@ export interface GivenMark {
   by: string | null;
   /** на кого е дадено — за да се вижда в списъка на Ивайло кой го държи */
   to: string | null;
+  /** id-то на човека, на когото е дадено — по него картата излиза в неговата опашка */
+  to_id: string | null;
   kind: GivenKind;
   reason: string | null;
   /** при „не се яви“: коя среща е пропусната и линкът ѝ */
@@ -126,6 +128,7 @@ export function summarizeAttempts(rows: AttemptRow[]): Map<string, AttemptSummar
           at: a.occurred_at,
           by: a.created_by,
           to: strOf(a.metadata?.to_name),
+          to_id: strOf(a.metadata?.to_member_id),
           kind: a.metadata?.kind === "cancelled" ? "cancelled" : a.metadata?.kind === "noshow" ? "noshow" : "given",
           reason: reasonOf(a),
           missed_at: strOf(a.metadata?.missed_at),
