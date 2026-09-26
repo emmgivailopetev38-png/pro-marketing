@@ -1,5 +1,5 @@
 "use client";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
   createMemberAction,
@@ -52,12 +52,24 @@ const field =
  */
 function ModuleToggles({ role, permissions }: { role: TeamRole; permissions: TeamMember["permissions"] }) {
   const [r, setR] = useState<TeamRole>(role);
+  const select = useRef<HTMLSelectElement>(null);
+  // React чисти формата след всяко изпращане. Контролирано меню (value=) няма
+  // стойност по подразбиране и скачаше на първата опция — „Срещи“ — а следващият
+  // запис сменяше ролята наистина. Затова менюто е с defaultValue, а изборът тук
+  // се връща на записаната роля заедно с формата, за да тръгнат и отметките от нея.
+  useEffect(() => {
+    const form = select.current?.form;
+    if (!form) return;
+    const back = () => setR(role);
+    form.addEventListener("reset", back);
+    return () => form.removeEventListener("reset", back);
+  }, [role]);
   const def = new Set(defaultModules(r));
   return (
     <div>
       <label className="block text-xs text-[var(--color-text-tertiary)]">
         Роля
-        <select name="role" value={r} onChange={(e) => setR(e.target.value as TeamRole)} className={field}>
+        <select ref={select} name="role" defaultValue={role} onChange={(e) => setR(e.target.value as TeamRole)} className={field}>
           {TEAM_ROLES.filter((x) => x !== "owner").map((x) => (
             <option key={x} value={x}>
               {TEAM_ROLE_LABEL[x]}
@@ -163,7 +175,8 @@ function MemberRow({ m, onReset }: { m: TeamMember; onReset: (fd: FormData) => v
             <textarea name="notes" rows={2} defaultValue={m.notes ?? ""} className={field} />
           </label>
           <div className="sm:col-span-2">
-            <ModuleToggles role={m.role} permissions={m.permissions} />
+            {/* Нов ключ при записани нови права → менюто и отметките тръгват от тях, не от старите. */}
+            <ModuleToggles key={`${m.role}:${JSON.stringify(m.permissions ?? {})}`} role={m.role} permissions={m.permissions} />
           </div>
           <div className="flex items-center gap-3 sm:col-span-2">
             <Pending>Запази профила</Pending>

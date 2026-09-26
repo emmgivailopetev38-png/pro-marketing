@@ -2,6 +2,7 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 import { listActiveMembers, slugify } from "./repository";
 import { loadTasksFor } from "./tasks";
+import { napredakOutcome } from "./prospects-rules";
 import type { TeamActor } from "./session";
 import type { TeamMember, TeamRole } from "./types";
 import {
@@ -44,7 +45,7 @@ async function loadPool(days: number, now: Date): Promise<{ pool: NapredakPool; 
   // Два периода назад: текущият и предходният равен, за делтите.
   const prevFrom = new Date(now.getTime() - 2 * days * 86_400_000).toISOString();
 
-  const [{ data: teamRows }, { data: actRows }, { data: leadRows }, { data: bookingRows }, members] = await Promise.all([
+  const [{ data: teamRows }, { data: actRows }, { data: leadRows }, { data: bookingRows }, members, { data: coldRows }] = await Promise.all([
     sb.from("team_members").select("full_name"),
     // Без горна граница нарочно: срещата, записана днес за утре, стои с
     // утрешна дата — моментът на работата се взима после (actedAt).
@@ -57,7 +58,26 @@ async function loadPool(days: number, now: Date): Promise<{ pool: NapredakPool; 
     sb.from("contacts").select("id, created_at").gte("created_at", prevFrom).lte("created_at", now.toISOString()).limit(5000),
     sb.from("bookings").select("id, status, scheduled_at, created_at, raw_payload").gte("created_at", prevFrom).limit(2000),
     listActiveMembers(),
+    // Студените обаждания без картон („не вдигна“, „не се интересува“…) — те също
+    // са обаждания. „Говорихме“ и „среща“ минават през картона, затова не са тук.
+    sb
+      .from("prospect_calls")
+      .select("prospect_id, outcome, caller, created_at")
+      .in("outcome", ["no_answer", "callback", "not_interested", "bad_number"])
+      .gte("created_at", prevFrom)
+      .limit(20000),
   ]);
+
+  const coldCalls: NapredakActivity[] = ((coldRows ?? []) as Array<{ prospect_id: string; outcome: string; caller: string; created_at: string }>).map(
+    (r) => ({
+      contact_id: `prospect:${r.prospect_id}`,
+      activity_type: "call",
+      occurred_at: r.created_at,
+      created_at: r.created_at,
+      created_by: r.caller,
+      metadata: { outcome: napredakOutcome(r.outcome), team: true, cold: true },
+    })
+  );
 
   const bookings: NapredakBooking[] = ((bookingRows ?? []) as Array<Record<string, unknown>>).map((b) => ({
     id: String(b.id),
@@ -69,7 +89,7 @@ async function loadPool(days: number, now: Date): Promise<{ pool: NapredakPool; 
 
   return {
     pool: {
-      activities: (actRows ?? []) as NapredakActivity[],
+      activities: [...((actRows ?? []) as NapredakActivity[]), ...coldCalls].sort((a, b) => a.occurred_at.localeCompare(b.occurred_at)),
       leads: (leadRows ?? []) as NapredakLead[],
       bookings,
       teamNames: ((teamRows ?? []) as Array<{ full_name: string }>).map((t) => t.full_name),

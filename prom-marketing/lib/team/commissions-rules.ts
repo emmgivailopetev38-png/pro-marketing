@@ -39,6 +39,16 @@ export function ruleFor(rules: CommissionRule[], serviceType: string, role?: str
   return byRole ?? active.find((r) => !r.role) ?? active[0] ?? null;
 }
 
+/**
+ * Правилото за месечното начисление — само „от месечната такса“. Правило по роля
+ * с основа „сделка“ значи, че ролята няма месечна комисионна: продавачът взима
+ * 10 % от затворената сделка веднъж (Ивайло, 26.09.2026), не всеки месец.
+ */
+export function monthlyRuleFor(rules: CommissionRule[], serviceType: string, role?: string | null): CommissionRule | null {
+  const rule = ruleFor(rules, serviceType, role);
+  return rule && rule.basis === "monthly_fee" ? rule : null;
+}
+
 /** Сумата по правилото: фиксирана или процент от основата, закръглена до цент. */
 export function amountFor(rule: Pick<CommissionRule, "kind" | "value">, base: number | null | undefined): number {
   if (rule.kind === "fixed") return round2(Number(rule.value) || 0);
