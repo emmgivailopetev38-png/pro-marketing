@@ -56,6 +56,8 @@ export interface ReminderCandidate {
   business: string | null;
   source: string;
   created_at: string;
+  /** при кого е влязъл по ротацията — напомнянето отива при него */
+  routed_to?: string | null;
 }
 
 export interface DueReminder {

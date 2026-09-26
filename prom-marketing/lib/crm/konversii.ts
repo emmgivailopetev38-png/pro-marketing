@@ -66,6 +66,9 @@ export function callMeansTalked(a: Pick<KActivity, "activity_type" | "created_by
   const outcome = typeof a.metadata?.outcome === "string" ? (a.metadata.outcome as string) : null;
   if (outcome) return TALKED_OUTCOMES.has(outcome);
   if (a.metadata?.kind === "dnevnik") return true;
+  // Обаждане от бутоните на екипа без изход не значи разговор — сетърът и
+  // продавачите записват и „не вдигна“. Името остава за старите записи отпреди флага.
+  if (a.metadata?.team === true) return false;
   return !!a.created_by && a.created_by !== "Димитър";
 }
 

@@ -4,7 +4,7 @@ import { followupState } from "@/lib/contacts/followup";
 import { entryFromMetadata } from "@/lib/contacts/dnevnik";
 import { openPromisesByContact, photoSrcMany } from "@/lib/contacts/dnevnik-repository";
 import { ASSIGN_TYPE, summarizeAttempts, type AttemptRow } from "@/lib/team/queue-rules";
-import { firstActiveSetter } from "@/lib/team/repository";
+import { loadRotationPool } from "@/lib/team/routing";
 import { FollowupQueue, type FollowupRow } from "@/components/admin/FollowupQueue";
 
 export const dynamic = "force-dynamic";
@@ -87,11 +87,14 @@ export default async function FollowupPage() {
       lastDnevnik.has(c.id)
   );
 
-  const [promises, photos, setter] = await Promise.all([
+  const [promises, photos, pool] = await Promise.all([
     openPromisesByContact(picked.map((c) => c.id)),
     photoSrcMany(picked.map((c) => c.photo_url ?? null)),
-    firstActiveSetter(),
+    loadRotationPool(),
   ]);
+  // Един човек на звъненето — бутонът казва името му; повече — „екипа“: картонът
+  // отива при човека, при когото е влязъл по ротацията (виж lib/team/routing-rules.ts).
+  const setterName = pool.length === 1 ? pool[0].full_name : pool.length > 1 ? "екипа" : null;
 
   const rows: FollowupRow[] = picked.map((c) => ({
     ...c,
@@ -118,7 +121,7 @@ export default async function FollowupPage() {
           </p>
         </header>
 
-        <FollowupQueue rows={rows} nowIso={now.toISOString()} setterName={setter?.full_name ?? null} />
+        <FollowupQueue rows={rows} nowIso={now.toISOString()} setterName={setterName} />
       </div>
     </div>
   );

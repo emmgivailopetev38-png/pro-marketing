@@ -3,7 +3,9 @@ import { sendEmail } from "@/lib/email/resend";
 import { escapeHtml } from "@/lib/email/escape";
 import { sendTelegram } from "@/lib/notifications/telegram";
 import { decodeFormAnswers } from "@/lib/leads/form-labels";
-import { newLeadNotifyEmails } from "./repository";
+import { newLeadNotifyMembers } from "./repository";
+import { leadOwnerOf, loadRotationPool } from "./routing";
+import { leadOwner, recipientsFor } from "./routing-rules";
 import { fmtSofia } from "./time";
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://promarketing.pw").replace(/\/$/, "");
@@ -23,6 +25,22 @@ function ownerAddresses(): Set<string> {
   add("emmgivailopetev38@gmail.com");
   for (const a of (process.env.ALLOWED_ADMIN_EMAILS ?? "").split(",")) add(a);
   return set;
+}
+
+/**
+ * Кой от екипа получава писмото за картон: човекът на лийда по ротацията плюс
+ * наблюдаващите извън нея (виж routing-rules.ts) — Елена не получава писма за
+ * лийдовете на Димитър и обратно. Без картон — всички с включено известие.
+ */
+async function teamRecipients(contactId?: string | null): Promise<string[]> {
+  const owners = ownerAddresses();
+  const notify = await newLeadNotifyMembers();
+  let list = notify;
+  if (contactId) {
+    const { pool, ownerId } = await leadOwnerOf(contactId);
+    list = recipientsFor(notify, pool, ownerId);
+  }
+  return [...new Set(list.map((m) => m.email))].filter((e) => !owners.has(e));
 }
 
 export interface NewLeadForTeam {
@@ -48,8 +66,7 @@ export interface NewLeadForTeam {
 export async function notifyTeamNewLead(lead: NewLeadForTeam): Promise<void> {
   let to: string[];
   try {
-    const owners = ownerAddresses();
-    to = (await newLeadNotifyEmails()).filter((e) => !owners.has(e));
+    to = await teamRecipients(lead.contactId);
   } catch {
     return;
   }
@@ -134,8 +151,7 @@ export async function notifyCancelledBooking(c: CancelledBooking): Promise<void>
   // 1) Човекът за срещите — той ще звънне и ще я премести.
   let team: string[] = [];
   try {
-    const owners = ownerAddresses();
-    team = (await newLeadNotifyEmails()).filter((e) => !owners.has(e));
+    team = await teamRecipients(c.contactId);
   } catch {
     team = [];
   }
@@ -294,6 +310,7 @@ import {
   levelLabel,
   reminderKey,
   withinWorkingHours,
+  type DueReminder,
   type ReminderCandidate,
 } from "./lead-reminders";
 
@@ -318,14 +335,18 @@ export async function runLeadReminders(opts: { now?: Date; force?: boolean } = {
     return { ok: true, skipped: "quiet_hours", reminded: 0, recipients: 0 };
   }
 
-  const to = (await newLeadNotifyEmails().catch(() => [] as string[])).filter((e) => !ownerAddresses().has(e));
+  const owners = ownerAddresses();
+  const notify = (await newLeadNotifyMembers().catch(() => [] as Array<{ id: string; email: string }>)).filter(
+    (m) => !owners.has(m.email)
+  );
+  const to = [...new Set(notify.map((m) => m.email))];
   if (to.length === 0) return { ok: true, skipped: "no_recipients", reminded: 0, recipients: 0 };
 
   const sb = createServiceClient();
   const since = new Date(now.getTime() - MAX_AGE_MINUTES * 60_000).toISOString();
   const { data: rows } = await sb
     .from("contacts")
-    .select("id, full_name, phone, email, business, source, created_at")
+    .select("id, full_name, phone, email, business, source, created_at, routed_to")
     .eq("stage", "lead")
     .not("phone", "is", null)
     .gte("created_at", since)
@@ -351,7 +372,18 @@ export async function runLeadReminders(opts: { now?: Date; force?: boolean } = {
   );
   if (due.length === 0) return { ok: true, skipped: "nothing_due", reminded: 0, recipients: to.length };
 
-  const rowsHtml = due
+  // Всеки получава само своите: човекът на лийда по ротацията + наблюдаващите
+  // извън нея (виж routing-rules.ts). Писмото е едно на човек, с неговите хора.
+  const pool = await loadRotationPool().catch(() => []);
+  const recipientsOf = (d: DueReminder) =>
+    recipientsFor(notify, pool, leadOwner(d.contact.routed_to ?? null, pool)).map((m) => m.email);
+  const byEmail = new Map<string, DueReminder[]>();
+  for (const d of due) {
+    for (const e of recipientsOf(d)) byEmail.set(e, [...(byEmail.get(e) ?? []), d]);
+  }
+
+  const mail = (list: DueReminder[]) => {
+  const rowsHtml = list
     .map((d) => {
       const c = d.contact;
       const name = c.full_name?.trim() || c.phone || "без име";
@@ -368,12 +400,12 @@ export async function runLeadReminders(opts: { now?: Date; force?: boolean } = {
     .join("\n");
 
   const subject =
-    due.length === 1
-      ? `🔔 ${due[0].contact.full_name?.trim() || due[0].contact.phone || "Лийд"} още чака обаждане`
-      : `🔔 ${due.length} души чакат обаждане`;
+    list.length === 1
+      ? `🔔 ${list[0].contact.full_name?.trim() || list[0].contact.phone || "Лийд"} още чака обаждане`
+      : `🔔 ${list.length} души чакат обаждане`;
 
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#0d1221;">
-<p><strong>${due.length === 1 ? "Един човек" : `${due.length} души`} от рекламите още не е чул нищо от нас.</strong></p>
+<p><strong>${list.length === 1 ? "Един човек" : `${list.length} души`} от рекламите още не е чул нищо от нас.</strong></p>
 <p>Най-топли са през първия час — колкото по-късно звъннеш, толкова по-студен е разговорът.</p>
 <table style="border-collapse:collapse;">
 ${rowsHtml}
@@ -383,14 +415,21 @@ ${rowsHtml}
 </div>`;
 
   const text = [
-    `${due.length} души чакат обаждане:`,
-    ...due.map((d) => `• ${d.contact.full_name ?? d.contact.phone ?? "без име"} · ${d.contact.phone ?? "—"} · ${levelLabel(d.level)}`),
+    `${list.length} души чакат обаждане:`,
+    ...list.map((d) => `• ${d.contact.full_name ?? d.contact.phone ?? "без име"} · ${d.contact.phone ?? "—"} · ${levelLabel(d.level)}`),
     "",
     `Опашката: ${SITE}/ekip`,
   ].join("\n");
 
-  const res = await sendEmail({ to, subject, html, text }).catch(() => ({ id: null, error: "send failed" }));
-  if (res.error) return { ok: false, reminded: 0, recipients: to.length };
+  return { subject, html, text };
+  };
+
+  let sentOk = 0;
+  for (const [email, list] of byEmail) {
+    const res = await sendEmail({ to: [email], ...mail(list) }).catch(() => ({ id: null, error: "send failed" }));
+    if (!res.error) sentOk += 1;
+  }
+  if (sentOk === 0) return { ok: false, reminded: 0, recipients: byEmail.size };
 
   await sb
     .from("automation_events")
@@ -400,13 +439,13 @@ ${rowsHtml}
         status: "done",
         related_contact_id: d.contact.id,
         summary: `Напомняне ниво ${d.level} — ${d.contact.full_name ?? d.contact.phone ?? "лийд"} ${levelLabel(d.level)}`,
-        detail: { level: d.level, age_minutes: d.ageMinutes, to },
+        detail: { level: d.level, age_minutes: d.ageMinutes, to: recipientsOf(d) },
         idempotency_key: reminderKey(d.contact.id, d.level),
       }))
     )
     .then(() => null, () => null);
 
-  return { ok: true, reminded: due.length, recipients: to.length, names: due.map((d) => d.contact.full_name ?? d.contact.phone ?? "—") };
+  return { ok: true, reminded: due.length, recipients: byEmail.size, names: due.map((d) => d.contact.full_name ?? d.contact.phone ?? "—") };
 }
 
 // ── Съобщения, задачи и порталът ─────────────────────────────────────────────
@@ -606,8 +645,7 @@ export async function notifyNoShowBooking(n: NoShowBooking): Promise<void> {
 
   let team: string[] = [];
   try {
-    const owners = ownerAddresses();
-    team = (await newLeadNotifyEmails()).filter((e) => !owners.has(e));
+    team = await teamRecipients(n.contactId);
   } catch {
     team = [];
   }

@@ -177,6 +177,19 @@ export async function newLeadNotifyEmails(): Promise<string[]> {
   return [...new Set((data ?? []).map((r) => normEmail(String(r.email))).filter(Boolean))];
 }
 
+/** Същите хора като `newLeadNotifyEmails`, но с id — за да се знае кой е в ротацията. */
+export async function newLeadNotifyMembers(): Promise<Array<{ id: string; email: string }>> {
+  const sb = createServiceClient();
+  const { data } = await sb
+    .from("team_members")
+    .select("id, email")
+    .eq("active", true)
+    .eq("notify_new_leads", true);
+  return ((data ?? []) as Array<{ id: string; email: string | null }>)
+    .map((r) => ({ id: r.id, email: normEmail(String(r.email ?? "")) }))
+    .filter((r) => r.email);
+}
+
 /** Имената по id — за списъци, в които стои само id-то. */
 export async function memberNames(): Promise<Map<string, string>> {
   const sb = createServiceClient();

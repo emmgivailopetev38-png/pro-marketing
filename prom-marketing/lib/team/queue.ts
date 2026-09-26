@@ -17,6 +17,8 @@ import {
   type AttemptSummary,
   type NoteRow,
 } from "./queue-rules";
+import { seesGiven, seesLead } from "./routing-rules";
+import { loadRotationPool } from "./routing";
 
 /**
  * Опашката за звънене на човека за срещите.
@@ -48,7 +50,7 @@ import {
  */
 
 const COLS =
-  "id, full_name, phone, email, company, business, source, source_ref, stage, followup_status, next_followup_at, created_at, notes";
+  "id, full_name, phone, email, company, business, source, source_ref, stage, followup_status, next_followup_at, created_at, notes, routed_to";
 const ATTEMPT_TYPES = ["call", "meeting", "viber_sent"];
 const WINDOW_DAYS = 90;
 const MAX_FRESH = 200;
@@ -69,6 +71,8 @@ interface ContactLite {
   next_followup_at: string | null;
   created_at: string;
   notes: string | null;
+  /** при кого от екипа е влязъл лийдът (ротацията 50/50); null = стар лийд */
+  routed_to: string | null;
 }
 
 type Sb = ReturnType<typeof createServiceClient>;
@@ -179,12 +183,17 @@ async function loadAssigned(sb: Sb): Promise<ContactLite[]> {
   return (data ?? []) as ContactLite[];
 }
 
-export async function loadSetterQueue(now: Date = new Date()): Promise<SetterQueue> {
+/**
+ * `viewerId` = човекът от екипа, чиято опашка се показва: той вижда само
+ * лийдовете, влезли при него по ротацията (виж routing-rules.ts). null =
+ * собственикът — вижда опашката на целия екип.
+ */
+export async function loadSetterQueue(now: Date = new Date(), viewerId: string | null = null): Promise<SetterQueue> {
   const sb = createServiceClient();
   const since = new Date(now.getTime() - WINDOW_DAYS * 86_400_000).toISOString();
   const todayEnd = todayEndIso(now);
 
-  const [{ data: leadRows }, { data: dueRows }, { data: bookedRows }, assigned] = await Promise.all([
+  const [{ data: leadRows }, { data: dueRows }, { data: bookedRows }, assigned, pool] = await Promise.all([
     sb
       .from("contacts")
       .select(COLS)
@@ -210,13 +219,17 @@ export async function loadSetterQueue(now: Date = new Date()): Promise<SetterQue
       .order("scheduled_at", { ascending: true })
       .limit(30),
     loadAssigned(sb),
+    viewerId ? loadRotationPool() : Promise.resolve([]),
   ]);
 
-  const leads = (leadRows ?? []) as ContactLite[];
-  const due = (dueRows ?? []) as ContactLite[];
+  const mine = (c: ContactLite) => seesLead(viewerId, c.routed_to, pool);
+  const leads = ((leadRows ?? []) as ContactLite[]).filter(mine);
+  const due = ((dueRows ?? []) as ContactLite[]).filter(mine);
   const attempts = await loadAttempts(sb, [...new Set([...leads, ...due, ...assigned].map((c) => c.id))]);
 
-  const assignedOpen = pickGiven(assigned, attempts);
+  const assignedOpen = pickGiven(assigned, attempts).filter((c) =>
+    seesGiven(viewerId, attempts.get(c.id)?.given?.to_id ?? null, c.routed_to, pool)
+  );
   const cancelledContacts = assignedOpen.filter((c) => attempts.get(c.id)?.given?.kind === "cancelled");
   const noshowContacts = assignedOpen.filter((c) => attempts.get(c.id)?.given?.kind === "noshow");
   const givenContacts = assignedOpen.filter((c) => {
