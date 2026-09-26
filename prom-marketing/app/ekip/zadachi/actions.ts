@@ -1,5 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { isChecked } from "@/lib/form-data";
 import { requireTeamActor, type TeamActor } from "@/lib/team/session";
 import { createTask, deleteTask, setTaskStatus, updateTask } from "@/lib/team/tasks";
 import { notifyTaskAssigned } from "@/lib/team/notify";
@@ -60,7 +61,7 @@ export async function taskAction(_prev: EkipActionResult | null, formData: FormD
         assignee_id: assigneeId,
         project_id: s(formData, "project_id") || null,
         contact_id: s(formData, "contact_id") || null,
-        client_visible: s(formData, "client_visible") === "1",
+        client_visible: isChecked(formData, "client_visible"),
         created_by: actor.name,
       });
       if (res.error) return { ok: false, error: res.error };
@@ -104,7 +105,8 @@ export async function taskAction(_prev: EkipActionResult | null, formData: FormD
       const patch: Parameters<typeof updateTask>[1] = {};
       if (formData.has("due_date")) patch.due_date = isOwner ? s(formData, "due_date") || defaultDueDate() : clampDueForMember(s(formData, "due_date"));
       if (formData.has("priority")) patch.priority = s(formData, "priority");
-      if (formData.has("client_visible")) patch.client_visible = s(formData, "client_visible") === "1";
+      // Картата праща скрито „0“ + отметка „1“ — `s()` виждаше само „0“ и отметката не оставаше.
+      if (formData.has("client_visible")) patch.client_visible = isChecked(formData, "client_visible");
       if (isOwner && formData.has("assignee_id")) patch.assignee_id = s(formData, "assignee_id") || null;
       const res = await updateTask(id, patch);
       if (res.error) return { ok: false, error: res.error };
