@@ -178,6 +178,9 @@ export const PILLAR_PAGES: SitemapEntry[] = [
 export const SUPPORTING_PAGES: SitemapEntry[] = [
   { path: "/demo", priority: 0.8, changeFrequency: "monthly" },
   { path: "/automation-audit", priority: 0.8, changeFrequency: "monthly" },
+  // Лендингът на гласовия агент за онлайн магазини. Собствена заявка
+  // („гласов агент за онлайн магазин“), не дубликат на /glasov-ai-agent.
+  { path: "/glas", priority: 0.8, changeFrequency: "monthly" },
   { path: "/ai-reshenia", priority: 0.8, changeFrequency: "weekly" },
   { path: "/kurs", priority: 0.7, changeFrequency: "monthly" },
   { path: "/mentor", priority: 0.7, changeFrequency: "monthly" },

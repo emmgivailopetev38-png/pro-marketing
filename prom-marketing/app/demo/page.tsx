@@ -193,6 +193,10 @@ export default function Page() {
             ·{" "}
             <Link href="/glasov-ai-agent" style={{ color: "var(--v2-cyan)" }}>
               гласов AI агент
+            </Link>{" "}
+            ·{" "}
+            <Link href="/glas" style={{ color: "var(--v2-cyan)" }}>
+              гласов агент за онлайн магазин
             </Link>
           </p>
         </div>
