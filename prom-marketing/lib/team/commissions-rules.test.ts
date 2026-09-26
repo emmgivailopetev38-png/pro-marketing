@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { amountFor, dedupeKey, monthlyDue, periodOf, ruleFor, totalsFor, type CommissionRule } from "./commissions-rules";
+import { amountFor, dedupeKey, monthlyDue, monthlyRuleFor, periodOf, ruleFor, totalsFor, type CommissionRule } from "./commissions-rules";
 
 const RULES: CommissionRule[] = [
   { id: "r1", service_type: "marketing", label: "10 %", kind: "percent", value: 10, basis: "monthly_fee", role: null, active: true },
@@ -21,6 +21,20 @@ describe("commissions-rules", () => {
     expect(ruleFor(RULES, "crm_build", "setter")?.id).toBe("r4");
     expect(ruleFor(RULES, "crm_build", "sales")?.id).toBe("r3");
     expect(ruleFor(RULES, "training")).toBeNull();
+  });
+
+  it("продавачът: 10 % от затворената сделка за всеки вид — и никаква месечна (26.09.2026)", () => {
+    const sales: CommissionRule[] = ["marketing", "website", "crm_build"].map((s, i) => ({
+      id: `s${i}`, service_type: s, label: "Продавач · 10 %", kind: "percent", value: 10, basis: "deal", role: "sales", active: true,
+    }));
+    const rules = [...RULES, ...sales];
+    expect(amountFor(ruleFor(rules, "crm_build", "sales")!, 2900)).toBe(290);
+    expect(amountFor(ruleFor(rules, "website", "sales")!, 1200)).toBe(120);
+    expect(amountFor(ruleFor(rules, "marketing", "sales")!, 690)).toBe(69);
+    expect(monthlyRuleFor(rules, "marketing", "sales")).toBeNull();
+    // Другите роли си остават на общите правила — и на месечните 10 %.
+    expect(monthlyRuleFor(rules, "marketing", "setter")?.id).toBe("r1");
+    expect(amountFor(ruleFor(rules, "crm_build", "delivery")!, 2900)).toBe(200);
   });
 
   it("ключът пази от двойно начисляване; месечните носят месеца", () => {
