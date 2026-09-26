@@ -124,7 +124,8 @@ export function GlasLanding() {
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-300" /> Живо демо · говориш с него сега
           </span>
           <h1 className="mt-5 text-[clamp(34px,5.4vw,60px)] font-bold leading-[1.06] tracking-tight">
-            AI гласов агент, който <span className="text-cyan-300">вдига телефона</span> на магазина ти.
+            AI агент за онлайн магазин: <span className="text-cyan-300">поръчки, пратки</span> и
+            наложени платежи.
             <br />
             <span className="bg-gradient-to-r from-violet-300 to-cyan-200 bg-clip-text text-transparent">
               Денонощно. На български.
