@@ -39,6 +39,20 @@ for f in glob.glob(os.path.join(ROOT, "app/**/page.tsx"), recursive=True):
         rel = re.sub(r"\([^)]*\)/?", "", rel).strip("/")
         REDIRECTS.add("/" + rel if rel else "/")
 
+# Пренасочванията от next.config.ts. Адрес като „/rabota" няма своя страница в
+# билда, но не е счупен — сървърът го праща другаде (в случая към igra.
+# promarketing.pw). Без това всеки такъв адрес излизаше като счупена връзка и
+# заглушаваше истинските проблеми.
+CONFIG_REDIRECTS = set()
+_cfg = os.path.join(ROOT, "next.config.ts")
+if os.path.exists(_cfg):
+    _src = open(_cfg, encoding="utf-8", errors="replace").read()
+    _m = re.search(r'async redirects\(\)\s*\{(.*?)\n  \}', _src, re.S)
+    if _m:
+        for _s in re.findall(r'source:\s*"([^"]+)"', _m.group(1)):
+            if ":" in _s or "*" in _s: continue   # шаблоните се пропускат
+            CONFIG_REDIRECTS.add(_s.rstrip("/") or "/")
+
 pages = {}
 for f in glob.glob(os.path.join(APP, "**/*.html"), recursive=True):
     rel = os.path.relpath(f, APP)[:-5]
@@ -143,7 +157,7 @@ for p, n in sorted(links.items()):
     if p in known or dynamic_ok.match(p): continue
     if p.startswith("/_next") or p.startswith("/videa") or p.startswith("/images"): continue
     if p in ("/manifest.webmanifest","/sitemap.xml","/robots.txt","/llms.txt"): continue
-    if p in REDIRECTS: continue
+    if p in REDIRECTS or p in CONFIG_REDIRECTS: continue
     if os.path.exists(os.path.join(ROOT, "public", p.lstrip("/"))): continue
     bad("високо","връзки", f"счупена вътрешна връзка към {p} (от {len(targets[p])} страници)")
 
