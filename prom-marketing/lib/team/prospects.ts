@@ -1,3 +1,4 @@
+import { allRows } from "@/lib/supabase/all-rows";
 import { createServiceClient } from "@/lib/supabase/service";
 import { fmtSofia } from "./time";
 import {
@@ -107,15 +108,13 @@ export async function promoteProspect(p: Prospect, memberId: string | null): Pro
 
   // Сравнението е по нормализиран телефон — в картоните номерата са записани
   // по всякакъв начин (+359…, 08…, с интервали), затова не става с филтър в базата.
-  const { data: existing } = await sb.from("contacts").select("id, phone, email").not("phone", "is", null).limit(10000);
-  const hit = ((existing ?? []) as Array<{ id: string; phone: string | null; email: string | null }>).find(
-    (c) => (key && phoneKey(c.phone) === key) || (email && c.email?.toLowerCase() === email)
+  // Всички картони, на страници — таванът от 1000 реда иначе крие дубликата.
+  const { rows: existing, error: readError } = await allRows<{ id: string; phone: string | null; email: string | null }>((from, to) =>
+    sb.from("contacts").select("id, phone, email").order("id").range(from, to)
   );
+  if (readError) return { contactId: null, error: readError };
+  const hit = existing.find((c) => (key && phoneKey(c.phone) === key) || (email && c.email?.toLowerCase() === email));
   if (hit) return { contactId: hit.id, error: null };
-  if (email) {
-    const { data: byEmail } = await sb.from("contacts").select("id").eq("email", email).maybeSingle();
-    if (byEmail) return { contactId: byEmail.id as string, error: null };
-  }
 
   const nowIso = new Date().toISOString();
   const { data, error } = await sb
@@ -154,9 +153,10 @@ export interface ProspectStats {
 
 export async function prospectStats(): Promise<ProspectStats | null> {
   const sb = createServiceClient();
-  const { data, error } = await sb.from("prospects").select("city, phone_key, status, assigned_to, batch").limit(20000);
+  const { rows, error } = await allRows<{ city: string | null; phone_key: string | null; status: ProspectStatus; assigned_to: string | null; batch: string }>(
+    (from, to) => sb.from("prospects").select("city, phone_key, status, assigned_to, batch").order("id").range(from, to)
+  );
   if (error) return null;
-  const rows = (data ?? []) as Array<{ city: string | null; phone_key: string | null; status: ProspectStatus; assigned_to: string | null; batch: string }>;
   const byStatus: Record<string, number> = {};
   const cities = new Map<string, { total: number; free: number }>();
   const members = new Map<string, { assigned: number; open: number; converted: number }>();
