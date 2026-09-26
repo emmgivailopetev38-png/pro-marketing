@@ -1,4 +1,5 @@
 import "server-only";
+import { allRows } from "@/lib/supabase/all-rows";
 import { createServiceClient } from "@/lib/supabase/service";
 import { listActiveMembers, slugify } from "./repository";
 import { loadTasksFor } from "./tasks";
@@ -45,7 +46,7 @@ async function loadPool(days: number, now: Date): Promise<{ pool: NapredakPool; 
   // Два периода назад: текущият и предходният равен, за делтите.
   const prevFrom = new Date(now.getTime() - 2 * days * 86_400_000).toISOString();
 
-  const [{ data: teamRows }, { data: actRows }, { data: leadRows }, { data: bookingRows }, members, { data: coldRows }] = await Promise.all([
+  const [{ data: teamRows }, { data: actRows }, { data: leadRows }, { data: bookingRows }, members, cold] = await Promise.all([
     sb.from("team_members").select("full_name"),
     // Без горна граница нарочно: срещата, записана днес за утре, стои с
     // утрешна дата — моментът на работата се взима после (actedAt).
@@ -60,15 +61,18 @@ async function loadPool(days: number, now: Date): Promise<{ pool: NapredakPool; 
     listActiveMembers(),
     // Студените обаждания без картон („не вдигна“, „не се интересува“…) — те също
     // са обаждания. „Говорихме“ и „среща“ минават през картона, затова не са тук.
-    sb
-      .from("prospect_calls")
-      .select("prospect_id, outcome, caller, created_at")
-      .in("outcome", ["no_answer", "callback", "not_interested", "bad_number"])
-      .gte("created_at", prevFrom)
-      .limit(20000),
+    allRows<{ prospect_id: string; outcome: string; caller: string; created_at: string }>((from, to) =>
+      sb
+        .from("prospect_calls")
+        .select("prospect_id, outcome, caller, created_at")
+        .in("outcome", ["no_answer", "callback", "not_interested", "bad_number"])
+        .gte("created_at", prevFrom)
+        .order("created_at", { ascending: true })
+        .range(from, to)
+    ),
   ]);
 
-  const coldCalls: NapredakActivity[] = ((coldRows ?? []) as Array<{ prospect_id: string; outcome: string; caller: string; created_at: string }>).map(
+  const coldCalls: NapredakActivity[] = cold.rows.map(
     (r) => ({
       contact_id: `prospect:${r.prospect_id}`,
       activity_type: "call",
