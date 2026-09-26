@@ -125,6 +125,25 @@ describe("вкарването от таблиците", () => {
     const row = rowToProspect(["Алфа ООД", "sofia", "0888123456", "няма CRM", "няма реклами", "Иван", "94"], m);
     expect(row).toMatchObject({ company: "Алфа ООД", city: "София", gaps: "няма CRM\nняма реклами", score: 94 });
   });
+  it("проучените (03): общата оценка, трите идеи, проблемът, името с ролята — без подоценките", () => {
+    const headers = [
+      "business_name", "city", "business_phone", "decision_maker", "decision_maker_role", "personalized_opener",
+      "likely_problem", "automation_idea_1", "automation_idea_2", "automation_idea_3", "recommended_first_offer",
+      "need_score_30", "decision_maker_access_score_15", "digital_gap_score_10", "total_score_100", "tier",
+    ];
+    const m = mapHeaders(headers);
+    expect(m.score).toEqual([14]);
+    expect(m.decision_maker).toEqual([3, 4]);
+    expect(m.offer).toEqual([7, 8, 9, 10]);
+    expect(m.gaps).toEqual([6]);
+    expect(m.opener).toEqual([5]);
+    const row = rowToProspect(
+      ["Алфа", "Sofia", "0888123456", "Мария Петрова", "управител", "Здравейте…", "губят запитвания", "чатбот", "CRM", "напомняния", "одит", "27", "12", "8", "94", "A"],
+      m
+    );
+    expect(row).toMatchObject({ decision_maker: "Мария Петрова · управител", score: 94, offer: "чатбот\nCRM\nнапомняния\nодит", city: "София" });
+  });
+
   it("CSV: кавички, запетая в клетката, нов ред в клетката, точка и запетая", () => {
     expect(parseCsv('﻿Фирма,Град\n"Алфа, ООД",София\r\n"Бета ""Про""","Нов\nред"\n')).toEqual([
       ["Фирма", "Град"],

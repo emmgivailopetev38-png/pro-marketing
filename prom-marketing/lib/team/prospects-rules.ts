@@ -266,19 +266,26 @@ const ALIASES: Record<ProspectField, string[]> = {
   email: ["имейл", "e mail", "email", "mail"],
   website: ["сайт", "уебсайт", "website", "web", "url", "domain"],
   sector: ["бранш", "сектор", "индустрия", "industry", "sector", "category", "niche"],
-  opener: ["начало на разговора", "готово начало", "опенър", "opener", "call opener", "opening line", "first line"],
-  offer: ["автоматизационни възможности", "възможности", "идеи за автоматизация", "automation opportunities", "opportunities", "ideas"],
-  gaps: ["пропуски", "пропуски в автоматизацията", "маркетингови пропуски", "automation gaps", "marketing gaps", "gaps"],
+  opener: ["начало на разговора", "готово начало", "опенър", "opener", "call opener", "call opening", "personalized opener", "opening line", "first line"],
+  offer: [
+    "автоматизационни възможности", "възможности", "идеи за автоматизация", "automation opportunities", "opportunities", "ideas",
+    "automation idea", "recommended first offer",
+  ],
+  gaps: ["пропуски", "пропуски в автоматизацията", "маркетингови пропуски", "automation gaps", "marketing gaps", "gaps", "likely problem"],
   email_subject: ["тема", "тема на имейла", "subject", "email subject"],
   email_draft: ["черновик на имейл", "имейл черновик", "черновик", "email draft", "email body", "draft"],
-  decision_maker: ["decision maker", "лице за контакт", "управител", "контактно лице", "contact person", "owner"],
+  decision_maker: ["decision maker", "decision maker role", "лице за контакт", "управител", "контактно лице", "contact person", "owner"],
   buying_signal: ["buying signal", "сигнал", "сигнал за покупка"],
-  score: ["score", "скор", "скоринг", "оценка"],
+  // Общата оценка от 100 — преди „score“, иначе „съдържа“ хваща подоценките (need_score_30).
+  score: ["total score 100", "total score", "score", "скор", "скоринг", "оценка"],
   tier: ["tier", "клас"],
 };
 
-/** Полета, които събират няколко колони (напр. два вида пропуски). */
-const MULTI: ReadonlySet<ProspectField> = new Set(["offer", "gaps"]);
+/** Полета, които събират няколко колони (три идеи, два вида пропуски, име + роля). */
+const MULTI: ReadonlySet<ProspectField> = new Set(["offer", "gaps", "decision_maker"]);
+
+/** С какво се лепят събраните колони: в картата името и ролята са на един ред. */
+const JOIN: Partial<Record<ProspectField, string>> = { decision_maker: " · " };
 
 export function normHeader(h: string): string {
   return h.replace(/^﻿/, "").toLowerCase().replace(/[_\-.:/]+/g, " ").replace(/\s+/g, " ").trim();
@@ -307,11 +314,15 @@ export function mapHeaders(headers: string[]): Partial<Record<ProspectField, num
     if (out[f] && !MULTI.has(f)) continue;
     norm.forEach((h, i) => {
       if (taken.has(i)) return;
+      // Подоценките („decision_maker_access_score_15“) не са име, сайт или сигнал.
+      if (f !== "score" && /\bscore\b/.test(h)) return;
       if (!ALIASES[f].some((a) => a.length >= 5 && h.includes(a))) return;
       if (out[f] && !MULTI.has(f)) return;
       claim(f, i);
     });
   }
+  // Събраните колони — по реда им в таблицата (идея 1, 2, 3, после препоръката).
+  for (const f of PROSPECT_FIELDS) out[f]?.sort((a, b) => a - b);
   return out;
 }
 
@@ -331,7 +342,7 @@ export function rowToProspect(cells: string[], map: Partial<Record<ProspectField
     } else if (f === "city") {
       out.city = normalizeCity(vals[0]);
     } else {
-      out[f] = MULTI.has(f) ? vals.join("\n") : vals[0];
+      out[f] = MULTI.has(f) ? vals.join(JOIN[f] ?? "\n") : vals[0];
     }
   }
   return out;
