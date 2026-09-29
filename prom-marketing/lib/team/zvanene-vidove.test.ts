@@ -62,3 +62,17 @@ describe("лентата за спешните", () => {
     expect(urgentBanner("novi", { cancelled: 0, noshow: 0 })).toBeNull();
   });
 });
+
+describe("студените (26.09.2026)", () => {
+  it("табът излиза само при човек със студени фирми — последен", () => {
+    expect(zvaneneTabs(counts).map((t) => t.view)).not.toContain("studeni");
+    const tabs = zvaneneTabs({ ...counts, studeni: 31 });
+    expect(tabs.map((t) => t.view)).toEqual(["novi", "povtorno", "ivailo", "sreshti", "studeni"]);
+    expect(tabs.at(-1)).toMatchObject({ label: "❄️ Студени", count: 31, href: "/ekip?vid=studeni", urgent: 0 });
+  });
+
+  it("отвореният таб не изчезва, когато студените свършат", () => {
+    expect(zvaneneTabs({ ...counts, studeni: 0 }, "studeni").map((t) => t.view)).toContain("studeni");
+    expect(parseZvaneneView("studeni")).toBe("studeni");
+  });
+});

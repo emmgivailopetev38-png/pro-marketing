@@ -1,9 +1,10 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/require-admin";
+import { isChecked } from "@/lib/form-data";
 import { createMember, resetMemberPassword, updateMember } from "@/lib/team/repository";
-import { permissionsFromForm } from "@/lib/team/roles";
-import { TEAM_MODULES, TEAM_ROLES, type TeamModule, type TeamRole } from "@/lib/team/types";
+import { modulesFromForm, permissionsFromForm } from "@/lib/team/roles";
+import { TEAM_ROLES, type TeamRole } from "@/lib/team/types";
 
 export interface TeamAdminResult {
   ok: boolean;
@@ -18,15 +19,6 @@ function roleOf(raw: string): TeamRole {
   return (TEAM_ROLES as readonly string[]).includes(raw) && raw !== "owner" ? (raw as TeamRole) : "setter";
 }
 
-function modulesFromForm(formData: FormData): Partial<Record<TeamModule, string | null>> {
-  const out: Partial<Record<TeamModule, string | null>> = {};
-  for (const m of TEAM_MODULES) {
-    const v = formData.get(`mod_${m}`);
-    if (v === "0" || v === "1") out[m] = String(v);
-  }
-  return out;
-}
-
 export async function createMemberAction(_prev: TeamAdminResult | null, formData: FormData): Promise<TeamAdminResult> {
   await requireAdmin();
   const role = roleOf(String(formData.get("role") ?? "setter"));
@@ -37,7 +29,7 @@ export async function createMemberAction(_prev: TeamAdminResult | null, formData
     role,
     title: String(formData.get("title") ?? ""),
     notes: String(formData.get("notes") ?? ""),
-    notify_new_leads: formData.get("notify_new_leads") === "1",
+    notify_new_leads: isChecked(formData, "notify_new_leads"),
     permissions: permissionsFromForm(modulesFromForm(formData), role),
   });
   if ("error" in res) return { ok: false, error: res.error };

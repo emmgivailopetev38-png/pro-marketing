@@ -1,6 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/require-admin";
+import { isChecked } from "@/lib/form-data";
 import { manualCommission, runMonthly, setCommissionStatus, updateRule } from "@/lib/team/commissions";
 import { periodOf } from "@/lib/team/commissions-rules";
 import type { EkipActionResult } from "@/lib/team/types";
@@ -60,7 +61,8 @@ export async function updateRuleAction(formData: FormData): Promise<void> {
   const id = s(formData, "id");
   if (!id) return;
   const value = Number(s(formData, "value").replace(",", "."));
-  const active = s(formData, "active") === "1";
+  // Скрито „0“ + отметка „1“: с `s()` (FormData.get) всяка редакция изключваше правилото.
+  const active = isChecked(formData, "active");
   await updateRule(id, { ...(Number.isFinite(value) && value >= 0 ? { value } : {}), active });
   revalidate();
 }

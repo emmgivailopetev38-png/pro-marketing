@@ -32,7 +32,7 @@ export interface KBooking {
 }
 
 /** Изходите на разговор, които значат „говорихме с човека“ (не само набрахме). */
-const TALKED_OUTCOMES = new Set(["callback", "talked", "meeting", "handoff"]);
+const TALKED_OUTCOMES = new Set(["callback", "talked", "will_call", "meeting", "handoff"]);
 const AUTO = new Set([
   "hermes",
   "lead_sequence",
@@ -66,6 +66,9 @@ export function callMeansTalked(a: Pick<KActivity, "activity_type" | "created_by
   const outcome = typeof a.metadata?.outcome === "string" ? (a.metadata.outcome as string) : null;
   if (outcome) return TALKED_OUTCOMES.has(outcome);
   if (a.metadata?.kind === "dnevnik") return true;
+  // Обаждане от бутоните на екипа без изход не значи разговор — сетърът и
+  // продавачите записват и „не вдигна“. Името остава за старите записи отпреди флага.
+  if (a.metadata?.team === true) return false;
   return !!a.created_by && a.created_by !== "Димитър";
 }
 

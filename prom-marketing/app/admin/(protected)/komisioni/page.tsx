@@ -17,7 +17,8 @@ export default async function AdminKomisioniPage() {
           <h1 className="cc-title mt-2 font-display text-4xl font-bold">Комисионни</h1>
           <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
             Уговорката от 22.09.2026: 200 € на затворен проект, 150 € на уебсайт, 10 % от месечната такса при
-            маркетинг/поддръжка. Еднократните се начисляват при „Спечелен“; месечните — с бутона за месеца.
+            маркетинг/поддръжка. Продавачът (от 26.09.2026): 10 % от затворената сделка, веднъж — без месечна.
+            Еднократните се начисляват при „Спечелен“; месечните — с бутона за месеца.
           </p>
         </header>
         <CommissionsManager rows={rows} rules={rules} members={byMember} currentPeriod={periodOf()} />

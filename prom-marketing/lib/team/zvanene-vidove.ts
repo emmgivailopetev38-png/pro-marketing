@@ -12,7 +12,7 @@
  * Чисти правила, без база — тестват се.
  */
 
-export const ZVANENE_VIEWS = ["novi", "povtorno", "ivailo", "sreshti"] as const;
+export const ZVANENE_VIEWS = ["novi", "povtorno", "ivailo", "sreshti", "studeni"] as const;
 export type ZvaneneView = (typeof ZVANENE_VIEWS)[number];
 
 /** Входът /ekip без параметър: новите за първи разговор — основната работа. */
@@ -23,6 +23,7 @@ export const ZVANENE_LABEL: Record<ZvaneneView, string> = {
   povtorno: "🔁 За повторно",
   ivailo: "🤝 От Ивайло",
   sreshti: "💜 Срещите",
+  studeni: "❄️ Студени",
 };
 
 /** Какво значи изгледът — един ред под табовете, за да няма гадаене. */
@@ -31,6 +32,7 @@ export const ZVANENE_HINT: Record<ZvaneneView, string> = {
   povtorno: "Всички, на които се звъни втори път: отказали срещата, неявили се, обещано чуване за днес и тези, които не вдигнаха.",
   ivailo: "Картони, които Ивайло е дал на екипа. Влизаш с повода „преди време говорихте с Ивайло…“ и търсиш час.",
   sreshti: "Съобщенията по Viber за предстоящите срещи и списъкът с уговорените часове.",
+  studeni: "Фирми от проучването, които не са ни търсили. Целта е среща с Ивайло, не продажба. Първо обещаните обаждания, после новите — София първа.",
 };
 
 export interface ZvaneneCounts {
@@ -44,6 +46,8 @@ export interface ZvaneneCounts {
   msgsDue: number;
   /** предстоящи уговорени срещи */
   booked: number;
+  /** студените за звънене сега: дошлите за повторно + новите (виж prospects-rules.ts) */
+  studeni?: number;
 }
 
 export interface ZvaneneTab {
@@ -67,21 +71,27 @@ export function zvaneneHref(view: ZvaneneView): string {
   return view === ZVANENE_DEFAULT ? "/ekip" : `/ekip?vid=${view}`;
 }
 
-/** Табовете с числата им, в реда, по който Димитър ги изброи. */
-export function zvaneneTabs(c: ZvaneneCounts): ZvaneneTab[] {
+/**
+ * Табовете с числата им, в реда, по който Димитър ги изброи. „Студени“ излиза
+ * последен и само при човек, на когото Ивайло е дал студени фирми.
+ */
+export function zvaneneTabs(c: ZvaneneCounts, active?: ZvaneneView): ZvaneneTab[] {
   const count: Record<ZvaneneView, number> = {
     novi: c.fresh,
     povtorno: c.cancelled + c.noshow + c.retry + c.waiting,
     ivailo: c.given,
     sreshti: c.booked,
+    studeni: c.studeni ?? 0,
   };
   const urgent: Record<ZvaneneView, number> = {
     novi: 0,
     povtorno: c.cancelled + c.noshow,
     ivailo: 0,
     sreshti: c.msgsDue,
+    studeni: 0,
   };
-  return ZVANENE_VIEWS.map((view) => ({
+  const views = ZVANENE_VIEWS.filter((v) => v !== "studeni" || count.studeni > 0 || active === "studeni");
+  return views.map((view) => ({
     view,
     href: zvaneneHref(view),
     label: ZVANENE_LABEL[view],

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTeamActor } from "@/lib/team/session";
+import { getMemberById } from "@/lib/team/repository";
 import { loadSetterQueue, searchLeads } from "@/lib/team/queue";
+import { loadProspectQueue } from "@/lib/team/prospects";
 import { fmtSofia } from "@/lib/team/time";
 import { allowed, ekipNav } from "@/lib/team/nav";
 import { homeFor } from "@/lib/team/roles";
@@ -9,6 +11,7 @@ import type { QueueLead } from "@/lib/team/types";
 import { loadMeetingMessages } from "@/lib/team/sreshti";
 import { parseZvaneneView, urgentBanner, zvaneneHref, zvaneneTabs } from "@/lib/team/zvanene-vidove";
 import { LeadCard } from "@/components/ekip/LeadCard";
+import { ProspectCard } from "@/components/ekip/ProspectCard";
 import { EkipHeader } from "@/components/ekip/EkipHeader";
 import { ZvaneneTabs } from "@/components/ekip/ZvaneneTabs";
 import { ScriptPanel } from "@/components/ekip/ScriptPanel";
@@ -38,7 +41,7 @@ export const dynamic = "force-dynamic";
 export default async function EkipPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string | string[]; vid?: string | string[] }>;
+  searchParams: Promise<{ q?: string | string[]; vid?: string | string[]; as?: string | string[] }>;
 }) {
   const actor = await getTeamActor();
   if (!actor) redirect("/ekip/login");
@@ -47,11 +50,18 @@ export default async function EkipPage({
   const sp = await searchParams;
   const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q ?? "").trim();
   const view = parseZvaneneView(sp.vid);
-  const [queue, found, nav, msgs] = await Promise.all([
-    loadSetterQueue(),
+  // Всеки вижда своите лийдове (ротацията 50/50). Собственикът вижда всички, а с
+  // ?as=<id> — точно опашката на човека, за да провери какво вижда той.
+  const asId = actor.kind === "owner" ? ((Array.isArray(sp.as) ? sp.as[0] : sp.as) ?? "").trim() : "";
+  const preview = asId ? await getMemberById(asId).catch(() => null) : null;
+  const viewerId = actor.kind === "member" ? actor.member.id : (preview?.id ?? null);
+  const callerName = actor.kind === "member" ? actor.name : (preview?.full_name ?? actor.name);
+  const [queue, found, nav, msgs, cold] = await Promise.all([
+    loadSetterQueue(new Date(), viewerId),
     q ? searchLeads(q) : Promise.resolve([] as QueueLead[]),
     ekipNav(actor),
     loadMeetingMessages().catch(() => []),
+    loadProspectQueue(viewerId).catch(() => ({ due: [], fresh: [], later: 0, freshTotal: 0 })),
   ]);
   const todayMeetings = queue.booked;
   const msgsDue = msgs.filter((m) => m.due).length;
@@ -64,8 +74,9 @@ export default async function EkipPage({
     given: queue.given.length,
     msgsDue,
     booked: todayMeetings.length,
+    studeni: cold.due.length + cold.freshTotal,
   };
-  const tabs = zvaneneTabs(counts);
+  const tabs = zvaneneTabs(counts, view);
   const urgent = urgentBanner(view, counts);
 
   return (
@@ -73,6 +84,12 @@ export default async function EkipPage({
       <EkipHeader name={actor.name} isOwner={actor.kind === "owner"} nav={nav.items} section="zvanene" unread={nav.unread} />
 
       <main className="space-y-6 px-4 py-4">
+        {preview && (
+          <p className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-[var(--color-text-secondary)]">
+            👀 Преглед: това е опашката на <b className="text-[var(--color-text-primary)]">{preview.full_name}</b> — само нейните/неговите
+            лийдове от ротацията. <Link href="/ekip" className="underline">Обратно към целия екип</Link>
+          </p>
+        )}
         <ZvaneneTabs tabs={tabs} active={view} />
 
         {urgent && (
@@ -110,7 +127,7 @@ export default async function EkipPage({
         {view === "novi" && (
           <>
             <NapredakStrip actor={actor} />
-            <ScriptPanel />
+            <ScriptPanel name={callerName} />
             <section className="space-y-3">
               <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--color-accent-cyan)]">
                 🆕 Нови за първи разговор · {queue.fresh.length}
@@ -123,6 +140,48 @@ export default async function EkipPage({
                 queue.fresh.map((l) => <LeadCard key={l.id} lead={l} mode="fresh" />)
               )}
             </section>
+          </>
+        )}
+
+        {view === "studeni" && (
+          <>
+            <NapredakStrip actor={actor} />
+            <section className="space-y-2 rounded-2xl border border-sky-400/20 bg-sky-400/[0.04] p-4 text-sm text-[var(--color-text-secondary)]">
+              <p className="font-semibold text-[var(--color-text-primary)]">❄️ Студено обаждане за 60 секунди</p>
+              <p>
+                1. Кой си и защо звъниш — с „Как започваш“ от картата. 2. Един въпрос за тях: как им идват клиентите
+                сега. 3. Искаш само 30 минути с Ивайло, не продаваш. „Не“ е нормално — натисни и следващата.
+              </p>
+            </section>
+
+            {cold.due.length > 0 && (
+              <section className="space-y-3">
+                <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-amber-300">⏰ Обещано обаждане · {cold.due.length}</h2>
+                {cold.due.map((p) => (
+                  <ProspectCard key={`sd-${p.id}`} prospect={p} />
+                ))}
+              </section>
+            )}
+
+            <section className="space-y-3">
+              <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-sky-300">
+                ❄️ Нови · {cold.freshTotal}
+                {cold.freshTotal > cold.fresh.length ? ` · на екрана първите ${cold.fresh.length}` : ""}
+              </h2>
+              {cold.fresh.length === 0 && cold.due.length === 0 ? (
+                <p className="rounded-2xl border border-white/10 p-6 text-center text-sm text-[var(--color-text-secondary)]">
+                  Нямаш студени фирми за звънене. Ивайло ги раздава от „Студени обаждания“ — щом ти даде, излизат тук.
+                </p>
+              ) : (
+                cold.fresh.map((p) => <ProspectCard key={`sf-${p.id}`} prospect={p} />)
+              )}
+            </section>
+
+            {cold.later > 0 && (
+              <p className="text-center text-xs text-[var(--color-text-tertiary)]">
+                + {cold.later} насрочени за по-късно — излизат тук, когато им дойде часът.
+              </p>
+            )}
           </>
         )}
 
@@ -153,12 +212,12 @@ export default async function EkipPage({
                   не вдига — прати готовото съобщение по Viber и натисни „Не вдигна“.
                 </p>
                 {queue.noshow.map((l) => (
-                  <LeadCard key={`n-${l.id}`} lead={l} mode="noshow" setterName={actor.name} />
+                  <LeadCard key={`n-${l.id}`} lead={l} mode="noshow" setterName={callerName} />
                 ))}
               </section>
             )}
 
-            <ScriptPanel />
+            <ScriptPanel name={callerName} />
 
             {queue.retry.length > 0 && (
               <section className="space-y-3">
@@ -232,7 +291,7 @@ export default async function EkipPage({
                 Няма предстоящи срещи с телефон за следващите дни.
               </p>
             ) : (
-              <MeetingMessages rows={msgs} setterName={actor.name} />
+              <MeetingMessages rows={msgs} setterName={callerName} />
             )}
 
             {todayMeetings.length > 0 && (

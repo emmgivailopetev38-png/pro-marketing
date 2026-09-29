@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 /**
  * POST /api/igra/sabitie
  *
- * Известие от играта „ЛОСТ" (тренажорът за наемане): нов кандидат се е
+ * Известие от играта „Мастър Клас Продажби" (тренажорът за наемане): нов кандидат се е
  * регистрирал или кандидат е завършил мисия. Играта и CRM-ът делят един
  * Supabase проект, затова тук няма секрет — защитата е:
  *   1. ref-ът трябва да сочи реален ред в базата (sg_profiles /
@@ -24,7 +24,7 @@ const NOTIFY_TO = "emmgivailopetev38@gmail.com";
 const ADMIN_BASE = "https://promarketing.pw";
 
 const schema = z.object({
-  kind: z.enum(["signup", "mission"]),
+  kind: z.enum(["signup", "mission", "abonament", "plashtane", "pro_start"]),
   ref: z.string().min(1).max(200),
 });
 
@@ -123,6 +123,132 @@ export async function POST(request: Request) {
           ${p.motivation ? `<p style="margin:12px 0 4px"><em>„${escapeHtml(p.motivation)}“</em></p>` : ""}
           <p style="margin:16px 0 0"><a href="${ADMIN_BASE}/admin/igra/${p.id}">Виж профила в CRM-а →</a></p>
         </div>`;
+    } else if (kind === "pro_start") {
+      // Човек от /pro е дал телефон и отива към плащането в Stripe. Ако спре
+      // там, иначе нямаше да разберем за него — а точно той е търсеният
+      // клиент: продава сам и иска да го прави по-добре. ref е user id.
+      const { data: profile, error } = await sb
+        .from("sg_profiles")
+        .select("id, display_name, email, phone, company, sells, profession, source, is_candidate, is_admin, call_ok")
+        .eq("id", ref)
+        .maybeSingle();
+      if (error) {
+        console.error("[igra/sabitie] pro_start profile lookup failed:", error.message);
+        return NextResponse.json({ ok: false });
+      }
+      const p = profile as
+        | (Pick<ProfileRow, "id" | "display_name" | "email" | "phone" | "profession" | "source" | "is_candidate"> & {
+            company: string | null;
+            sells: string | null;
+            is_admin: boolean | null;
+            call_ok: boolean | null;
+          })
+        | null;
+      // Кандидатите имат свое писмо, а админът пробва сам — не се броят.
+      if (!p || p.is_candidate || p.is_admin || !p.phone) {
+        return NextResponse.json({ ok: true, skipped: true });
+      }
+      const name = p.display_name || "Без име";
+
+      subject = `🎯 Започва ПРО в играта: ${name}${p.call_ok ? " · иска обаждане" : ""}`;
+      const lines = [
+        `Име: ${name}`,
+        `Телефон: ${p.phone}`,
+        p.call_ok ? `Обаждане: ✅ отметна „Искам да ми се обадите“` : `Обаждане: не е отметнал`,
+        `Имейл: ${p.email || "—"}`,
+        ...(p.company ? [`Фирма: ${p.company}`] : []),
+        ...(p.sells ? [`Какво продава: ${p.sells}`] : []),
+        ...(p.profession ? [`Занаят в играта: ${p.profession}`] : []),
+      ];
+      text = [
+        `Нов човек от страницата на Мастър Клас Продажби · ПРО даде телефон и отиде към плащането.`,
+        `Ако до час не дойде писмо „Нов абонат“, е спрял на картата.`,
+        ``,
+        ...lines,
+        ``,
+        `Профил: ${ADMIN_BASE}/admin/igra/${p.id}`,
+      ].join("\n");
+      html = `
+        <div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;color:#111">
+          <h2 style="margin:0 0 12px">🎯 Започва ПРО в играта</h2>
+          <p style="margin:0 0 4px"><strong>${escapeHtml(name)}</strong></p>
+          <p style="margin:0 0 4px">Телефон: <a href="tel:${escapeHtml(p.phone.replace(/\s/g, ""))}">${escapeHtml(p.phone)}</a></p>
+          <p style="margin:0 0 4px">${p.call_ok ? "✅ <strong>Иска да му се обадим</strong> (отметна го на /pro)" : "Обаждане: не е отметнал"}</p>
+          <p style="margin:0 0 4px">Имейл: ${escapeHtml(p.email) || "—"}</p>
+          ${p.company ? `<p style="margin:0 0 4px">Фирма: ${escapeHtml(p.company)}</p>` : ""}
+          ${p.sells ? `<p style="margin:0 0 4px">Какво продава: ${escapeHtml(p.sells)}</p>` : ""}
+          ${p.profession ? `<p style="margin:0 0 4px">Занаят в играта: ${escapeHtml(p.profession)}</p>` : ""}
+          <p style="margin:12px 0 4px;color:#444">Даде телефон и отиде към плащането. Ако до час не дойде писмо „Нов абонат“, е спрял на картата.</p>
+          <p style="margin:16px 0 0"><a href="${ADMIN_BASE}/admin/igra/${p.id}">Виж профила в CRM-а →</a></p>
+        </div>`;
+    } else if (kind === "abonament" || kind === "plashtane") {
+      // Мастър Клас Продажби · ПРО — абонамент през Stripe. ref е user id (абонамент) или
+      // „<user id>:<invoice id>“ (плащане). Истината е в базата: абонаментът
+      // трябва да има ред в sg_subscriptions, а плащането — събитие invoice.paid
+      // в sg_billing_events (пише ги webhook-ът на играта, подписан от Stripe).
+      const [userId, invoiceId] = ref.split(":");
+      const { data: sub } = await sb
+        .from("sg_subscriptions")
+        .select("status, trial_end, current_period_end, email")
+        .eq("user_id", userId)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!sub) return NextResponse.json({ ok: true, skipped: true });
+      if (kind === "plashtane") {
+        const { data: paid } = await sb
+          .from("sg_billing_events")
+          .select("id")
+          .eq("type", "invoice.paid")
+          .eq("object_id", invoiceId ?? "")
+          .maybeSingle();
+        if (!paid) return NextResponse.json({ ok: true, skipped: true });
+      }
+
+      const { data: profile } = await sb
+        .from("sg_profiles")
+        .select("id, display_name, email, phone, motivation, is_candidate, source, profession")
+        .eq("id", userId)
+        .maybeSingle();
+      const p = (profile ?? {}) as Partial<ProfileRow>;
+      const s = sub as { status: string; trial_end: string | null; current_period_end: string | null; email: string | null };
+      const name = p.display_name || "Абонат";
+      const email = p.email || s.email || "—";
+      const bg = (iso: string | null) =>
+        iso ? new Date(iso).toLocaleDateString("bg-BG", { day: "numeric", month: "long", timeZone: "Europe/Sofia" }) : "—";
+
+      if (kind === "abonament") {
+        subject = `🎟 Нов абонат в Мастър Клас Продажби: ${name}`;
+        const lines = [
+          `Име: ${name}`,
+          `Имейл: ${email}`,
+          `Телефон: ${p.phone || "—"}`,
+          `Статус: ${s.status === "trialing" ? `пробен период до ${bg(s.trial_end)}` : s.status}`,
+          ...(p.profession ? [`Занаят: ${p.profession}`] : []),
+        ];
+        text = [`Нов абонат в Мастър Клас Продажби · ПРО.`, ``, ...lines, ``, `Профил: ${ADMIN_BASE}/admin/igra/${userId}`].join("\n");
+        html = `
+        <div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;color:#111">
+          <h2 style="margin:0 0 12px">🎟 Нов абонат в Мастър Клас Продажби · ПРО</h2>
+          ${lines.map((l) => `<p style="margin:0 0 4px">${escapeHtml(l)}</p>`).join("")}
+          <p style="margin:16px 0 0"><a href="${ADMIN_BASE}/admin/igra/${userId}">Виж профила в CRM-а →</a></p>
+        </div>`;
+      } else {
+        subject = `💶 ${name} плати Мастър Клас Продажби · ПРО`;
+        const lines = [
+          `Име: ${name}`,
+          `Имейл: ${email}`,
+          `Следващо плащане: ${bg(s.current_period_end)}`,
+        ];
+        const stripeUrl = `https://dashboard.stripe.com/invoices/${invoiceId}`;
+        text = [`Плащане по абонамента Мастър Клас Продажби · ПРО.`, ``, ...lines, ``, `Фактурата в Stripe: ${stripeUrl}`].join("\n");
+        html = `
+        <div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;color:#111">
+          <h2 style="margin:0 0 12px">💶 Плащане по Мастър Клас Продажби · ПРО</h2>
+          ${lines.map((l) => `<p style="margin:0 0 4px">${escapeHtml(l)}</p>`).join("")}
+          <p style="margin:16px 0 0"><a href="${stripeUrl}">Фактурата в Stripe →</a></p>
+        </div>`;
+      }
     } else {
       // kind === "mission"
       const { data: session, error } = await sb

@@ -5,6 +5,7 @@ import { sendEmail } from "@/lib/email/resend";
 import { sendWelcomeEmail } from "@/lib/email/welcome";
 import { escapeHtml } from "@/lib/email/escape";
 import { notifyTeamNewLead } from "@/lib/team/notify";
+import { routeNewLead } from "@/lib/team/routing";
 
 export const dynamic = "force-dynamic";
 
@@ -164,6 +165,8 @@ CRM: https://promarketing.pw/admin/clients/${contactId}`,
   }
 
   // Екипът, който звъни на лийдовете — с линк към опашката за звънене.
+  // Първо ротацията (Димитър, Елена, Димитър…) — писмото отива само при него.
+  await routeNewLead(contactId).catch(() => null);
   await notifyTeamNewLead({
     contactId,
     fullName: full_name,

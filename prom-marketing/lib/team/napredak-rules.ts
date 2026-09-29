@@ -159,7 +159,7 @@ export function bookedBy(b: Pick<NapredakBooking, "notes">, teamNames: string[])
 export type CallOutcome = "talked" | "no_answer" | "not_interested" | "wrong_number" | "unknown";
 
 /** Бутоните от опашката, след които е имало истински разговор, стигнал донякъде. */
-export const TALKED_OUTCOMES = new Set(["callback", "talked", "meeting", "handoff"]);
+export const TALKED_OUTCOMES = new Set(["callback", "talked", "will_call", "meeting", "handoff"]);
 
 /**
  * Изходът от обаждането. Екипът натиска бутон и той стои в metadata.outcome;

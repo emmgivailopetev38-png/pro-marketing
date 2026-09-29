@@ -126,6 +126,25 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         message = `Записано. Картата остава под ръка; за повторно излиза на ${fmtSofia(retryIso)}. Обади ли се преди това — намираш го с търсачката.`;
         break;
       }
+      case "will_call": {
+        // „Аз ще Ви се обадя“ — човекът сам ще звънне. Картата стои в „чакат
+        // обратно обаждане“ (там се търси, когато звънне), а ако не се обади
+        // до избрания ден, излиза пак за повторно — да не се губи.
+        const retryAt = talkedRetryAt(str(formData, "will_call_after"));
+        const retryIso = retryAt.toISOString();
+        patch.last_heard_from_at = nowIso;
+        patch.followup_status = "needs_call";
+        patch.next_followup_at = retryIso;
+        if (stage === "lead" || reopened) patch.stage = "contacted";
+        meta.retry_at = retryIso;
+        activity = {
+          type: "call",
+          title: `Говорихме · той ще се обади · ако не — пак на ${fmtSofia(retryIso)}`,
+          body: [business ? `Дейност: ${business}` : null, note || null].filter(Boolean).join("\n") || null,
+        };
+        message = `Записано — чакаме той да се обади. Картата е в „чакат обратно обаждане“; не звънне ли до ${fmtSofia(retryIso)}, излиза пак за повторно.`;
+        break;
+      }
       case "meeting": {
         const meetingIso = sofiaLocalToIso(str(formData, "meeting_at"));
         if (!meetingIso) return { ok: false, error: "Избери кога е срещата." };

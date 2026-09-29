@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { canSee, defaultModules, homeFor, navFor, permissionsFromForm, visibleModules } from "./roles";
+import { canSee, defaultModules, homeFor, modulesFromForm, navFor, permissionsFromForm, visibleModules } from "./roles";
+import { TEAM_MODULES, type TeamModule } from "./types";
+
+/** Формата от /admin/ekip такава, каквато я праща браузърът: скрито „0“, после „1“ за отметнатите. */
+function adminForm(checked: TeamModule[]): FormData {
+  const fd = new FormData();
+  for (const m of TEAM_MODULES) {
+    fd.append(`mod_${m}`, "0");
+    if (checked.includes(m)) fd.append(`mod_${m}`, "1");
+  }
+  return fd;
+}
 
 describe("roles: кой какво вижда", () => {
   it("сетърът вижда опашката, задачите, съобщенията и материалите — не цените", () => {
@@ -45,5 +56,19 @@ describe("roles: кой какво вижда", () => {
   it("човек без права, дошъл от старата схема, не пада", () => {
     expect(canSee({ role: "delivery", permissions: undefined }, "proekti")).toBe(true);
     expect(homeFor(null)).toBe("/ekip");
+  });
+
+  it("продавач с отметнато „Звънене“ влиза в правата — не всичко изключено (Елена, 26.09)", () => {
+    const fd = adminForm(["zvanene", ...defaultModules("sales")]);
+    expect(permissionsFromForm(modulesFromForm(fd), "sales")).toEqual({ modules: { zvanene: true } });
+  });
+
+  it("формата, оставена както е по ролята, не записва нищо", () => {
+    expect(permissionsFromForm(modulesFromForm(adminForm(defaultModules("setter"))), "setter")).toEqual({});
+  });
+
+  it("махнатата отметка по роля се пази като изрично „не“", () => {
+    const fd = adminForm(defaultModules("sales").filter((m) => m !== "ceni"));
+    expect(permissionsFromForm(modulesFromForm(fd), "sales")).toEqual({ modules: { ceni: false } });
   });
 });

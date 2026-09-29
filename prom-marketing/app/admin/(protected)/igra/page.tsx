@@ -4,7 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 export const dynamic = "force-dynamic";
 
 /**
- * Кандидати от играта „ЛОСТ" — тренажорът за наемане на търговци.
+ * Кандидати от играта „Мастър Клас Продажби" — тренажорът за наемане на търговци.
  * Играта пише в същия Supabase проект (таблици с префикс sg_), затова
  * четем директно със service ролята. Горе са кандидатите (is_candidate),
  * под черта — останалите играчи.
@@ -131,7 +131,7 @@ export default async function IgraPage() {
         <p className="hud text-[var(--color-accent-cyan)]">ProMarketing · Наемане</p>
         <h1 className="cc-title mt-2 font-display text-4xl font-bold">Кандидати · Играта</h1>
         <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-          Кандидатите за търговец играят „ЛОСТ“ — тук се вижда кой докъде е стигнал и как продава.
+          Кандидатите за търговец играят „Мастър Клас Продажби“ — тук се вижда кой докъде е стигнал и как продава.
         </p>
       </header>
 

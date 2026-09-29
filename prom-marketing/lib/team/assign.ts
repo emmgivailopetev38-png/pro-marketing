@@ -1,13 +1,17 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 import { ASSIGN_TYPE, type GivenKind } from "./queue-rules";
-import { firstActiveSetter } from "./repository";
+import { leadOwnerOf } from "./routing";
 
 /**
  * Дава един картон на човека за звънене. Маркерът е активност `team_assigned`
  * — не е опит за контакт и НЕ пипа датата за чуване и статуса на картона.
  * Стои в списъка на екипа, докато той не звънне веднъж; после картонът тръгва
  * по обичайните правила. Виж lib/team/queue-rules.ts.
+ *
+ * При кого: при човека, при когото е влязъл лийдът по ротацията (отказалият
+ * срещата се връща при същия, който я е уговорил); стар лийд — при първия в
+ * кръга. Виж routing-rules.ts.
  */
 export async function giveToTeam(args: {
   contactId: string;
@@ -17,9 +21,10 @@ export async function giveToTeam(args: {
   createdBy?: string | null;
   /** допълнително в metadata — напр. коя среща е отказана */
   extra?: Record<string, unknown>;
-}): Promise<{ ok: boolean; memberName: string | null; error: string | null }> {
-  const setter = await firstActiveSetter();
-  if (!setter) return { ok: false, memberName: null, error: "няма активен човек за звънене" };
+}): Promise<{ ok: boolean; memberName: string | null; memberId: string | null; error: string | null }> {
+  const { pool, ownerId } = await leadOwnerOf(args.contactId).catch(() => ({ pool: [], ownerId: null }));
+  const setter = pool.find((m) => m.id === ownerId) ?? null;
+  if (!setter) return { ok: false, memberName: null, memberId: null, error: "няма активен човек за звънене" };
 
   const kind: GivenKind = args.kind ?? "given";
   const title =
@@ -45,5 +50,5 @@ export async function giveToTeam(args: {
     },
     created_by: args.createdBy ?? "система",
   });
-  return { ok: !error, memberName: setter.full_name, error: error?.message ?? null };
+  return { ok: !error, memberName: setter.full_name, memberId: setter.id, error: error?.message ?? null };
 }

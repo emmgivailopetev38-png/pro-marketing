@@ -6,6 +6,7 @@
  * не нови роли: продавач, който вижда и опашката за звънене; изпълнение без
  * цени; маркетинг с комисионни.
  */
+import { checkboxValue } from "@/lib/form-data";
 import {
   TEAM_MODULES,
   TEAM_MODULE_HREF,
@@ -65,6 +66,20 @@ export interface NavItem {
 
 export function navFor(member: Pick<TeamMember, "role" | "permissions"> | null | undefined): NavItem[] {
   return visibleModules(member).map((m) => ({ module: m, href: TEAM_MODULE_HREF[m], label: TEAM_MODULE_LABEL[m] }));
+}
+
+/**
+ * Отметките на модулите от /admin/ekip. Всяка е скрито „0“ + отметка „1“ със
+ * същото име, затова се четат всички стойности — `FormData.get` вижда само „0“
+ * и така всеки нов човек излизаше без нито един модул (26.09.2026, Елена).
+ */
+export function modulesFromForm(fd: FormData): Partial<Record<TeamModule, string | null>> {
+  const out: Partial<Record<TeamModule, string | null>> = {};
+  for (const m of TEAM_MODULES) {
+    const v = checkboxValue(fd, `mod_${m}`);
+    if (v) out[m] = v;
+  }
+  return out;
 }
 
 /** Формата от /admin/ekip: "1" = вижда, "0" = не вижда, липсва = по ролята. */

@@ -7,6 +7,7 @@ import { getPageAccessToken } from "@/lib/meta/page-token";
 import { sendCapiEvent, isCapiConfigured } from "@/lib/meta/conversions-api";
 import { escapeHtml } from "@/lib/email/escape";
 import { notifyTeamNewLead } from "@/lib/team/notify";
+import { routeNewLead } from "@/lib/team/routing";
 
 export const dynamic = "force-dynamic";
 
@@ -268,6 +269,8 @@ async function processLead(leadgenId: string, formId: string | null) {
   // Човекът, който звъни на лийдовете, получава същия лийд — с отговорите
   // от формата и линк към опашката за звънене (/ekip), не към /admin.
   // Awaited: fire-and-forget се губи, щом функцията върне (виж leads/submit).
+  // Първо ротацията (Димитър, Елена, Димитър…) — писмото отива само при него.
+  await routeNewLead(contactId).catch(() => null);
   await notifyTeamNewLead({
     contactId,
     fullName: fullName ?? null,

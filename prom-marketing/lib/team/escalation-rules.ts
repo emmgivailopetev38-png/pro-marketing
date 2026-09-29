@@ -45,7 +45,7 @@ export function escalationVerdict(rows: AttemptRow[], now: Date = new Date(), da
     firstTeamAt: team.length ? team[team.length - 1].occurred_at : null,
     teamAttempts: team.length,
     noAnswer: team.filter((r) => r.metadata?.outcome === "no_answer").length,
-    talked: team.filter((r) => ["talked", "callback"].includes(String(r.metadata?.outcome ?? ""))).length,
+    talked: team.filter((r) => ["talked", "callback", "will_call"].includes(String(r.metadata?.outcome ?? ""))).length,
     lastOutcome: team.length ? (typeof team[0].metadata?.outcome === "string" ? (team[0].metadata.outcome as string) : null) : null,
     lastBy: team.length ? team[0].created_by : null,
     daysSinceFirst: null,

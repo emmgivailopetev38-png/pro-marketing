@@ -1,6 +1,6 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
-import { amountFor, dedupeKey, monthlyDue, periodOf, ruleFor, totalsFor, type CommissionLite, type CommissionRule } from "./commissions-rules";
+import { amountFor, dedupeKey, monthlyDue, monthlyRuleFor, periodOf, ruleFor, totalsFor, type CommissionLite, type CommissionRule } from "./commissions-rules";
 
 /**
  * Комисионните — четене и писане. Сметката е в commissions-rules.ts.
@@ -168,7 +168,8 @@ export async function runMonthly(period: string, createdBy: string): Promise<{ c
   let created = 0;
   let skipped = 0;
   for (const d of due) {
-    const rule = ruleFor(rules, d.serviceType, roleOf.get(d.memberId));
+    // Роля с правило „от сделката“ (продавачът) няма месечна комисионна.
+    const rule = monthlyRuleFor(rules, d.serviceType, roleOf.get(d.memberId));
     if (!rule) {
       skipped += 1;
       continue;
