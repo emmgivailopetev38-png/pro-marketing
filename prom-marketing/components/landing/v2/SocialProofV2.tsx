@@ -1,21 +1,23 @@
 "use client";
 /* =====================================================================
    SocialProofV2 — социално доказателство в езика „2050 · Luminescent
-   Depth". Три count-up брояча (бизнеси автоматизирани · часове спестени
-   /мес · уловени лийда) + ЖИВ ротиращ feed от ИЗМИСЛЕНИ запитвания
-   („Иван от Варна остави запитване · преди 2 мин"), който се сменя на
-   интервал, + ред с ИЗМИСЛЕНИ фирми от консистентния набор.
+   Depth". Три count-up брояча с ИСТИНСКИ числа от CRM-а + покана към
+   формата и записването на среща + истинските браншове на клиентите.
 
-   Клиентски компонент заради ротиращия feed (useState/useEffect).
-   Броячите ползват <CounterRamp/> (собствен scroll-trigger + own client
-   runtime). Всички имена/фирми са ИЗМИСЛЕНИ — никога реални клиенти.
+   ⚠️ 29.09.2026: тук стоеше ЖИВ ротиращ feed от ИЗМИСЛЕНИ запитвания
+   („Иван от Варна остави запитване · преди 2 мин“), ред с ИЗМИСЛЕНИ фирми
+   и броячи 120+ / 1840 ч / 9600+ без покритие. Измисленото социално
+   доказателство е нелоялна търговска практика по ЗЗП (Директива „Омнибус“
+   (ЕС) 2019/2161) — махнато по нареждане на Ивайло. Числата по-долу са от
+   Supabase (contacts / bookings) към 29.09.2026 и са с „+“, защото растат;
+   сменят се само с проверено число. Браншовете са на истински клиенти, без
+   имена. Истинските отзиви са в RealReviewsV2.
    ===================================================================== */
-import { useEffect, useMemo, useState } from "react";
 import { CounterRamp } from "@/components/effects/CounterRamp";
 import { SectionReveal } from "@/components/effects/SectionReveal";
 import { NeuralCoreLazy } from "@/components/landing/v2/NeuralCoreLazy";
 
-/* ---- Брояч-метрики ---------------------------------------------------- */
+/* ---- Брояч-метрики (истински, CRM към 29.09.2026) --------------------- */
 const STATS: {
   target: number;
   prefix?: string;
@@ -26,94 +28,43 @@ const STATS: {
   tag: string;
 }[] = [
   {
-    target: 120,
-    prefix: "",
+    target: 470,
     suffix: "+",
-    label: "бизнеса автоматизирани",
-    sub: "с AI агенти и CRM",
+    label: "запитвания обработени",
+    sub: "от май 2026 — всяко влиза в CRM-а",
     color: "var(--v2-cyan)",
-    tag: "BUSINESSES",
-  },
-  {
-    target: 1840,
-    prefix: "",
-    suffix: "ч",
-    label: "часа спестени / месец",
-    sub: "върнати на собствениците",
-    color: "var(--v2-violet-2)",
-    tag: "HOURS·SAVED",
-  },
-  {
-    target: 9600,
-    prefix: "",
-    suffix: "+",
-    label: "лийда уловени",
-    sub: "без нито едно пропуснато",
-    color: "var(--v2-mint)",
     tag: "LEADS",
   },
+  {
+    target: 100,
+    suffix: "+",
+    label: "записани срещи",
+    sub: "със собственици на бизнеси",
+    color: "var(--v2-violet-2)",
+    tag: "MEETINGS",
+  },
+  {
+    target: 17,
+    suffix: "+",
+    label: "фирми работят с нас",
+    sub: "магазини, хотели, агро, транспорт",
+    color: "var(--v2-mint)",
+    tag: "CLIENTS",
+  },
 ];
 
-/* ---- ИЗМИСЛЕН жив feed: ротиращи запитвания --------------------------- */
-type FeedSeed = {
-  name: string;
-  city: string;
-  action: string;
-  ago: number; // минути „преди N мин" в началото
-  color: string;
-};
-
-const FEED_SEED: FeedSeed[] = [
-  { name: "Иван", city: "Варна", action: "остави запитване", ago: 2, color: "var(--v2-cyan)" },
-  { name: "Мария", city: "Пловдив", action: "записа AI аудит", ago: 4, color: "var(--v2-violet-2)" },
-  { name: "Георги", city: "София", action: "поиска оферта", ago: 6, color: "var(--v2-mint)" },
-  { name: "Елена", city: "Бургас", action: "стартира AI рецепционист", ago: 9, color: "var(--v2-cyan)" },
-  { name: "Николай", city: "Стара Загора", action: "свърза телефона си", ago: 12, color: "#f59e0b" },
-  { name: "Десислава", city: "Русе", action: "остави запитване", ago: 14, color: "var(--v2-violet-2)" },
-  { name: "Петър", city: "Велико Търново", action: "получи AI план", ago: 18, color: "var(--v2-mint)" },
-  { name: "Виктория", city: "Плевен", action: "записа демо", ago: 21, color: "var(--v2-cyan)" },
-  { name: "Стефан", city: "Благоевград", action: "поиска оферта", ago: 25, color: "var(--v2-violet-2)" },
-  { name: "Калина", city: "Добрич", action: "остави запитване", ago: 29, color: "var(--v2-mint)" },
-];
-
-const agoLabel = (m: number) =>
-  m <= 0 ? "току-що" : m === 1 ? "преди 1 мин" : `преди ${m} мин`;
-
-/* ---- ИЗМИСЛЕНИ фирми (консистентният набор) --------------------------- */
-const COMPANIES = [
-  { name: "Хотел Аврора", meta: "Хотелиерство · Бургас" },
-  { name: "Ресторант Веда", meta: "Ресторант · София" },
-  { name: "Бутик Нова", meta: "E-commerce · Пловдив" },
-  { name: "Имоти Хоризонт", meta: "Имоти · Варна" },
-  { name: "Авто Сервиз Делта", meta: "Сервиз · Стара Загора" },
-  { name: "Клиника Лумина", meta: "Красота · Пловдив" },
+/* ---- Браншовете на истинските ни клиенти (без имена) ------------------ */
+const BRANCHES = [
+  { name: "Онлайн книжарница", meta: "E-commerce" },
+  { name: "Онлайн парфюмерия", meta: "E-commerce" },
+  { name: "Управление на отпадъци", meta: "Екология" },
+  { name: "Хотел", meta: "Хотелиерство" },
+  { name: "Прецизно земеделие", meta: "Агро" },
+  { name: "Транспорт с GPS", meta: "Автопарк" },
+  { name: "Сладкарство", meta: "Храни" },
 ];
 
 export function SocialProofV2() {
-  /* Ротиращ feed: всеки tick „остарява" записите с 1 мин и вкарва нов
-     отгоре, така че редът изглежда жив без да дублира съдържание. */
-  const initial = useMemo(
-    () => FEED_SEED.map((f, i) => ({ ...f, key: i, minutes: f.ago })),
-    []
-  );
-  const [feed, setFeed] = useState(initial);
-  const [counter, setCounter] = useState(FEED_SEED.length);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setFeed((prev) => {
-        const next = prev.map((f) => ({ ...f, minutes: f.minutes + 1 }));
-        // вземи „следващ" сийд по ротация и го сложи отгоре като нов (току-що)
-        const src = FEED_SEED[counter % FEED_SEED.length];
-        const fresh = { ...src, key: counter + 1000, minutes: 0 };
-        setCounter((c) => c + 1);
-        return [fresh, ...next].slice(0, 5);
-      });
-    }, 3200);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [counter]);
-
   return (
     <section className="v2-section overflow-hidden">
       {/* Engineered grid + signature aurora glow backdrop */}
@@ -179,51 +130,36 @@ export function SocialProofV2() {
           ))}
         </div>
 
-        {/* ---- Жив feed + неврален ядрен акцент -------------------------- */}
+        {/* ---- Покана: формата + срещата (вместо измисления feed) --------- */}
         <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[1.45fr_1fr]">
-          {/* Live feed card */}
           <SectionReveal delay={120}>
-            <div className="v2-card v2-glow group h-full">
-              <div className="mb-5 flex items-center justify-between">
-                <h3
-                  className="text-base font-bold"
-                  style={{ fontFamily: "var(--v2-font-display)" }}
-                >
-                  Запитвания на живо
-                </h3>
-                <span className="v2-status">на живо</span>
-              </div>
-
-              <ul className="space-y-2">
-                {feed.map((f) => (
-                  <li
-                    key={f.key}
-                    className="v2-feed-row flex items-center gap-3 rounded-[var(--v2-r-sm)] border border-[var(--v2-line)] bg-[var(--v2-void)]/50 px-4 py-2.5 text-sm"
-                  >
-                    <span
-                      className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
-                      style={{
-                        background: `color-mix(in srgb, ${f.color} 16%, transparent)`,
-                        color: f.color,
-                      }}
-                    >
-                      {f.name[0]}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-[var(--v2-muted)]">
-                      <b className="font-semibold text-[var(--v2-ink)]">{f.name}</b>
-                      <span className="text-[var(--v2-faint)]"> от {f.city} </span>
-                      {f.action}
-                    </span>
-                    <span className="v2-mono flex-shrink-0 text-[10px] text-[var(--v2-faint)]">
-                      {agoLabel(f.minutes)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-
-              <p className="v2-mono mt-4 text-[10px] uppercase tracking-[0.18em] text-[var(--v2-faint)]">
-                * примерна визуализация на потока от запитвания
+            <div className="v2-card v2-glow group flex h-full flex-col justify-center">
+              <h3
+                className="text-xl font-bold md:text-2xl"
+                style={{ fontFamily: "var(--v2-font-display)" }}
+                lang="bg"
+              >
+                Твоето запитване е следващото.
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--v2-muted)] md:text-[15px]">
+                Остави телефон — два кратки въпроса — и ще ти се обадим. Или си
+                запази безплатна среща направо в календара.
               </p>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <a
+                  href="#kontakti"
+                  className="inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold text-[#06121a]"
+                  style={{ background: "linear-gradient(90deg, var(--v2-cyan), var(--v2-violet-2))" }}
+                >
+                  Остави телефон →
+                </a>
+                <a
+                  href="/booking"
+                  className="inline-flex items-center justify-center rounded-full border border-[var(--v2-line)] px-5 py-3 text-sm font-semibold text-[var(--v2-ink)]"
+                >
+                  Запази безплатна среща
+                </a>
+              </div>
             </div>
           </SectionReveal>
 
@@ -241,7 +177,7 @@ export function SocialProofV2() {
                 <NeuralCoreLazy radius={1.2} nodeCount={150} spin={0.7} />
               </div>
               <p className="mt-4 text-sm font-semibold text-[var(--v2-ink)]">
-                Един AI мозък. Десетки бизнеси.
+                Един AI екип. Работи 24/7.
               </p>
               <p className="mt-1 text-[12px] text-[var(--v2-faint)]">
                 Учи се от всеки разговор · работи 24/7
@@ -250,18 +186,15 @@ export function SocialProofV2() {
           </SectionReveal>
         </div>
 
-        {/* ---- Ред с ИЗМИСЛЕНИ фирми ------------------------------------- */}
+        {/* ---- Истинските браншове на клиентите (без имена) --------------- */}
         <SectionReveal delay={120}>
           <div className="mt-12 border-t border-[var(--v2-line)] pt-9">
             <p className="v2-mono mb-6 text-center text-[10px] uppercase tracking-[0.2em] text-[var(--v2-faint)]">
-              Сред бизнесите, които автоматизирахме
+              Браншовете на клиентите ни
             </p>
             <div className="flex flex-wrap items-stretch justify-center gap-3">
-              {COMPANIES.map((c) => (
-                <div
-                  key={c.name}
-                  className="v2-glass flex items-center gap-3 px-4 py-2.5"
-                >
+              {BRANCHES.map((c) => (
+                <div key={c.name} className="v2-glass flex items-center gap-3 px-4 py-2.5">
                   <span
                     aria-hidden
                     className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[8px] text-[12px] font-extrabold"
@@ -272,17 +205,11 @@ export function SocialProofV2() {
                       fontFamily: "var(--v2-font-display)",
                     }}
                   >
-                    {c.name
-                      .replace(/^(Хотел|Ресторант|Бутик|Имоти|Авто Сервиз|Клиника)\s+/u, "")
-                      .charAt(0)}
+                    {c.name.charAt(0)}
                   </span>
                   <span className="leading-tight">
-                    <span className="block text-sm font-semibold text-[var(--v2-ink)]">
-                      {c.name}
-                    </span>
-                    <span className="block text-[11px] text-[var(--v2-faint)]">
-                      {c.meta}
-                    </span>
+                    <span className="block text-sm font-semibold text-[var(--v2-ink)]">{c.name}</span>
+                    <span className="block text-[11px] text-[var(--v2-faint)]">{c.meta}</span>
                   </span>
                 </div>
               ))}
@@ -291,27 +218,6 @@ export function SocialProofV2() {
         </SectionReveal>
       </div>
 
-      {/* Локален стил само за плавното влизане на нов feed-ред */}
-      <style jsx>{`
-        .v2-feed-row {
-          animation: v2-feed-in 0.5s var(--v2-ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
-        }
-        @keyframes v2-feed-in {
-          from {
-            opacity: 0;
-            transform: translateY(-8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .v2-feed-row {
-            animation: none;
-          }
-        }
-      `}</style>
     </section>
   );
 }
