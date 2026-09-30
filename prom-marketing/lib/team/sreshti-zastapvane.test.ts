@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clashMessage, findOverlap, freeAround, samePerson, type BusyMeeting } from "./sreshti-zastapvane";
+import { clashMessage, findOverlap, freeAround, samePerson, tooEarly, type BusyMeeting } from "./sreshti-zastapvane";
 
 const at = (s: string) => new Date(s).toISOString(); // ISO с отместване
 const NOW = new Date("2026-09-29T12:00:00+03:00");
@@ -36,11 +36,22 @@ describe("sreshti-zastapvane", () => {
     expect(r.after.toISOString()).toBe(at("2026-09-30T16:30:00+03:00"));
   });
 
-  it("не предлага час преди 9:00 или в миналото", () => {
-    const early: BusyMeeting = { name: "Даниел", startIso: at("2026-09-30T09:00:00+03:00"), minutes: 45 };
-    expect(freeAround(at("2026-09-30T09:15:00+03:00"), [early], {}, 45, NOW).before).toBeNull();
+  it("не предлага час преди 10:00 или в миналото", () => {
+    const early: BusyMeeting = { name: "Даниел", startIso: at("2026-09-30T10:00:00+03:00"), minutes: 45 };
+    expect(freeAround(at("2026-09-30T10:15:00+03:00"), [early], {}, 45, NOW).before).toBeNull();
+    const late: BusyMeeting = { name: "Късно", startIso: at("2026-09-30T10:45:00+03:00"), minutes: 45 };
+    expect(freeAround(at("2026-09-30T11:00:00+03:00"), [late], {}, 45, NOW).before?.toISOString()).toBe(
+      at("2026-09-30T10:00:00+03:00")
+    );
     const soon: BusyMeeting = { name: "Скоро", startIso: at("2026-09-29T12:30:00+03:00"), minutes: 45 };
     expect(freeAround(at("2026-09-29T12:40:00+03:00"), [soon], {}, 45, NOW).before).toBeNull();
+  });
+
+  it("срещи преди 10:00 не се записват", () => {
+    expect(tooEarly(at("2026-10-01T09:45:00+03:00"))).toBe(true);
+    expect(tooEarly(at("2026-10-01T10:00:00+03:00"))).toBe(false);
+    expect(tooEarly(at("2026-11-02T09:30:00+02:00"))).toBe(true); // зимно време
+    expect(tooEarly(at("2026-11-02T14:00:00+02:00"))).toBe(false);
   });
 
   it("срещата на същия човек не пречи — по имейл или по телефон", () => {
