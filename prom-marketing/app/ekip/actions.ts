@@ -16,6 +16,7 @@ import {
   clashMessage,
   findOverlap,
   freeAround,
+  tooEarly,
   type BusyMeeting,
   type Person,
 } from "@/lib/team/sreshti-zastapvane";
@@ -186,6 +187,9 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         if (!meetingIso) return { ok: false, error: "Избери кога е срещата." };
         if (new Date(meetingIso).getTime() < Date.now() - 60 * 60 * 1000) {
           return { ok: false, error: "Срещата е в миналото — провери датата." };
+        }
+        if (tooEarly(meetingIso)) {
+          return { ok: false, error: "Срещите с Ивайло са от 10:00 нататък — избери 10:00 или по-късно." };
         }
         const typedEmail = str(formData, "email").toLowerCase();
         const email = c.email ?? (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(typedEmail) ? typedEmail : null);

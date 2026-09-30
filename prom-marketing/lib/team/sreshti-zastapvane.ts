@@ -117,8 +117,14 @@ export function freeAround(
   return { before, after };
 }
 
-/** По-рано от 9:00 не се предлага — срещите се правят в работно време. */
-const EARLIEST_MINUTE = 9 * 60;
+/** Срещите са от 10:00 нататък (Ивайло, 30.09.2026) — по-ранен час нито се
+ * записва, нито се предлага. Свободните часове в Cal.com също тръгват от 10:00. */
+export const EARLIEST_MINUTE = 10 * 60;
+
+/** Срещата започва преди 10:00 софийско време. */
+export function tooEarly(startIso: string): boolean {
+  return sofiaMinuteOfDay(new Date(startIso)) < EARLIEST_MINUTE;
+}
 
 function sofiaMinuteOfDay(d: Date): number {
   const p = new Intl.DateTimeFormat("en-GB", {
