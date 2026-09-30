@@ -6,6 +6,8 @@
    (1) EXIT-INTENT модал: при бързо движение на мишката извън горния ръб
        (mouseleave + clientY<=0) показва ВЕДНЪЖ на сесия покана за телефон.
    (2) WhatsApp FAB: дискретен зелен бутон долу-вляво → wa.me/359877399963.
+       Само на десктоп: на телефон долната лента вече има телефон и среща, а
+       два кръгли бутона над нея закриваха съдържанието.
 
    Capture контрактът е същият като components/landing/v2/AiAudit.tsx и
    ProductShowcaseV2.tsx → POST /api/leads/submit с { phone, message } (само
@@ -63,7 +65,18 @@ export function ConversionFloats() {
     // mouseout с relatedTarget==null + clientY<=0 = курсорът напуска прозореца
     // нагоре (към адрес-лентата / табовете). По-надеждно от mouseleave за това.
     const onMouseOut = (e: MouseEvent) => {
-      if (e.clientY <= 0 && !e.relatedTarget) trigger();
+      if (e.clientY > 0 || e.relatedTarget) return;
+      // Отворил е календара (openBookingPopup вдига флага) — не слагай втори
+      // попъп върху него.
+      try {
+        if (sessionStorage.getItem(EXIT_FLAG) === "1") {
+          document.removeEventListener("mouseout", onMouseOut);
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
+      trigger();
     };
 
     // Малко закъснение — да не гръмне при случайно движение веднага при зареждане.
@@ -269,7 +282,7 @@ export function ConversionFloats() {
         rel="noopener noreferrer"
         onClick={() => track("whatsapp_fab_click", {})}
         aria-label="Пиши ни в WhatsApp"
-        className="group fixed bottom-[88px] left-5 z-[110] md:bottom-5 inline-flex items-center gap-0 overflow-hidden rounded-[var(--v2-r-pill)] py-3.5 pl-3.5 pr-3.5 text-white shadow-[0_10px_30px_-8px_rgba(37,211,102,0.6)] transition-all duration-300 hover:pr-5 hover:shadow-[0_12px_38px_-6px_rgba(37,211,102,0.75)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25d366] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--v2-void)]"
+        className="group fixed bottom-[88px] left-5 z-[110] md:bottom-5 hidden md:inline-flex items-center gap-0 overflow-hidden rounded-[var(--v2-r-pill)] py-3.5 pl-3.5 pr-3.5 text-white shadow-[0_10px_30px_-8px_rgba(37,211,102,0.6)] transition-all duration-300 hover:pr-5 hover:shadow-[0_12px_38px_-6px_rgba(37,211,102,0.75)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25d366] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--v2-void)]"
         style={{ background: "linear-gradient(150deg, #25d366, #1ebe5a)" }}
       >
         <MessageCircle className="h-[22px] w-[22px] shrink-0" />

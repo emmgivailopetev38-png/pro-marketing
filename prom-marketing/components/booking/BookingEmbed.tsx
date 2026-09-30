@@ -1,7 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import Cal, { getCalApi } from "@calcom/embed-react";
-import { trackBookingSuccess } from "@/lib/cal/embed";
+import { CAL_UI, trackBookingSuccess } from "@/lib/cal/embed";
 
 const USERNAME = process.env.NEXT_PUBLIC_CAL_USERNAME ?? "promarketing";
 const SLUG = process.env.NEXT_PUBLIC_CAL_EVENT_SLUG ?? "consultation";
@@ -10,24 +10,7 @@ export function BookingEmbed() {
   useEffect(() => {
     (async () => {
       const cal = await getCalApi({ namespace: "booking-inline" });
-      cal("ui", {
-        theme: "dark",
-        cssVarsPerTheme: {
-          light: {
-            "cal-brand": "#06b6d4",
-            "cal-bg-emphasis": "#0a0a1f",
-            "cal-bg": "#030308",
-            "cal-text": "#f5f7ff",
-          },
-          dark: {
-            "cal-brand": "#06b6d4",
-            "cal-bg-emphasis": "#0a0a1f",
-            "cal-bg": "#030308",
-            "cal-text": "#f5f7ff",
-          },
-        },
-        hideEventTypeDetails: false,
-      });
+      cal("ui", CAL_UI);
       // Без това записаната среща не стига до Meta: вграденият календар е
       // iframe и пикселът не вижда нищо вътре в него. Реклами, които водят
       // насам, иначе оптимизират на сляпо.
