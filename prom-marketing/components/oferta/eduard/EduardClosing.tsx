@@ -54,12 +54,12 @@ export function EduardClosing() {
 
           <div className="flex flex-wrap items-center justify-center gap-4">
             <a
-              href="tel:+359877399963"
+              href="tel:+359876447159"
               className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-bright)] px-6 py-3 text-sm text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-accent-cyan)]"
               style={{ background: "rgba(0,212,255,0.05)" }}
             >
               <Phone className="h-4 w-4" style={{ color: "var(--color-accent-cyan)" }} />
-              <span className="font-[family-name:var(--font-mono)]">+359 877 399 963</span>
+              <span className="font-[family-name:var(--font-mono)]">+359 876 447 159</span>
             </a>
             <a
               href="mailto:emmgivailopetev38@gmail.com?subject=Оферта%20AI%20Автоматизация%20ProMarketing"

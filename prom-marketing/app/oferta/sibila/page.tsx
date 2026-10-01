@@ -260,7 +260,7 @@ export default function SibilaPage() {
           вътре — просто ми пишете. Няма да ви струва нищо и не ви ангажира с нищо.
         </p>
         <p style={{ fontSize: 16.5, lineHeight: 1.6, margin: 0, fontWeight: 600 }}>
-          Ивайло Петев · Pro Marketing LTD · +359 877 399 963
+          Ивайло Петев · Pro Marketing LTD · +359 876 447 159
         </p>
       </div>
     </main>

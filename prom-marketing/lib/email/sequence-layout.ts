@@ -9,7 +9,7 @@
 
 export const SITE = "https://www.promarketing.pw";
 export const YT = "https://www.youtube.com/@promarketingbg";
-export const PHONE = "+359 877 399 963";
+export const PHONE = "+359 876 447 159";
 
 /**
  * Гласовият агент на началната страница, отворен направо от писмото.
@@ -89,7 +89,7 @@ export function signature(ctx?: BuildCtx): string {
   return `<div style="margin:26px 0 0;padding-top:18px;border-top:1px solid #e3e8e5">
 <p style="margin:0 0 10px"><strong style="color:#1d2320">Ивайло Петев</strong> · Pro Marketing LTD</p>
 <p style="margin:0 0 6px;color:#31413a">Искаш да се чуем веднага? <strong>Просто отговори на този имейл</strong> — идва право при мен и чета всичко лично.</p>
-<p style="margin:0 0 6px;color:#31413a">Или ми звънни: <a href="tel:+359877399963" style="color:#0b6b4a;font-weight:600">${PHONE}</a></p>
+<p style="margin:0 0 6px;color:#31413a">Или ми звънни: <a href="tel:+359876447159" style="color:#0b6b4a;font-weight:600">${PHONE}</a></p>
 <p style="margin:0 0 6px;color:#31413a">Или <a href="${VOICE_URL}" style="color:#0b6b4a;font-weight:600">говори с гласовия ни агент</a> — вдига веднага, по всяко време, и ти записва час в календара ми, докато сте на линията.</p>
 <p style="margin:10px 0 0;color:#4a5651;font-size:14px">
 <a href="${SITE}" style="color:#0b6b4a">promarketing.pw</a> ·

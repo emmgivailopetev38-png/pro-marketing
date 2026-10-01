@@ -57,11 +57,11 @@ export function ClosingCTA() {
 
             <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm">
               <a
-                href="tel:+359877399963"
+                href="tel:+359876447159"
                 className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-default)] px-5 py-3 text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-accent-cyan)] hover:text-[var(--color-accent-cyan)]"
               >
                 <Phone className="h-4 w-4" />
-                <span className="font-mono">0877 399 963</span>
+                <span className="font-mono">0876 447 159</span>
               </a>
               <a
                 href="mailto:emmgivailopetev38@gmail.com"

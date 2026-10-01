@@ -109,8 +109,8 @@ export function HeroV2() {
                 </span>
               </a>
             </MagneticButton>
-            <a href="tel:+359877399963" onClick={() => track("cta_clicked", { location: "hero_v2", target: "call" })} className="inline-flex items-center gap-2 rounded-full border-2 border-[var(--color-accent-cyan)] px-6 py-3.5 text-base font-semibold text-[var(--color-accent-cyan)] transition hover:bg-[var(--color-accent-cyan)]/[0.06]">
-              <Phone className="h-4 w-4" /> 0877 399 963
+            <a href="tel:+359876447159" onClick={() => track("cta_clicked", { location: "hero_v2", target: "call" })} className="inline-flex items-center gap-2 rounded-full border-2 border-[var(--color-accent-cyan)] px-6 py-3.5 text-base font-semibold text-[var(--color-accent-cyan)] transition hover:bg-[var(--color-accent-cyan)]/[0.06]">
+              <Phone className="h-4 w-4" /> 0876 447 159
             </a>
           </div>
 

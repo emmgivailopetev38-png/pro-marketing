@@ -1268,10 +1268,10 @@ export default function GoldenKeyPage() {
               <span aria-hidden>→</span>
             </a>
             <a
-              href="tel:+359877399963"
+              href="tel:+359876447159"
               className="inline-flex items-center gap-3 rounded-full border border-[var(--color-border-bright)] px-10 py-5 text-base font-medium uppercase tracking-[0.2em] text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-gold-bright)] hover:text-[var(--color-gold-bright)]"
             >
-              +359 877 399 963
+              +359 876 447 159
             </a>
           </div>
 

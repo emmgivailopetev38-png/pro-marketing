@@ -110,7 +110,7 @@ export async function loadPortal(token: string): Promise<PortalData | null> {
   const ownerRow = (owner as { data: { full_name: string; phone: string | null; email: string | null } | null } | null)?.data ?? null;
   const contactPerson = ownerRow
     ? { name: ownerRow.full_name, phone: ownerRow.phone, email: ownerRow.email }
-    : { name: "Ивайло Петев", phone: "+359 877 399 963", email: "ivailo@promarketing.pw" };
+    : { name: "Ивайло Петев", phone: "+359 876 447 159", email: "ivailo@promarketing.pw" };
 
   return {
     contact: { id: contact.id, full_name: contact.full_name, company: contact.company, email: contact.email, phone: contact.phone, owner_id: contact.owner_id },

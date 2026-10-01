@@ -189,11 +189,11 @@ export function ExpertV2() {
                   emmgivailopetev38@gmail.com
                 </a>
                 <a
-                  href="tel:+359877399963"
+                  href="tel:+359876447159"
                   className="inline-flex items-center gap-2 text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-cyan)]"
                 >
                   <Phone className="h-4 w-4" />
-                  +359 877 399 963
+                  +359 876 447 159
                 </a>
                 <span className="inline-flex items-center gap-2 text-[var(--v2-faint)]">
                   <MapPin className="h-4 w-4" />

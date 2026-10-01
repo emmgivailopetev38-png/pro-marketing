@@ -80,7 +80,7 @@ export function QuickLeadForm() {
           <div className="mt-8 space-y-2 text-sm text-[var(--color-text-tertiary)]">
             <p className="flex items-center gap-2">
               <Phone className="h-4 w-4" style={{ color: "var(--color-accent-cyan)" }} />
-              Или директно на <a href="tel:+359877399963" className="text-[var(--color-text-primary)] hover:text-[var(--color-accent-cyan)]">+359 877 399 963</a>
+              Или директно на <a href="tel:+359876447159" className="text-[var(--color-text-primary)] hover:text-[var(--color-accent-cyan)]">+359 876 447 159</a>
             </p>
             <p className="flex items-center gap-2">
               <Mail className="h-4 w-4" style={{ color: "var(--color-accent-cyan)" }} />

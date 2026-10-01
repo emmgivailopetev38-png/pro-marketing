@@ -56,11 +56,11 @@ export function OfertaClosing() {
 
           <div className="flex flex-wrap items-center justify-center gap-4">
             <a
-              href="tel:+359877399963"
+              href="tel:+359876447159"
               className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-bright)] bg-[var(--color-bg-void)] px-6 py-3 text-sm text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-accent-cyan)]"
             >
               <Phone className="h-4 w-4" style={{ color: "var(--color-accent-cyan)" }} />
-              <span className="font-mono">+359 877 399 963</span>
+              <span className="font-mono">+359 876 447 159</span>
             </a>
             <a
               href="mailto:emmgivailopetev38@gmail.com?subject=Оферта%20Boutique%20Bedding"

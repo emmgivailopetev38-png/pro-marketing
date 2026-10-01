@@ -84,7 +84,7 @@ function PhoneForm({ location }: { location: string }) {
         <PhoneCall className="h-5 w-5" />
         {state === "sending" ? "Изпращаме…" : "Искам безплатния одит"}
       </button>
-      {state === "error" && <p className="text-sm text-rose-400">Нещо се обърка — опитай пак или звънни на 0877 399 963.</p>}
+      {state === "error" && <p className="text-sm text-rose-400">Нещо се обърка — опитай пак или звънни на 0876 447 159.</p>}
       <p className="flex items-center justify-center gap-1.5 text-center text-xs text-slate-500">
         <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" /> Без спам, без насрочени продажби — само одитът.
       </p>

@@ -57,7 +57,7 @@ export function EvoltoClosing() {
 
           <div className="flex flex-wrap items-center justify-center gap-4">
             <a
-              href="tel:+359877399963"
+              href="tel:+359876447159"
               className="inline-flex items-center gap-2 rounded-full border px-6 py-3 text-sm text-[var(--color-text-primary)] transition-colors"
               style={{
                 borderColor: "var(--color-border-bright)",
@@ -65,7 +65,7 @@ export function EvoltoClosing() {
               }}
             >
               <Phone className="h-4 w-4" style={{ color: "var(--color-solar-gold)" }} />
-              <span className="font-[family-name:var(--font-mono)]">+359 877 399 963</span>
+              <span className="font-[family-name:var(--font-mono)]">+359 876 447 159</span>
             </a>
             <a
               href="mailto:emmgivailopetev38@gmail.com?subject=Evolto%20×%20ProMarketing%20demo"

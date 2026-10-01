@@ -369,7 +369,7 @@ export function PartneriDocument() {
             <Text style={s.ctaSub}>Запази безплатна 45-мин discovery call</Text>
           </View>
           <View style={s.ctaRight}>
-            <Text style={s.ctaPhone}>+359 877 399 963</Text>
+            <Text style={s.ctaPhone}>+359 876 447 159</Text>
             <Text style={s.ctaUrl}>promarketing.pw/partneri</Text>
           </View>
         </View>

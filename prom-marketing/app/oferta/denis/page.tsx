@@ -493,7 +493,7 @@ export default function DenisOferta() {
       <p className="sig">
         <b>Ивайло Петев</b> · Pro Marketing
         <br />
-        0877 399 963 · office@promarketing.pw · promarketing.pw
+        0876 447 159 · office@promarketing.pw · promarketing.pw
       </p>
     </main>
   );

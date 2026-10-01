@@ -813,8 +813,8 @@ export default function HotelOgnyanovoPage() {
             подпис. Така ще решавате по нещо, което сте чули, а не по описание.
           </p>
           <div className="ctas">
-            <a className="btn" href="tel:+359877399963">
-              Обадете ми се · 0877 399 963
+            <a className="btn" href="tel:+359876447159">
+              Обадете ми се · 0876 447 159
             </a>
             <a className="btn ghost" href="mailto:ivailo@promarketing.pw?subject=Хотел%20Огняново%20—%20започваме">
               Пишете ми на имейл

@@ -28,7 +28,7 @@ export function StickyMobileCTA() {
       <div className="border-t border-[var(--color-border-default)] bg-[var(--color-bg-deep)]/95 px-4 py-3 backdrop-blur-md">
         <div className="flex items-center gap-2">
           <a
-            href="tel:+359877399963"
+            href="tel:+359876447159"
             onClick={() => track("cta_clicked", { location: "mobile_sticky", target: "phone" })}
             className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border border-[var(--color-accent-cyan)]/40 bg-[var(--color-accent-cyan)]/10 text-[var(--color-accent-cyan)]"
             aria-label="Обади се"

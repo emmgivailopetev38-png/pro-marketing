@@ -45,7 +45,7 @@ export default function UsloviyaKursovePage() {
           <a className="text-[var(--color-accent-cyan)]" href="mailto:emmgivailopetev38@gmail.com">
             emmgivailopetev38@gmail.com
           </a>{" "}
-          · Телефон: +359 877 399 963
+          · Телефон: +359 876 447 159
         </li>
         <li>
           Надзорни органи: Комисия за защита на потребителите (КЗП) — kzp.bg; Комисия за защита на

@@ -102,7 +102,7 @@ export async function GET(_request: Request, ctx: { params: Promise<{ token: str
 function page(title: string, text: string, status: number): Response {
   const html = `<!doctype html><html lang="bg"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${esc(title)} · ProMarketing</title>
 <style>body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#070c10;color:#e2e8f0;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:24px}main{max-width:460px;text-align:center}h1{font-size:26px;margin:0 0 12px}p{color:#94a3b8;line-height:1.6;margin:0 0 22px}a.b{display:inline-block;background:#22d3ee;color:#04070a;font-weight:700;border-radius:999px;padding:12px 22px;text-decoration:none;margin:4px}a.s{display:inline-block;color:#cbd5e1;border:1px solid #334155;border-radius:999px;padding:12px 22px;text-decoration:none;margin:4px}</style></head>
-<body><main><h1>${esc(title)}</h1><p>${esc(text)}</p><a class="b" href="/booking">Запази час с Ивайло</a><a class="s" href="tel:+359877399963">Звънни</a></main></body></html>`;
+<body><main><h1>${esc(title)}</h1><p>${esc(text)}</p><a class="b" href="/booking">Запази час с Ивайло</a><a class="s" href="tel:+359876447159">Звънни</a></main></body></html>`;
   return new Response(html, { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
 }
 

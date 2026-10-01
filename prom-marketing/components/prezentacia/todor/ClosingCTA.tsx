@@ -53,10 +53,10 @@ const AMBER: AccentTokens = { color: "var(--color-accent-amber)", rgb: "251,146,
 const CONTACTS: readonly ContactLink[] = [
   {
     id: "phone",
-    href: "tel:+359877399963",
+    href: "tel:+359876447159",
     glyph: "☎",
     kicker: "обади се",
-    value: "+359 877 399 963",
+    value: "+359 876 447 159",
     accent: SKY,
   },
   {

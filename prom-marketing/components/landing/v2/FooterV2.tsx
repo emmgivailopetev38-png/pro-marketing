@@ -81,9 +81,9 @@ export function FooterV2() {
               <li>
                 <a
                   className="v2-mono text-[var(--v2-cyan)] transition-colors hover:text-[var(--v2-ink)]"
-                  href="tel:+359877399963"
+                  href="tel:+359876447159"
                 >
-                  +359 877 399 963
+                  +359 876 447 159
                 </a>
               </li>
               <li>
