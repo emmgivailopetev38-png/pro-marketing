@@ -31,7 +31,22 @@ def text_of(h):
     t = re.sub(r'<[^>]+>', ' ', t)
     return re.sub(r'\s+', ' ', html.unescape(t)).strip()
 
-REDIRECTS = set()
+# Пренасочванията от next.config.ts. Без тях всеки адрес, който живее
+# само като redirect (например /rabota → igra.promarketing.pw), излиза
+# като „счупена вътрешна връзка" — а е нарочен. Ако някой ден изтрие
+# правилото от конфигурацията, връзката пак ще се обади като счупена.
+CONFIG_REDIRECTS = set()
+try:
+    _cfg = open(os.path.join(ROOT, "next.config.ts"), encoding="utf-8").read()
+    for m in re.finditer(r'source:\s*"(/[^"]*)"', _cfg):
+        src = m.group(1)
+        if "*" in src or ":" in src:
+            continue
+        CONFIG_REDIRECTS.add(src.rstrip("/") or "/")
+except FileNotFoundError:
+    pass
+
+REDIRECTS = set(CONFIG_REDIRECTS)
 for f in glob.glob(os.path.join(ROOT, "app/**/page.tsx"), recursive=True):
     src = open(f, encoding="utf-8", errors="replace").read()
     if re.search(r'redirect\("/"\)', src):
