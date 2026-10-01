@@ -32,8 +32,8 @@ export default function BookingPage() {
         }}
       />
 
-      <div className="relative mx-auto max-w-5xl px-6 py-20 md:px-12 md:py-28">
-        <div className="mb-12 text-center">
+      <div className="relative mx-auto max-w-5xl px-3 py-20 sm:px-6 md:px-12 md:py-28">
+        <div className="mb-12 px-3 text-center sm:px-0">
           <p className="mb-4 font-mono text-xs uppercase tracking-[0.4em] text-cyan-300">
             Резервация
           </p>
@@ -46,7 +46,7 @@ export default function BookingPage() {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-cyan-500/15 bg-[#0a0a1f]/60 p-2 md:p-4">
+        <div className="rounded-2xl border border-cyan-500/15 bg-[#060612] p-1 md:p-4">
           <BookingEmbed />
         </div>
 
