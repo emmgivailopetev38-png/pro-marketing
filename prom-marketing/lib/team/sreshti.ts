@@ -1,16 +1,24 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
-import { findContactByEmailOrPhone } from "./cancelled";
+import { updateBooking } from "@/lib/crm/repository";
+import { LIVE_BOOKING_STATUSES, isLiveBooking, upcomingOfPerson, type BookingLite } from "@/lib/crm/booking-status";
+import { findContactByEmailOrPhone, handleCancelledBooking } from "./cancelled";
 import { fmtSofia } from "./time";
 import type { TeamActor } from "./session";
-import { MEETING_MSG_KINDS, MEETING_MSG_LABEL, dueKind, type MeetingMsgKind } from "./sreshta-saobshtenia";
+import type { Person } from "./sreshti-zastapvane";
+import { MEETING_MSG_LABEL, dueKind, sentKindsFor, type MeetingMsgKind } from "./sreshta-saobshtenia";
 
 /**
  * Съобщенията към хората за срещите им — кое е на ред и кое е пратено.
  *
- * „Пратено“ живее в `bookings.raw_payload.msgs[kind] = { at, by }`, за да важи
- * и за срещи без картон в CRM-а; когато картонът се намери, остава и активност
- * `viber_sent` (с `booking_msg: true`, за да не се брои за опит за контакт).
+ * „Пратено“ живее в `bookings.raw_payload.msgs[kind] = { at, by, for }`, за да
+ * важи и за срещи без картон в CRM-а; `for` е часът на срещата, за който е
+ * пратено — премести ли се срещата, напомнянията излизат пак за новия час.
+ * Когато картонът се намери, остава и активност `viber_sent` (с
+ * `booking_msg: true`, за да не се брои за опит за контакт).
+ *
+ * Напомняне има само за жива среща (LIVE_BOOKING_STATUSES): отменена,
+ * преместена, проведена или „не се яви“ не излиза — без никой да го спира.
  */
 export interface MeetingMsgRow {
   bookingId: string;
@@ -26,21 +34,12 @@ export interface MeetingMsgRow {
   due: MeetingMsgKind | null;
 }
 
-const OPEN_STATUSES = ["accepted", "pending", "confirmed"];
-
-function sentKinds(raw: Record<string, unknown> | null): Set<MeetingMsgKind> {
-  const msgs = (raw?.msgs ?? {}) as Record<string, unknown>;
-  const out = new Set<MeetingMsgKind>();
-  for (const k of MEETING_MSG_KINDS) if (msgs[k]) out.add(k);
-  return out;
-}
-
 export async function loadMeetingMessages(now: Date = new Date(), daysAhead = 8): Promise<MeetingMsgRow[]> {
   const sb = createServiceClient();
   const { data } = await sb
     .from("bookings")
     .select("id, attendee_name, attendee_email, attendee_phone, scheduled_at, status, meeting_url, raw_payload")
-    .in("status", OPEN_STATUSES)
+    .in("status", [...LIVE_BOOKING_STATUSES])
     .gte("scheduled_at", now.toISOString())
     .lte("scheduled_at", new Date(now.getTime() + daysAhead * 86_400_000).toISOString())
     .not("attendee_phone", "is", null)
@@ -50,8 +49,8 @@ export async function loadMeetingMessages(now: Date = new Date(), daysAhead = 8)
     const raw = (r.raw_payload ?? null) as Record<string, unknown> | null;
     const notes = String(raw?.notes ?? "");
     const by = /Записа:\s*([^·\n]+)/.exec(notes);
-    const sent = sentKinds(raw);
     const whenIso = String(r.scheduled_at);
+    const sent = sentKindsFor(raw, whenIso);
     return {
       bookingId: String(r.id),
       name: String(r.attendee_name ?? ""),
@@ -94,7 +93,11 @@ export async function markMessageSent(args: {
     if (b) {
       whenIso = String(b.scheduled_at);
       const raw = ((b.raw_payload ?? {}) as Record<string, unknown>) ?? {};
-      const msgs = { ...((raw.msgs as Record<string, unknown>) ?? {}), [args.kind]: { at: nowIso, by: args.actor.name } };
+      // `for` = за кой час е пратено: премести ли се срещата, маркерът спира да важи.
+      const msgs = {
+        ...((raw.msgs as Record<string, unknown>) ?? {}),
+        [args.kind]: { at: nowIso, by: args.actor.name, for: whenIso },
+      };
       const { error } = await sb
         .from("bookings")
         .update({ raw_payload: { ...raw, msgs }, updated_at: nowIso })
@@ -127,4 +130,94 @@ export async function markMessageSent(args: {
     });
   }
   return { ok: true };
+}
+
+export interface ClosedMeeting {
+  id: string;
+  whenIso: string;
+  name: string;
+}
+
+/**
+ * Затваря предстоящите живи срещи на човека (без `keepId`). Два повода:
+ *   moved          — от картата е записан нов час: старият е преместен;
+ *   not_interested — човекът каза, че не се интересува: срещата отпада.
+ * Статусът става `cancelled` (+ поводът в raw_payload), затова напомнянията,
+ * таблото, отчетът и проверката за застъпване спират да я броят сами — никой
+ * не трябва да помни да ги спира. Странично действие: никога не хвърля.
+ */
+export async function closeUpcomingMeetings(args: {
+  who: Person;
+  why: "moved" | "not_interested";
+  by: string;
+  keepId?: string | null;
+  movedTo?: { id: string | null; at: string } | null;
+  now?: Date;
+}): Promise<ClosedMeeting[]> {
+  try {
+    const now = args.now ?? new Date();
+    const nowIso = now.toISOString();
+    const sb = createServiceClient();
+    const { data } = await sb
+      .from("bookings")
+      .select("id, status, scheduled_at, attendee_name, attendee_email, attendee_phone, raw_payload")
+      .in("status", [...LIVE_BOOKING_STATUSES])
+      .gt("scheduled_at", nowIso)
+      .order("scheduled_at", { ascending: true })
+      .limit(300);
+    type Row = BookingLite & { attendee_name: string | null; raw_payload: Record<string, unknown> | null };
+    const rows = upcomingOfPerson((data ?? []) as Row[], args.who, now, args.keepId);
+    const out: ClosedMeeting[] = [];
+    for (const r of rows) {
+      const why =
+        args.why === "moved"
+          ? { moved_to: { booking_id: args.movedTo?.id ?? null, at: args.movedTo?.at ?? null, by: args.by, on: nowIso } }
+          : { cancelled_via: { reason: "not_interested", by: args.by, on: nowIso } };
+      const { error } = await sb
+        .from("bookings")
+        .update({ status: "cancelled", raw_payload: { ...(r.raw_payload ?? {}), ...why }, updated_at: nowIso })
+        .eq("id", r.id)
+        .in("status", [...LIVE_BOOKING_STATUSES]);
+      if (!error) out.push({ id: r.id, whenIso: r.scheduled_at, name: r.attendee_name ?? "" });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * „❌ Отказа срещата“ от „💜 Срещите“ в /ekip: човекът е казал (по телефона,
+ * във Viber), че няма да дойде. Срещата става `cancelled` — напомнянията за нея
+ * спират сами — и тръгва общият път на отказа: картонът влиза в „❌ Отказаха
+ * срещата“ за нов час, а Ивайло научава, че часът му е свободен.
+ */
+export async function cancelMeetingByTeam(
+  actor: TeamActor,
+  bookingId: string
+): Promise<{ ok: boolean; error?: string; whenIso?: string; name?: string; hasCard?: boolean }> {
+  const sb = createServiceClient();
+  const { data: b } = await sb
+    .from("bookings")
+    .select("id, status, attendee_name, attendee_email, attendee_phone, scheduled_at")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (!b) return { ok: false, error: "Срещата не е намерена." };
+  if (!isLiveBooking(b.status as string | null)) return { ok: false, error: "Срещата вече не е активна — опресни страницата." };
+  const r = await updateBooking({ id: bookingId, status: "cancelled" });
+  if (r.error) return { ok: false, error: r.error };
+  const whenIso = String(b.scheduled_at);
+  const name = String(b.attendee_name ?? "");
+  const email = (b.attendee_email as string | null) ?? null;
+  const phone = (b.attendee_phone as string | null) ?? null;
+  await handleCancelledBooking({
+    attendeeName: name || null,
+    attendeeEmail: email,
+    attendeePhone: phone,
+    scheduledAtIso: whenIso,
+    reason: `каза на ${actor.name}, че няма да дойде в този час`,
+    by: actor.name,
+  });
+  const card = await findContactByEmailOrPhone(email, phone).catch(() => null);
+  return { ok: true, whenIso, name, hasCard: !!card?.phone };
 }

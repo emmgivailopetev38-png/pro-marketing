@@ -3,6 +3,7 @@ import { phoneVariants } from "@/lib/contacts/repository";
 import { alignStage, alignStatus, dayKey, nextWorkingDayAt } from "@/lib/contacts/followup";
 import type { ContactStage, FollowupStatus } from "@/lib/contacts/types";
 import { evaluatePaymentMatch, invoiceStatusAfterPayment, type MatchConfidence } from "./match";
+import { sameInstant, stampMsgsForMove } from "./booking-status";
 import { toEur, convertWith, fxColumns } from "./fx";
 import { INVOICE_STATUSES, type InvoiceStatus } from "./types";
 import {
@@ -1731,21 +1732,27 @@ export async function updateBooking(args: {
   const calUid = typeof rawNow.cal_uid === "string" && rawNow.cal_uid ? rawNow.cal_uid : null;
 
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  let rawNext: Record<string, unknown> = rawNow;
   if (args.scheduled_at) {
     const when = new Date(args.scheduled_at);
     if (Number.isNaN(when.getTime())) return { error: "невалидна дата", cal_uid: calUid };
     patch.scheduled_at = when.toISOString();
+    // Преместена среща: пратените напомняния важат за стария час — за новия
+    // „ден преди“ и „малко преди“ трябва да излязат пак (виж booking-status.ts).
+    const oldIso = String((row as { scheduled_at?: string }).scheduled_at ?? "");
+    if (oldIso && !sameInstant(oldIso, when)) rawNext = stampMsgsForMove(rawNext, oldIso);
   }
   if (args.duration_minutes !== undefined) patch.duration_minutes = args.duration_minutes;
   if (args.status) patch.status = args.status;
   if (args.meeting_url !== undefined) patch.meeting_url = args.meeting_url;
   if (args.notes || args.cal_uid) {
-    patch.raw_payload = {
-      ...rawNow,
+    rawNext = {
+      ...rawNext,
       ...(args.notes ? { notes: args.notes } : {}),
       ...(args.cal_uid ? { cal_uid: args.cal_uid } : {}),
     };
   }
+  if (rawNext !== rawNow) patch.raw_payload = rawNext;
   if (Object.keys(patch).length === 1) return { error: null, cal_uid: calUid };
 
   const { error } = await sb.from("bookings").update(patch).eq("id", args.id);

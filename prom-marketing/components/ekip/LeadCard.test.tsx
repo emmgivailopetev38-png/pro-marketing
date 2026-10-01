@@ -1,11 +1,17 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
-import { LeadCard } from "./LeadCard";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+import { LeadCard, NOTE_DRAFT_PREFIX } from "./LeadCard";
 import type { QueueLead } from "@/lib/team/types";
 
-// Сървърното действие не се вика в тези тестове — гледаме само кои бутони
-// има картата и че „Върна обаждане“ отваря панела със срещата.
-vi.mock("@/app/ekip/actions", () => ({ ekipAction: vi.fn(async () => null) }));
+// Сървърното действие е подменено: гледаме кои бутони има картата и какво
+// праща формата. По подразбиране отговаря null (нищо не се е случило).
+const box = vi.hoisted(() => ({ sent: [] as FormData[], reply: null as unknown }));
+vi.mock("@/app/ekip/actions", () => ({
+  ekipAction: vi.fn(async (_prev: unknown, fd: FormData) => {
+    box.sent.push(fd);
+    return box.reply;
+  }),
+}));
 
 const lead: QueueLead = {
   id: "f36bdb53",
@@ -136,5 +142,83 @@ describe("„Спираме да звъним“ за хората, които �
   it("затворен картон, намерен през търсачката, не го показва пак", () => {
     render(<LeadCard lead={{ ...lead, stage: "lost", no_answers: 4 }} mode="search" />);
     expect(screen.queryByRole("button", { name: /Спираме да звъним/ })).not.toBeInTheDocument();
+  });
+});
+
+describe("бележката тръгва с всеки бутон и не се губи (01.10.2026)", () => {
+  beforeEach(() => {
+    box.sent.length = 0;
+    box.reply = null;
+    window.localStorage.clear();
+  });
+
+  const field = (re: RegExp) => screen.getByLabelText(re) as HTMLTextAreaElement;
+
+  it("и затворената карта има поле за бележка — в същата форма като бутоните", () => {
+    render(<LeadCard lead={{ ...lead, id: "n-closed", last_attempt: null, attempts: 0 }} mode="fresh" />);
+    const note = field(/Бележка — тръгва с бутона/);
+    expect(note).toHaveAttribute("name", "note");
+    expect(note.closest("form")).toBe(screen.getByRole("button", { name: /^📵 Не вдигна$/ }).closest("form"));
+  });
+
+  it("написаното тръгва с „Говорихме, чуване пак“, а не само със „Само бележка“", async () => {
+    box.reply = { ok: true, message: "Записано." };
+    const id = "n-callback";
+    render(<LeadCard lead={{ ...lead, id }} mode="waiting" />);
+    fireEvent.change(field(/Бележка — тръгва с бутона/), { target: { value: "Иска оферта за сайт" } });
+    fireEvent.click(screen.getByRole("button", { name: /Върна обаждане/ }));
+    // отворената форма пази написаното на затворената карта
+    expect(field(/Какво каза/).value).toBe("Иска оферта за сайт");
+    fireEvent.click(screen.getByRole("button", { name: /Говорихме, чуване пак/ }));
+    await waitFor(() => expect(box.sent).toHaveLength(1));
+    expect(box.sent[0].get("action")).toBe("callback");
+    expect(box.sent[0].get("note")).toBe("Иска оферта за сайт");
+    // записано — черновата на устройството се чисти
+    await waitFor(() => expect(window.localStorage.getItem(NOTE_DRAFT_PREFIX + id)).toBeNull());
+  });
+
+  it("„Не вдигна“ от затворената карта също носи бележката", async () => {
+    box.reply = { ok: true, message: "Отбелязано." };
+    render(<LeadCard lead={{ ...lead, id: "n-noanswer", last_attempt: null, attempts: 0 }} mode="fresh" />);
+    fireEvent.change(field(/Бележка — тръгва с бутона/), { target: { value: "гласова поща" } });
+    fireEvent.click(screen.getByRole("button", { name: /^📵 Не вдигна$/ }));
+    await waitFor(() => expect(box.sent).toHaveLength(1));
+    expect(box.sent[0].get("action")).toBe("no_answer");
+    expect(box.sent[0].get("note")).toBe("гласова поща");
+  });
+
+  it("черновата се пази, докато се пише, и се връща, когато картата излезе пак", () => {
+    const id = "n-draft";
+    const first = render(<LeadCard lead={{ ...lead, id }} mode="fresh" />);
+    fireEvent.change(field(/Бележка — тръгва с бутона/), { target: { value: "каза да звъня след 18 ч" } });
+    expect(window.localStorage.getItem(NOTE_DRAFT_PREFIX + id)).toBe("каза да звъня след 18 ч");
+    expect(screen.getByText(/Черновата се пази/)).toBeInTheDocument();
+    first.unmount();
+    render(<LeadCard lead={{ ...lead, id }} mode="fresh" />);
+    expect(field(/Бележка — тръгва с бутона/).value).toBe("каза да звъня след 18 ч");
+  });
+
+  it("при грешка бележката остава — не се пише наново", async () => {
+    box.reply = { ok: false, error: "Часът се застъпва с друга среща." };
+    const id = "n-error";
+    render(<LeadCard lead={{ ...lead, id }} mode="retry" />);
+    fireEvent.change(field(/Какво каза/), { target: { value: "иска среща в четвъртък" } });
+    fireEvent.click(screen.getByRole("button", { name: /Записах среща/ }));
+    await waitFor(() => expect(screen.getByText("Часът се застъпва с друга среща.")).toBeInTheDocument());
+    expect(field(/Какво каза/).value).toBe("иска среща в четвъртък");
+    expect(window.localStorage.getItem(NOTE_DRAFT_PREFIX + id)).toBe("иска среща в четвъртък");
+  });
+
+  it("бележката от изхода излиза най-отгоре на картата — с изхода до нея", () => {
+    const notes = [
+      { body: "Иска оферта за сайт", at: "2026-09-30T11:05:00.000Z", by: "Димитър", context: "Говорихме · чуване пак на чт 02.10, 10:00" },
+    ];
+    render(<LeadCard lead={{ ...lead, id: "n-top", team_notes: notes }} mode="waiting" />);
+    const list = screen.getByRole("list", { name: "Бележки" });
+    expect(within(list).getByText(/Иска оферта за сайт/)).toBeInTheDocument();
+    expect(within(list).getByText(/Говорихме · чуване пак на чт 02.10/)).toBeInTheDocument();
+    // над отговорите от формата — първото нещо под телефона
+    const answers = screen.getByText("С какво се занимава");
+    expect(list.compareDocumentPosition(answers) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

@@ -45,6 +45,8 @@ export interface NapredakBooking {
   created_at: string;
   /** raw_payload.notes — тук стои подписът „Записа: <име>“ */
   notes: string | null;
+  /** преместена на друг час (raw_payload.moved_to) — броят се води от новия ред */
+  moved?: boolean;
 }
 
 export interface NapredakLead {
@@ -366,6 +368,9 @@ export function meetingStats(bookings: NapredakBooking[], now: Date): MeetingSta
   const s: MeetingStats = { booked: 0, completed: 0, noShow: 0, upcoming: 0, cancelled: 0, pastUnmarked: 0, showRate: null };
   const nowMs = now.getTime();
   for (const b of bookings) {
+    // Преместената среща е същата среща в друг час — новият ред я носи.
+    // Иначе едно преместване излизаше като „записана + отказана“.
+    if (b.moved) continue;
     s.booked += 1;
     switch (b.status) {
       case "completed":

@@ -254,6 +254,34 @@ export async function notifyOwnerBooking(b: BookingByTeam): Promise<void> {
   ]);
 }
 
+export interface MeetingDroppedByTeam {
+  actorName: string;
+  contactId: string;
+  contactName: string;
+  phone: string | null;
+  /** часовете на отпадналите срещи (UTC ISO) */
+  whenIsos: string[];
+  note: string | null;
+}
+
+/**
+ * Човек с уговорена среща каза на екипа „не се интересувам“: срещата е
+ * отменена в CRM-а (напомнянията спират сами), а Ивайло научава, за да махне
+ * събитието от календара си. Само Telegram — никога не хвърля.
+ */
+export async function notifyOwnerMeetingDropped(d: MeetingDroppedByTeam): Promise<void> {
+  const card = `${SITE}/admin/clients/${d.contactId}`;
+  const lines = [
+    `🗓❌ <b>Срещата отпада — не се интересува</b>`,
+    `${escapeHtml(d.contactName)} · ${escapeHtml(d.whenIsos.map((w) => fmtSofia(w)).join(", "))}`,
+    d.phone ? `📞 ${escapeHtml(d.phone)}` : null,
+    `Отбеляза: ${escapeHtml(d.actorName)}`,
+    d.note ? `📝 ${escapeHtml(d.note)}` : null,
+    `Напомнянията към него са спрени. Ако срещата стои в календара ти — махни я оттам.`,
+  ].filter(Boolean) as string[];
+  await sendTelegram(lines.join("\n"), { buttons: [{ text: "Картонът в CRM-а", url: card }] }).catch(() => false);
+}
+
 export interface HandoffByTeam {
   actorName: string;
   contactId: string;

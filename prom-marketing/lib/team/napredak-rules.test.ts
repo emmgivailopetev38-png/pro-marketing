@@ -251,6 +251,11 @@ describe("срещите по bookings", () => {
   it("без нито една решена среща явяемостта е null, не 0", () => {
     expect(meetingStats([BOOKINGS[0]], NOW).showRate).toBeNull();
   });
+  it("преместената среща не е „записана + отказана“ — брои се само новият ѝ час", () => {
+    const moved = booking({ id: "b8", created_at: "2026-09-16T09:00:00Z", scheduled_at: "2026-09-22T10:00:00Z", status: "cancelled", moved: true, notes: "Записа: Димитър" });
+    const mine = BOOKINGS.filter((b) => b.id !== "b6" && b.id !== "b7");
+    expect(meetingStats([...mine, moved], NOW)).toEqual(meetingStats(mine, NOW));
+  });
 });
 
 describe("задачите", () => {
