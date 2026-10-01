@@ -387,7 +387,7 @@ export function GoldenKeyPresentationDocument() {
               <Text style={s.footerBold}>„ПроМаркетинг" ЕООД</Text>
               <Text>Ивайло Петев · управител</Text>
               <Text>emmgivailopetev38@gmail.com</Text>
-              <Text>+359 877 399 963</Text>
+              <Text>+359 876 447 159</Text>
             </View>
             <View style={[s.footerCol, { textAlign: "right" }]}>
               <Text>Резервирай разговор:</Text>

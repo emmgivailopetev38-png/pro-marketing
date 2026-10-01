@@ -81,8 +81,8 @@ export default function BookingPage() {
               emmgivailopetev38@gmail.com
             </a>{" "}
             или се обади на{" "}
-            <a href="tel:+359877399963" className="text-cyan-300 hover:underline">
-              +359 877 399 963
+            <a href="tel:+359876447159" className="text-cyan-300 hover:underline">
+              +359 876 447 159
             </a>
             .
           </p>

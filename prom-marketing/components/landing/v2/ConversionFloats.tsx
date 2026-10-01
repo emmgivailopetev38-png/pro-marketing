@@ -5,7 +5,7 @@
    ---------------------------------------------------------------------------
    (1) EXIT-INTENT модал: при бързо движение на мишката извън горния ръб
        (mouseleave + clientY<=0) показва ВЕДНЪЖ на сесия покана за телефон.
-   (2) WhatsApp FAB: дискретен зелен бутон долу-вляво → wa.me/359877399963.
+   (2) WhatsApp FAB: дискретен зелен бутон долу-вляво → wa.me/359876447159.
 
    Capture контрактът е същият като components/landing/v2/AiAudit.tsx и
    ProductShowcaseV2.tsx → POST /api/leads/submit с { phone, message } (само
@@ -17,7 +17,7 @@ import { useEffect, useRef, useState } from "react";
 import { Phone, ArrowRight, Check, Loader2, X, MessageCircle } from "lucide-react";
 import { track } from "@/lib/analytics/track";
 
-const WHATSAPP_URL = "https://wa.me/359877399963";
+const WHATSAPP_URL = "https://wa.me/359876447159";
 const EXIT_FLAG = "pm_v2_exit_intent_shown"; // sessionStorage: показвай само веднъж/сесия
 
 export function ConversionFloats() {
@@ -241,8 +241,8 @@ export function ConversionFloats() {
                   {status === "error" && (
                     <p className="mt-2.5 text-[12px] text-[#fca5a5]">
                       Грешка — опитай пак или звънни на{" "}
-                      <a href="tel:+359877399963" className="underline">
-                        +359 877 399 963
+                      <a href="tel:+359876447159" className="underline">
+                        +359 876 447 159
                       </a>
                       .
                     </p>

@@ -76,10 +76,10 @@ export function QuickLeadFormV2() {
                 <Phone className="h-4 w-4" style={{ color: "var(--v2-cyan)" }} />
                 Или директно на{" "}
                 <a
-                  href="tel:+359877399963"
+                  href="tel:+359876447159"
                   className="text-[color:var(--v2-ink)] transition-colors hover:text-[color:var(--v2-cyan)]"
                 >
-                  +359 877 399 963
+                  +359 876 447 159
                 </a>
               </p>
               <p className="flex items-center gap-2 text-[color:var(--v2-muted)]">

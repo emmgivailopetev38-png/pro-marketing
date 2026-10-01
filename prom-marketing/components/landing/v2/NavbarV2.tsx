@@ -264,8 +264,8 @@ export function NavbarV2() {
         </ul>
         <div className="flex shrink-0 items-center gap-2">
           <a
-            href="tel:+359877399963"
-            aria-label="Обади се: 0877 399 963"
+            href="tel:+359876447159"
+            aria-label="Обади се: 0876 447 159"
             className="v2-phone-pill hidden items-center gap-2 rounded-full px-3 py-2 text-sm transition-colors lg:inline-flex"
             style={{
               border: "1px solid var(--v2-line)",
@@ -274,7 +274,7 @@ export function NavbarV2() {
           >
             <Phone className="h-3.5 w-3.5" />
             <span style={{ fontFamily: "var(--v2-font-mono)", letterSpacing: "0.04em" }}>
-              0877 399 963
+              0876 447 159
             </span>
           </a>
           <button
@@ -413,7 +413,7 @@ export function NavbarV2() {
               <span aria-hidden className="v2-arrow">→</span>
             </button>
             <a
-              href="tel:+359877399963"
+              href="tel:+359876447159"
               onClick={() => setOpen(false)}
               className="inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-base font-medium transition-colors hover:bg-white/5"
               style={{
@@ -423,7 +423,7 @@ export function NavbarV2() {
             >
               <Phone className="h-4 w-4" />
               <span style={{ fontFamily: "var(--v2-font-mono)", letterSpacing: "0.04em" }}>
-                0877 399 963
+                0876 447 159
               </span>
             </a>
           </div>

@@ -183,7 +183,7 @@ export default async function KlientPage({ params }: { params: Promise<{ token: 
         <footer className="kl-foot">
           <span>Pro Marketing · Ивайло Петев</span>
           <a href="mailto:ivailo@promarketing.pw">ivailo@promarketing.pw</a>
-          <a href="tel:+359877399963">+359 877 399 963</a>
+          <a href="tel:+359876447159">+359 876 447 159</a>
         </footer>
       </div>
     </>

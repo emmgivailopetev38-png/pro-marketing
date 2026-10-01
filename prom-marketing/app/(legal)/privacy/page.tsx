@@ -48,7 +48,7 @@ export default function PrivacyPage() {
             emmgivailopetev38@gmail.com
           </a>
         </li>
-        <li>Телефон: +359 877 399 963</li>
+        <li>Телефон: +359 876 447 159</li>
       </ul>
 
       <h2 className="mt-10 font-display text-2xl font-bold">2. Какви лични данни събираме</h2>
@@ -298,8 +298,8 @@ export default function PrivacyPage() {
         </li>
         <li>
           Телефон:{" "}
-          <a className="text-[var(--color-accent-cyan)]" href="tel:+359877399963">
-            +359 877 399 963
+          <a className="text-[var(--color-accent-cyan)]" href="tel:+359876447159">
+            +359 876 447 159
           </a>
         </li>
       </ul>

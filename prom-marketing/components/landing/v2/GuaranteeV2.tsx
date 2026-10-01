@@ -310,7 +310,7 @@ export function GuaranteeV2() {
                     className="rounded-[10px] px-3 py-2 text-xs"
                     style={{ border: "1px solid rgba(248,113,113,0.3)", background: "rgba(248,113,113,0.1)", color: "#fca5a5" }}
                   >
-                    Грешка — опитай пак или звънни на +359 877 399 963.
+                    Грешка — опитай пак или звънни на +359 876 447 159.
                   </p>
                 )}
 

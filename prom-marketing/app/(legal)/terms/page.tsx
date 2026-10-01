@@ -43,7 +43,7 @@ export default function TermsPage() {
             emmgivailopetev38@gmail.com
           </a>
         </li>
-        <li>Телефон: +359 877 399 963</li>
+        <li>Телефон: +359 876 447 159</li>
         <li>
           Контролни органи: Комисия за защита на потребителите (КЗП) — kzp.bg; Комисия за защита
           на личните данни (КЗЛД) — cpdp.bg.
@@ -186,8 +186,8 @@ export default function TermsPage() {
         </li>
         <li>
           Телефон:{" "}
-          <a className="text-[var(--color-accent-cyan)]" href="tel:+359877399963">
-            +359 877 399 963
+          <a className="text-[var(--color-accent-cyan)]" href="tel:+359876447159">
+            +359 876 447 159
           </a>
         </li>
       </ul>

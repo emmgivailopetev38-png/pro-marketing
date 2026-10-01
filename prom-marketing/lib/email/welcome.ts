@@ -64,7 +64,7 @@ export async function sendWelcomeEmail(args: WelcomeArgs): Promise<WelcomeResult
   <p style="margin-top:24px;">До скоро,<br/>
   <strong>Ивайло Петев</strong><br/>
   Управител · „ПроМаркетинг" ЕООД<br/>
-  📞 +359 877 399 963 · 🌐 <a href="https://promarketing.pw" style="color:#0066cc;">promarketing.pw</a></p>
+  📞 +359 876 447 159 · 🌐 <a href="https://promarketing.pw" style="color:#0066cc;">promarketing.pw</a></p>
 </div>`;
 
   const text = `${greetingText},
@@ -79,7 +79,7 @@ export async function sendWelcomeEmail(args: WelcomeArgs): Promise<WelcomeResult
 До скоро,
 Ивайло Петев
 Управител · „ПроМаркетинг" ЕООД
-+359 877 399 963 · promarketing.pw`;
++359 876 447 159 · promarketing.pw`;
 
   const res = await sendEmail({ to, subject, html, text, replyTo: replyToAddress() });
 

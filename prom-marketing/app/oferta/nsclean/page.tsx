@@ -425,13 +425,13 @@ export default function NscleanPage() {
             <a className="btn" href="mailto:office@promarketing.pw?subject=NS%20Clean%20%E2%80%94%20%D0%B4%D0%B0">
               Отговорете с „да“
             </a>
-            <a className="btn ghost" href="tel:+359877399963">
-              +359 877 399 963
+            <a className="btn ghost" href="tel:+359876447159">
+              +359 876 447 159
             </a>
           </div>
         </div>
 
-        <p className="sig">Ивайло Петев · Pro Marketing · promarketing.pw · office@promarketing.pw · +359 877 399 963</p>
+        <p className="sig">Ивайло Петев · Pro Marketing · promarketing.pw · office@promarketing.pw · +359 876 447 159</p>
       </div>
     </>
   );

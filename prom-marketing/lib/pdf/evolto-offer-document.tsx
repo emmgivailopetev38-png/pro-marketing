@@ -267,7 +267,7 @@ export function EvoltoOfferDocument() {
                 Гр. Русе, ул. Цар Асен I-ви № 31{"\n"}
                 МОЛ: Ивайло Петров Петев{"\n"}
                 emmgivailopetev38@gmail.com{"\n"}
-                +359 877 399 963
+                +359 876 447 159
               </Text>
             </View>
             <View style={s.partyCard}>
@@ -394,7 +394,7 @@ export function EvoltoOfferDocument() {
               <Text style={s.footerBold}>„ПроМаркетинг" ЕООД</Text>
               <Text>Ивайло Петров Петев · управител</Text>
               <Text>emmgivailopetev38@gmail.com</Text>
-              <Text>+359 877 399 963</Text>
+              <Text>+359 876 447 159</Text>
             </View>
             <View style={[s.footerCol, { textAlign: "right" }]}>
               <Text>Валидност на офертата: 21 дни,</Text>

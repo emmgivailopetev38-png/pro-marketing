@@ -524,8 +524,8 @@ export default function TotexOferta() {
           >
             Пишете ми
           </a>
-          <a className="btn ghost" href="tel:+359877399963">
-            0877 399 963
+          <a className="btn ghost" href="tel:+359876447159">
+            0876 447 159
           </a>
         </p>
       </section>
@@ -533,7 +533,7 @@ export default function TotexOferta() {
       <p className="sig">
         <b>Ивайло Петев</b> · Pro Marketing
         <br />
-        0877 399 963 · emmgivailopetev38@gmail.com · promarketing.pw
+        0876 447 159 · emmgivailopetev38@gmail.com · promarketing.pw
       </p>
     </main>
   );

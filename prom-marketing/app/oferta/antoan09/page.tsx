@@ -732,11 +732,11 @@ export default function Antoan09Page() {
 
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a
-              href="tel:+359877399963"
+              href="tel:+359876447159"
               className="inline-flex items-center gap-3 rounded-full bg-[var(--color-red)] px-10 py-5 text-base font-bold uppercase tracking-[0.2em] text-white transition-transform hover:scale-[1.02]"
               style={{ background: "linear-gradient(135deg, #ef4444, #dc2626)" }}
             >
-              📞 +359 877 399 963
+              📞 +359 876 447 159
               <span aria-hidden>→</span>
             </a>
           </div>

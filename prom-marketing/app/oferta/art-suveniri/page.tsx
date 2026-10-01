@@ -490,7 +490,7 @@ export default function ArtSuveniriPage() {
               <b>Ивайло Петев</b>
               <span>Pro Marketing LTD</span>
               <a href="https://promarketing.pw">promarketing.pw</a>
-              <span className="tab">0877 399 963</span>
+              <span className="tab">0876 447 159</span>
             </div>
           </div>
         </footer>

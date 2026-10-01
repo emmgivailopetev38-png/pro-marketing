@@ -624,11 +624,11 @@ export default function StaniOferta() {
           пристигне.
         </p>
         <p className="ctas">
-          <a className="btn" href="viber://chat?number=%2B359877399963">
+          <a className="btn" href="viber://chat?number=%2B359876447159">
             Пишете ми във Viber
           </a>
-          <a className="btn ghost" href="tel:+359877399963">
-            0877 399 963
+          <a className="btn ghost" href="tel:+359876447159">
+            0876 447 159
           </a>
         </p>
       </section>
@@ -636,7 +636,7 @@ export default function StaniOferta() {
       <p className="sig">
         <b>Ивайло Петев</b> · Pro Marketing
         <br />
-        0877 399 963 · emmgivailopetev38@gmail.com · promarketing.pw
+        0876 447 159 · emmgivailopetev38@gmail.com · promarketing.pw
       </p>
     </main>
   );

@@ -194,7 +194,7 @@ export function AiAudit() {
             </div>
 
             {status === "error" && (
-              <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">Грешка — опитай пак или звънни на +359 877 399 963.</p>
+              <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">Грешка — опитай пак или звънни на +359 876 447 159.</p>
             )}
 
             <form onSubmit={submit} className="mt-4 space-y-2.5">

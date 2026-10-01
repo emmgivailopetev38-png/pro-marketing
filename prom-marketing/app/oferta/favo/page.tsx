@@ -693,7 +693,7 @@ export default function FavoPage() {
               <p className="sig">
                 <b>Ивайло Петев</b>
                 <br />
-                Pro Marketing LTD · 0877 399 963
+                Pro Marketing LTD · 0876 447 159
                 <br />
                 promarketing.pw
               </p>

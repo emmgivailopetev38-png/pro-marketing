@@ -262,8 +262,8 @@ export function WelcomeLeadPopup() {
               {status === "error" && (
                 <p className="text-[12px] text-[#fca5a5]">
                   Грешка — опитай пак или звънни на{" "}
-                  <a href="tel:+359877399963" className="underline">
-                    +359 877 399 963
+                  <a href="tel:+359876447159" className="underline">
+                    +359 876 447 159
                   </a>
                   .
                 </p>

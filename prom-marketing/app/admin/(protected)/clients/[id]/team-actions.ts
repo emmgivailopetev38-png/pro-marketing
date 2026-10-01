@@ -101,9 +101,9 @@ export async function portalSendLinkAction(_prev: EkipActionResult | null, formD
 <p>Радваме се, че работим заедно. За да виждате по всяко време докъде сме, кои стъпки чакат Вас и да ни пишете с едно натискане, направихме Ваша лична страница:</p>
 <p style="margin:18px 0;"><a href="${link}" style="display:inline-block;background:#0891b2;color:#fff;padding:12px 20px;border-radius:999px;text-decoration:none;font-weight:bold;">Отворете Вашия проект</a></p>
 <p>Линкът е личен — пазете го за себе си. Отваря се и от телефона, без парола. Всичко, което напишете там, стига до нас в същата минута.</p>
-<p>До скоро,<br/>Ивайло Петев · Pro Marketing<br/>+359 877 399 963</p>
+<p>До скоро,<br/>Ивайло Петев · Pro Marketing<br/>+359 876 447 159</p>
 </div>`,
-    text: `Здравейте${name ? `, ${name}` : ""}!\n\nВашата лична страница с напредъка по проекта: ${link}\n\nЛинкът е личен. Всичко, което напишете там, стига до нас веднага.\n\nИвайло Петев · Pro Marketing · +359 877 399 963`,
+    text: `Здравейте${name ? `, ${name}` : ""}!\n\nВашата лична страница с напредъка по проекта: ${link}\n\nЛинкът е личен. Всичко, което напишете там, стига до нас веднага.\n\nИвайло Петев · Pro Marketing · +359 876 447 159`,
   });
   if (res.error) return { ok: false, error: res.error };
   await sb

@@ -424,7 +424,7 @@ function DemoCta() {
       {status === "error" && (
         <p className="mt-2.5 text-[12px] text-[#fca5a5]">
           Грешка — опитай пак или звънни на{" "}
-          <a href="tel:+359877399963" className="underline">+359 877 399 963</a>.
+          <a href="tel:+359876447159" className="underline">+359 876 447 159</a>.
         </p>
       )}
       <p className="v2-mono mt-2.5 text-[10px] uppercase tracking-[0.16em] text-[var(--v2-faint)]">

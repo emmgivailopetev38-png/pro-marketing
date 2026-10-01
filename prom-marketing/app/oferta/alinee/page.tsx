@@ -1006,11 +1006,11 @@ export default function AlineeOfferPage() {
 
         <div className="mt-7 flex flex-wrap items-center gap-3">
           <a
-            href="tel:+359877399963"
+            href="tel:+359876447159"
             className="rounded-lg px-5 py-3 text-[15px] font-semibold transition-opacity hover:opacity-90"
             style={{ background: "var(--a-amber)", color: "#0d0a07" }}
           >
-            +359 877 399 963
+            +359 876 447 159
           </a>
           <a
             href="mailto:emmgivailopetev38@gmail.com?subject=Alineé · оферта"

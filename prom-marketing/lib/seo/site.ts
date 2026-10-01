@@ -21,8 +21,8 @@ export const ORG = {
   taxId: "207223552",
   foundingDate: "2024",
   email: "emmgivailopetev38@gmail.com",
-  phone: "+359877399963",
-  phoneDisplay: "0877 399 963",
+  phone: "+359876447159",
+  phoneDisplay: "0876 447 159",
   /** Оперативен адрес — Пловдив. Потвърден на 27.08.2026. */
   city: "Пловдив",
   region: "Пловдив",

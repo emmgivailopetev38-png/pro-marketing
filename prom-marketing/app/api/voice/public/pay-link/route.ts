@@ -338,15 +338,15 @@ function personEmailHtml(a: {
 <p style="margin:0 0 22px"><a href="${a.url}" style="display:inline-block;background:#0b6b4a;color:#fff;font-weight:700;text-decoration:none;border-radius:999px;padding:13px 24px">${escapeHtml(you.cta)} →</a></p>
 <p style="margin:0 0 14px">${escapeHtml(you.after)}</p>
 <p style="margin:0 0 18px;color:#4b5852">${escapeHtml(you.valid)}</p>
-<p style="margin:0">${escapeHtml(you.bye)}<br><strong>Ивайло Петев</strong><br>Про Маркетинг · <a href="https://promarketing.pw" style="color:#0b6b4a">promarketing.pw</a> · <a href="tel:+359877399963" style="color:#0b6b4a">+359 877 399 963</a></p>
+<p style="margin:0">${escapeHtml(you.bye)}<br><strong>Ивайло Петев</strong><br>Про Маркетинг · <a href="https://promarketing.pw" style="color:#0b6b4a">promarketing.pw</a> · <a href="tel:+359876447159" style="color:#0b6b4a">+359 876 447 159</a></p>
 </div>`;
 }
 
 function personEmailText(a: { name: string; ti: boolean; product: string; priceEur: number; url: string; validUntil: string }): string {
   const first = a.name.split(/\s+/)[0] ?? a.name;
   return a.ti
-    ? `Здравей, ${first},\n\nРадвам се, че говорихме преди малко с Коста и че решението е „да“. Ето следващата стъпка — простата:\n\n${a.product} — ${a.priceEur} €\nФинализирай споразумението: ${a.url}\n\nВ момента, в който споразумението е финализирано, ти пиша още същия ден с първите въпроси и започвам работа.\nЛинкът е валиден до ${a.validUntil}. Ако предпочиташ банков превод или имаш въпрос — отговори на този имейл.\n\nДо скоро,\nИвайло Петев · Про Маркетинг · +359 877 399 963`
-    : `Здравейте, ${first},\n\nРадвам се, че говорихте преди малко с Коста и че решението е „да“. Ето следващата стъпка — простата:\n\n${a.product} — ${a.priceEur} €\nФинализирайте споразумението: ${a.url}\n\nВ момента, в който споразумението е финализирано, Ви пиша още същия ден с първите въпроси и започвам работа.\nЛинкът е валиден до ${a.validUntil}. Ако предпочитате банков превод или имате въпрос — отговорете на този имейл.\n\nДо скоро,\nИвайло Петев · Про Маркетинг · +359 877 399 963`;
+    ? `Здравей, ${first},\n\nРадвам се, че говорихме преди малко с Коста и че решението е „да“. Ето следващата стъпка — простата:\n\n${a.product} — ${a.priceEur} €\nФинализирай споразумението: ${a.url}\n\nВ момента, в който споразумението е финализирано, ти пиша още същия ден с първите въпроси и започвам работа.\nЛинкът е валиден до ${a.validUntil}. Ако предпочиташ банков превод или имаш въпрос — отговори на този имейл.\n\nДо скоро,\nИвайло Петев · Про Маркетинг · +359 876 447 159`
+    : `Здравейте, ${first},\n\nРадвам се, че говорихте преди малко с Коста и че решението е „да“. Ето следващата стъпка — простата:\n\n${a.product} — ${a.priceEur} €\nФинализирайте споразумението: ${a.url}\n\nВ момента, в който споразумението е финализирано, Ви пиша още същия ден с първите въпроси и започвам работа.\nЛинкът е валиден до ${a.validUntil}. Ако предпочитате банков превод или имате въпрос — отговорете на този имейл.\n\nДо скоро,\nИвайло Петев · Про Маркетинг · +359 876 447 159`;
 }
 
 async function notifyOwner(a: {
