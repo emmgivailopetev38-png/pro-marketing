@@ -41,8 +41,20 @@ export const calBookingSchema = z.object({
     responses: z.record(z.string(), responseValueSchema).optional(),
     userFieldsResponses: z.record(z.string(), responseValueSchema).optional(),
     status: z.string().optional(),
-    /** Каквото човекът е написал, когато си е отменил часа. */
-    cancellationReason: z.string().optional(),
+    /**
+     * Каквото човекът е написал, когато си е отменил часа. Cal.com праща
+     * `null`, когато няма такова — а схемата искаше низ, и от 17.09.2026
+     * webhook-ът падаше на ВСЯКО събитие (виж cal_webhook_log).
+     */
+    cancellationReason: z.string().nullish(),
+    /**
+     * При BOOKING_RESCHEDULED Cal.com прави НОВА резервация (`uid`) и отменя
+     * старата; старата се познава по `rescheduleUid` (по-старите версии:
+     * `fromReschedule`) и по часа ѝ `rescheduleStartTime`.
+     */
+    rescheduleUid: z.string().nullish(),
+    fromReschedule: z.string().nullish(),
+    rescheduleStartTime: z.string().nullish(),
     // Google Meet/Cal Video URL lives here; Cal also mirrors it in `location`
     // when the location resolves to a remote URL.
     metadata: z
@@ -51,7 +63,7 @@ export const calBookingSchema = z.object({
       })
       .passthrough()
       .optional(),
-    location: z.string().optional(),
+    location: z.string().nullish(),
   }),
   createdAt: z.string().optional(),
 });
@@ -128,10 +140,21 @@ export function extractMeetingUrl(p: CalBookingPayload["payload"]): string | nul
   return null;
 }
 
+/**
+ * Статусът на реда в `bookings`. Преместената среща е ЖИВА среща в новия час —
+ * до 01.10.2026 тук стоеше „rescheduled“, който напомнянията не познават, и за
+ * новия час напомняне не излизаше. Старият час се затваря отделно (виж
+ * lib/cal/booking-changes.ts).
+ */
 export function statusFromTrigger(t: string): string {
   if (t === "BOOKING_CANCELLED") return "cancelled";
-  if (t === "BOOKING_RESCHEDULED") return "rescheduled";
   return "confirmed";
+}
+
+/** Uid-ът на старата резервация при преместване — каквото Cal.com е пратил. */
+export function rescheduledFromUid(p: CalBookingPayload["payload"]): string | null {
+  const v = p.rescheduleUid ?? p.fromReschedule ?? null;
+  return v && v !== p.uid ? v : null;
 }
 
 export function durationMinutes(start: string, end: string): number {

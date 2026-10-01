@@ -20,7 +20,9 @@ import {
   type BusyMeeting,
   type Person,
 } from "@/lib/team/sreshti-zastapvane";
-import { notifyOwnerBooking, notifyOwnerHandoff } from "@/lib/team/notify";
+import { notifyOwnerBooking, notifyOwnerHandoff, notifyOwnerMeetingDropped } from "@/lib/team/notify";
+import { closeUpcomingMeetings } from "@/lib/team/sreshti";
+import { sameInstant } from "@/lib/crm/booking-status";
 import { EKIP_ACTIONS, type EkipActionKind, type EkipActionResult } from "@/lib/team/types";
 import { joinBusiness } from "@/lib/team/business";
 import type { ContactStage } from "@/lib/contacts/types";
@@ -110,6 +112,9 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
     team_member_slug: actor.slug,
     outcome: action,
     business: business || null,
+    // Точно каквото е написано в полето — картата го показва следващия път,
+    // с който и бутон да е изпратено (виж noteText в queue-rules.ts).
+    note: note || null,
   };
   let activity: { type: string; title: string; body: string | null; occurred_at?: string };
   let message: string;
@@ -247,6 +252,29 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         });
         if (booking.error) return { ok: false, error: `Срещата не се записа: ${booking.error}` };
 
+        // Нов час за човек, който вече има предстояща среща = преместване. Старата
+        // спира сама (статус „отменена“ + moved_to) — иначе напомнянията за стария
+        // час продължаваха, а Ивайло виждаше две срещи с един човек.
+        const moved = booking.id
+          ? await closeUpcomingMeetings({
+              who: { email, phone: c.phone },
+              why: "moved",
+              by: actor.name,
+              keepId: booking.id,
+              movedTo: { id: booking.id, at: meetingIso },
+            })
+          : [];
+        // Същият час два пъти (напр. през Cal.com и после „Записах среща“) е
+        // дубликат — остава един ред, без приказки за преместване.
+        const movedFrom = moved.filter((m) => !sameInstant(m.whenIso, meetingIso));
+        const movedNote = movedFrom.length
+          ? `🔁 Преместена от ${movedFrom.map((m) => fmtSofia(m.whenIso)).join(", ")} — старият час е спрян в CRM-а; ако стои в календара, махни го оттам.`
+          : null;
+        if (moved.length) meta.moved_from = moved.map((m) => ({ booking_id: m.id, at: m.whenIso }));
+        if (movedFrom.length) {
+          inviteNote += ` Старият час (${movedFrom.map((m) => fmtSofia(m.whenIso)).join(", ")}) е отбелязан като преместен — напомнянията за него спряха сами.`;
+        }
+
         patch.last_heard_from_at = nowIso;
         patch.followup_status = null;
         patch.next_followup_at = null;
@@ -271,7 +299,7 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
           phone: c.phone,
           email,
           business,
-          note: [note || null, meetingUrl ? `Meet: ${meetingUrl}` : null].filter(Boolean).join("\n") || null,
+          note: [note || null, meetingUrl ? `Meet: ${meetingUrl}` : null, movedNote].filter(Boolean).join("\n") || null,
           scheduledAtIso: meetingIso,
         }).catch(() => {});
         break;
@@ -313,6 +341,26 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         patch.stage = alignStage(stage, "not_interested");
         activity = { type: "call", title: "Не се интересува", body: note || null };
         message = "Отбелязано като „не се интересува“.";
+        // Има ли уговорена среща, тя отпада сама — иначе напомнянията към човек,
+        // който току-що е казал „не“, продължават.
+        const dropped = await closeUpcomingMeetings({
+          who: { email: c.email, phone: c.phone },
+          why: "not_interested",
+          by: actor.name,
+        });
+        if (dropped.length) {
+          const whens = dropped.map((m) => fmtSofia(m.whenIso));
+          meta.cancelled_meetings = dropped.map((m) => ({ booking_id: m.id, at: m.whenIso }));
+          message += ` Срещата му (${whens.join(", ")}) е отменена — напомнянията спряха, Ивайло е уведомен.`;
+          await notifyOwnerMeetingDropped({
+            actorName: actor.name,
+            contactId: c.id,
+            contactName: c.full_name ?? c.phone ?? "Без име",
+            phone: c.phone,
+            whenIsos: dropped.map((m) => m.whenIso),
+            note: note || null,
+          }).catch(() => {});
+        }
         break;
       }
       case "wrong_number": {
@@ -382,8 +430,24 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
           .update({ metadata: { ...prev, hidden: true, hidden_at: nowIso, hidden_by: actor.slug } })
           .eq("id", last.id);
         if (error) return { ok: false, error: `Не се скри: ${error.message}` };
+        // Бележката се пази с всеки бутон — и със „Скрий“, който сам не пише активност.
+        if (note) {
+          const { error: noteErr } = await sb.from("contact_activities").insert({
+            contact_id: contactId,
+            activity_type: "note",
+            title: `Бележка от ${actor.name}`,
+            body: note,
+            occurred_at: nowIso,
+            metadata: { ...meta, outcome: "note" },
+            created_by: actor.name,
+          });
+          if (noteErr) return { ok: false, error: `Скрито, но бележката не се записа: ${noteErr.message}` };
+        }
         revalidatePath("/ekip");
-        return { ok: true, message: "Скрито. Ще излезе пак в „за повторно“, когато му дойде часът; дотогава го намираш с търсачката." };
+        return {
+          ok: true,
+          message: `Скрито${note ? ", бележката е записана" : ""}. Ще излезе пак в „за повторно“, когато му дойде часът; дотогава го намираш с търсачката.`,
+        };
       }
       default:
         return { ok: false, error: "Непознато действие" };
