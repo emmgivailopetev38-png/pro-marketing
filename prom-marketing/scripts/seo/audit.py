@@ -39,6 +39,19 @@ for f in glob.glob(os.path.join(ROOT, "app/**/page.tsx"), recursive=True):
         rel = re.sub(r"\([^)]*\)/?", "", rel).strip("/")
         REDIRECTS.add("/" + rel if rel else "/")
 
+# Пренасочванията и пренаписванията от next.config.ts. Без тях всяка
+# връзка към адрес, който се пренасочва — например /rabota към играта
+# „ЛОСТ" на отделния поддомейн — се брои за счупена, макар да работи.
+# Държат се в отделно множество, защото тези адреси НЕ махат страници
+# от одита, а само от проверката за счупени връзки.
+CONFIG_REDIRECTS = set()
+_cfg_path = os.path.join(ROOT, "next.config.ts")
+if os.path.exists(_cfg_path):
+    _cfg = open(_cfg_path, encoding="utf-8", errors="replace").read()
+    for _source in re.findall(r'source:\s*"([^"]+)"', _cfg):
+        if ":" in _source: continue          # шаблони като /:path*
+        CONFIG_REDIRECTS.add(_source.rstrip("/") or "/")
+
 pages = {}
 for f in glob.glob(os.path.join(APP, "**/*.html"), recursive=True):
     rel = os.path.relpath(f, APP)[:-5]
@@ -143,7 +156,7 @@ for p, n in sorted(links.items()):
     if p in known or dynamic_ok.match(p): continue
     if p.startswith("/_next") or p.startswith("/videa") or p.startswith("/images"): continue
     if p in ("/manifest.webmanifest","/sitemap.xml","/robots.txt","/llms.txt"): continue
-    if p in REDIRECTS: continue
+    if p in REDIRECTS or p in CONFIG_REDIRECTS: continue
     if os.path.exists(os.path.join(ROOT, "public", p.lstrip("/"))): continue
     bad("високо","връзки", f"счупена вътрешна връзка към {p} (от {len(targets[p])} страници)")
 
