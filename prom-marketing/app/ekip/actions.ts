@@ -9,6 +9,17 @@ import { canGiveUp, isNoAnswer, type AttemptRow } from "@/lib/team/queue-rules";
 import { upsertBooking } from "@/lib/crm/repository";
 import { MEETING_MINUTES } from "@/lib/cal/types";
 import { createCalBooking, isCalWriteConfigured } from "@/lib/cal/create-booking";
+import {
+  FREE_STATUSES,
+  LOOKAHEAD_MINUTES,
+  LOOKBACK_MINUTES,
+  clashMessage,
+  findOverlap,
+  freeAround,
+  tooEarly,
+  type BusyMeeting,
+  type Person,
+} from "@/lib/team/sreshti-zastapvane";
 import { notifyOwnerBooking, notifyOwnerHandoff } from "@/lib/team/notify";
 import { EKIP_ACTIONS, type EkipActionKind, type EkipActionResult } from "@/lib/team/types";
 import { joinBusiness } from "@/lib/team/business";
@@ -20,6 +31,32 @@ const ATTEMPT_TYPES = ["call", "meeting", "viber_sent"];
 
 function str(fd: FormData, key: string): string {
   return String(fd.get(key) ?? "").trim();
+}
+
+/** Застъпва ли се нова среща с чужда среща в CRM-а — текстът за човека или null. */
+async function meetingClash(
+  sb: ReturnType<typeof createServiceClient>,
+  startIso: string,
+  who: Person
+): Promise<string | null> {
+  const startMs = new Date(startIso).getTime();
+  const { data } = await sb
+    .from("bookings")
+    .select("attendee_name, attendee_email, attendee_phone, scheduled_at, duration_minutes")
+    .not("status", "in", `(${FREE_STATUSES.join(",")})`)
+    .gt("scheduled_at", new Date(startMs - LOOKBACK_MINUTES * 60_000).toISOString())
+    .lt("scheduled_at", new Date(startMs + LOOKAHEAD_MINUTES * 60_000).toISOString());
+  const busy: BusyMeeting[] = (data ?? []).map((b) => ({
+    name: b.attendee_name ?? "без име",
+    startIso: b.scheduled_at,
+    minutes: b.duration_minutes,
+    email: b.attendee_email,
+    phone: b.attendee_phone,
+  }));
+  const hit = findOverlap(startIso, busy, who);
+  if (!hit) return null;
+  const { before, after } = freeAround(startIso, busy, who);
+  return clashMessage(hit, before, after);
 }
 
 function revalidateAll(contactId: string) {
@@ -151,10 +188,19 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         if (new Date(meetingIso).getTime() < Date.now() - 60 * 60 * 1000) {
           return { ok: false, error: "Срещата е в миналото — провери датата." };
         }
+        if (tooEarly(meetingIso)) {
+          return { ok: false, error: "Срещите с Ивайло са от 10:00 нататък — избери 10:00 или по-късно." };
+        }
         const typedEmail = str(formData, "email").toLowerCase();
         const email = c.email ?? (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(typedEmail) ? typedEmail : null);
         if (!c.email && email) patch.email = email;
         const name = c.full_name ?? c.phone ?? "Без име";
+
+        // Срещите са по 45 минути и не се застъпват — проверката е тук, а не само
+        // в Cal.com, защото срещата без имейл не влиза в календара и Cal.com не я
+        // вижда. Преди поканата: иначе човекът получава покана за зает час.
+        const clash = await meetingClash(sb, meetingIso, { email, phone: c.phone });
+        if (clash) return { ok: false, error: clash };
 
         // Покана с Meet линк — през Cal.com, който държи календара на Ивайло.
         // Първо Cal.com, после CRM-ът със същия ключ (uid): така webhook-ът

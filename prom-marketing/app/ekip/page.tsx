@@ -5,6 +5,7 @@ import { getMemberById } from "@/lib/team/repository";
 import { loadSetterQueue, searchLeads } from "@/lib/team/queue";
 import { loadProspectQueue } from "@/lib/team/prospects";
 import { fmtSofia } from "@/lib/team/time";
+import { MEETING_MINUTES } from "@/lib/cal/types";
 import { allowed, ekipNav } from "@/lib/team/nav";
 import { homeFor } from "@/lib/team/roles";
 import type { QueueLead } from "@/lib/team/types";
@@ -150,7 +151,7 @@ export default async function EkipPage({
               <p className="font-semibold text-[var(--color-text-primary)]">❄️ Студено обаждане за 60 секунди</p>
               <p>
                 1. Кой си и защо звъниш — с „Как започваш“ от картата. 2. Един въпрос за тях: как им идват клиентите
-                сега. 3. Искаш само 30 минути с Ивайло, не продаваш. „Не“ е нормално — натисни и следващата.
+                сега. 3. Искаш само {MEETING_MINUTES} минути с Ивайло, не продаваш. „Не“ е нормално — натисни и следващата.
               </p>
             </section>
 
