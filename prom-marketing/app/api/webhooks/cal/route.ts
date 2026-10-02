@@ -8,14 +8,24 @@ import {
   statusFromTrigger,
   durationMinutes,
   isKnownTrigger,
+  rescheduledFromUid,
 } from "@/lib/cal/types";
 import { verifyCalSignature } from "@/lib/cal/verify-webhook";
+import { applyCalCancel, applyCalReschedule, type CalChangeResult } from "@/lib/cal/booking-changes";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendCapiEvent, isCapiConfigured } from "@/lib/meta/conversions-api";
 import { upsertContactAndLog } from "@/lib/contacts/repository";
 import { handleCancelledBooking } from "@/lib/team/cancelled";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * BOOKING_CREATED се обработва само с `CAL_PROCESS_CREATED=1` (виж бележката в
+ * POST) — пуснат, той праща и CAPI събития към Meta, а това чака решение.
+ */
+function createdHeld(): boolean {
+  return process.env.CAL_PROCESS_CREATED !== "1";
+}
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -69,6 +79,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, skipped: true });
   }
 
+  // BOOKING_CREATED остава спрян, както е на практика от 17.09.2026 (схемата
+  // падаше на `cancellationReason: null`): пуснат, той праща и CAPI събития към
+  // Meta за всяка резервация, а това чака решение на Ивайло. Срещите през сайта
+  // влизат в CRM-а от синхрона на календара. Отмяната и преместването минават —
+  // от тях зависят напомнянията към хората. Пуска се с CAL_PROCESS_CREATED=1.
+  if (triggerEvent === "BOOKING_CREATED" && createdHeld()) {
+    await supabase.from("cal_webhook_log").insert({
+      event_type: triggerEvent,
+      payload: parsed.data,
+      signature_valid: true,
+      error: "held:BOOKING_CREATED — срещата влиза от синхрона на календара; CAPI чака решение",
+    });
+    return NextResponse.json({ ok: true, held: true });
+  }
+
   const row = {
     cal_booking_id: payload.uid,
     attendee_name: payload.attendees[0]?.name ?? "Unknown",
@@ -88,16 +113,45 @@ export async function POST(request: Request) {
     updated_at: new Date().toISOString(),
   };
 
-  const { error } = await supabase
-    .from("bookings")
-    .upsert(row, { onConflict: "cal_booking_id" });
+  // Отмяна и преместване — върху истинския ред (виж lib/cal/booking-changes.ts):
+  // по uid, после по човек и час. Не се ли намери ред, остава старото поведение.
+  const calData = parsed.data as unknown as Record<string, unknown>;
+  const who = { email: row.attendee_email, phone: row.attendee_phone };
+  const cancelReason = payload.cancellationReason ?? extractString(payload, "cancellationReason");
+  let change: CalChangeResult | null = null;
+  if (triggerEvent === "BOOKING_CANCELLED") {
+    change = await applyCalCancel(supabase, {
+      uid: payload.uid,
+      startIso: row.scheduled_at,
+      who,
+      calData,
+      reason: cancelReason,
+    });
+  } else if (triggerEvent === "BOOKING_RESCHEDULED") {
+    change = await applyCalReschedule(supabase, {
+      uid: payload.uid,
+      oldUid: rescheduledFromUid(payload),
+      oldStartIso: payload.rescheduleStartTime ?? null,
+      startIso: row.scheduled_at,
+      durationMinutes: row.duration_minutes,
+      meetingUrl: row.meeting_url,
+      who,
+      calData,
+    });
+  }
 
-  if (error) {
+  let dbError: string | null = change?.matched ? change.error : null;
+  if (!change?.matched) {
+    const { error } = await supabase.from("bookings").upsert(row, { onConflict: "cal_booking_id" });
+    dbError = error?.message ?? null;
+  }
+
+  if (dbError) {
     await supabase.from("cal_webhook_log").insert({
       event_type: triggerEvent,
       payload: parsed.data,
       signature_valid: true,
-      error: `db:${error.message.slice(0, 240)}`,
+      error: `db:${dbError.slice(0, 240)}`,
     });
     return NextResponse.json({ error: "DB error" }, { status: 500 });
   }
@@ -141,14 +195,15 @@ export async function POST(request: Request) {
   }).catch(() => null);
 
   // Човекът сам си отмени часа от писмото на Cal.com. Дотук това минаваше
-  // мълчаливо — срещата изчезваше от календара и никой не звънеше.
-  if (triggerEvent === "BOOKING_CANCELLED") {
+  // мълчаливо — срещата изчезваше от календара и никой не звънеше. Вече
+  // решена среща (отменена, преместена, проведена) не вдига известия втори път.
+  if (triggerEvent === "BOOKING_CANCELLED" && (change?.wasLive ?? true)) {
     await handleCancelledBooking({
       attendeeName: row.attendee_name,
       attendeeEmail: row.attendee_email,
       attendeePhone: row.attendee_phone,
       scheduledAtIso: row.scheduled_at,
-      reason: payload.cancellationReason ?? extractString(payload, "cancellationReason"),
+      reason: cancelReason,
       by: "човекът (през Cal.com)",
     });
   }

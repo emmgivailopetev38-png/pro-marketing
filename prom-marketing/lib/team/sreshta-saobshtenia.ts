@@ -11,6 +11,7 @@
 import { TZ, dayKey } from "@/lib/contacts/followup";
 import { MEETING_MINUTES } from "@/lib/cal/types";
 import { toE164 } from "@/lib/cal/create-booking";
+import { markValidFor } from "@/lib/crm/booking-status";
 
 export const MEETING_MSG_KINDS = ["confirm", "remind_day", "remind_soon", "noshow"] as const;
 export type MeetingMsgKind = (typeof MEETING_MSG_KINDS)[number];
@@ -125,6 +126,18 @@ export function meetingMessage(kind: MeetingMsgKind, i: MeetingMsgInput, now: Da
         : `${hi} ${cap(rel)} в ${p.time} ч. имахме уговорен разговор с Ивайло, но не успяхме да се свържем с теб. Случва се. Кога ти е удобно да го преместим — утре или в друг ден? Пиши ми час, който ти е удобен, и го записвам веднага.`;
     }
   }
+}
+
+/**
+ * Пратените съобщения, които важат за срещата в ТОЗИ час — от
+ * `bookings.raw_payload.msgs`. Пратеното за стария час на преместена среща не
+ * се брои: за новия час напомнянията излизат пак (виж markValidFor).
+ */
+export function sentKindsFor(raw: Record<string, unknown> | null | undefined, scheduledIso: string): Set<MeetingMsgKind> {
+  const msgs = (raw?.msgs ?? {}) as Record<string, unknown>;
+  const out = new Set<MeetingMsgKind>();
+  for (const k of MEETING_MSG_KINDS) if (markValidFor(msgs[k], scheduledIso)) out.add(k);
+  return out;
 }
 
 /**

@@ -3,16 +3,56 @@ import crypto from "node:crypto";
 
 const upsertMock = vi.fn().mockResolvedValue({ error: null });
 const insertMock = vi.fn().mockResolvedValue({ error: null });
+const updateMock = vi.fn();
+const db = vi.hoisted(() => ({ bookings: [] as Array<Record<string, unknown>> }));
+
+/**
+ * `bookings`: upsert (както досега) + четене/обновяване за отмяна и преместване
+ * (lib/cal/booking-changes.ts) върху редовете в `db.bookings`.
+ */
+function bookingsTable() {
+  const filters: Array<(r: Record<string, unknown>) => boolean> = [];
+  let patch: Record<string, unknown> | null = null;
+  let single = false;
+  const read = (r: Record<string, unknown>, col: string): unknown => {
+    if (!col.includes("->>")) return r[col];
+    const [json, key] = col.split("->>");
+    return ((r[json] ?? {}) as Record<string, unknown>)[key];
+  };
+  const run = () => {
+    const hits = db.bookings.filter((r) => filters.every((f) => f(r)));
+    if (patch) {
+      for (const r of hits) updateMock(r.id, patch);
+      return { data: null, error: null };
+    }
+    return { data: single ? (hits[0] ?? null) : hits, error: null };
+  };
+  const q = {
+    upsert: upsertMock,
+    select: () => q,
+    update: (p: Record<string, unknown>) => ((patch = p), q),
+    eq: (c: string, v: unknown) => (filters.push((r) => read(r, c) === v), q),
+    gte: (c: string, v: string) => (filters.push((r) => String(read(r, c)) >= v), q),
+    lte: (c: string, v: string) => (filters.push((r) => String(read(r, c)) <= v), q),
+    limit: () => q,
+    maybeSingle: () => ((single = true), Promise.resolve(run())),
+    then: (ok: (v: unknown) => unknown, bad?: (e: unknown) => unknown) => Promise.resolve(run()).then(ok, bad),
+  };
+  return q;
+}
 
 vi.mock("@/lib/supabase/service", () => ({
   createServiceClient: () => ({
     from: (table: string) => {
-      if (table === "bookings") return { upsert: upsertMock };
+      if (table === "bookings") return bookingsTable();
       if (table === "cal_webhook_log") return { insert: insertMock };
       throw new Error("unknown table");
     },
   }),
 }));
+
+const cancelled = vi.hoisted(() => ({ handle: vi.fn(async () => {}) }));
+vi.mock("@/lib/team/cancelled", () => ({ handleCancelledBooking: cancelled.handle }));
 
 vi.mock("@/lib/meta/conversions-api", () => ({
   isCapiConfigured: () => false,
@@ -56,6 +96,11 @@ describe("POST /api/webhooks/cal", () => {
   beforeEach(() => {
     upsertMock.mockClear();
     insertMock.mockClear();
+    updateMock.mockClear();
+    cancelled.handle.mockClear();
+    db.bookings = [];
+    // Замисленият път на BOOKING_CREATED (ред + контакт + CAPI) — пуска се с ключа.
+    process.env.CAL_PROCESS_CREATED = "1";
   });
 
   it("upserts booking on valid signature + payload", async () => {
@@ -181,5 +226,109 @@ describe("POST /api/webhooks/cal", () => {
     expect(res.status).toBe(200);
     expect(upsertMock).not.toHaveBeenCalled();
     expect(insertMock).toHaveBeenCalledOnce();
+  });
+
+  it("BOOKING_CREATED без CAL_PROCESS_CREATED=1 се записва в дневника, но не прави ред (CAPI чака решение)", async () => {
+    delete process.env.CAL_PROCESS_CREATED;
+    const body = JSON.stringify(validPayload);
+    const res = await POST(makeRequest(body, sign(body)));
+    expect(res.status).toBe(200);
+    expect(upsertMock).not.toHaveBeenCalled();
+    expect(insertMock).toHaveBeenCalledOnce();
+    expect(String(insertMock.mock.calls[0][0].error)).toMatch(/^held:/);
+  });
+});
+
+describe("отмяна и преместване през Cal.com (01.10.2026)", () => {
+  beforeEach(() => {
+    upsertMock.mockClear();
+    insertMock.mockClear();
+    updateMock.mockClear();
+    cancelled.handle.mockClear();
+    db.bookings = [];
+    delete process.env.CAL_PROCESS_CREATED;
+  });
+
+  const event = (trigger: string, extra: Record<string, unknown> = {}) => ({
+    triggerEvent: trigger,
+    payload: { ...validPayload.payload, cancellationReason: null, ...extra },
+  });
+
+  it("`cancellationReason: null` вече не чупи схемата; срещата от синхрона се намира по човек + час и се отменя", async () => {
+    db.bookings = [
+      {
+        id: "sync-row",
+        cal_booking_id: "manual:2026-06-01T10:00:ivan@example.com",
+        status: "accepted",
+        scheduled_at: "2026-06-01T10:00:00.000Z",
+        attendee_email: "ivan@example.com",
+        attendee_phone: "0888 123 456",
+        meeting_url: null,
+        raw_payload: { source: "hermes" },
+      },
+    ];
+    const body = JSON.stringify(event("BOOKING_CANCELLED", { status: "CANCELLED" }));
+    const res = await POST(makeRequest(body, sign(body)));
+    expect(res.status).toBe(200);
+    expect(upsertMock).not.toHaveBeenCalled(); // не прави втори, отменен ред до живия
+    expect(updateMock).toHaveBeenCalledOnce();
+    expect(updateMock.mock.calls[0][0]).toBe("sync-row");
+    expect(updateMock.mock.calls[0][1].status).toBe("cancelled");
+    expect(cancelled.handle).toHaveBeenCalledOnce();
+  });
+
+  it("вече отменена (преместена) среща не вдига „отказа срещата“ втори път", async () => {
+    db.bookings = [
+      {
+        id: "moved-row",
+        cal_booking_id: "abc-123",
+        status: "cancelled",
+        scheduled_at: "2026-06-01T10:00:00.000Z",
+        attendee_email: "ivan@example.com",
+        attendee_phone: null,
+        meeting_url: null,
+        raw_payload: { moved_to: { at: "2026-06-03T10:00:00.000Z" } },
+      },
+    ];
+    const body = JSON.stringify(event("BOOKING_CANCELLED"));
+    const res = await POST(makeRequest(body, sign(body)));
+    expect(res.status).toBe(200);
+    expect(updateMock.mock.calls[0][1].status).toBeUndefined();
+    expect(cancelled.handle).not.toHaveBeenCalled();
+  });
+
+  it("преместване без ред в CRM-а прави ЖИВ ред в новия час — не „rescheduled“, който напомнянията не виждат", async () => {
+    const body = JSON.stringify(event("BOOKING_RESCHEDULED", { uid: "new-uid", rescheduleUid: "old-uid" }));
+    const res = await POST(makeRequest(body, sign(body)));
+    expect(res.status).toBe(200);
+    expect(upsertMock).toHaveBeenCalledOnce();
+    expect(upsertMock.mock.calls[0][0].status).toBe("confirmed");
+    expect(upsertMock.mock.calls[0][0].cal_booking_id).toBe("new-uid");
+  });
+
+  it("преместване на среща от екипа — същият ред, новият час", async () => {
+    db.bookings = [
+      {
+        id: "ekip-row",
+        cal_booking_id: "old-uid",
+        status: "accepted",
+        scheduled_at: "2026-05-30T09:00:00.000Z",
+        attendee_email: "ivan@example.com",
+        attendee_phone: "+359888123456",
+        meeting_url: null,
+        raw_payload: { source: "ekip", notes: "Записа: Димитър" },
+      },
+    ];
+    const body = JSON.stringify(event("BOOKING_RESCHEDULED", { uid: "new-uid", rescheduleUid: "old-uid" }));
+    const res = await POST(makeRequest(body, sign(body)));
+    expect(res.status).toBe(200);
+    expect(upsertMock).not.toHaveBeenCalled();
+    const [id, patch] = updateMock.mock.calls[0];
+    expect(id).toBe("ekip-row");
+    expect(patch.scheduled_at).toBe("2026-06-01T10:00:00.000Z");
+    expect(patch.status).toBe("accepted");
+    expect(patch.raw_payload.source).toBe("ekip");
+    expect(patch.raw_payload.notes).toBe("Записа: Димитър");
+    expect(cancelled.handle).not.toHaveBeenCalled();
   });
 });
