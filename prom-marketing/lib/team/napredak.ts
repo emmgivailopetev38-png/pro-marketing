@@ -89,6 +89,7 @@ async function loadPool(days: number, now: Date): Promise<{ pool: NapredakPool; 
     scheduled_at: String(b.scheduled_at),
     created_at: String(b.created_at),
     notes: ((b.raw_payload as Record<string, unknown> | null)?.notes as string | null) ?? null,
+    moved: !!(b.raw_payload as Record<string, unknown> | null)?.moved_to,
   }));
 
   return {

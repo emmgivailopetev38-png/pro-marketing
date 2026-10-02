@@ -19,6 +19,7 @@ import {
 } from "./queue-rules";
 import { seesGiven, seesLead } from "./routing-rules";
 import { loadRotationPool } from "./routing";
+import { LIVE_BOOKING_STATUSES } from "@/lib/crm/booking-status";
 
 /**
  * Опашката за звънене на човека за срещите.
@@ -105,17 +106,39 @@ async function loadAttempts(sb: Sb, ids: string[]): Promise<Map<string, AttemptS
   return summarizeAttempts((data ?? []) as AttemptRow[]);
 }
 
-/** Бележките в картона — за да стоят на картата и след опресняване. */
+/**
+ * Бележките в картона — за да стоят на картата и след опресняване. Две места:
+ * „Само бележка“ (активност `note`, от всеки) и бележката, написана в същото
+ * поле, но изпратена с изход от разговора („Говорихме, чуване пак“, „Не
+ * вдигна“, „Записах среща“…) — тя стои в активността на изхода (`call` /
+ * `meeting` от екипа). До 01.10.2026 картата четеше само първите и
+ * бележката от изхода изчезваше от екрана, макар да беше в базата.
+ */
 async function loadNotes(sb: Sb, ids: string[]): Promise<Map<string, CardNote[]>> {
   if (ids.length === 0) return new Map();
-  const { data } = await sb
-    .from("contact_activities")
-    .select("contact_id, title, body, occurred_at, created_by")
-    .in("contact_id", ids)
-    .eq("activity_type", "note")
-    .order("occurred_at", { ascending: false })
-    .limit(2000);
-  return notesByContact((data ?? []) as NoteRow[]);
+  const cols = "contact_id, activity_type, title, body, occurred_at, created_by, metadata";
+  const [{ data: plain }, { data: withExit }] = await Promise.all([
+    sb
+      .from("contact_activities")
+      .select(cols)
+      .in("contact_id", ids)
+      .eq("activity_type", "note")
+      .order("occurred_at", { ascending: false })
+      .limit(2000),
+    sb
+      .from("contact_activities")
+      .select(cols)
+      .in("contact_id", ids)
+      .in("activity_type", ["call", "meeting"])
+      .eq("metadata->>team", "true")
+      .not("body", "is", null)
+      .order("occurred_at", { ascending: false })
+      .limit(2000),
+  ]);
+  const rows = [...((plain ?? []) as NoteRow[]), ...((withExit ?? []) as NoteRow[])].sort((a, b) =>
+    b.occurred_at.localeCompare(a.occurred_at)
+  );
+  return notesByContact(rows);
 }
 
 /** Отговорите от формата — по meta_lead_id (source_ref на картона). */
@@ -215,6 +238,8 @@ export async function loadSetterQueue(now: Date = new Date(), viewerId: string |
       .from("bookings")
       .select("id, attendee_name, attendee_phone, scheduled_at, business, status, raw_payload")
       .eq("raw_payload->>source", "ekip")
+      // Отменените и преместените не са „уговорени“ — иначе стоят тук със стария час.
+      .in("status", [...LIVE_BOOKING_STATUSES])
       .gte("scheduled_at", new Date(now.getTime() - 3_600_000).toISOString())
       .order("scheduled_at", { ascending: true })
       .limit(30),

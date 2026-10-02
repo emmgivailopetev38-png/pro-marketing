@@ -7,6 +7,7 @@ import {
   isNoAnswer,
   looksLikePhone,
   notesByContact,
+  noteText,
   phoneDigits,
   pickGiven,
   safeTextQuery,
@@ -294,5 +295,55 @@ describe("бележките по картон", () => {
   it("бележка без текст носи заглавието си; съвсем празна не излиза", () => {
     const m = notesByContact([n("a", "2026-09-24T10:00:00Z", null, "Дейност: Салон"), n("a", "2026-09-24T09:00:00Z", "  ", "  ")]);
     expect(m.get("a")).toEqual([{ body: "Дейност: Салон", at: "2026-09-24T10:00:00Z", by: "Димитър" }]);
+  });
+});
+
+describe("бележката от изхода на разговора стои на картата", () => {
+  const exit = (
+    contact_id: string,
+    occurred_at: string,
+    title: string,
+    body: string | null,
+    metadata: Record<string, unknown> = { team: true },
+    activity_type = "call"
+  ) => ({ contact_id, activity_type, title, body, occurred_at, created_by: "Димитър", metadata });
+
+  it("„Говорихме, чуване пак“ с написан текст излиза като бележка — с изхода до нея", () => {
+    // Истинският случай: бележката е в тялото на обаждането, а картата я нямаше.
+    const m = notesByContact([
+      exit("a", "2026-09-30T11:05:00Z", "Говорихме · чуване пак на чт 02.10, 10:00", "Иска оферта за сайт, ще говори със съдружника."),
+    ]);
+    expect(m.get("a")).toEqual([
+      {
+        body: "Иска оферта за сайт, ще говори със съдружника.",
+        at: "2026-09-30T11:05:00Z",
+        by: "Димитър",
+        context: "Говорихме · чуване пак на чт 02.10, 10:00",
+      },
+    ]);
+  });
+
+  it("редовете, които изходът сам добавя („Дейност:“, „Линк:“), не са бележка", () => {
+    expect(noteText(exit("a", "t", "Говорихме · без среща", "Дейност: Салон за красота\nЩе мисли до петък."))).toBe("Ще мисли до петък.");
+    expect(noteText(exit("a", "t", "Среща", "Дейност: Салон\nЛинк: https://meet.google.com/x\nИска реклами.", { team: true }, "meeting"))).toBe("Иска реклами.");
+    // изход без написана бележка — само „Дейност:“ — не е бележка
+    expect(noteText(exit("a", "t", "Говорихме · без среща", "Дейност: Салон"))).toBeNull();
+    expect(noteText(exit("a", "t", "Не вдигна", null))).toBeNull();
+  });
+
+  it("написаното в полето (metadata.note) има предимство пред тялото", () => {
+    expect(noteText(exit("a", "t", "Не се интересува", "Дейност: Х\nстар текст", { team: true, note: "  точно това написа  " }))).toBe("точно това написа");
+  });
+
+  it("„Само бележка“ и бележките от изходите — заедно, най-новата отгоре", () => {
+    const m = notesByContact([
+      exit("a", "2026-09-30T12:00:00Z", "Не вдигна · пак на чт 02.10, 10:00", "гласова поща"),
+      { contact_id: "a", activity_type: "note", title: "Бележка от Димитър", body: "Предпочита Viber", occurred_at: "2026-09-29T09:00:00Z", created_by: "Димитър", metadata: null },
+      exit("a", "2026-09-28T09:00:00Z", "Говорихме · без среща", "Дейност: Салон"),
+    ]);
+    expect(m.get("a")?.map((x) => [x.body, x.context ?? null])).toEqual([
+      ["гласова поща", "Не вдигна · пак на чт 02.10, 10:00"],
+      ["Предпочита Viber", null],
+    ]);
   });
 });

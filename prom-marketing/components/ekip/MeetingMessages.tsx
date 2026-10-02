@@ -2,6 +2,7 @@ import { MEETING_MSG_ICON, MEETING_MSG_KINDS, MEETING_MSG_LABEL, meetingMessage,
 import type { MeetingMsgRow } from "@/lib/team/sreshti";
 import { fmtSofia } from "@/lib/team/time";
 import { MessageBox } from "./MessageBox";
+import { MeetingCancel } from "./MeetingCancel";
 
 /**
  * „Съобщения за срещите“ на /ekip: за всяка предстояща среща — кое съобщение е
@@ -19,7 +20,8 @@ export function MeetingMessages({ rows, setterName }: { rows: MeetingMsgRow[]; s
       </h2>
       <p className="-mt-1 text-xs text-[var(--color-text-tertiary)]">
         Потвърждение с линка веднага след записването, напомняне ден преди и малко преди часа. Копирай → отвори Viber →
-        прати → „Изпратих“, за да не излиза пак. Текстът може да се редактира преди копиране.
+        прати → „Изпратих“, за да не излиза пак. Текстът може да се редактира преди копиране. Тук са само живите срещи:
+        отменената изчезва сама, а преместената излиза с новия час и напомнянията тръгват отначало.
       </p>
       {due.map((r) => (
         <Row key={r.bookingId} r={r} kind={r.due as MeetingMsgKind} setterName={setterName} open />
@@ -58,9 +60,21 @@ function Row({ r, kind, setterName, open }: { r: MeetingMsgRow; kind: MeetingMsg
           📅 {fmtSofia(r.whenIso)}
         </span>
       </div>
-      <a href={`tel:${r.phone}`} className="mt-2 inline-block text-sm font-semibold text-[var(--color-accent-cyan)]">
-        📞 {r.phone}
-      </a>
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <a href={`tel:${r.phone}`} className="inline-block text-sm font-semibold text-[var(--color-accent-cyan)]">
+          📞 {r.phone}
+        </a>
+        {/* Отменена или преместена среща не бива да получава напомняне. Нов час се
+            записва от картата му („Записах среща“) — старият час спира сам. */}
+        <a
+          href={`/ekip?vid=sreshti&q=${encodeURIComponent(r.phone)}`}
+          className="rounded-lg border border-white/15 px-2.5 py-1 text-xs text-[var(--color-text-secondary)]"
+          title="Отваря картата му — „Записах среща“ с новия час, старият спира сам"
+        >
+          🔁 Мести за друг час
+        </a>
+        <MeetingCancel bookingId={r.bookingId} name={r.name} when={fmtSofia(r.whenIso)} />
+      </div>
       {open ? (
         kinds.map((k) => (
           <MessageBox

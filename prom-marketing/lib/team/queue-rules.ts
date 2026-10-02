@@ -153,29 +153,58 @@ export function summarizeAttempts(rows: AttemptRow[]): Map<string, AttemptSummar
 
 export interface NoteRow {
   contact_id: string;
+  /** `note` („Само бележка“) или изходът, с който е пратена (`call` / `meeting`); липсва = `note` */
+  activity_type?: string | null;
   title: string | null;
   body: string | null;
   occurred_at: string;
   created_by: string | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 /** Колко бележки стоят на картата — повече иска картонът в /admin. */
 export const NOTES_ON_CARD = 3;
 
+/** Редовете, които изходът сам слага в тялото — те не са думи на човека. */
+const GENERATED_LINE = /^(Дейност|Линк):\s/;
+
 /**
- * Бележките по картон, най-новата отгоре. „Само бележка“ пише активност
- * `note`, а картата до 24.09 четеше само обажданията — бележката се пазеше в
- * базата, но след опресняване я нямаше на екрана. Празна бележка (само
- * заглавие) носи заглавието си, за да не изчезне.
+ * Какво е написано в полето за бележка. От 01.10.2026 текстът стои и в
+ * `metadata.note` — точно каквото е написано. По-старите изходи го имат само в
+ * тялото, където изходът добавя „Дейност: …“ и „Линк: …“ — те се махат.
+ * „Само бележка“ без текст носи заглавието си, за да не изчезне; изход без
+ * бележка не е бележка (той е в „Последно: …“).
+ */
+export function noteText(r: NoteRow): string | null {
+  const typed = r.metadata?.note;
+  if (typeof typed === "string" && typed.trim()) return typed.trim();
+  const type = r.activity_type ?? "note";
+  if (type === "note") return (r.body ?? "").trim() || (r.title ?? "").trim() || null;
+  const words = (r.body ?? "")
+    .split("\n")
+    .filter((line) => !GENERATED_LINE.test(line.trim()))
+    .join("\n")
+    .trim();
+  return words || null;
+}
+
+/**
+ * Бележките по картон, най-новата отгоре — и от „Само бележка“, и от изхода
+ * на разговора („Говорихме, чуване пак“, „Не вдигна“…). Дотук картата
+ * показваше само първите: бележка, пратена с изход, се пазеше в базата, но
+ * следващия път на картата я нямаше. Бележката от изход носи изхода си
+ * (`context`), за да се чете „какво каза и какво се разбрахме“ на един ред.
  */
 export function notesByContact(rows: NoteRow[], limit = NOTES_ON_CARD): Map<string, CardNote[]> {
   const out = new Map<string, CardNote[]>();
   for (const r of rows) {
-    const text = (r.body ?? "").trim() || (r.title ?? "").trim();
+    const text = noteText(r);
     if (!text) continue;
     const list = out.get(r.contact_id) ?? [];
     if (list.length >= limit) continue;
-    list.push({ body: text, at: r.occurred_at, by: r.created_by });
+    const type = r.activity_type ?? "note";
+    const context = type === "note" ? null : (r.title ?? "").trim() || null;
+    list.push(context ? { body: text, at: r.occurred_at, by: r.created_by, context } : { body: text, at: r.occurred_at, by: r.created_by });
     out.set(r.contact_id, list);
   }
   return out;

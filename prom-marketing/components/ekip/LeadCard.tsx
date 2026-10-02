@@ -1,5 +1,5 @@
 "use client";
-import { useActionState, useState } from "react";
+import { useActionState, useState, useSyncExternalStore } from "react";
 import { useFormStatus } from "react-dom";
 import { ekipAction } from "@/app/ekip/actions";
 import { guessBusinessOption } from "@/lib/leads/form-labels";
@@ -73,16 +73,74 @@ const FIELD =
   "mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent-cyan)]/60";
 
 /**
+ * Черновата на бележката — пази се на устройството, докато се пише, за да не
+ * се губи, ако картата се затвори, страницата се опресни или се мине на друг
+ * човек. Изчиства се, щом бележката тръгне с някой бутон. Без localStorage
+ * (частен режим) се пази в паметта на страницата — полето работи и така.
+ */
+export const NOTE_DRAFT_PREFIX = "pm-ekip-note:";
+const memoryDrafts = new Map<string, string>();
+const draftListeners = new Set<() => void>();
+
+function readDraft(id: string): string {
+  const key = NOTE_DRAFT_PREFIX + id;
+  try {
+    const saved = window.localStorage.getItem(key);
+    if (saved !== null) return saved;
+  } catch {
+    // без localStorage — паметта на страницата
+  }
+  return memoryDrafts.get(key) ?? "";
+}
+
+function writeDraft(id: string, text: string): void {
+  const key = NOTE_DRAFT_PREFIX + id;
+  if (text) memoryDrafts.set(key, text);
+  else memoryDrafts.delete(key);
+  try {
+    if (text.trim()) window.localStorage.setItem(key, text);
+    else window.localStorage.removeItem(key);
+  } catch {
+    // няма къде да се пази трайно — остава в паметта на страницата
+  }
+  draftListeners.forEach((listener) => listener());
+}
+
+function subscribeDrafts(listener: () => void): () => void {
+  draftListeners.add(listener);
+  window.addEventListener("storage", listener);
+  return () => {
+    draftListeners.delete(listener);
+    window.removeEventListener("storage", listener);
+  };
+}
+
+/** Черновата на картата: на сървъра е празна, в браузъра идва от устройството. */
+function useNoteDraft(id: string): [string, (text: string) => void] {
+  const value = useSyncExternalStore(subscribeDrafts, () => readDraft(id), () => "");
+  return [value, (text: string) => writeDraft(id, text)];
+}
+
+/**
  * Една карта = един човек = един разговор. `mode` казва откъде идва картата и
  * кои бутони са отпред: при „чака обратно обаждане“ първият бутон е
  * „Върна обаждане“, защото точно това се случва — човекът звъни десет минути
  * след „Не вдигна“ и срещата трябва да се запише от същата карта.
  */
 export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: QueueLead; mode: LeadCardMode; setterName?: string }) {
-  const [state, formAction] = useActionState<EkipActionResult | null, FormData>(ekipAction, null);
+  const [state, formAction] = useActionState<EkipActionResult | null, FormData>(async (prev, formData) => {
+    const res = await ekipAction(prev, formData);
+    // Записано — бележката вече е в картона и излиза на картата; черновата се чисти.
+    // При грешка остава в полето, за да не се пише наново.
+    if (res?.ok) writeDraft(lead.id, "");
+    return res;
+  }, null);
   // При отказана или пропусната среща формата е отворена веднага — целта е нов час, не бутон.
   const [open, setOpen] = useState(mode === "retry" || mode === "cancelled" || mode === "noshow");
   const [preset, setPreset] = useState<string>("3h");
+  // Бележката е една за цялата карта и тръгва с бутона, който и да е натиснат —
+  // и от затворената карта („Не вдигна“, „Иска той да се обади“), и от отворената.
+  const [note, onNote] = useNoteDraft(lead.id);
   const waiting = mode === "waiting";
   const willCall = lead.last_attempt?.outcome === "will_call";
   const given = mode === "given";
@@ -175,6 +233,22 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
         📞 {lead.phone}
       </a>
 
+      {/* Бележките — най-отгоре, най-новата първа: какво е казал човекът миналия път,
+          с който и бутон да е записано („Само бележка“, „Говорихме, чуване пак“…). */}
+      {notes.length > 0 && (
+        <ul aria-label="Бележки" className="mt-3 space-y-1.5">
+          {notes.map((n, i) => (
+            <li key={`${n.at}-${i}`} className="rounded-lg border border-sky-400/25 bg-sky-400/[0.06] px-3 py-2 text-xs">
+              <p className="line-clamp-4 whitespace-pre-line text-[var(--color-text-primary)]">📝 {n.body}</p>
+              <p className="mt-0.5 text-[10px] text-[var(--color-text-tertiary)]">
+                {n.by ?? "—"} · {when(n.at)}
+                {n.context ? ` · ${n.context}` : ""}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+
       {(lead.form_answers.length > 0 || lead.company || lead.email) && (
         <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
           {lead.form_answers.map((a) => (
@@ -232,19 +306,6 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
         </p>
       )}
 
-      {notes.length > 0 && (
-        <ul aria-label="Бележки" className="mt-2 space-y-1.5">
-          {notes.map((n, i) => (
-            <li key={`${n.at}-${i}`} className="rounded-lg border border-sky-400/20 bg-sky-400/[0.05] px-3 py-2 text-xs">
-              <p className="line-clamp-4 whitespace-pre-line text-[var(--color-text-primary)]">📝 {n.body}</p>
-              <p className="mt-0.5 text-[10px] text-[var(--color-text-tertiary)]">
-                {n.by ?? "—"} · {when(n.at)}
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
-
       {lead.last_attempt && (
         <p className="mt-2 text-xs text-[var(--color-text-tertiary)]">
           Последно: {lead.last_attempt.title} · {when(lead.last_attempt.at)}
@@ -265,6 +326,7 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
 
         {!open ? (
           <div className="space-y-2">
+            <NoteField value={note} onChange={onNote} compact />
             <div className="flex flex-wrap gap-2">
               {waiting ? (
                 <>
@@ -335,15 +397,7 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
                 />
               </label>
             </div>
-            <label className="block text-xs text-[var(--color-text-tertiary)]">
-              Какво каза (една реплика стига)
-              <textarea
-                name="note"
-                rows={2}
-                placeholder="напр. „губя по 2 часа на ден в отговори на запитвания“"
-                className={FIELD}
-              />
-            </label>
+            <NoteField value={note} onChange={onNote} />
 
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-2">
@@ -488,6 +542,33 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
         )}
       </form>
     </article>
+  );
+}
+
+/**
+ * Полето за бележка — едно и също на затворената и на отворената карта, за да
+ * тръгне с бутона, който и да е натиснат. До 01.10.2026 имаше поле само в
+ * отворената карта, а картата показваше само „Само бележка“: написаното и
+ * изпратено с „Говорихме, чуване пак“ се пазеше в базата, но не излизаше.
+ */
+function NoteField({ value, onChange, compact = false }: { value: string; onChange: (v: string) => void; compact?: boolean }) {
+  return (
+    <label className="block text-xs text-[var(--color-text-tertiary)]">
+      {compact ? "📝 Бележка — тръгва с бутона, който натиснеш" : "📝 Какво каза (една реплика стига) — тръгва с бутона, който натиснеш"}
+      <textarea
+        name="note"
+        rows={compact ? 1 : 2}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={compact ? "какво каза, кога да звъннеш… (по желание)" : "напр. „губя по 2 часа на ден в отговори на запитвания“"}
+        className={FIELD}
+      />
+      {value.trim() && (
+        <span className="mt-0.5 block text-[10px] text-[var(--color-text-tertiary)]">
+          💾 Черновата се пази на това устройство, докато не натиснеш бутон.
+        </span>
+      )}
+    </label>
   );
 }
 
