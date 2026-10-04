@@ -168,7 +168,7 @@ export default function MagazinPage() {
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-[15px] text-slate-400">
             Учиш се сам, работиш с ментор — или ние строим вместо теб. Директна покупка със
-            Stripe за обученията; системите тръгват от 15-минутен разговор.
+            Stripe за обученията; системите тръгват от безплатен 45-минутен разговор.
           </p>
         </div>
       </section>
@@ -366,14 +366,14 @@ export default function MagazinPage() {
           <div className="rounded-[28px] border border-cyan-400/25 bg-[rgba(7,14,16,0.8)] p-8">
             <h2 className="text-2xl font-bold">Не си сигурен кое ниво е за теб?</h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
-              15 минути разговор — казваме ти честно откъде да започнеш (често отговорът е
+              45 минути разговор — казваме ти честно откъде да започнеш (често отговорът е
               безплатното обучение).
             </p>
             <Link
               href="/booking"
               className="mt-6 inline-flex items-center gap-2.5 rounded-full bg-[var(--color-accent-cyan)] px-8 py-4 font-bold text-[var(--color-bg-void)] shadow-[0_0_44px_rgba(34,211,238,0.4)] transition hover:shadow-[0_0_70px_rgba(34,211,238,0.65)]"
             >
-              <Calendar className="h-5 w-5" /> Запази 15-мин разговор
+              <Calendar className="h-5 w-5" /> Запази 45-мин разговор
             </Link>
           </div>
         </SectionReveal>

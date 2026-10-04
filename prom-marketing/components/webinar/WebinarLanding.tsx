@@ -246,9 +246,9 @@ function GiftViz() {
           <div className="mt-2 h-6 rounded-md bg-[linear-gradient(90deg,#0e7490,#0f766e)] opacity-80" />
         </div>
       ))}
-      {/* стойност бадж */}
+      {/* бадж — без „стойност X €“: сайтът не показва цени (04.10.2026) */}
       <div className="wb-float absolute -top-1 right-2 z-10 rounded-full border border-amber-300/50 bg-[linear-gradient(135deg,#fbbf24,#f59e0b)] px-4 py-2 text-sm font-black text-[#3d2a00] shadow-[0_0_40px_rgba(251,191,36,0.45)]">
-        Стойност 90 € · 0 лв. за теб
+        Безплатно за теб
       </div>
     </div>
   );
@@ -303,7 +303,6 @@ const HOST_CHIPS = [
 
 export function WebinarLanding() {
   const dateLabel = webinarDateLabel();
-  const bonusTotal = WEBINAR.bonuses.reduce((sum, b) => sum + parseInt(b.value), 0);
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-void)] text-white">
@@ -315,7 +314,7 @@ export function WebinarLanding() {
         <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-300 md:text-xs">
           {dateLabel
             ? `🔴 На живо · ${dateLabel} · пред твоя компютър, телефон или таблет`
-            : "⚡ Датата се обявява всеки момент — записаните я получават първи, с подарък за 90 €"}
+            : "⚡ Датата се обявява всеки момент — записаните я получават първи, с подарък"}
         </p>
       </div>
 
@@ -443,7 +442,7 @@ export function WebinarLanding() {
                 </p>
                 <h2 className="mt-2 text-2xl font-bold leading-snug">
                   Влез безплатно + вземи{" "}
-                  <span className="wb-gold-text">подарък за 90 €</span> веднага
+                  <span className="wb-gold-text">подарък</span> веднага
                 </h2>
                 <p className="mt-2 mb-5 text-sm text-slate-400">
                   „{GIFT.title}” пристига на имейла ти секунди след записването — още преди обучението.
@@ -547,7 +546,7 @@ export function WebinarLanding() {
         <SectionReveal>
           <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-amber-300">Само за оставащите до края</p>
           <h2 className="mt-3 text-3xl font-bold md:text-4xl">
-            Бонуси за <span className="wb-gold-text">{bonusTotal}+ €</span> — раздават се на живо
+            <span className="wb-gold-text">Бонуси</span>, които се раздават на живо
           </h2>
         </SectionReveal>
         <div className="mt-8 grid gap-5 md:grid-cols-3">
@@ -560,7 +559,7 @@ export function WebinarLanding() {
                   style={{ background: "radial-gradient(circle, rgba(251,191,36,0.2), transparent 70%)" }}
                 />
                 <p className="inline-block rounded-full bg-[linear-gradient(135deg,#fbbf24,#f59e0b)] px-3 py-1 font-mono text-sm font-black text-[#3d2a00]">
-                  {b.value}
+                  Бонус {String(i + 1).padStart(2, "0")}
                 </p>
                 <p className="mt-3 text-[15px] font-semibold leading-snug text-white">{b.title}</p>
               </div>
@@ -665,7 +664,7 @@ export function WebinarLanding() {
             { icon: Rocket, t: "1 · Записваш се (30 секунди)", b: "Име и имейл. Подаръкът „AI Стартов Пакет” пристига веднага." },
             { icon: CalendarDays, t: "2 · Получаваш Zoom линка и напомняне", b: dateLabel ? `Обучението е ${dateLabel}. Линкът и напомняне идват по имейл.` : "Щом датата се обяви, я получаваш първи — със Zoom линка и напомняне." },
             { icon: MessageSquareText, t: `3 · ${WEBINAR.durationMinutes} минути на живо`, b: "4-те системи отвътре + отговори на твоите въпроси в реално време." },
-            { icon: Gift, t: "4 · Бонусите в края", b: `Награди за ${bonusTotal}+ € само за присъстващите до края — включително безплатен AI одит на твоя бизнес.` },
+            { icon: Gift, t: "4 · Бонусите в края", b: "Награди само за присъстващите до края — включително безплатен AI одит на твоя бизнес." },
           ].map((step, i) => (
             <SectionReveal key={step.t} delay={i * 80}>
               <div className="flex items-start gap-5 rounded-3xl border border-white/10 bg-[rgba(255,255,255,0.03)] p-6 transition hover:border-emerald-300/30">

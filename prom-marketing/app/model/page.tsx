@@ -120,9 +120,9 @@ const NEXT = [
 ];
 
 const SELL = [
-  { icon: "∞", t: "Построй веднъж, продай много", d: "Темплейтът се преизползва за всеки клиент в бранша — без преоткриване всеки път." },
+  { icon: "∞", t: "Доказана основа", d: "Базата е изпитана в бранша — не се строи от нулата за всеки клиент." },
   { icon: "⚡", t: "Старт за дни, не месеци", d: "Базата е готова и изпипана → бърза доставка и бърз старт." },
-  { icon: "↗", t: "Add-ons = маржът", d: "Custom надграждането над базата е upsell + повтаряема месечна поддръжка." },
+  { icon: "↗", t: "Расте с бизнеса", d: "Надграждането идва, когато има нужда от него — модул по модул." },
 ];
 
 function Reveal({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
@@ -177,7 +177,7 @@ export default function ModelPage() {
             <div className="m-slab m-slab-addon">
               <div className="m-slab-tag" style={{ color: "var(--m-violet)" }}>+ ADD-ONS</div>
               <div className="m-slab-title">Custom решения</div>
-              <div className="m-slab-sub">Персонализирано надграждане · доплащане · тук са маржовете</div>
+              <div className="m-slab-sub">Персонализирано надграждане · по нуждите на клиента</div>
             </div>
             <div className="m-plus">+</div>
             <div className="m-slab m-slab-base">
@@ -188,7 +188,7 @@ export default function ModelPage() {
           </div>
           <div className="m-concept-note">
             <div className="m-note-line"><span style={{ color: "var(--m-cyan)" }}>●</span> Базата е доказан стандарт — изграждаме я еднакво безупречно за всеки клиент.</div>
-            <div className="m-note-line"><span style={{ color: "var(--m-violet)" }}>●</span> Add-ons са персонализирано надграждане — спрямо нуждите на клиента, срещу доплащане.</div>
+            <div className="m-note-line"><span style={{ color: "var(--m-violet)" }}>●</span> Add-ons са персонализирано надграждане — спрямо нуждите на клиента.</div>
           </div>
         </Reveal>
       </section>
@@ -293,7 +293,7 @@ export default function ModelPage() {
 
       {/* ADD-ONS */}
       <section className="m-section">
-        <SectionHead eyebrow="ADD-ONS · ПРОДАВАТ СЕ ОТДЕЛНО" title={<>Надграждане <span className="m-grad">върху всеки темплейт</span>.</>} sub="Всеки модул е отделен приход — upsell над базата." />
+        <SectionHead eyebrow="ADD-ONS · ПО ЖЕЛАНИЕ" title={<>Надграждане <span className="m-grad">върху всеки темплейт</span>.</>} sub="Всеки модул се добавя отделно, когато бизнесът има нужда от него." />
         <div className="m-addons">
           {ADDONS.map((a, i) => (
             <Reveal key={a} delay={Math.min(i * 0.02, 0.3)}><span className="m-addon"><span className="m-addon-dot" />{a}</span></Reveal>
@@ -303,7 +303,7 @@ export default function ModelPage() {
 
       {/* ПОЗИЦИОНИРАНЕ */}
       <section className="m-section">
-        <SectionHead eyebrow="КАК СЕ ПРОДАВА · ПОЗИЦИОНИРАНЕ" title={<>Не продаваме части. <span className="m-grad">Продаваме система.</span></>} />
+        <SectionHead eyebrow="КАКВО ПОЛУЧАВАШ" title={<>Не продаваме части. <span className="m-grad">Продаваме система.</span></>} />
         <Reveal className="m-pos">
           <div className="m-pos-no">
             <span>Не продаваме „сайт"</span><span>Не продаваме „реклами"</span><span>Не продаваме „CRM"</span>

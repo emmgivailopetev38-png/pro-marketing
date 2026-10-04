@@ -137,8 +137,7 @@ export default function KursPage() {
             <div>
               <p className="font-mono text-xs uppercase tracking-[0.24em] text-cyan-300">Достъп</p>
               <p className="mt-2 text-sm text-slate-400">
-                Еднократно · достъп завинаги.{" "}
-                
+                Еднократно · достъп завинаги.
               </p>
               <p className="mt-4 flex items-center gap-2 text-sm text-slate-400">
                 <Clock3 className="h-4 w-4 text-cyan-300" /> Една спестена оперативна седмица покрива курса.
