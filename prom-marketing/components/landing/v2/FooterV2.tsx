@@ -51,8 +51,9 @@ export function FooterV2() {
               Изграждаме AI агенти, CRM системи и софтуер по поръчка за български бизнеси.
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
+              {/* Беше „12-15ч/седмица спестено" — число без източник, свалено 04.10.2026. */}
               <span className="v2-mono rounded-full border border-[rgba(52,211,153,0.3)] bg-[rgba(52,211,153,0.1)] px-3 py-1 text-[11px] text-[var(--v2-mint)]">
-                ⏱️ 12-15ч/седмица спестено
+                🇧🇬 Всичко на български
               </span>
               <span className="v2-mono rounded-full border border-[var(--v2-line-bright)] bg-[color-mix(in_srgb,var(--v2-cyan)_10%,transparent)] px-3 py-1 text-[11px] text-[var(--v2-cyan)]">
                 🤖 24/7 AI агенти
