@@ -59,7 +59,7 @@ export function ChatWidget() {
   const [suggestions, setSuggestions] = useState<string[]>([
     "Запиши среща",
     "Какви услуги предлагате?",
-    "Колко струва?",
+    "Как започваме?",
   ]);
   const [visitor, setVisitor] = useState<{ name?: string; email?: string; phone?: string }>(loadVisitor);
   const [showContactForm, setShowContactForm] = useState(false);

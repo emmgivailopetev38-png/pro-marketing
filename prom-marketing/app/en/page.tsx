@@ -64,7 +64,7 @@ const FAQ = [
   },
   {
     q: "Why hire a Bulgarian team for AI automation?",
-    a: "Western European and US agencies charge two to four times more for the same build. We are a small senior team, so you talk to the person who writes the system rather than to an account manager. And for Bulgarian-language work — voice, chat, sales calls — nobody offshore comes close.",
+    a: "We are a small senior team, so you talk to the person who writes the system rather than to an account manager. And for Bulgarian-language work — voice, chat, sales calls — nobody offshore comes close.",
   },
   {
     q: "How long does a first project take?",

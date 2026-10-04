@@ -81,6 +81,12 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // Материалите за продавачите съдържат вътрешни цени: да не влизат в индекса
+        // дори ако някой линк изтече (robots.txt само спира обхождането).
+        source: "/materiali/:file*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
+      {
         // Картинките и видеата се сменят рядко — нека кешът работи.
         source: "/:path(videa|images|ads)/:file*",
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
