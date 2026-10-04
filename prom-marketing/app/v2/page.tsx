@@ -34,6 +34,7 @@ const ProductShowcaseV2 = dynamic(() => import("@/components/landing/v2/ProductS
 const PainPointsV2 = dynamic(() => import("@/components/landing/v2/PainPointsV2").then((m) => ({ default: m.PainPointsV2 })));
 const RoiCalculatorV2 = dynamic(() => import("@/components/landing/v2/RoiCalculatorV2").then((m) => ({ default: m.RoiCalculatorV2 })));
 const IndustriesV2 = dynamic(() => import("@/components/landing/v2/IndustriesV2").then((m) => ({ default: m.IndustriesV2 })));
+const RealReviewsV2 = dynamic(() => import("@/components/landing/v2/RealReviewsV2").then((m) => ({ default: m.RealReviewsV2 })));
 const TestimonialsV2 = dynamic(() => import("@/components/landing/v2/TestimonialsV2").then((m) => ({ default: m.TestimonialsV2 })));
 const SocialProofV2 = dynamic(() => import("@/components/landing/v2/SocialProofV2").then((m) => ({ default: m.SocialProofV2 })));
 const WhyUsV2 = dynamic(() => import("@/components/landing/v2/WhyUsV2").then((m) => ({ default: m.WhyUsV2 })));
@@ -67,6 +68,7 @@ export default function HomePageV2() {
         <PainPointsV2 />
         <RoiCalculatorV2 />
         <IndustriesV2 />
+        <RealReviewsV2 />
         <TestimonialsV2 />
         <SocialProofV2 />
         <WhyUsV2 />
