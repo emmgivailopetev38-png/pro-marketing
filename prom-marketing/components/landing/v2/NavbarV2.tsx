@@ -46,10 +46,13 @@ import { track } from "@/lib/analytics/track";
 // наслагваше върху логото — затова и прагът на хоризонталното меню е
 // вдигнат на `lg`. Стълбовете за AI агенти и чатбот стоят в „Разгледай“,
 // където имат и описание под името.
-const NAV = [
+// „Работа при нас" (обявата за търговци) е свалена от менюто по желание на
+// Ивайло (04.10.2026); на мястото ѝ — тийзърът за робота. Пренасочването
+// /rabota → играта остава в next.config.ts за линковете, които вече са пратени.
+const NAV: { href: string; label: string; isNew?: boolean; soon?: boolean }[] = [
   { href: "/ai-avtomatizacia", label: "Услуги" },
   { href: "/rakovodstva", label: "Ръководства" },
-  { href: "/rabota", label: "Работа при нас", isNew: true },
+  { href: "/robot", label: "Поръчай робот", soon: true },
   { href: "/jarvis", label: "Jarvis", isNew: true },
   { href: "/#kontakti", label: "Контакти" },
 ];
@@ -88,6 +91,17 @@ const EXPLORE: ExploreItem[] = [
   { href: "/partneri", label: "Партньори", sub: "работи с нас", icon: Handshake, color: "#67e8f9" },
   { href: "/booking", label: "Резервация", sub: "избери час за среща", icon: Calendar, color: "#22d3ee" },
 ];
+
+function SoonChip() {
+  return (
+    <span
+      className="v2-mono ml-1.5 inline-block rounded-full px-1.5 py-px align-middle text-[9px] uppercase tracking-[0.14em]"
+      style={{ color: "var(--v2-cyan)", border: "1px solid var(--v2-line-bright)", background: "rgba(34, 211, 238, 0.08)" }}
+    >
+      скоро
+    </span>
+  );
+}
 
 function NewDot() {
   return (
@@ -183,6 +197,7 @@ export function NavbarV2() {
               <a href={item.href} className="v2-navlink whitespace-nowrap transition-colors">
                 {item.label}
                 {item.isNew && <NewDot />}
+                {item.soon && <SoonChip />}
               </a>
             </li>
           ))}
@@ -357,6 +372,7 @@ export function NavbarV2() {
                   >
                     {item.label}
                     {item.isNew && <NewDot />}
+                    {item.soon && <SoonChip />}
                   </a>
                 </li>
               ))}
