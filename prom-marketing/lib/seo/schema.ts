@@ -92,7 +92,6 @@ export function localBusinessSchema(): Json {
     url: abs("/ai-avtomatizacia-plovdiv"),
     telephone: ORG.phone,
     email: ORG.email,
-    priceRange: "€€€",
     currenciesAccepted: "EUR, BGN",
     paymentAccepted: "Банков превод, карта",
     address: postalAddress(),
@@ -220,7 +219,6 @@ export function serviceSchema(opts: {
             itemListElement: opts.offers.map((o) => ({
               "@type": "Offer",
               itemOffered: { "@type": "Service", name: o.name, description: o.description },
-              priceCurrency: "EUR",
               availability: "https://schema.org/InStock",
             })),
           },

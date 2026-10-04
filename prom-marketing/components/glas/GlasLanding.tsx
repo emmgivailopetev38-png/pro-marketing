@@ -10,10 +10,9 @@
    говори през тяхната загуба (пропуснатата поръчка, фалшивият наложен
    платеж), не през нашите функции.
 
-   Цените са тук нарочно: рекламата е за бизнеси, които могат да си го
-   позволят, а гласовото демо има таван от 12 разговора на ден. По-добре
-   човек да си тръгне на страницата, отколкото да изяде слот от някой,
-   който после ще плати. Числата са в PRICE — сменят се на едно място.
+   Цени тук вече няма (04.10.2026, Ивайло: „никъде цени не искам да има").
+   Отсяването остава в текста: „Не е за всеки магазин" казва за кого е
+   агентът, а обхватът се уточнява на срещата.
    ===================================================================== */
 import {
   Check,
@@ -32,7 +31,6 @@ import Link from "next/link";
 import { SectionReveal } from "@/components/effects/SectionReveal";
 import { VoiceCallForm } from "@/components/glas/VoiceCallForm";
 
-const PRICE = { setup: "2 400 €", monthly: "от 290 €/мес." };
 
 const CALLS = [
   {
@@ -238,18 +236,17 @@ export function GlasLanding() {
               </p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-[rgba(4,6,13,0.6)] p-6">
-              <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-400">Цена</p>
-              <p className="mt-3 text-3xl font-bold text-white">{PRICE.setup}</p>
-              <p className="text-sm text-slate-400">внедряване — глас, сценарий, свързване с магазина и телефона</p>
-              <p className="mt-4 text-3xl font-bold text-white">{PRICE.monthly}</p>
+              <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-slate-400">Какво получаваш</p>
+              <p className="mt-3 text-xl font-bold text-white">Внедряване</p>
+              <p className="text-sm text-slate-400">глас, сценарий, свързване с магазина и телефона</p>
+              <p className="mt-4 text-xl font-bold text-white">Линия и поддръжка</p>
               <p className="text-sm text-slate-400">
-                абонамент „Старт“ — линията, до 300 минути разговори на месец, поддръжката и
-                подобренията. Над това 0,40 € на минута; при повече обаждания има „Растеж“ (1 000
-                мин.) и „Кол център“ (2 500 мин.).
+                линията, разговорите, поддръжката и подобренията — всеки месец. Обхватът зависи от
+                броя обаждания и го уточняваме на срещата.
               </p>
               <p className="mt-4 text-xs leading-relaxed text-slate-500">
                 Сметката е проста: една пропусната поръчка на ден или пет фалшиви наложени платежа
-                седмично струват повече.
+                седмично струват повече от агента.
               </p>
             </div>
           </div>

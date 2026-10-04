@@ -93,16 +93,15 @@ const PHRASES = [
 
 const PACKAGES = [
   { name: "Starter", gist: "Бърз старт с една база", popular: false, color: "var(--m-sky)",
-    inc: ["Core ядро + 1 браншови темплейт", "Свързване на основните канали", "Базови автоматизации", "Отчет на месец"], fee: "Setup + малка месечна поддръжка" },
+    inc: ["Core ядро + 1 браншови темплейт", "Свързване на основните канали", "Базови автоматизации", "Отчет на месец"] },
   { name: "Growth", gist: "Растеж с реклами + add-ons", popular: true, color: "var(--m-cyan)",
-    inc: ["Всичко от Starter", "Управление на реклами", "3–5 add-ons по избор", "Email/SMS flows", "Разширени отчети"], fee: "Setup + месечна + реклами" },
+    inc: ["Всичко от Starter", "Управление на реклами", "3–5 add-ons по избор", "Email/SMS flows", "Разширени отчети"] },
   { name: "Pro", gist: "Пълна система за мащаб", popular: false, color: "var(--m-violet)",
-    inc: ["Всичко от Growth", "Повечето add-ons", "AI асистент(и)", "KPI табло за собственика", "Приоритетна поддръжка"], fee: "Setup + по-висока месечна + реклами" },
+    inc: ["Всичко от Growth", "Повечето add-ons", "AI асистент(и)", "KPI табло за собственика", "Приоритетна поддръжка"] },
   { name: "Enterprise / Custom", gist: "Изцяло по мярка", popular: false, color: "var(--m-gold)",
-    inc: ["Пълна персонализация", "ERP + интеграции", "Екипни процеси + onboarding", "SLA + посветен екип"], fee: "По договаряне" },
+    inc: ["Пълна персонализация", "ERP + интеграции", "Екипни процеси + onboarding", "SLA + посветен екип"] },
 ];
 
-const FEES = ["Setup fee", "Месечна поддръжка", "Управление на реклами", "Автоматизации", "Add-ons", "Premium custom", "Performance бонус"];
 
 const STEPS = [
   "Диагностика на бизнеса", "Избор на template", "Персонализация", "Свързване на CRM/реклами/автоматизации",
@@ -122,7 +121,7 @@ const NEXT = [
 
 const SELL = [
   { icon: "∞", t: "Построй веднъж, продай много", d: "Темплейтът се преизползва за всеки клиент в бранша — без преоткриване всеки път." },
-  { icon: "⚡", t: "Старт за дни, не месеци", d: "Базата е готова и изпипана → бърза доставка и ниска входна цена." },
+  { icon: "⚡", t: "Старт за дни, не месеци", d: "Базата е готова и изпипана → бърза доставка и бърз старт." },
   { icon: "↗", t: "Add-ons = маржът", d: "Custom надграждането над базата е upsell + повтаряема месечна поддръжка." },
 ];
 
@@ -184,7 +183,7 @@ export default function ModelPage() {
             <div className="m-slab m-slab-base">
               <div className="m-slab-tag" style={{ color: "var(--m-cyan)" }}>БАЗА · ТЕМПЛЕЙТ</div>
               <div className="m-slab-title">Стабилно ядро + браншов шаблон</div>
-              <div className="m-slab-sub">Готово и доказано · бързо · изпипано · ниска цена</div>
+              <div className="m-slab-sub">Готово и доказано · бързо · изпипано</div>
             </div>
           </div>
           <div className="m-concept-note">
@@ -320,7 +319,7 @@ export default function ModelPage() {
 
       {/* ПАКЕТИ */}
       <section className="m-section">
-        <SectionHead eyebrow="ЦЕНОВИ МОДЕЛ · ПАКЕТИ" title={<>Четири нива, <span className="m-grad">един продукт</span>.</>} sub="Setup + месечно + реклами + add-ons. Сумите са ориентир — финализираме заедно." />
+        <SectionHead eyebrow="ПАКЕТИ" title={<>Четири нива, <span className="m-grad">един продукт</span>.</>} sub="Нивата се различават по обхват — кое пасва на бизнеса ти, избираме заедно." />
         <div className="m-packs">
           {PACKAGES.map((p, i) => (
             <Reveal key={p.name} delay={i * 0.06}>
@@ -329,17 +328,10 @@ export default function ModelPage() {
                 <div className="m-pack-name">{p.name}</div>
                 <div className="m-pack-gist">{p.gist}</div>
                 <div className="m-pack-inc">{p.inc.map((x) => <div key={x} className="m-pack-row"><span style={{ color: p.color }}>✓</span> {x}</div>)}</div>
-                <div className="m-pack-fee">{p.fee}</div>
               </div>
             </Reveal>
           ))}
         </div>
-        <Reveal>
-          <div className="m-fees">
-            <span className="m-fees-label">Компоненти на цената:</span>
-            {FEES.map((f) => <span key={f} className="m-chip">{f}</span>)}
-          </div>
-        </Reveal>
       </section>
 
       {/* ВНЕДРЯВАНЕ */}

@@ -12,7 +12,7 @@ import { openBookingPopup } from "@/lib/cal/embed";
 import { track } from "@/lib/analytics/track";
 import { AiAudit } from "./AiAudit";
 import { VoiceReceptionButton } from "./VoiceReceptionButton";
-import { Star, Phone, Play } from "lucide-react";
+import { Check, Phone } from "lucide-react";
 
 export function HeroV2() {
   return (
@@ -49,7 +49,7 @@ export function HeroV2() {
         <div>
           <span className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-[var(--color-border-default)] bg-[var(--color-bg-glass)] px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.22em] text-[var(--color-accent-cyan)]">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--color-accent-cyan)] shadow-[0_0_8px_rgba(34,211,238,0.9)]" />
-            2050 · AI операции
+            AI автоматизация · Пловдив · цяла България
           </span>
 
           {/* H1 — водещата ключова дума стои отпред нарочно.
@@ -89,45 +89,28 @@ export function HeroV2() {
             <MagneticButton>
               <VoiceReceptionButton />
             </MagneticButton>
-            <MagneticButton>
-              <a
-                href="/demo"
-                onClick={() => track("cta_clicked", { location: "hero_v2", target: "demo" })}
-                className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full border border-[var(--color-accent-cyan)]/60 bg-[rgba(34,211,238,0.05)] px-7 py-4 text-base font-semibold text-[var(--color-accent-cyan)] backdrop-blur-sm transition hover:border-[var(--color-accent-cyan)] hover:shadow-[0_0_50px_rgba(34,211,238,0.35)]"
-              >
-                {/* пробягващ блик по бутона */}
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-[rgba(34,211,238,0.22)] to-transparent transition-transform duration-700 group-hover:translate-x-full"
-                />
-                <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-accent-cyan)] text-[var(--color-bg-void)] shadow-[0_0_18px_rgba(34,211,238,0.8)]">
-                  <Play className="ml-0.5 h-3.5 w-3.5 fill-current" />
-                </span>
-                <span className="relative">
-                  Гледай живото демо
-                  <span className="ml-2 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--color-accent-cyan)] align-middle shadow-[0_0_8px_rgba(34,211,238,0.9)]" />
-                </span>
-              </a>
-            </MagneticButton>
             <a href="tel:+359877399963" onClick={() => track("cta_clicked", { location: "hero_v2", target: "call" })} className="inline-flex items-center gap-2 rounded-full border-2 border-[var(--color-accent-cyan)] px-6 py-3.5 text-base font-semibold text-[var(--color-accent-cyan)] transition hover:bg-[var(--color-accent-cyan)]/[0.06]">
               <Phone className="h-4 w-4" /> 0877 399 963
             </a>
           </div>
 
-          <div className="mt-7 flex items-center gap-3 text-sm text-[var(--color-text-tertiary)]">
-            <span className="flex text-[var(--color-accent-cyan)]">
-              {Array.from({ length: 5 }).map((_, i) => <Star key={i} className="h-4 w-4 fill-current" />)}
-            </span>
-            <span>30+ български бизнеса · отговор за секунди</span>
-          </div>
+          {/* Без звезди и „30+ бизнеса" — нямаха източник. Тук стоят само неща, които са верни. */}
+          <ul className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-sm text-[var(--color-text-secondary)]">
+            {["Първият разговор е безплатен", "Звъним ти в рамките на работния ден", "Всичко е на български"].map((t) => (
+              <li key={t} className="inline-flex items-center gap-1.5">
+                <Check className="h-4 w-4 shrink-0 text-[var(--color-accent-cyan)]" aria-hidden />
+                {t}
+              </li>
+            ))}
+          </ul>
 
           <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
             <a
-              href="/ai-reshenia"
-              onClick={() => track("cta_clicked", { location: "hero_v2", target: "reshenia" })}
+              href="/demo"
+              onClick={() => track("cta_clicked", { location: "hero_v2", target: "demo" })}
               className="font-semibold text-[var(--color-accent-cyan)] underline decoration-[var(--color-accent-cyan)]/40 underline-offset-4 transition hover:decoration-[var(--color-accent-cyan)]"
             >
-              Виж всички AI решения — системи, агенти и обучения →
+              Виж как изглежда системата отвътре →
             </a>
           </div>
         </div>

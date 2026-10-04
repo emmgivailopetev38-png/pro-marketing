@@ -71,8 +71,9 @@ export function FooterV2() {
           </div>
         </div>
 
-        {/* Middle row — 5 columns (услугите влязоха като отделна колона) */}
-        <div className="mb-12 grid gap-10 border-y border-[var(--v2-line)] py-12 md:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]">
+        {/* Middle row — 4 columns. Втората колона „Услуги" (текст без връзки,
+            повтаряше първата) е свалена на 04.10.2026. */}
+        <div className="mb-12 grid gap-10 border-y border-[var(--v2-line)] py-12 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>
             <h4 className="v2-mono mb-3 text-xs uppercase tracking-[0.2em] text-[var(--v2-faint)]">
               Контакт
@@ -145,23 +146,13 @@ export function FooterV2() {
                 </a>
               </li>
               <li>
-                <a className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" href="/strategii">
-                  Лаборатория за стратегии
-                </a>
-              </li>
-              <li>
-                <a className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" href="/ai-trading">
-                  AI Трейдинг ботове
-                </a>
-              </li>
-              <li>
                 <a className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" href="/demo">
                   Живо демо
                 </a>
               </li>
               <li>
                 <a className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" href="/plan">
-                  План и цени
+                  План и фази
                 </a>
               </li>
               <li>
@@ -175,28 +166,10 @@ export function FooterV2() {
                 </a>
               </li>
               <li>
-                <a className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" href="/trading">
-                  Трейдинг книга
-                </a>
-              </li>
-              <li>
                 <a className="text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" href="/partneri">
                   Партньори
                 </a>
               </li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="v2-mono mb-3 text-xs uppercase tracking-[0.2em] text-[var(--v2-faint)]">
-              Услуги
-            </h4>
-            <ul className="space-y-2 text-sm">
-              <li className="text-[var(--v2-muted)]">AI чат агенти</li>
-              <li className="text-[var(--v2-muted)]">AI CRM</li>
-              <li className="text-[var(--v2-muted)]">Софтуер по поръчка</li>
-              <li className="text-[var(--v2-muted)]">Гласови AI агенти</li>
-              <li className="text-[var(--v2-muted)]">Имейл и SMS автоматизация</li>
             </ul>
           </div>
 

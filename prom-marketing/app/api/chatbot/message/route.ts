@@ -232,7 +232,7 @@ export async function POST(request: Request) {
   // Suggestion chips — light heuristic.
   const suggestions: string[] = [];
   if (action !== "open_booking") suggestions.push("Запиши среща");
-  if (action !== "show_pricing") suggestions.push("Кажи цените");
+  if (action !== "show_pricing") suggestions.push("Как започваме?");
   suggestions.push("Какво правите?");
   if (!storedVisitor.email && action !== "open_contact_form") suggestions.push("Изпрати ми оферта по имейл");
 
