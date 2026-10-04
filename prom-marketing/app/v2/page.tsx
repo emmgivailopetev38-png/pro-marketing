@@ -26,6 +26,7 @@ import { SpotlightCursor } from "@/components/effects/SpotlightCursor";
 import { ScrollProgress } from "@/components/effects/ScrollProgress";
 import { BookingConfetti } from "@/components/effects/BookingConfetti";
 import { Toaster } from "@/components/ui/sonner";
+import { CalPreload } from "@/components/booking/CalPreload";
 
 const ServicesV2 = dynamic(() => import("@/components/landing/v2/ServicesV2").then((m) => ({ default: m.ServicesV2 })));
 const LiveDashboardsV2 = dynamic(() => import("@/components/landing/v2/LiveDashboardsV2").then((m) => ({ default: m.LiveDashboardsV2 })));
@@ -45,7 +46,6 @@ const FinalCTAV2 = dynamic(() => import("@/components/landing/v2/FinalCTAV2").th
 const FooterV2 = dynamic(() => import("@/components/landing/v2/FooterV2").then((m) => ({ default: m.FooterV2 })));
 const StickyMobileCTA = dynamic(() => import("@/components/landing/StickyMobileCTA").then((m) => ({ default: m.StickyMobileCTA })));
 const ChatWidget = dynamic(() => import("@/components/chatbot/ChatWidget").then((m) => ({ default: m.ChatWidget })));
-const WelcomeLeadPopup = dynamic(() => import("@/components/landing/v2/WelcomeLeadPopup").then((m) => ({ default: m.WelcomeLeadPopup })));
 const VideoGalleryV2 = dynamic(() => import("@/components/landing/v2/VideoGalleryV2").then((m) => ({ default: m.VideoGalleryV2 })));
 
 export default function HomePageV2() {
@@ -83,8 +83,12 @@ export default function HomePageV2() {
       <BookingConfetti />
       <StickyMobileCTA />
       <ChatWidget />
-      <WelcomeLeadPopup />
+      {/* Входният попъп (WelcomeLeadPopup, 7 сек след влизане) е махнат на
+          30.09.2026: закриваше страницата веднага, а с exit-intent понякога
+          излизаха два попъпа един след друг. Донесе 2 лийда за 30 дни.
+          Остава само exit-intent — веднъж, при напускане, само на десктоп. */}
       <ConversionFloats />
+      <CalPreload />
       <Toaster theme="dark" position="bottom-right" />
     </div>
   );
