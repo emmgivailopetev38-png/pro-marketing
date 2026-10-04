@@ -19,6 +19,7 @@ import { HeroV2 } from "@/components/landing/v2/HeroV2";
 import { TrustStripV2 } from "@/components/landing/v2/TrustStripV2";
 import { QuickAccessV2 } from "@/components/landing/v2/QuickAccessV2";
 import { JarvisSpotlightV2 } from "@/components/landing/v2/JarvisSpotlightV2";
+import { RobotTeaserV2 } from "@/components/landing/v2/RobotTeaserV2";
 import { LiveLabsV2 } from "@/components/landing/v2/LiveLabsV2";
 import { ConversionFloats } from "@/components/landing/v2/ConversionFloats";
 import { SpotlightCursor } from "@/components/effects/SpotlightCursor";
@@ -57,6 +58,7 @@ export default function HomePageV2() {
         <VideoGalleryV2 />
         <QuickAccessV2 />
         <JarvisSpotlightV2 />
+        <RobotTeaserV2 />
         <LiveLabsV2 />
         <ServicesV2 />
         <LiveDashboardsV2 />

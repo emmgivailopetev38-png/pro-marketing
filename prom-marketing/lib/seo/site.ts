@@ -182,6 +182,7 @@ export const SUPPORTING_PAGES: SitemapEntry[] = [
   { path: "/kurs", priority: 0.7, changeFrequency: "monthly" },
   { path: "/mentor", priority: 0.7, changeFrequency: "monthly" },
   { path: "/jarvis", priority: 0.7, changeFrequency: "monthly" },
+  { path: "/robot", priority: 0.6, changeFrequency: "weekly" },
   { path: "/plan", priority: 0.6, changeFrequency: "monthly" },
   { path: "/partneri", priority: 0.6, changeFrequency: "monthly" },
   { path: "/model", priority: 0.6, changeFrequency: "monthly" },
