@@ -375,8 +375,8 @@ export default function PlanPage() {
         {/* ===== FOOTER ===== */}
         <motion.footer className="pl-foot" {...rise(reduced)}>
           <div className="pl-terms">
-            🎟️ extra тикет <b>по запитване</b> · 📅 годишно <b>−2 месеца</b> · ☁️ платформи включени ·
-            💳 изработка: депозит <b>50 / 50</b>
+            ☁️ платформи <b>включени</b> · 🧭 работим <b>на фази</b> · 📅 обхватът се уговаря на{" "}
+            <b>безплатната консултация</b>
           </div>
           <Link className="pl-cta" href="/booking">
             Заяви консултация →
