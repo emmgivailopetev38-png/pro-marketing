@@ -1,6 +1,6 @@
 import "../v2/v2-design.css";
 import dynamic from "next/dynamic";
-import { BookOpen, MessageCircle, Inbox } from "lucide-react";
+import { BookOpen, MessageCircle, Inbox, Package } from "lucide-react";
 import { NavbarV2 } from "@/components/landing/v2/NavbarV2";
 import { RobotSilhouette } from "@/components/robot/RobotSilhouette";
 import { RobotWaitlistForm } from "@/components/robot/RobotWaitlistForm";
@@ -11,12 +11,17 @@ const FooterV2 = dynamic(() =>
 
 /* =====================================================================
    /robot — „Поръчай робот · скоро". Тийзър с една цел: човек да се
-   запише в списъка. Роботът още е „под покривалото" — силует, три
-   неща, които ще прави, и формата. Без цена и без дата, докато не са
-   решени: записаните ги научават първи.
+   запише в списъка. Роботът още е „под покривалото" — силует, какво ще
+   прави (работник: физическа работа + разговор на български) и формата.
+   Без цени (Ивайло: „никъде цени") и без дата — записаните научават първи.
    ===================================================================== */
 
 const CAN = [
+  {
+    icon: Package,
+    title: "Върши физическа работа",
+    body: "Ще носи, подрежда и разнася — работата с ръце, която изяжда часовете на екипа. Работник, не украса.",
+  },
   {
     icon: MessageCircle,
     title: "Говори на български",
@@ -29,16 +34,16 @@ const CAN = [
   },
   {
     icon: Inbox,
-    title: "Носи запитвания",
+    title: "Приема запитвания",
     body: "Записва телефона на всеки, който се заинтересува, и го праща в CRM-а. Нищо не остава на салфетка.",
   },
 ];
 
-const WHERE = ["Събития и партита", "Магазини", "Рецепции и хотели", "Изложения"];
+const WHERE = ["Складове", "Магазини", "Ресторанти и хотели", "Събития", "Офиси"];
 
 const FAQ = [
   { q: "Кога?", a: "Скоро. Записаните в списъка научават датата преди всички." },
-  { q: "Колко струва?", a: "Цената обявяваме, когато отворим поръчките. Първи я научават записаните." },
+  { q: "Каква работа ще върши?", a: "Физическа работа и разговор с хората: носи, подрежда, разнася, посреща и отговаря. Какво точно ще прави при теб, решаваме заедно — записаните научават подробностите първи." },
   { q: "Защо точно на български?", a: "Защото фабричният глас на робота не го говори, а хората искат да си говорят с него на своя език. Това е причината да го правим." },
 ];
 
@@ -52,11 +57,11 @@ export default function RobotPage() {
             <div className="min-w-0">
               <p className="v2-eyebrow">{"// Поръчки · скоро"}</p>
               <h1 id="robot-title" className="v2-title-plain !text-[clamp(2.1rem,6vw,4rem)]">
-                Робот, който <span className="v2-grad">говори български</span>
+                Робот-работник, който <span className="v2-grad">говори български</span>
               </h1>
               <p className="v2-sub mt-5 max-w-xl">
-                Хуманоиден робот с нашия AI. Посреща гостите и клиентите, отговаря на въпросите им и приема
-                запитвания — на техния език. Още е под покривалото.
+                Хуманоиден робот с нашия AI. Ще върши физическа работа — носи, подрежда, разнася — и ще
+                разговаря с хората на техния език. Още е под покривалото.
               </p>
 
               <div id="spisak" className="v2-glass v2-glow is-always relative mt-8 max-w-md scroll-mt-28 p-5 md:p-6">
@@ -89,10 +94,10 @@ export default function RobotPage() {
             <div className="v2-head">
               <p className="v2-eyebrow">{"// Какво ще може"}</p>
               <h2 id="robot-can" className="v2-title-plain !text-[clamp(1.6rem,3.6vw,2.6rem)]">
-                Не играчка за снимка — <span className="v2-grad">служител, който привлича</span>
+                Не играчка за снимка — <span className="v2-grad">работник в екипа ти</span>
               </h2>
             </div>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {CAN.map(({ icon: Icon, title, body }) => (
                 <div key={title} className="v2-glass relative p-6">
                   <span

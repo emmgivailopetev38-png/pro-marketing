@@ -10,7 +10,7 @@ import { useState } from "react";
 import { Check, Phone, User } from "lucide-react";
 import { track } from "@/lib/analytics/track";
 
-const USES = ["Събития и партита", "Магазин", "Рецепция или хотел", "Друго"] as const;
+const USES = ["Склад или магазин", "Ресторант или хотел", "Събития", "Друго"] as const;
 
 type Status = "idle" | "submitting" | "success" | "error";
 
@@ -64,7 +64,7 @@ export function RobotWaitlistForm({ location }: { location: string }) {
           Ти си в списъка.
         </p>
         <p className="v2-sub mt-2 max-w-xs" style={{ fontSize: "0.9rem" }}>
-          Щом отворим поръчките, ти се обаждаме първи — с цената и датата.
+          Щом отворим поръчките, ти се обаждаме първи — с всички подробности.
         </p>
       </div>
     );

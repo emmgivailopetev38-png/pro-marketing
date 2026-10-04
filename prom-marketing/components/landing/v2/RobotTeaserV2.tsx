@@ -9,7 +9,7 @@ import { ArrowRight } from "lucide-react";
 import { RobotSilhouette } from "@/components/robot/RobotSilhouette";
 import { track } from "@/lib/analytics/track";
 
-const CAN = ["Посреща хората", "Отговаря на въпроси", "Приема запитвания"];
+const CAN = ["Върши физическа работа", "Носи и подрежда", "Говори на български", "Приема запитвания"];
 
 export function RobotTeaserV2() {
   return (
@@ -22,11 +22,11 @@ export function RobotTeaserV2() {
           <div className="relative z-[1] order-2 md:order-1">
             <p className="v2-eyebrow">{"// Скоро"}</p>
             <h2 className="v2-title-plain !text-[clamp(1.7rem,4vw,2.9rem)]">
-              Поръчай робот, който <span className="v2-grad">говори български</span>
+              Поръчай робот-работник, който <span className="v2-grad">говори български</span>
             </h2>
             <p className="v2-sub">
-              Хуманоиден робот с нашия AI — разговаря с хората на техния език, а не само стои за снимка.
-              Поръчките се отварят скоро.
+              Хуманоиден робот с нашия AI — ще върши физическа работа и ще разговаря с хората на техния
+              език. Работник, не украса. Поръчките се отварят скоро.
             </p>
 
             <ul className="mt-6 flex flex-wrap gap-2" aria-label="Какво ще прави">
@@ -51,7 +51,7 @@ export function RobotTeaserV2() {
                 <ArrowRight className="h-4 w-4" />
               </a>
               <span className="text-sm" style={{ color: "var(--v2-faint)" }}>
-                Първите в списъка научават първи цената.
+                Първите в списъка научават всичко първи.
               </span>
             </div>
           </div>
