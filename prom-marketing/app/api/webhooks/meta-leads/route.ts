@@ -5,6 +5,8 @@ import { sendEmail } from "@/lib/email/resend";
 import { LEAD_SEQUENCE, sendSequenceStep } from "@/lib/email/lead-sequence";
 import { getPageAccessToken } from "@/lib/meta/page-token";
 import { sendCapiEvent, isCapiConfigured } from "@/lib/meta/conversions-api";
+import { crmEventsMode } from "@/lib/meta/crm-events-rules";
+import { sendRawLeadCrmEvent } from "@/lib/meta/crm-events";
 import { escapeHtml } from "@/lib/email/escape";
 import { notifyTeamNewLead } from "@/lib/team/notify";
 import { routeNewLead } from "@/lib/team/routing";
@@ -203,7 +205,25 @@ async function processLead(leadgenId: string, formId: string | null) {
   // Без това Meta вижда „някой е подал форма", но не знае КОЙ — event match
   // quality пада до нула и оптимизацията се влошава. lead_id свързва събитието
   // с точния лийд, реклама и кампания.
-  if (isCapiConfigured()) {
+  if (isCapiConfigured() && crmEventsMode() === "live") {
+    // „Conversion leads“ (CAPI_CRM_EVENTS=1): същото събитие Lead, но като CRM
+    // събитие (event_source: crm) и записано в automation_events — Meta иска
+    // суровия лийд като първи етап, а кронът /api/cron/meta-crm-events праща
+    // следващите (записана среща, спечелен) по същия lead_id.
+    const crm = await sendRawLeadCrmEvent({
+      leadgenId,
+      createdTime: detail.created_time,
+      contactId,
+      email: emailLower || null,
+      phone: phone || null,
+      fullName,
+      adId: detail.ad_id ?? null,
+      campaignId: detail.campaign_id ?? null,
+    }).catch((e) => ({ outcome: "failed_unrecorded" as const, error: String(e) }));
+    if (crm.outcome !== "sent" && crm.outcome !== "duplicate") {
+      console.error("[meta-leads] CRM Lead към Meta:", crm.outcome, crm.error ?? "");
+    }
+  } else if (isCapiConfigured()) {
     const [firstName, ...rest] = (fullName ?? "").trim().split(/\s+/);
     void sendCapiEvent({
       event_name: "Lead",
