@@ -185,7 +185,6 @@ export const SUPPORTING_PAGES: SitemapEntry[] = [
   { path: "/robot", priority: 0.6, changeFrequency: "weekly" },
   { path: "/plan", priority: 0.6, changeFrequency: "monthly" },
   { path: "/partneri", priority: 0.6, changeFrequency: "monthly" },
-  { path: "/strategii", priority: 0.6, changeFrequency: "monthly" },
   { path: "/booking", priority: 0.6, changeFrequency: "monthly" },
   { path: "/demo/schetovodstvo", priority: 0.6, changeFrequency: "monthly" },
   { path: "/demo/transport", priority: 0.6, changeFrequency: "monthly" },
