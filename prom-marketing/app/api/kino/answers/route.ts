@@ -79,7 +79,8 @@ export async function POST(request: Request) {
       title: `🔢 Твоето число: ${hours} ч седмично в повтаряща се работа`,
       body: `≈ ${Math.round(hours * 52)} часа в годината`,
       metadata: { hours, pos },
-      dedupeKey: `kino:number:${SCREENING}:${hours}`,
+      // едно и също число в 10 минути — един запис; по-късно пак — нов (важи последният)
+      dedupeKey: `kino:number:${SCREENING}:${hours}:${Math.floor(Date.now() / 600_000)}`,
     });
     await kinoEvent({ contactId, type: "survey", value: "number", pos, meta: { hours } });
     return NextResponse.json({ ok: !r.error || r.created === false, hours });

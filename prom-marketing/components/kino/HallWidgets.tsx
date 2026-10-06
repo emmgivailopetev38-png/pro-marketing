@@ -93,6 +93,7 @@ export function NumberBox({
     e.preventDefault();
     if (typed == null || value.trim() === "") return setError("Само числото — например 10.");
     setError(null);
+    if (typed === saved) return; // вече е записано
     if (!token) return onSaved(typed); // прегледът — без запис
     setSending(true);
     const { ok, data } = await postJson<{ hours?: number; error?: string }>("/api/kino/answers", {

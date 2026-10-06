@@ -167,10 +167,10 @@ export async function depositPaidEur(contactId: string): Promise<number> {
 
 /**
  * Покана след разговор. След затварянето (нд 23:59) плащането остава отворено
- * само за хората, с които има истински разговор: записан час (kino_booking),
- * анкета „първо да поговорим“ (kino_precall) или дадени на екипа от
- * /admin/kino (team_assigned). Платилите капаро минават отделно. Решава
- * сървърът по CRM-а — не линкът, от който идва заявката.
+ * само за хората с разговор: записан час (kino_booking) или дадени на екипа
+ * от /admin/kino (team_assigned). Самата заявка (kino_precall) не отваря —
+ * тя е пътят към часа. Платилите капаро минават отделно. Решава сървърът по
+ * CRM-а — не линкът, от който идва заявката.
  */
 export async function hasKinoInvite(contactId: string): Promise<boolean> {
   if (!isDbConfigured()) return false;
@@ -179,7 +179,7 @@ export async function hasKinoInvite(contactId: string): Promise<boolean> {
       .from("contact_activities")
       .select("activity_type, metadata")
       .eq("contact_id", contactId)
-      .in("activity_type", ["kino_booking", "kino_precall", "team_assigned"])
+      .in("activity_type", ["kino_booking", "team_assigned"])
       .limit(100);
     return (data ?? []).some((r) => {
       const m = (r.metadata ?? {}) as Record<string, unknown>;
