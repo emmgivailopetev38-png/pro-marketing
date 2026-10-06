@@ -1,0 +1,1625 @@
+/* =====================================================================
+   „ВЪЛНАТА · Онлайн кино“ — визията на афиша, билета и залата.
+   Скоупнато под .kino — не пипа нищо друго в сайта.
+   Тъмно кино: зърно, лъч на прожектор и вълната в цветовете на марката
+   (#22d3ee → #a855f7 → #ec4899). Мобилно първо. Без тежки библиотеки —
+   само CSS; при prefers-reduced-motion всичко стои неподвижно.
+   ===================================================================== */
+
+.kino {
+  --k-bg: #06060d;
+  --k-bg-2: #0c0b18;
+  --k-surface: rgba(255, 255, 255, 0.035);
+  --k-surface-2: rgba(255, 255, 255, 0.06);
+  --k-line: rgba(168, 85, 247, 0.22);
+  --k-line-soft: rgba(255, 255, 255, 0.08);
+  --k-text: #f5f3ff;
+  --k-text-2: #bab6d6;
+  --k-text-3: #807da3;
+  --k-cyan: #22d3ee;
+  --k-violet: #a855f7;
+  --k-pink: #ec4899;
+  --k-gold: #fcd34d;
+  --k-grad: linear-gradient(90deg, #22d3ee 0%, #a855f7 52%, #ec4899 100%);
+  --k-grad-soft: linear-gradient(135deg, rgba(34, 211, 238, 0.16), rgba(168, 85, 247, 0.14) 50%, rgba(236, 72, 153, 0.14));
+  --k-radius: 18px;
+  --k-gutter: 16px;
+
+  position: relative;
+  min-height: 100vh;
+  background: var(--k-bg);
+  color: var(--k-text);
+  font-family: var(--font-body), "Inter Tight", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-x: clip;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Unbounded при lang="bg" рисува българските курсивни форми на в, т, г, к
+   („За kozo e mozu фuлм“). На афиш за хора 35–55 от рекламата това се чете
+   трудно, затова тук шрифтът е със стандартните кирилски форми. Само в киното —
+   останалият сайт не се пипа. */
+.kino :is(.k-title, .k-h2, .k-ticket-title, .k-hall-title, .k-price-big, .k-count-num, .k-stub-cell strong, .k-leader-num) {
+  font-feature-settings: "locl" 0;
+}
+
+@media (min-width: 768px) {
+  .kino {
+    --k-gutter: 28px;
+  }
+}
+
+/* Зърното на лентата — статично (без анимация: на телефон пести батерия).
+   Стои НАД съдържанието като истинско зърно; в залата е изключено, за да не
+   пипа картината на филма. */
+.kino::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  mix-blend-mode: overlay;
+}
+
+.kino--hall::before {
+  display: none;
+}
+
+.kino a {
+  color: inherit;
+}
+
+.kino :focus-visible {
+  outline: 2px solid var(--k-cyan);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.k-wrap {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-left: var(--k-gutter);
+  padding-right: var(--k-gutter);
+}
+
+.k-narrow {
+  max-width: 760px;
+}
+
+/* ── горната лента ─────────────────────────────────────────────────── */
+.k-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  font-size: 13px;
+  color: var(--k-text-2);
+}
+.k-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.k-brand-logo {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+}
+
+/* ── типография ─────────────────────────────────────────────────────── */
+.k-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--k-cyan);
+}
+@media (min-width: 640px) {
+  .k-kicker {
+    font-size: 12px;
+    letter-spacing: 0.32em;
+  }
+}
+.k-kicker::before {
+  content: "";
+  flex: 0 0 22px;
+  width: 22px;
+  height: 2px;
+  background: var(--k-grad);
+  border-radius: 2px;
+}
+.k-title {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 800;
+  /* Unbounded е широк: 7 букви ≈ 6,5 em. Заглавието стои на ЕДИН ред —
+     на 375 px и в лявата колона на десктоп. */
+  font-size: clamp(2.5rem, 13vw, 7rem);
+  line-height: 1;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  margin: 14px 0 0;
+  margin-left: -0.03em;
+  background: linear-gradient(180deg, #ffffff 0%, #ffffff 55%, #d9d3ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 60px rgba(168, 85, 247, 0.25);
+}
+@media (min-width: 980px) {
+  .k-hero-grid .k-title {
+    font-size: clamp(3.4rem, 5.05vw, 4.6rem);
+  }
+}
+.k-wave {
+  display: block;
+  height: 6px;
+  width: min(100%, 560px);
+  border-radius: 6px;
+  margin-top: 14px;
+  background: var(--k-grad);
+  background-size: 200% 100%;
+  animation: k-wave 6s ease-in-out infinite;
+  box-shadow: 0 0 26px rgba(168, 85, 247, 0.55);
+}
+@keyframes k-wave {
+  0%,
+  100% {
+    background-position: 0% 0;
+  }
+  50% {
+    background-position: 100% 0;
+  }
+}
+.k-sub {
+  margin: 18px 0 0;
+  font-size: clamp(1.05rem, 3.6vw, 1.35rem);
+  color: var(--k-text);
+  font-weight: 500;
+}
+.k-tagline {
+  margin: 6px 0 0;
+  color: var(--k-text-2);
+  font-style: italic;
+}
+.k-h2 {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.55rem, 5.4vw, 2.5rem);
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  margin: 10px 0 0;
+}
+/* Подзаглавията са с основния шрифт: Unbounded рисува българските малки
+   букви (в, т, д) с курсивни форми — в карти и бутони се четат трудно. */
+.k-h3 {
+  font-family: var(--font-body), "Inter Tight", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1.12rem;
+  line-height: 1.3;
+  margin: 0;
+}
+.k-lead {
+  color: var(--k-text-2);
+  font-size: 1.05rem;
+  margin: 12px 0 0;
+  max-width: 62ch;
+}
+.k-muted {
+  color: var(--k-text-3);
+}
+.k-grad-text {
+  background: var(--k-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ── бутоните ───────────────────────────────────────────────────────── */
+.k-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 26px;
+  border-radius: 999px;
+  border: 1px solid var(--k-line-soft);
+  background: var(--k-surface-2);
+  color: var(--k-text);
+  font-weight: 700;
+  font-size: 1rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease,
+    opacity 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  text-align: center;
+  line-height: 1.2;
+}
+.k-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.k-btn:active {
+  transform: scale(0.98);
+}
+.k-btn[disabled],
+.k-btn[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.k-btn--primary {
+  border: 0;
+  color: #0a0613;
+  background: var(--k-grad);
+  background-size: 160% 100%;
+  box-shadow:
+    0 10px 40px rgba(168, 85, 247, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+}
+.k-btn--primary:hover {
+  background: var(--k-grad);
+  background-size: 160% 100%;
+  background-position: 100% 0;
+  box-shadow: 0 14px 54px rgba(236, 72, 153, 0.42);
+}
+.k-btn--viber {
+  border: 0;
+  background: #7360f2;
+  color: #fff;
+  box-shadow: 0 10px 36px rgba(115, 96, 242, 0.4);
+}
+.k-btn--viber:hover {
+  background: #6550e8;
+}
+.k-btn--block {
+  width: 100%;
+}
+.k-btn--sm {
+  min-height: 40px;
+  padding: 0 16px;
+  font-size: 0.9rem;
+}
+.k-link {
+  color: var(--k-cyan);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ── героят (афишът) ─────────────────────────────────────────────────── */
+.k-hero {
+  position: relative;
+  padding: 18px 0 56px;
+  isolation: isolate;
+}
+/* лъчът на прожектора */
+.k-hero::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -120px;
+  left: 50%;
+  width: min(1100px, 160vw);
+  height: 900px;
+  transform: translateX(-50%);
+  background:
+    radial-gradient(ellipse 45% 38% at 50% 8%, rgba(34, 211, 238, 0.22), transparent 70%),
+    radial-gradient(ellipse 60% 50% at 30% 30%, rgba(168, 85, 247, 0.18), transparent 70%),
+    radial-gradient(ellipse 50% 40% at 80% 35%, rgba(236, 72, 153, 0.12), transparent 70%);
+  pointer-events: none;
+  animation: k-flicker 7s ease-in-out infinite;
+}
+@keyframes k-flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  48% {
+    opacity: 0.92;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  52% {
+    opacity: 0.95;
+  }
+}
+.k-hero-grid {
+  display: grid;
+  gap: 34px;
+  align-items: center;
+}
+@media (min-width: 980px) {
+  .k-hero-grid {
+    grid-template-columns: 1.05fr 1fr;
+    gap: 52px;
+  }
+  .k-hero {
+    padding: 28px 0 80px;
+  }
+}
+.k-date {
+  margin-top: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.k-date strong {
+  font-weight: 800;
+  font-size: clamp(1.1rem, 4.4vw, 1.4rem);
+  letter-spacing: 0.01em;
+}
+.k-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--k-line);
+  background: rgba(168, 85, 247, 0.08);
+  color: var(--k-text-2);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.k-pill--live {
+  border-color: rgba(236, 72, 153, 0.5);
+  background: rgba(236, 72, 153, 0.12);
+  color: #ffd6ea;
+}
+.k-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--k-pink);
+  box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.7);
+  animation: k-pulse 1.6s infinite;
+}
+@keyframes k-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 9px rgba(236, 72, 153, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(236, 72, 153, 0);
+  }
+}
+
+/* ── обратното броене ───────────────────────────────────────────────── */
+.k-count {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 22px;
+  max-width: 420px;
+}
+.k-count-cell {
+  border-radius: 14px;
+  padding: 10px 6px 8px;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--k-line-soft);
+}
+.k-count-num {
+  display: block;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.45rem, 6.4vw, 2rem);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.k-count-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--k-text-3);
+  margin-top: 2px;
+}
+.k-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 26px;
+}
+.k-cta-row .k-btn--primary {
+  flex: 1 1 260px;
+}
+@media (min-width: 640px) {
+  .k-cta-row .k-btn--primary {
+    flex: 0 0 auto;
+  }
+}
+.k-ai-note {
+  margin-top: 18px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 0.9rem;
+  color: var(--k-text-2);
+  max-width: 54ch;
+}
+.k-ai-note b {
+  color: var(--k-text);
+}
+
+/* ── екранът (трейлър / плакат / филм) ─────────────────────────────────── */
+.k-screen {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow:
+    0 0 0 1px rgba(168, 85, 247, 0.15),
+    0 30px 120px -20px rgba(168, 85, 247, 0.45),
+    0 0 90px -30px rgba(34, 211, 238, 0.55);
+}
+.k-screen > video,
+.k-screen > iframe,
+.k-screen .k-yt,
+.k-screen .k-yt iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: contain;
+  background: #000;
+}
+.k-screen-label {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 3;
+}
+/* надпис върху спрелия плейър (пробното видео е по-късо от филма) */
+.k-screen-cover {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.k-screen-corner {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 3;
+  display: flex;
+  gap: 8px;
+}
+.k-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(6, 6, 13, 0.62);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.86rem;
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+}
+.k-icon-btn:hover {
+  background: rgba(6, 6, 13, 0.82);
+}
+.k-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.k-poster-wrap {
+  position: relative;
+}
+/* Плакатът (без трейлър) на телефон е по-висок — роботът излиза по-едър. */
+.k-screen--poster {
+  aspect-ratio: 4 / 3;
+}
+@media (min-width: 980px) {
+  .k-screen--poster {
+    aspect-ratio: 16 / 10;
+  }
+}
+/* В билетната каса на телефон формата е веднага след заглавието. */
+@media (max-width: 979px) {
+  .k-list.k-perks {
+    display: none;
+  }
+}
+.k-poster-caption {
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: var(--k-text-3);
+  text-align: center;
+}
+/* надписите при „сухата“ прожекция — глава по глава */
+.k-titlecard {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 18px;
+  background:
+    radial-gradient(ellipse at 50% 45%, rgba(168, 85, 247, 0.22), transparent 62%),
+    #05050b;
+}
+.k-titlecard-n {
+  font-size: clamp(0.7rem, 2.4vw, 0.85rem);
+  letter-spacing: 0.4em;
+  color: var(--k-cyan);
+  font-weight: 700;
+}
+.k-titlecard-t {
+  font-weight: 800;
+  font-size: clamp(1.15rem, 4.6vw, 2.2rem);
+  margin-top: 10px;
+  line-height: 1.2;
+}
+.k-titlecard-c {
+  margin-top: 12px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  color: var(--k-text-3);
+  font-size: 0.85rem;
+}
+.k-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 18px;
+  background: radial-gradient(ellipse at center, rgba(6, 6, 13, 0.55), rgba(6, 6, 13, 0.9));
+}
+.k-overlay-inner {
+  max-width: 440px;
+}
+.k-overlay-title {
+  font-weight: 800;
+  font-size: clamp(1.1rem, 4.2vw, 1.6rem);
+  margin: 0 0 6px;
+}
+/* отброяването на лентата (19:25–19:30) */
+.k-leader {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at center, rgba(252, 211, 77, 0.08), transparent 60%),
+    #0b0a08;
+}
+.k-leader-ring {
+  width: min(46%, 220px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 244, 214, 0.55);
+  display: grid;
+  place-items: center;
+  position: relative;
+  box-shadow: 0 0 0 10px rgba(255, 244, 214, 0.08);
+}
+.k-leader-ring::before,
+.k-leader-ring::after {
+  content: "";
+  position: absolute;
+  background: rgba(255, 244, 214, 0.35);
+}
+.k-leader-ring::before {
+  width: 240%;
+  height: 1px;
+}
+.k-leader-ring::after {
+  height: 240%;
+  width: 1px;
+}
+.k-leader-num {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.5rem, 5.2vw, 3rem);
+  color: #fff4d6;
+  font-variant-numeric: tabular-nums;
+  z-index: 1;
+}
+.k-leader-num--big {
+  font-size: clamp(2.4rem, 10vw, 5rem);
+}
+
+/* ── секциите ──────────────────────────────────────────────────────── */
+.k-section {
+  padding: 64px 0;
+  border-top: 1px solid var(--k-line-soft);
+}
+@media (min-width: 768px) {
+  .k-section {
+    padding: 92px 0;
+  }
+}
+.k-cards {
+  display: grid;
+  gap: 14px;
+  margin-top: 30px;
+}
+@media (min-width: 820px) {
+  .k-cards--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .k-cards--2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.k-card {
+  position: relative;
+  border-radius: var(--k-radius);
+  padding: 22px 20px;
+  background: var(--k-surface);
+  border: 1px solid var(--k-line-soft);
+}
+.k-card--glow {
+  background: var(--k-grad-soft);
+  border-color: var(--k-line);
+}
+.k-card-n {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.8rem;
+  color: var(--k-cyan);
+  letter-spacing: 0.1em;
+}
+.k-card p {
+  margin: 8px 0 0;
+  color: var(--k-text-2);
+}
+.k-list {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 0;
+  display: grid;
+  gap: 12px;
+}
+.k-list li {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 10px;
+  align-items: start;
+  color: var(--k-text-2);
+}
+.k-list li::before {
+  content: "✓";
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 99px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #06060d;
+  background: var(--k-cyan);
+}
+.k-list--no li::before {
+  content: "✕";
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--k-text-2);
+}
+
+/* Кой е Ивайло */
+.k-host {
+  display: grid;
+  gap: 26px;
+  align-items: center;
+}
+@media (min-width: 820px) {
+  .k-host {
+    grid-template-columns: 340px 1fr;
+    gap: 46px;
+  }
+}
+.k-host-photo {
+  position: relative;
+  border-radius: 22px;
+  overflow: hidden;
+  aspect-ratio: 4 / 5;
+  max-width: 340px;
+  border: 1px solid var(--k-line);
+  box-shadow: 0 30px 80px -30px rgba(168, 85, 247, 0.6);
+}
+.k-host-photo img {
+  object-fit: cover;
+}
+.k-quote {
+  margin: 18px 0 0;
+  padding-left: 16px;
+  border-left: 3px solid var(--k-violet);
+  color: var(--k-text);
+  font-size: 1.08rem;
+  font-style: italic;
+}
+
+/* ЧЗВ */
+.k-faq {
+  margin-top: 26px;
+  display: grid;
+  gap: 10px;
+}
+.k-faq details {
+  border-radius: 14px;
+  background: var(--k-surface);
+  border: 1px solid var(--k-line-soft);
+  padding: 0 18px;
+}
+.k-faq summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 16px 0;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+.k-faq summary::-webkit-details-marker {
+  display: none;
+}
+.k-faq summary::after {
+  content: "+";
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--k-cyan);
+  transition: transform 0.2s;
+}
+.k-faq details[open] summary::after {
+  transform: rotate(45deg);
+}
+.k-faq details p {
+  margin: 0 0 16px;
+  color: var(--k-text-2);
+}
+
+/* ── билетната каса (формата) ───────────────────────────────────────── */
+.k-boxoffice {
+  position: relative;
+  border-radius: 26px;
+  padding: 26px 18px;
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(34, 211, 238, 0.12), transparent 50%),
+    radial-gradient(ellipse at 100% 100%, rgba(236, 72, 153, 0.12), transparent 50%),
+    #0d0c1b;
+  border: 1px solid var(--k-line);
+  box-shadow: 0 40px 120px -40px rgba(168, 85, 247, 0.55);
+}
+@media (min-width: 768px) {
+  .k-boxoffice {
+    padding: 38px 40px;
+  }
+}
+.k-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 22px;
+}
+@media (min-width: 700px) {
+  .k-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+}
+.k-form-row {
+  display: grid;
+  gap: 16px;
+}
+.k-field {
+  display: grid;
+  gap: 6px;
+}
+.k-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--k-text);
+}
+.k-label small {
+  font-weight: 500;
+  color: var(--k-text-3);
+}
+.k-input,
+.k-textarea {
+  width: 100%;
+  min-height: 50px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--k-text);
+  font: inherit;
+  font-size: 16px; /* без зуум в iOS */
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.k-textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+.k-input::placeholder,
+.k-textarea::placeholder {
+  color: var(--k-text-3);
+}
+.k-input:focus,
+.k-textarea:focus {
+  outline: none;
+  border-color: var(--k-cyan);
+  background: rgba(34, 211, 238, 0.06);
+}
+.k-input[aria-invalid="true"] {
+  border-color: #f87171;
+}
+.k-choices {
+  display: grid;
+  gap: 8px;
+}
+@media (min-width: 560px) {
+  .k-choices--2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+/* три кратки отговора („Сам съм / 2–10 души / Над 10“) — в ред още на телефон:
+   без кръгчето (избраното свети с рамката), за да се събере всеки на един ред */
+@media (min-width: 340px) {
+  .k-choices--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .k-choices--3 .k-choice {
+    justify-content: center;
+    padding-inline: 6px;
+    text-align: center;
+    white-space: nowrap;
+    font-size: 0.92rem;
+  }
+  .k-choices--3 .k-choice input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    flex: none;
+  }
+  .k-choices--3 .k-choice:has(input:focus-visible) {
+    outline: 2px solid var(--k-cyan);
+    outline-offset: 2px;
+  }
+  .k-choices--3 .k-choice:has(input:checked) {
+    color: var(--k-text);
+    box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.65);
+  }
+}
+.k-choice {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.k-choice input {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  border-radius: 99px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  margin: 0;
+  display: grid;
+  place-items: center;
+}
+.k-choice input::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: transparent;
+}
+.k-choice input:checked {
+  border-color: var(--k-cyan);
+}
+.k-choice input:checked::after {
+  background: var(--k-cyan);
+}
+.k-choice:has(input:checked) {
+  border-color: rgba(34, 211, 238, 0.65);
+  background: rgba(34, 211, 238, 0.08);
+}
+.k-check {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 12px;
+  align-items: start;
+  font-size: 0.88rem;
+  color: var(--k-text-2);
+  cursor: pointer;
+}
+.k-check input {
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  accent-color: #a855f7;
+}
+.k-error {
+  color: #fca5a5;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.k-ok {
+  color: #a7f3d0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.k-hp {
+  position: absolute !important;
+  left: -9999px !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* ── билетът ───────────────────────────────────────────────────────── */
+.k-ticket {
+  position: relative;
+  display: grid;
+  border-radius: 24px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(34, 211, 238, 0.18), transparent 55%),
+    linear-gradient(135deg, #14122c, #0c0b1d 65%, #1a1030);
+  border: 1px solid rgba(168, 85, 247, 0.45);
+  box-shadow: 0 40px 120px -40px rgba(168, 85, 247, 0.7);
+}
+@media (min-width: 720px) {
+  .k-ticket {
+    grid-template-columns: 1fr 230px;
+  }
+}
+.k-ticket-main {
+  padding: 24px 22px;
+  min-width: 0;
+}
+.k-ticket-title {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 800;
+  font-size: clamp(2.2rem, 11vw, 3.8rem);
+  letter-spacing: 0.08em;
+  line-height: 1;
+  margin: 8px 0 0;
+}
+.k-ticket-name {
+  margin-top: 18px;
+  font-size: 0.75rem;
+  letter-spacing: 0.24em;
+  color: var(--k-text-3);
+  text-transform: uppercase;
+}
+.k-ticket-name strong {
+  display: block;
+  font-size: 1.35rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #fff;
+  margin-top: 2px;
+}
+.k-ticket-when {
+  margin-top: 10px;
+  color: #e9d5ff;
+  font-weight: 600;
+}
+.k-stub {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 18px 22px 22px;
+  border-top: 2px dashed rgba(168, 85, 247, 0.45);
+  text-align: center;
+}
+@media (min-width: 720px) {
+  .k-stub {
+    grid-template-columns: 1fr;
+    align-content: center;
+    border-top: 0;
+    border-left: 2px dashed rgba(168, 85, 247, 0.45);
+    padding: 22px;
+  }
+}
+.k-stub-cell span {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  color: var(--k-text-3);
+}
+.k-stub-cell strong {
+  display: block;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 1.7rem;
+  line-height: 1.15;
+}
+.k-actions-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+}
+@media (min-width: 640px) {
+  .k-actions-grid--2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ── залата ─────────────────────────────────────────────────────────── */
+.k-hall {
+  padding-top: 8px;
+  padding-bottom: 120px;
+}
+/* Екранът в залата се събира във височината на прозореца — главите и
+   реакциите под него остават видими и на лаптоп. */
+.k-hall .k-screen {
+  max-width: min(100%, calc((100svh - 320px) * 16 / 9));
+  margin-inline: auto;
+}
+@media (max-width: 640px) {
+  .k-hall .k-screen {
+    max-width: 100%;
+  }
+}
+.k-hall-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px 0 14px;
+}
+.k-hall-title {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  font-size: 1.15rem;
+}
+.k-seat {
+  font-size: 0.85rem;
+  color: var(--k-text-2);
+}
+.k-chapters {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 12px 0 4px;
+  scrollbar-width: none;
+}
+.k-chapters::-webkit-scrollbar {
+  display: none;
+}
+.k-chapter {
+  flex: 0 0 auto;
+  max-width: 240px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--k-line-soft);
+  background: var(--k-surface);
+  color: var(--k-text-3);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.k-chapter--done {
+  color: var(--k-text-2);
+}
+.k-chapter--now {
+  color: #0a0613;
+  background: var(--k-grad);
+  border-color: transparent;
+}
+button.k-chapter {
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.k-progress {
+  position: relative;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  margin-top: 10px;
+  overflow: hidden;
+}
+.k-progress > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--k-grad);
+  border-radius: 4px;
+}
+.k-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+.k-react {
+  position: relative;
+  width: 52px;
+  height: 46px;
+  border-radius: 14px;
+  border: 1px solid var(--k-line-soft);
+  background: var(--k-surface);
+  font-size: 1.35rem;
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+.k-react:active {
+  transform: scale(0.9);
+}
+.k-floats {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 5;
+}
+.k-float {
+  position: absolute;
+  bottom: 6%;
+  font-size: 1.7rem;
+  animation: k-float 2.6s ease-out forwards;
+  will-change: transform, opacity;
+}
+@keyframes k-float {
+  0% {
+    transform: translateY(0) scale(0.7);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-260%) scale(1.15);
+    opacity: 0;
+  }
+}
+.k-panel {
+  border-radius: var(--k-radius);
+  padding: 20px 18px;
+  background: var(--k-surface);
+  border: 1px solid var(--k-line-soft);
+}
+
+/* „Твоето число“ — полето под филма (сцена 9.7) */
+.k-number {
+  margin-top: 14px;
+  border-color: rgba(34, 211, 238, 0.45);
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.08), rgba(168, 85, 247, 0.06));
+  animation: k-number-in 0.6s ease-out;
+}
+.k-number-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+.k-number-row .k-input {
+  width: 120px;
+  flex: 0 0 auto;
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-align: center;
+}
+.k-number-back {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  background: rgba(34, 211, 238, 0.07);
+}
+@keyframes k-number-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.k-hall-grid {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+}
+@media (min-width: 900px) {
+  .k-hall-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* поканата (офертата) */
+.k-offer {
+  margin-top: 26px;
+  border-radius: 26px;
+  padding: 26px 18px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(168, 85, 247, 0.22), transparent 60%),
+    #0d0c1b;
+  border: 1px solid var(--k-line);
+  animation: k-rise 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  scroll-margin-top: 16px;
+}
+@media (min-width: 768px) {
+  .k-offer {
+    padding: 38px 40px;
+  }
+}
+@keyframes k-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.k-stack {
+  list-style: none;
+  padding: 0;
+  margin: 22px 0 0;
+  display: grid;
+  gap: 10px;
+}
+@media (min-width: 820px) {
+  .k-stack {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.k-stack li {
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--k-line-soft);
+}
+.k-stack strong {
+  display: block;
+}
+.k-stack span {
+  color: var(--k-text-2);
+  font-size: 0.93rem;
+}
+.k-price {
+  margin-top: 22px;
+  padding: 20px 18px;
+  border-radius: 18px;
+  background: var(--k-grad-soft);
+  border: 1px solid var(--k-line);
+}
+.k-price-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 14px;
+}
+.k-price-big {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.9rem, 8vw, 2.8rem);
+  line-height: 1.05;
+}
+.k-price-old {
+  color: var(--k-text-3);
+  font-weight: 700;
+}
+.k-price p {
+  margin: 8px 0 0;
+  color: var(--k-text-2);
+}
+/* „Потокът започва на 19.10 · записването затваря на 18.10, 23:59 · 30 места“ */
+.k-price .k-cohort {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--k-line-soft);
+  color: var(--k-text);
+  font-size: 0.95rem;
+}
+
+/* ── „НА ЖИВО — Ивайло влезе“ (Режисьорската кабина) ── */
+.k-live {
+  margin-top: 14px;
+  text-align: center;
+}
+.k-live-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  max-width: 100%;
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+  font-weight: 800;
+  white-space: normal;
+  animation: k-live-pulse 1.6s ease-out infinite;
+}
+.k-live-btn:hover {
+  background: #ef4444;
+}
+.k-live-dot {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  border-radius: 99px;
+  background: #fff;
+}
+.k-live-embed {
+  margin-top: 12px;
+}
+@keyframes k-live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.65);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+/* „Формулата“ — PDF под филма */
+.k-formula {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 18px;
+  border-color: rgba(34, 211, 238, 0.35);
+}
+.k-formula > div {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+/* след филма — само поканата */
+.k-after {
+  margin-top: 4px;
+  border-color: var(--k-line);
+  background: var(--k-grad-soft);
+}
+.k-choose {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+}
+@media (min-width: 900px) {
+  .k-choose {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.k-option {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-radius: 18px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--k-line-soft);
+}
+.k-option--main {
+  border-color: rgba(168, 85, 247, 0.55);
+  background: rgba(168, 85, 247, 0.08);
+}
+.k-option p {
+  margin: 0;
+  color: var(--k-text-2);
+  font-size: 0.93rem;
+  flex: 1;
+}
+.k-option .k-btn {
+  width: 100%;
+}
+.k-sub-actions {
+  display: grid;
+  gap: 8px;
+}
+
+/* лепкавата лента с трите бутона */
+.k-sticky {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  padding: 10px var(--k-gutter) calc(10px + env(safe-area-inset-bottom));
+  background: rgba(8, 7, 16, 0.92);
+  border-top: 1px solid var(--k-line);
+  backdrop-filter: blur(14px);
+  animation: k-up 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes k-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+.k-sticky-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  gap: 6px;
+}
+.k-sticky .k-btn {
+  min-height: 46px;
+  padding: 0 8px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+@media (min-width: 700px) {
+  .k-sticky .k-btn {
+    font-size: 0.95rem;
+  }
+}
+
+/* калкулаторът */
+.k-calc-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+@media (min-width: 640px) {
+  .k-calc-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.k-calc-out {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(236, 72, 153, 0.08);
+  border: 1px solid rgba(236, 72, 153, 0.28);
+}
+.k-calc-big {
+  font-weight: 800;
+  font-size: clamp(1.5rem, 6vw, 2.1rem);
+  line-height: 1.1;
+}
+
+/* бонусът */
+.k-bonus {
+  margin-top: 18px;
+  border-radius: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(252, 211, 77, 0.14), rgba(236, 72, 153, 0.12));
+  border: 1px solid rgba(252, 211, 77, 0.4);
+  animation: k-rise 0.8s both;
+}
+
+/* прегледът (симулирано време) */
+.k-sim {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding: 8px var(--k-gutter);
+  background: #fcd34d;
+  color: #1a1203;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-align: center;
+}
+.k-sim-links {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 10px;
+}
+.k-sim a {
+  text-decoration: underline;
+}
+
+.k-footer {
+  padding: 34px 0 48px;
+  border-top: 1px solid var(--k-line-soft);
+  color: var(--k-text-3);
+  font-size: 0.85rem;
+}
+.k-footer a {
+  color: var(--k-text-2);
+}
+.k-footer-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  justify-content: space-between;
+}
+
+.k-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+/* мобилната лепкава „Вземи билет“ на афиша */
+.k-mobile-cta {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  z-index: 40;
+  animation: k-up 0.5s both;
+}
+@media (min-width: 900px) {
+  .k-mobile-cta {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kino *,
+  .kino *::before,
+  .kino *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* На телефон надписът върху екрана е само заглавие + бутон — екранът е нисък. */
+@media (max-width: 480px) {
+  .k-overlay .k-muted {
+    display: none;
+  }
+  .k-overlay-title {
+    margin-bottom: 12px;
+  }
+}
+
+/* Лепкавото „Вземи билет“ на телефон не бива да закрива долната лента. */
+@media (max-width: 899px) {
+  .k-footer {
+    padding-bottom: calc(48px + 76px + env(safe-area-inset-bottom));
+  }
+}
