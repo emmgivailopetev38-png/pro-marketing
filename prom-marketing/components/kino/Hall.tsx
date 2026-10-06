@@ -18,7 +18,7 @@ import { track } from "@/lib/analytics/track";
 import { useKinoClock } from "./useKinoClock";
 import { KinoPlayer, type PlayerApi } from "./KinoPlayer";
 import { OfferBlock, StickyOfferBar, CallPanel, useOfferActions } from "./Offer";
-import { WaitingCalculator, QuestionBox, WaitlistForm } from "./HallWidgets";
+import { WaitingCalculator, QuestionBox, WaitlistForm, NumberBox } from "./HallWidgets";
 import { PosterArt } from "./PosterArt";
 
 /* =====================================================================
@@ -55,6 +55,8 @@ export interface HallProps {
   video: KinoVideoSource;
   /** линкът към подаръка — идва от сървъра само на отключилите (и в прегледа) */
   bonusUrl: string | null;
+  /** „Твоето число“, ако вече го е написал */
+  hours: number | null;
 }
 
 type Mode = "premiere" | "live" | "replay";
@@ -188,6 +190,17 @@ export function Hall(props: HallProps) {
       track("kino_offer_shown", { mode });
     }
   }, [offerOpen, seenLocal, store, mode]);
+
+  // ── „Твоето число“ (сцена 9.7): полето под филма излиза от numberAtSec ──
+  const [hours, setHours] = useState<number | null>(props.hours);
+  const numberOpen =
+    phase === "closed" || phase === "before" || phase === "doors"
+      ? false
+      : mode === "premiere"
+        ? livePos >= FILM.numberAtSec || hours != null
+        : mode === "live"
+          ? true
+          : replayPos >= FILM.numberAtSec || hours != null || offerSeen;
 
   const posRef = useRef(pos);
   const stateRef = useRef({ phase, mode, pos, playing: filmPlaying });
@@ -652,6 +665,9 @@ export function Hall(props: HallProps) {
           </div>
         )}
 
+        {/* ── ТВОЕТО ЧИСЛО — полето под филма ── */}
+        {numberOpen && <NumberBox token={preview ? null : token} pos={getPos} saved={hours} onSaved={setHours} />}
+
         {/* ── РЕАКЦИИТЕ ── */}
         {(showsFilm || (phase === "live" && mode === "live")) && (
           <div className="k-reactions" aria-label="Реакции">
@@ -705,6 +721,7 @@ export function Hall(props: HallProps) {
             bought={props.bought}
             name={props.name}
             email={props.email}
+            hours={hours}
           />
         )}
 

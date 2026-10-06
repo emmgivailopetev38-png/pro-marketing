@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { runKinoFlow, kinoFlowEnabled } from "@/lib/kino/flow";
 import { sweepInstallmentSubscriptions } from "@/lib/kino/stripe";
+import { runAbandonedCheck } from "@/lib/kino/abandoned";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -12,6 +13,9 @@ export const maxDuration = 300;
  * (абонамент с изплатени 3 вноски → спира в края на периода).
  *
  * Безвреден, докато KINO_FLOW_ENABLED не е „1“: казва какво би пратил и излиза.
+ * Изоставените плащания (натиснал „купи“, 15 мин без плащане) се проверяват
+ * винаги — сигналът е само вътрешен (CRM + имейл/Telegram до Ивайло);
+ * изключва се с KINO_ABANDONED_ALERTS=0.
  * Auth: Vercel cron праща `Authorization: Bearer ${CRON_SECRET}` (както webinar-flow).
  */
 export async function GET(request: Request) {
@@ -21,6 +25,11 @@ export async function GET(request: Request) {
   }
 
   const flow = await runKinoFlow();
+  const abandoned = await runAbandonedCheck().catch((e: unknown) => ({
+    found: 0,
+    alerted: 0,
+    errors: [e instanceof Error ? e.message : String(e)],
+  }));
 
   let installments: Awaited<ReturnType<typeof sweepInstallmentSubscriptions>> | { skipped: string } = { skipped: "не е кръгъл час" };
   const key = process.env.STRIPE_SECRET_KEY;
@@ -32,7 +41,7 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json(
-    { enabled: kinoFlowEnabled(), flow, installments },
-    { status: flow.errors.length > 0 ? 207 : 200 },
+    { enabled: kinoFlowEnabled(), flow, abandoned, installments },
+    { status: flow.errors.length > 0 || abandoned.errors.length > 0 ? 207 : 200 },
   );
 }

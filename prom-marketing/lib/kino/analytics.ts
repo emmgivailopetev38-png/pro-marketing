@@ -210,3 +210,72 @@ export function uniqueBy<T>(rows: readonly T[], key: (r: T) => string): T[] {
     return true;
   });
 }
+
+// ── изоставеното плащане ─────────────────────────────────────────────────────
+
+/** След колко време без плащане „натисна, но не плати“ става повод за обаждане. */
+export const ABANDON_AFTER_MS = 15 * 60_000;
+
+const STREAM_INTENT = new Set(["stream", "full", "installments"]);
+
+export interface IntentRow {
+  contact_id: string;
+  activity_type: string;
+  occurred_at: string;
+  metadata: Record<string, unknown> | null;
+}
+
+export interface Abandoned {
+  contactId: string;
+  /** последното натискане / отворено плащане */
+  intentAt: string;
+  /** какво искаше: потока (бутон 1) или капарото (бутон 2) */
+  wants: "stream" | "deposit";
+  /** вече е вдигнат сигнал (kino_abandoned) */
+  flagged: boolean;
+}
+
+/**
+ * Кой натисна „Влизам в потока“ (бутон 1) или капарото (бутон 2) — или
+ * отвори плащането в Stripe — и 15 минути след последното натискане още
+ * няма нито плащане, нито капаро. Най-новите са първи.
+ */
+export function findAbandoned(rows: readonly IntentRow[], nowMs: number, afterMs: number = ABANDON_AFTER_MS): Abandoned[] {
+  const by = new Map<string, { stream: number; deposit: number; paid: boolean; flagged: boolean }>();
+  for (const r of rows) {
+    const s = by.get(r.contact_id) ?? { stream: 0, deposit: 0, paid: false, flagged: false };
+    const m = r.metadata ?? {};
+    const t = Date.parse(r.occurred_at) || 0;
+    if (r.activity_type === "kino_payment" || r.activity_type === "kino_deposit") s.paid = true;
+    else if (r.activity_type === "kino_abandoned") s.flagged = true;
+    else {
+      const what =
+        r.activity_type === "kino_click" ? String(m.button ?? "") : r.activity_type === "kino_checkout" ? String(m.plan ?? "") : "";
+      if (STREAM_INTENT.has(what)) s.stream = Math.max(s.stream, t);
+      else if (what === "deposit") s.deposit = Math.max(s.deposit, t);
+    }
+    by.set(r.contact_id, s);
+  }
+  const out: Abandoned[] = [];
+  for (const [contactId, s] of by) {
+    const last = Math.max(s.stream, s.deposit);
+    if (s.paid || last === 0 || nowMs - last < afterMs) continue;
+    out.push({ contactId, intentAt: new Date(last).toISOString(), wants: s.stream >= s.deposit ? "stream" : "deposit", flagged: s.flagged });
+  }
+  return out.sort((a, b) => b.intentAt.localeCompare(a.intentAt));
+}
+
+/** Хората с „Твоето число“ — първи (по-голямото число по-горе), останалите в досегашния ред. */
+export function byHoursFirst<T>(people: readonly T[], hoursOf: (p: T) => number | null): T[] {
+  return people
+    .map((p, i) => ({ p, i, h: hoursOf(p) }))
+    .sort((a, b) => (b.h ?? -1) - (a.h ?? -1) || a.i - b.i)
+    .map((x) => x.p);
+}
+
+/** Списъците за Димитър в /admin/kino — в този ред отгоре надолу. */
+export const KINO_LISTS = ["abandoned", "dayBefore", "warm"] as const;
+export type KinoListId = (typeof KINO_LISTS)[number];
+export function isKinoList(v: unknown): v is KinoListId {
+  return typeof v === "string" && (KINO_LISTS as readonly string[]).includes(v);
+}

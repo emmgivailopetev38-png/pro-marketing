@@ -12,11 +12,14 @@ import {
   watchedRatio,
   moneyKey,
   uniqueBy,
+  findAbandoned,
+  byHoursFirst,
+  type KinoListId,
   type WatchRow,
 } from "./analytics";
 import { chapterIndexAt } from "./time";
 import { isDecisionMaker, roleLabel, utmLine, type KinoUtm } from "./people";
-import { labelOf, WARMUP_LEVELS, WARMUP_START } from "./questions";
+import { labelOf, WARMUP_LEVELS, WARMUP_START, APP_TEAM, APP_START } from "./questions";
 
 /**
  * Данните за /admin/kino — всичко с едно минаване през базата.
@@ -58,6 +61,13 @@ export interface KinoPerson {
   clicks: string[];
   questions: number;
   given: boolean;
+  /** „Твоето число“ — часове седмично в повтаряща се работа (последният отговор) */
+  hours: number | null;
+  /** заявката преди разговора (третият бутон) */
+  application: string | null;
+  /** изоставено плащане: кога и какво натисна */
+  abandonedAt: string | null;
+  wants: "stream" | "deposit" | null;
 }
 
 export interface KinoDashboard {
@@ -91,6 +101,8 @@ export interface KinoDashboard {
   clicksByButton: Array<{ button: string; people: number }>;
   sources: Array<{ source: string; count: number }>;
   money: Array<{ id: string; contactId: string; name: string; title: string; amount: number; at: string; kind: string }>;
+  /** натиснаха „купи“ и 15+ мин не платиха — най-горе за Димитър */
+  abandoned: KinoPerson[];
   dayBefore: KinoPerson[];
   warm: KinoPerson[];
   /** колко писма / SMS-и е пратил кронът по стъпки: { "doors:email": 120 } */
@@ -127,6 +139,7 @@ const empty = (error: string | null, dbReady: boolean): KinoDashboard => ({
   clicksByButton: [],
   sources: [],
   money: [],
+  abandoned: [],
   dayBefore: [],
   warm: [],
   sent: {},
@@ -154,6 +167,10 @@ export async function loadKinoDashboard(): Promise<KinoDashboard> {
     "kino_deposit",
     "kino_payment",
     "kino_bonus",
+    "kino_checkout",
+    "kino_abandoned",
+    "kino_number",
+    "kino_precall",
     "team_assigned",
   ];
   const acts = await allRows<ActRow>((from, to) =>
@@ -272,7 +289,27 @@ export async function loadKinoDashboard(): Promise<KinoDashboard> {
     givenBy.get(g.contact_id)!.add(list);
   }
 
-  const person = (id: string, list: "dayBefore" | "warm"): KinoPerson => {
+  // „Твоето число“ и заявката — последният отговор на човек (activities са по време).
+  const hoursBy = new Map<string, number>();
+  for (const n of byType("kino_number")) {
+    const h = (n.metadata ?? {}).hours;
+    if (typeof h === "number") hoursBy.set(n.contact_id, h);
+  }
+  const applicationBy = new Map<string, string>();
+  for (const a of byType("kino_precall")) {
+    const m = a.metadata ?? {};
+    const parts = [
+      typeof m.business === "string" && m.business ? m.business : null,
+      m.team ? labelOf(APP_TEAM, String(m.team)) : null,
+      typeof m.time_eater === "string" && m.time_eater ? `„${m.time_eater}“` : null,
+      m.start ? `старт: ${labelOf(APP_START, String(m.start)).toLowerCase()}` : null,
+    ].filter(Boolean);
+    if (parts.length) applicationBy.set(a.contact_id, parts.join(" · "));
+  }
+  const abandonedList = findAbandoned(mine, Date.now());
+  const abandonedBy = new Map(abandonedList.map((a) => [a.contactId, a]));
+
+  const person = (id: string, list: KinoListId): KinoPerson => {
     const c = contacts.get(id);
     const reg = regMeta.get(id);
     const w = watchBy.get(id);
@@ -295,6 +332,10 @@ export async function loadKinoDashboard(): Promise<KinoDashboard> {
       clicks: [...(clicksBy.get(id) ?? [])].map((b) => BUTTON_LABEL[b] ?? b),
       questions: questionsBy.get(id) ?? 0,
       given: givenBy.get(id)?.has(list) ?? false,
+      hours: hoursBy.get(id) ?? null,
+      application: applicationBy.get(id) ?? null,
+      abandonedAt: abandonedBy.get(id)?.intentAt ?? null,
+      wants: abandonedBy.get(id)?.wants ?? null,
     };
   };
 
@@ -369,8 +410,17 @@ export async function loadKinoDashboard(): Promise<KinoDashboard> {
     clicksByButton: [...clickPeople.entries()].map(([b, n]) => ({ button: BUTTON_LABEL[b] ?? b, people: n })).sort((a, b) => b.people - a.people),
     sources: [...sourcesMap.entries()].map(([source, count]) => ({ source, count })).sort((a, b) => b.count - a.count),
     money,
-    dayBefore: lists.dayBefore.map((p) => person(p.contact_id, "dayBefore")),
-    warm: lists.warm.map((p) => person(p.contact_id, "warm")),
+    // Най-горе: натиснаха „купи“ и не платиха (най-новите първи). В другите
+    // два списъка — първо хората с „Твоето число“ (по-голямото по-горе).
+    abandoned: abandonedList.map((a) => person(a.contactId, "abandoned")),
+    dayBefore: byHoursFirst(
+      lists.dayBefore.map((p) => person(p.contact_id, "dayBefore")),
+      (p) => p.hours,
+    ),
+    warm: byHoursFirst(
+      lists.warm.map((p) => person(p.contact_id, "warm")),
+      (p) => p.hours,
+    ),
     sent,
   };
 }

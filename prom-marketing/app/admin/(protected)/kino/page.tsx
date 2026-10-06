@@ -3,7 +3,7 @@ import Link from "next/link";
 import { KINO } from "@/lib/kino/config";
 import { kinoTimeline, phaseAt, premiereLabels, sofiaDayLabel, sofiaTimeLabel, chapterIndexAt, formatClock } from "@/lib/kino/time";
 import { formatEur } from "@/lib/kino/pricing";
-import { REACTIONS, totalMinutes } from "@/lib/kino/analytics";
+import { REACTIONS, totalMinutes, type KinoListId } from "@/lib/kino/analytics";
 import { loadKinoDashboard, type KinoPerson } from "@/lib/kino/admin-data";
 import { kinoStages, kinoFlowEnabled } from "@/lib/kino/flow";
 import { smsStatus } from "@/lib/kino/sms";
@@ -16,7 +16,8 @@ export const dynamic = "force-dynamic";
 /* =====================================================================
    /admin/kino — „ВЪЛНАТА“ отвътре: кой взе билет, кой дойде, докъде
    гледа (по минути и по глави), какво реагира, какво пита, кой натисна,
-   кой плати — и двата списъка за Димитър с бутон „Дай на Димитър“.
+   кой плати — и трите списъка за Димитър (най-горе: натиснали „купи“ без
+   плащане) с бутон „Дай на Димитър“. „Твоето число“ е първата колона.
    ===================================================================== */
 
 const PHASE_LABEL: Record<string, string> = {
@@ -48,24 +49,32 @@ function fmtDate(iso: string | null): string {
   return `${sofiaDayLabel(ms).split(", ")[1]} · ${sofiaTimeLabel(ms)}`;
 }
 
-function PeopleTable({ people, mode }: { people: KinoPerson[]; mode: "dayBefore" | "warm" }) {
+function PeopleTable({ people, mode }: { people: KinoPerson[]; mode: KinoListId }) {
   if (people.length === 0) return <p className="px-1 py-4 text-sm text-[var(--color-text-tertiary)]">Още никой тук.</p>;
+  const third = mode === "abandoned" ? "Натисна" : mode === "dayBefore" ? "Роля" : "Изгледа";
+  const fourth =
+    mode === "abandoned" ? "Заявка · какво му яде времето" : mode === "dayBefore" ? "Какво му яде времето · 3-те въпроса" : "Стигна до";
+  const fifth = mode === "abandoned" ? "Изгледа" : mode === "dayBefore" ? "Билет от" : "Натисна · пита";
   return (
     <div className="overflow-x-auto">
-      <table className="cc-table" style={{ minWidth: 860 }}>
+      <table className="cc-table" style={{ minWidth: 920 }}>
         <thead>
           <tr>
+            <th title="„Твоето число“ — часове седмично в повтаряща се работа (сцена 9.7)">Число</th>
             <th>Човек</th>
             <th>Телефон</th>
-            <th>{mode === "dayBefore" ? "Роля" : "Изгледа"}</th>
-            <th>{mode === "dayBefore" ? "Какво му яде времето · 3-те въпроса" : "Стигна до"}</th>
-            <th>{mode === "dayBefore" ? "Билет от" : "Натисна · пита"}</th>
+            <th>{third}</th>
+            <th>{fourth}</th>
+            <th>{fifth}</th>
             <th>Даден</th>
           </tr>
         </thead>
         <tbody>
           {people.map((p) => (
             <tr key={p.id}>
+              <td className="cc-num" style={{ fontWeight: 700, fontSize: 15 }}>
+                {p.hours != null ? `${p.hours} ч` : "—"}
+              </td>
               <td>
                 <Link href={`/admin/clients/${p.id}`} className="font-medium text-[var(--color-accent-cyan)] hover:underline">
                   {p.name}
@@ -73,23 +82,30 @@ function PeopleTable({ people, mode }: { people: KinoPerson[]; mode: "dayBefore"
                 {p.email && <div className="text-xs text-[var(--color-text-tertiary)]">{p.email}</div>}
               </td>
               <td className="cc-num">{p.phone ? <a href={`tel:${p.phone}`}>{p.phone}</a> : "—"}</td>
-              <td>{mode === "dayBefore" ? p.roleLabel : p.ratio != null ? `${Math.round(p.ratio * 100)} %` : "—"}</td>
+              <td>
+                {mode === "abandoned"
+                  ? `${p.wants === "deposit" ? "Капаро" : "Влизам в потока"} · ${fmtDate(p.abandonedAt)}`
+                  : mode === "dayBefore"
+                    ? p.roleLabel
+                    : p.ratio != null
+                      ? `${Math.round(p.ratio * 100)} %`
+                      : "—"}
+              </td>
               <td style={{ maxWidth: 360 }}>
-                {mode === "dayBefore" ? (
-                  <span className="text-[var(--color-text-secondary)]">
-                    {[p.pain ? `„${p.pain}“` : null, p.warmup].filter(Boolean).join(" · ") || "—"}
-                  </span>
-                ) : (
-                  <span className="text-[var(--color-text-secondary)]">
-                    {p.lastChapter ? `„${p.lastChapter}“` : "—"}
-                    {p.maxPos != null ? ` · ${formatClock(p.maxPos)}` : ""}
-                  </span>
-                )}
+                <span className="text-[var(--color-text-secondary)]">
+                  {mode === "warm"
+                    ? `${p.lastChapter ? `„${p.lastChapter}“` : "—"}${p.maxPos != null ? ` · ${formatClock(p.maxPos)}` : ""}`
+                    : [p.application, p.pain ? `„${p.pain}“` : null, mode === "dayBefore" ? p.warmup : null].filter(Boolean).join(" · ") || "—"}
+                </span>
               </td>
               <td className="text-[var(--color-text-secondary)]">
-                {mode === "dayBefore"
-                  ? fmtDate(p.registeredAt)
-                  : [p.clicks.join(", "), p.questions ? `${p.questions} въпр.` : null].filter(Boolean).join(" · ") || "—"}
+                {mode === "abandoned"
+                  ? p.ratio != null
+                    ? `${Math.round(p.ratio * 100)} %`
+                    : "—"
+                  : mode === "dayBefore"
+                    ? fmtDate(p.registeredAt)
+                    : [p.clicks.join(", "), p.questions ? `${p.questions} въпр.` : null].filter(Boolean).join(" · ") || "—"}
               </td>
               <td>{p.given ? "✓" : "—"}</td>
             </tr>
@@ -229,6 +245,23 @@ export default async function KinoAdminPage() {
         )}
       </section>
 
+      <section className="cc-panel p-5" style={{ borderColor: d.abandoned.length ? "rgba(251, 146, 60, 0.55)" : undefined }}>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-base font-semibold">
+              🛒 За Димитър · натиснаха „купи“ и не платиха{" "}
+              <span className="text-sm font-normal text-[var(--color-text-tertiary)]">({d.abandoned.length})</span>
+            </h2>
+            <p className="text-xs text-[var(--color-text-tertiary)]">
+              Бутон 1 („Влизам в потока“) или 2 (капарото), а 15 минути по-късно — без плащане. Най-новите са горе; при всеки нов идва
+              имейл и Telegram. Излизат оттук, щом платят.
+            </p>
+          </div>
+          <GiveListButton list="abandoned" ids={d.abandoned.filter((p) => !p.given).map((p) => p.id)} label="Дай на Димитър" />
+        </div>
+        <PeopleTable people={d.abandoned} mode="abandoned" />
+      </section>
+
       <section className="cc-panel p-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -236,7 +269,8 @@ export default async function KinoAdminPage() {
               📞 За Димитър · ден −1 <span className="text-sm font-normal text-[var(--color-text-tertiary)]">({d.dayBefore.length})</span>
             </h2>
             <p className="text-xs text-[var(--color-text-tertiary)]">
-              Собственици и управители с билет, без капаро/плащане. „Запазили сме ти място — какво искаш да научиш?“
+              Собственици и управители с билет, без капаро/плащане. „Запазили сме ти място — какво искаш да научиш?“ Първо — с
+              „Твоето число“ (по-голямото горе).
             </p>
           </div>
           <GiveListButton list="dayBefore" ids={d.dayBefore.filter((p) => !p.given).map((p) => p.id)} label="Дай на Димитър" />
@@ -251,7 +285,8 @@ export default async function KinoAdminPage() {
               🔥 За Димитър · гледали ≥ 50 % без покупка <span className="text-sm font-normal text-[var(--color-text-tertiary)]">({d.warm.length})</span>
             </h2>
             <p className="text-xs text-[var(--color-text-tertiary)]">
-              Обаждане до 1–2 часа след филма; записва разговор с два конкретни часа, до 72 часа. Най-гледалите са горе.
+              Обаждане до 1–2 часа след филма; записва разговор с два конкретни часа, до 72 часа. Първо — с „Твоето число“
+              (по-голямото горе), после най-гледалите.
             </p>
           </div>
           <GiveListButton list="warm" ids={d.warm.filter((p) => !p.given).map((p) => p.id)} label="Дай на Димитър" />

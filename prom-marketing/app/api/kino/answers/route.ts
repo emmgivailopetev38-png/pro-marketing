@@ -3,14 +3,16 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import { contactFromTicket } from "@/lib/kino/token";
 import { isDbConfigured, kinoLog, kinoEvent, SCREENING } from "@/lib/kino/server";
-import { WARMUP_LEVELS, WARMUP_START, PRECALL_TOPICS, PRECALL_WHEN, labelOf } from "@/lib/kino/questions";
+import { WARMUP_LEVELS, WARMUP_START, APP_TEAM, APP_START, NUMBER_MAX_HOURS, cleanHours, labelOf } from "@/lib/kino/questions";
 
 export const dynamic = "force-dynamic";
 
 /**
  * POST /api/kino/answers — отговорите на човека влизат в картона му.
  *  kind "warmup"  — „Докато чакаш — 3 въпроса“ от билета;
- *  kind "precall" — кратката анкета преди „Искам първо да поговорим“.
+ *  kind "number"  — „Твоето число“ (сцена 9.7): часове седмично в повтаряща се работа;
+ *  kind "precall" — заявката преди календара („Искам първо да поговорим“):
+ *                   бизнес, екип, какво яде времето, кога иска да започне.
  * Така Ивайло и Димитър влизат в разговора, знаейки какво го боли.
  */
 
@@ -24,11 +26,18 @@ const schema = z.discriminatedUnion("kind", [
     start: z.enum(WARMUP_START.map((x) => x.id) as [string, ...string[]]).optional(),
   }),
   z.object({
+    kind: z.literal("number"),
+    t,
+    hours: z.number().min(0).max(NUMBER_MAX_HOURS),
+    pos: z.number().min(0).max(100_000).optional(),
+  }),
+  z.object({
     kind: z.literal("precall"),
     t,
-    topic: z.enum(PRECALL_TOPICS.map((x) => x.id) as [string, ...string[]]),
-    when: z.enum(PRECALL_WHEN.map((x) => x.id) as [string, ...string[]]).optional(),
-    note: z.string().trim().max(600).optional(),
+    business: z.string().trim().min(2).max(160),
+    team: z.enum(APP_TEAM.map((x) => x.id) as [string, ...string[]]),
+    timeEater: z.string().trim().max(600).optional(),
+    start: z.enum(APP_START.map((x) => x.id) as [string, ...string[]]),
   }),
 ]);
 
@@ -60,18 +69,37 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: !r.error || r.created === false });
   }
 
+  if (d.kind === "number") {
+    const hours = cleanHours(d.hours);
+    if (hours == null) return NextResponse.json({ ok: false, error: "Напиши число — часовете седмично." }, { status: 400 });
+    const pos = d.pos != null ? Math.round(d.pos) : null;
+    const r = await kinoLog({
+      contactId,
+      type: "kino_number",
+      title: `🔢 Твоето число: ${hours} ч седмично в повтаряща се работа`,
+      body: `≈ ${Math.round(hours * 52)} часа в годината`,
+      metadata: { hours, pos },
+      dedupeKey: `kino:number:${SCREENING}:${hours}`,
+    });
+    await kinoEvent({ contactId, type: "survey", value: "number", pos, meta: { hours } });
+    return NextResponse.json({ ok: !r.error || r.created === false, hours });
+  }
+
   const lines = [
-    `Иска да обсъдим: ${labelOf(PRECALL_TOPICS, d.topic)}`,
-    d.when ? `Кога: ${labelOf(PRECALL_WHEN, d.when)}` : null,
-    d.note ? `Бележка: „${d.note}“` : null,
+    `Бизнес: ${d.business}`,
+    `Екип: ${labelOf(APP_TEAM, d.team)}`,
+    d.timeEater ? `Яде му времето: „${d.timeEater}“` : null,
+    `Иска да започне: ${labelOf(APP_START, d.start)}`,
   ].filter(Boolean);
-  await kinoLog({
+  const hash = createHash("sha1").update(lines.join("|")).digest("hex").slice(0, 10);
+  const r = await kinoLog({
     contactId,
     type: "kino_precall",
-    title: "☎️ Иска първо да поговорим — преди разговора",
+    title: "📝 Заявка за разговор (преди календара)",
     body: lines.join("\n"),
-    metadata: { topic: d.topic, when: d.when ?? null, note: d.note ?? null },
+    metadata: { business: d.business, team: d.team, time_eater: d.timeEater ?? null, start: d.start },
+    dedupeKey: `kino:precall:${SCREENING}:${hash}`,
   });
-  await kinoEvent({ contactId, type: "survey", value: "precall", meta: { topic: d.topic, when: d.when ?? null } });
-  return NextResponse.json({ ok: true });
+  await kinoEvent({ contactId, type: "survey", value: "precall", meta: { team: d.team, start: d.start } });
+  return NextResponse.json({ ok: !r.error || r.created === false });
 }

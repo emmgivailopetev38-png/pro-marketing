@@ -5,7 +5,7 @@ import { track } from "@/lib/analytics/track";
 import { KINO } from "@/lib/kino/config";
 import { quotePlan, formatEur, type KinoPlan } from "@/lib/kino/pricing";
 import { sofiaDayLabel, sofiaTimeLabel } from "@/lib/kino/time";
-import { PRECALL_TOPICS, PRECALL_WHEN, labelOf } from "@/lib/kino/questions";
+import { APP_TEAM, APP_START, labelOf } from "@/lib/kino/questions";
 import { fbIds, newKinoEventId, postJson } from "@/lib/kino/browser";
 import { KinoCal } from "./KinoCal";
 
@@ -107,21 +107,46 @@ function PriceBlock({ depositPaid }: { depositPaid: number }) {
   );
 }
 
+/**
+ * Третият бутон: кратка заявка → CRM (kino_precall) → календарът (Cal.com).
+ * Четири въпроса, за да дойдем на разговора подготвени: бизнесът, екипът,
+ * какво яде времето, кога иска да започне. Отговорите отиват и в бележката
+ * на срещата в Cal.
+ */
 export function CallPanel({ token, name, email, onBookedTrack }: { token: string | null; name?: string | null; email?: string | null; onBookedTrack?: () => void }) {
   const [step, setStep] = useState<"survey" | "cal" | "booked">("survey");
   const [notes, setNotes] = useState("");
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    const topic = String(fd.get("topic") ?? "") || "stream";
-    const when = String(fd.get("when") ?? "") || undefined;
-    const note = String(fd.get("note") ?? "").trim() || undefined;
+    const business = String(fd.get("business") ?? "").trim();
+    const team = String(fd.get("team") ?? "");
+    const timeEater = String(fd.get("timeEater") ?? "").trim() || undefined;
+    const start = String(fd.get("start") ?? "");
+    if (business.length < 2) return setError("Какъв е бизнесът ти? Две-три думи стигат.");
+    if (!team) return setError("Колко сте в екипа?");
+    if (!start) return setError("Кога искаш да започнеш?");
+    setError(null);
     setSending(true);
-    if (token) await postJson("/api/kino/answers", { kind: "precall", t: token, topic, when, note });
+    if (token) {
+      const { ok, data } = await postJson<{ error?: string }>("/api/kino/answers", { kind: "precall", t: token, business, team, timeEater, start });
+      if (!ok) {
+        setSending(false);
+        return setError(data.error ?? "Не се записа. Опитай пак.");
+      }
+    }
+    track("kino_application", { team, start });
     setNotes(
-      [`От залата на „${KINO.title}“`, `Тема: ${labelOf(PRECALL_TOPICS, topic)}`, when ? `Кога: ${labelOf(PRECALL_WHEN, when)}` : null, note ? `Бележка: ${note}` : null]
+      [
+        `Заявка от „${KINO.title}“`,
+        `Бизнес: ${business}`,
+        `Екип: ${labelOf(APP_TEAM, team)}`,
+        timeEater ? `Яде времето: ${timeEater}` : null,
+        `Старт: ${labelOf(APP_START, start)}`,
+      ]
         .filter(Boolean)
         .join(" · "),
     );
@@ -158,29 +183,23 @@ export function CallPanel({ token, name, email, onBookedTrack }: { token: string
     );
   }
   return (
-    <form className="k-form k-panel" style={{ marginTop: 16 }} onSubmit={submit}>
-      <p className="k-h3">Преди да избереш час — две бързи неща</p>
+    <form className="k-form k-panel" style={{ marginTop: 16 }} onSubmit={submit} noValidate>
+      <p className="k-h3">Кратка заявка — и избираш час</p>
+      <p className="k-muted" style={{ margin: "-4px 0 4px", fontSize: "0.9rem" }}>
+        Четири въпроса, за да говорим за твоя бизнес, а не за общи неща. {KINO.cal.minutes} минути, пон–чт.
+      </p>
+      <label className="k-field">
+        <span className="k-label">Какъв е бизнесът ти?</span>
+        <input className="k-input" name="business" maxLength={160} autoComplete="organization" placeholder="Например: автосервиз, онлайн магазин, салон" />
+      </label>
       <fieldset className="k-field" style={{ border: 0, padding: 0, margin: 0 }}>
         <legend className="k-label" style={{ marginBottom: 6 }}>
-          Какво искаш да обсъдим?
+          Колко сте в екипа?
         </legend>
-        <div className="k-choices k-choices--2">
-          {PRECALL_TOPICS.map((c, i) => (
+        <div className="k-choices k-choices--3">
+          {APP_TEAM.map((c) => (
             <label className="k-choice" key={c.id}>
-              <input type="radio" name="topic" value={c.id} defaultChecked={i === 0} />
-              {c.label}
-            </label>
-          ))}
-        </div>
-      </fieldset>
-      <fieldset className="k-field" style={{ border: 0, padding: 0, margin: 0 }}>
-        <legend className="k-label" style={{ marginBottom: 6 }}>
-          Кога ти е удобно? <small className="k-muted">· пон–чт</small>
-        </legend>
-        <div className="k-choices k-choices--2">
-          {PRECALL_WHEN.map((c) => (
-            <label className="k-choice" key={c.id}>
-              <input type="radio" name="when" value={c.id} />
+              <input type="radio" name="team" value={c.id} />
               {c.label}
             </label>
           ))}
@@ -188,12 +207,26 @@ export function CallPanel({ token, name, email, onBookedTrack }: { token: string
       </fieldset>
       <label className="k-field">
         <span className="k-label">
-          Нещо, което да знам предварително? <small>· по желание</small>
+          Какво ти яде времето? <small>· по желание</small>
         </span>
-        <textarea className="k-textarea" name="note" maxLength={600} placeholder="Например: имам автосервиз, телефонът не спира…" />
+        <textarea className="k-textarea" name="timeEater" maxLength={600} placeholder="Например: офертите, едни и същи въпроси по телефона, отчетите…" />
       </label>
+      <fieldset className="k-field" style={{ border: 0, padding: 0, margin: 0 }}>
+        <legend className="k-label" style={{ marginBottom: 6 }}>
+          Кога искаш да започнеш?
+        </legend>
+        <div className="k-choices k-choices--3">
+          {APP_START.map((c) => (
+            <label className="k-choice" key={c.id}>
+              <input type="radio" name="start" value={c.id} />
+              {c.label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <div aria-live="polite">{error && <p className="k-error">{error}</p>}</div>
       <button type="submit" className="k-btn k-btn--primary" disabled={sending}>
-        {sending ? "Секунда…" : `Покажи свободните часове (${KINO.cal.minutes} мин)`}
+        {sending ? "Секунда…" : "Покажи свободните часове"}
       </button>
     </form>
   );
@@ -206,6 +239,7 @@ export function OfferBlock({
   bought,
   name,
   email,
+  hours,
 }: {
   actions: OfferActions;
   token: string | null;
@@ -213,6 +247,8 @@ export function OfferBlock({
   bought: boolean;
   name?: string | null;
   email?: string | null;
+  /** „Твоето число“ от сцена 9.7 — поканата го връща на човека */
+  hours?: number | null;
 }) {
   const full = quotePlan("full", { depositPaidEur: depositPaid });
   const inst = quotePlan("installments", { depositPaidEur: depositPaid });
@@ -237,6 +273,12 @@ export function OfferBlock({
         Част втора я снимаш ти.
       </h2>
       <p className="k-lead">Въпросът е само дали сам — или с екип. Ако искаш да го направим заедно, ето какво е {KINO.program.name}:</p>
+      {hours != null && hours > 0 && (
+        <p className="k-number-back">
+          🔢 Твоето число: <strong>{hours} часа седмично</strong> — около {Math.round(hours * 52)} часа в годината. Точно тези часове са
+          първата ни цел.
+        </p>
+      )}
 
       <ul className="k-stack">
         {KINO.program.stack.map((s) => (

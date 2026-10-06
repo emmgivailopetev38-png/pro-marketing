@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { costOfWaiting } from "@/lib/kino/people";
 import { formatEur } from "@/lib/kino/pricing";
 import { postJson } from "@/lib/kino/browser";
+import { NUMBER_QUESTION, NUMBER_MAX_HOURS, cleanHours } from "@/lib/kino/questions";
 import { track } from "@/lib/analytics/track";
 
 /* Малките неща под екрана: калкулаторът, въпросите, списъкът за следващата прожекция. */
@@ -63,6 +64,90 @@ export function WaitingCalculator({ token }: { token: string | null }) {
         </span>
       </div>
     </div>
+  );
+}
+
+/**
+ * „Твоето число“ (сцена 9.7) — полето под филма: колко часа седмично отиват в
+ * повтаряща се работа. Отива в картона (kino_number) — Димитър го вижда първо
+ * в списъците, а поканата го връща на човека („точно тези часове…“). Може да
+ * се поправи — важи последното.
+ */
+export function NumberBox({
+  token,
+  pos,
+  saved,
+  onSaved,
+}: {
+  token: string | null;
+  pos: () => number;
+  saved: number | null;
+  onSaved: (hours: number) => void;
+}) {
+  const [value, setValue] = useState(saved != null ? String(saved) : "");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const typed = cleanHours(value);
+
+  async function send(e: React.FormEvent) {
+    e.preventDefault();
+    if (typed == null || value.trim() === "") return setError("Само числото — например 10.");
+    setError(null);
+    if (!token) return onSaved(typed); // прегледът — без запис
+    setSending(true);
+    const { ok, data } = await postJson<{ hours?: number; error?: string }>("/api/kino/answers", {
+      kind: "number",
+      t: token,
+      hours: typed,
+      pos: Math.round(pos()),
+    });
+    setSending(false);
+    if (!ok) return setError(data.error ?? "Не се записа. Опитай пак.");
+    onSaved(data.hours ?? typed);
+    track("kino_number", { hours: typed });
+  }
+
+  return (
+    <form className="k-panel k-number" onSubmit={send} noValidate>
+      <span className="k-kicker">Твоето число</span>
+      <label className="k-h3" htmlFor="k-number-in" style={{ display: "block", marginTop: 6 }}>
+        {NUMBER_QUESTION}
+      </label>
+      <div className="k-number-row">
+        <input
+          id="k-number-in"
+          className="k-input"
+          type="number"
+          inputMode="decimal"
+          min={0}
+          max={NUMBER_MAX_HOURS}
+          step="0.5"
+          placeholder="10"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          aria-invalid={error ? true : undefined}
+        />
+        <span className="k-muted">часа седмично</span>
+        <button type="submit" className="k-btn k-btn--primary" disabled={sending}>
+          {sending ? "…" : saved != null && typed === saved ? "✓ Записано" : "Запиши"}
+        </button>
+      </div>
+      <div aria-live="polite">
+        {error ? (
+          <p className="k-error" style={{ marginTop: 10 }}>
+            {error}
+          </p>
+        ) : saved != null ? (
+          <p className="k-muted" style={{ margin: "10px 0 0" }}>
+            ≈ {Math.round(saved * 52)} часа в годината. Ще ни трябва след малко.
+          </p>
+        ) : (
+          <p className="k-muted" style={{ margin: "10px 0 0" }}>
+            Само числото — на око е достатъчно.
+          </p>
+        )}
+      </div>
+    </form>
   );
 }
 

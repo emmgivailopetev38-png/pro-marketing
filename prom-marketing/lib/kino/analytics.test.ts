@@ -12,6 +12,8 @@ import {
   callLists,
   moneyKey,
   uniqueBy,
+  findAbandoned,
+  byHoursFirst,
   type WatchRow,
 } from "./analytics";
 
@@ -145,5 +147,55 @@ describe("парите — по едно на сесия/фактура", () => 
     ];
     const sum = uniqueBy(rows, moneyKey).reduce((s, r) => s + r.metadata.amount_eur, 0);
     expect(sum).toBe(200);
+  });
+});
+
+describe("изоставеното плащане", () => {
+  const T0 = Date.parse("2026-10-16T20:15:00+03:00");
+  const at = (min: number) => new Date(T0 + min * 60_000).toISOString();
+  const act = (contact_id: string, activity_type: string, min: number, metadata: Record<string, unknown> = {}) => ({
+    contact_id,
+    activity_type,
+    occurred_at: at(min),
+    metadata,
+  });
+
+  it("натисна „Влизам в потока“, 15 минути без плащане → обаждане", () => {
+    const rows = [act("a", "kino_click", 0, { button: "stream" })];
+    expect(findAbandoned(rows, T0 + 14 * 60_000)).toEqual([]);
+    const r = findAbandoned(rows, T0 + 15 * 60_000);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ contactId: "a", wants: "stream", flagged: false });
+  });
+
+  it("капарото (бутон 2) и отвореното плащане също броят; платилите — не", () => {
+    const rows = [
+      act("b", "kino_click", 0, { button: "deposit" }),
+      act("c", "kino_checkout", 0, { plan: "full" }),
+      act("c", "kino_payment", 5, { amount_eur: 1900 }),
+      act("d", "kino_click", 0, { button: "call" }),
+    ];
+    const r = findAbandoned(rows, T0 + 30 * 60_000);
+    expect(r.map((x) => x.contactId)).toEqual(["b"]);
+    expect(r[0].wants).toBe("deposit");
+  });
+
+  it("ново натискане отлага сигнала; вдигнатият сигнал се помни", () => {
+    const rows = [act("e", "kino_click", 0, { button: "stream" }), act("e", "kino_checkout", 20, { plan: "installments" })];
+    expect(findAbandoned(rows, T0 + 30 * 60_000)).toEqual([]);
+    const flagged = [...rows, act("e", "kino_abandoned", 36)];
+    expect(findAbandoned(flagged, T0 + 40 * 60_000)[0]).toMatchObject({ contactId: "e", flagged: true });
+  });
+});
+
+describe("„Твоето число“ първо", () => {
+  it("с число — първи, по-голямото по-горе; без число — в досегашния ред", () => {
+    const people = [
+      { id: "x", h: null },
+      { id: "y", h: 5 },
+      { id: "z", h: null },
+      { id: "w", h: 20 },
+    ];
+    expect(byHoursFirst(people, (p) => p.h).map((p) => p.id)).toEqual(["w", "y", "x", "z"]);
   });
 });

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { KINO, KINO_TEST_VIDEO } from "@/lib/kino/config";
 import { kinoTimeline, resolveSimTime, premiereLabels } from "@/lib/kino/time";
 import { resolveViewer, canPreview, firstParam } from "@/lib/kino/viewer";
-import { hallState, serverNow } from "@/lib/kino/server";
+import { hallState, serverNow, EMPTY_HALL_STATE } from "@/lib/kino/server";
 import { isKinoDemoEnv } from "@/lib/kino/token";
 import { Hall } from "@/components/kino/Hall";
 import { KinoTop, KinoFooter } from "@/components/kino/KinoChrome";
@@ -56,7 +56,7 @@ export default async function ZalaPage({ searchParams }: Props) {
     );
   }
 
-  const state = viewer.contactId ? await hallState(viewer.contactId) : { offerSeen: false, bonusUnlocked: false, depositPaid: 0, bought: false };
+  const state = viewer.contactId ? await hallState(viewer.contactId) : EMPTY_HALL_STATE;
   // Филмът от конфигурацията. Докато не е качен — в прегледа (локално / Vercel
   // preview) пробата с тийзъра; в продукцията никога.
   const video = KINO.video.kind === "none" && isKinoDemoEnv() && KINO_TEST_VIDEO ? KINO_TEST_VIDEO : KINO.video;
@@ -77,6 +77,7 @@ export default async function ZalaPage({ searchParams }: Props) {
         email={viewer.contact?.email ?? null}
         preview={preview}
         video={video}
+        hours={state.hours}
         bonusUrl={state.bonusUnlocked || preview ? KINO.bonus.url : null}
       />
       <KinoFooter />

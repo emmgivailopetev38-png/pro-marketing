@@ -884,6 +884,35 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+/* три кратки отговора („Сам съм / 2–10 души / Над 10“) — в ред още на телефон:
+   без кръгчето (избраното свети с рамката), за да се събере всеки на един ред */
+@media (min-width: 340px) {
+  .k-choices--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .k-choices--3 .k-choice {
+    justify-content: center;
+    padding-inline: 6px;
+    text-align: center;
+    white-space: nowrap;
+    font-size: 0.92rem;
+  }
+  .k-choices--3 .k-choice input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    flex: none;
+  }
+  .k-choices--3 .k-choice:has(input:focus-visible) {
+    outline: 2px solid var(--k-cyan);
+    outline-offset: 2px;
+  }
+  .k-choices--3 .k-choice:has(input:checked) {
+    color: var(--k-text);
+    box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.65);
+  }
+}
 .k-choice {
   position: relative;
   display: flex;
@@ -1191,6 +1220,45 @@ button.k-chapter {
   padding: 20px 18px;
   background: var(--k-surface);
   border: 1px solid var(--k-line-soft);
+}
+
+/* „Твоето число“ — полето под филма (сцена 9.7) */
+.k-number {
+  margin-top: 14px;
+  border-color: rgba(34, 211, 238, 0.45);
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.08), rgba(168, 85, 247, 0.06));
+  animation: k-number-in 0.6s ease-out;
+}
+.k-number-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+.k-number-row .k-input {
+  width: 120px;
+  flex: 0 0 auto;
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-align: center;
+}
+.k-number-back {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  background: rgba(34, 211, 238, 0.07);
+}
+@keyframes k-number-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 .k-hall-grid {
   display: grid;

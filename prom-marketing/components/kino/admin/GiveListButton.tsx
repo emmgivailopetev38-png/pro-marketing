@@ -1,9 +1,10 @@
 "use client";
 import { useActionState } from "react";
 import { giveKinoListAction, type GiveResult } from "@/app/admin/(protected)/kino/actions";
+import type { KinoListId } from "@/lib/kino/analytics";
 
 /** „Дай на Димитър“ — целият списък отива в опашката му в /ekip с един клик на Ивайло. */
-export function GiveListButton({ list, ids, label }: { list: "dayBefore" | "warm"; ids: string[]; label: string }) {
+export function GiveListButton({ list, ids, label }: { list: KinoListId; ids: string[]; label: string }) {
   const [state, action, pending] = useActionState<GiveResult | null, FormData>(giveKinoListAction, null);
   return (
     <form action={action} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>

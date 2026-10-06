@@ -84,6 +84,7 @@ export default async function PlashtanePage({ searchParams }: Props) {
             bought={st.bought}
             name={viewer.name}
             email={viewer.contact?.email ?? null}
+            hours={st.hours}
           />
         </div>
       </section>

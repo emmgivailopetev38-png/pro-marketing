@@ -234,7 +234,11 @@ export interface HallState {
   bonusUnlocked: boolean;
   depositPaid: number;
   bought: boolean;
+  /** „Твоето число“ — часовете седмично в повтаряща се работа (последният отговор) */
+  hours: number | null;
 }
+
+export const EMPTY_HALL_STATE: HallState = { offerSeen: false, bonusUnlocked: false, depositPaid: 0, bought: false, hours: null };
 
 /**
  * Какво вече е станало с човека в залата — за да не се крие поканата от
@@ -242,24 +246,29 @@ export interface HallState {
  * не му се предлага капаро, ако вече го е платил. Едно четене от CRM-а.
  */
 export async function hallState(contactId: string): Promise<HallState> {
-  const empty: HallState = { offerSeen: false, bonusUnlocked: false, depositPaid: 0, bought: false };
+  const empty: HallState = { ...EMPTY_HALL_STATE };
   if (!isDbConfigured()) return empty;
   try {
     const { data } = await createServiceClient()
       .from("contact_activities")
-      .select("activity_type, metadata")
+      .select("id, activity_type, metadata, occurred_at")
       .eq("contact_id", contactId)
-      .in("activity_type", ["kino_watch", "kino_bonus", "kino_deposit", "kino_payment", "kino_click"]);
+      .in("activity_type", ["kino_watch", "kino_bonus", "kino_deposit", "kino_payment", "kino_click", "kino_number"])
+      .order("occurred_at", { ascending: true });
     const st = { ...empty };
-    for (const r of data ?? []) {
-      const m = (r.metadata ?? {}) as Record<string, unknown>;
+    const deposits: Array<{ id: string; metadata: Record<string, unknown> }> = [];
+    for (const r of (data ?? []) as Array<{ id: string; activity_type: string; metadata: Record<string, unknown> | null }>) {
+      const m = r.metadata ?? {};
       if (m.screening !== SCREENING) continue;
       if (r.activity_type === "kino_watch" && m.milestone === "end") st.offerSeen = true;
       if (r.activity_type === "kino_click") st.offerSeen = true;
       if (r.activity_type === "kino_bonus") st.bonusUnlocked = true;
-      if (r.activity_type === "kino_deposit") st.depositPaid += Number(m.amount_eur) || 0;
+      if (r.activity_type === "kino_deposit") deposits.push({ id: r.id, metadata: m });
       if (r.activity_type === "kino_payment") st.bought = true;
+      if (r.activity_type === "kino_number" && typeof m.hours === "number") st.hours = m.hours; // последният отговор
     }
+    // по едно на сесия в Stripe — двоен запис не удвоява капарото
+    st.depositPaid = uniqueBy(deposits, moneyKey).reduce((sum, r) => sum + (Number(r.metadata.amount_eur) || 0), 0);
     return st;
   } catch {
     return empty;

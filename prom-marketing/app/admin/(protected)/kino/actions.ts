@@ -5,6 +5,7 @@ import { giveToTeam } from "@/lib/team/assign";
 import { createServiceClient } from "@/lib/supabase/service";
 import { KINO } from "@/lib/kino/config";
 import { SCREENING } from "@/lib/kino/server";
+import { isKinoList } from "@/lib/kino/analytics";
 
 export interface GiveResult {
   ok: boolean;
@@ -15,13 +16,13 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * „Дай на Димитър“ — списъкът от таблото влиза в опашката му за звънене
- * (/ekip), с причината и какво да каже. Ивайло натиска — нищо не тръгва само.
- * Вече дадените от същия списък се пропускат.
+ * (/ekip), с причината и какво да каже — и „Твоето число“, ако го има.
+ * Ивайло натиска — нищо не тръгва само. Вече дадените от същия списък се пропускат.
  */
 export async function giveKinoListAction(_prev: GiveResult | null, formData: FormData): Promise<GiveResult> {
   const actor = await requireAdmin();
   const list = String(formData.get("list") ?? "");
-  if (list !== "dayBefore" && list !== "warm") return { ok: false, message: "Непознат списък." };
+  if (!isKinoList(list)) return { ok: false, message: "Непознат списък." };
   const ids = formData
     .getAll("contact_id")
     .map(String)
@@ -44,21 +45,37 @@ export async function giveKinoListAction(_prev: GiveResult | null, formData: For
   );
 
   const reason =
-    list === "dayBefore"
-      ? `🎬 „${KINO.title}“ · ден −1: собственик с билет за премиерата. Обади се: „Запазили сме ти място — какво искаш да научиш?“`
-      : `🎬 „${KINO.title}“: изгледа поне половината филм и още не е купил. Обади се до 1–2 часа след филма и запиши разговор с Ивайло — два конкретни часа, до 72 часа.`;
+    list === "abandoned"
+      ? `🛒 „${KINO.title}“: натисна „купи“ в залата и не плати. Обади се днес: „Видях, че искаше да влезеш — нещо спъна ли плащането?“ — помогни или запиши разговор с Ивайло.`
+      : list === "dayBefore"
+        ? `🎬 „${KINO.title}“ · ден −1: собственик с билет за премиерата. Обади се: „Запазили сме ти място — какво искаш да научиш?“`
+        : `🎬 „${KINO.title}“: изгледа поне половината филм и още не е купил. Обади се до 1–2 часа след филма и запиши разговор с Ивайло — два конкретни часа, до 72 часа.`;
+
+  // „Твоето число“ (сцена 9.7) — последният отговор на всеки; Димитър го вижда първо.
+  const { data: nums } = await sb
+    .from("contact_activities")
+    .select("contact_id, metadata, occurred_at")
+    .eq("activity_type", "kino_number")
+    .in("contact_id", ids)
+    .order("occurred_at", { ascending: true });
+  const hoursBy = new Map<string, number>();
+  for (const n of nums ?? []) {
+    const m = (n.metadata ?? {}) as Record<string, unknown>;
+    if (m.screening === SCREENING && typeof m.hours === "number") hoursBy.set(n.contact_id as string, m.hours);
+  }
 
   let given = 0;
   let who: string | null = null;
   const errors: string[] = [];
   for (const id of ids) {
     if (skip.has(id)) continue;
+    const hours = hoursBy.get(id);
     const r = await giveToTeam({
       contactId: id,
-      reason,
+      reason: hours != null ? `🔢 ${hours} ч седмично в повтаряща се работа · ${reason}` : reason,
       kind: "given",
       createdBy: `${actor} · кино`,
-      extra: { kino_list: list, kino_screening: SCREENING },
+      extra: { kino_list: list, kino_screening: SCREENING, ...(hours != null ? { kino_hours: hours } : {}) },
     });
     if (r.ok) {
       given++;

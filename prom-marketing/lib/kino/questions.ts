@@ -24,18 +24,28 @@ export const WARMUP_START: readonly Choice[] = [
   { id: "looking", label: "Засега само разглеждам" },
 ];
 
-/** „Искам първо да поговорим“ — за какво. Третият бутон води и „направете го вместо мен“. */
-export const PRECALL_TOPICS: readonly Choice[] = [
-  { id: "stream", label: "Дали потокът е за мен" },
-  { id: "start", label: "Откъде да започна в моя бизнес" },
-  { id: "done-for-you", label: "Искам да го направите вместо мен" },
-  { id: "other", label: "Друго" },
+/** „Твоето число“ — сцена 9.7: полето под филма. */
+export const NUMBER_QUESTION = "Колко часа седмично ти отиват в повтаряща се работа?";
+export const NUMBER_MAX_HOURS = 100;
+
+/** Часовете, закръглени до половин час и в границите (0–100). null — ако не е число. */
+export function cleanHours(v: unknown): number | null {
+  const n = typeof v === "number" ? v : typeof v === "string" ? Number(v.replace(",", ".")) : Number.NaN;
+  if (!Number.isFinite(n) || n < 0) return null;
+  return Math.min(NUMBER_MAX_HOURS, Math.round(n * 2) / 2);
+}
+
+/** Заявката преди разговора (третият бутон „Искам първо да поговорим“). */
+export const APP_TEAM: readonly Choice[] = [
+  { id: "solo", label: "Сам съм" },
+  { id: "small", label: "2–10 души" },
+  { id: "big", label: "Над 10" },
 ];
 
-export const PRECALL_WHEN: readonly Choice[] = [
-  { id: "tonight", label: "Още тази вечер" },
-  { id: "tomorrow", label: "Утре" },
-  { id: "week", label: "Тази седмица" },
+export const APP_START: readonly Choice[] = [
+  { id: "now", label: "Сега" },
+  { id: "month", label: "До месец" },
+  { id: "later", label: "По-късно" },
 ];
 
 export function labelOf(list: readonly Choice[], id: string | null | undefined): string {
