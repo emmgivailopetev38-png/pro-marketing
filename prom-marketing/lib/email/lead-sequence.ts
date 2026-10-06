@@ -3,6 +3,7 @@ import { sendEmail } from "./resend";
 import { LEAD_SEQUENCE, LEAD_SOURCES, leadSequenceFor } from "./lead-steps";
 import { firstName, type BuildCtx, type SequenceStep } from "./sequence-layout";
 import { unsubscribeUrl } from "./unsubscribe-token";
+import { loadAkademiaIds } from "@/lib/team/ivailo";
 import type { createServiceClient } from "@/lib/supabase/service";
 
 type Sb = ReturnType<typeof createServiceClient>;
@@ -132,13 +133,22 @@ export async function runLeadSequence(supabase: Sb): Promise<{
     .in("contact_id", ids)
     .in("activity_type", ["call", "meeting"]);
   const talked = new Set((touches ?? []).map((t) => t.contact_id));
+  // Хората от Академията са в менторската на Ивайло — продажбен имейл „ето ти
+  // демотата“ не е за тях (06.10.2026: трима от Академията получиха по два).
+  // Не се знае ли кои са — днес не тръгва нищо, утре пак.
+  let akademia: Set<string>;
+  try {
+    akademia = await loadAkademiaIds(ids, supabase);
+  } catch {
+    return out;
+  }
 
   const now = Date.now();
   for (const c of contacts) {
     if (out.sent >= MAX_PER_RUN) break;
     out.checked++;
 
-    if (c.last_heard_from_at || talked.has(c.id) || !c.email) {
+    if (c.last_heard_from_at || talked.has(c.id) || akademia.has(c.id) || !c.email) {
       out.skipped++;
       continue;
     }

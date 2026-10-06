@@ -7,6 +7,7 @@ import { fmtSofia } from "./time";
 import type { TeamActor } from "./session";
 import type { Person } from "./sreshti-zastapvane";
 import { MEETING_MSG_LABEL, dueKind, sentKindsFor, type MeetingMsgKind } from "./sreshta-saobshtenia";
+import { loadIvailoClaimsForPeople } from "./ivailo";
 
 /**
  * Съобщенията към хората за срещите им — кое е на ред и кое е пратено.
@@ -19,6 +20,11 @@ import { MEETING_MSG_LABEL, dueKind, sentKindsFor, type MeetingMsgKind } from ".
  *
  * Напомняне има само за жива среща (LIVE_BOOKING_STATUSES): отменена,
  * преместена, проведена или „не се яви“ не излиза — без никой да го спира.
+ *
+ * Не излиза и за човек на Ивайло (правило от 06.10.2026, ivailo-rules.ts):
+ * от Академията, говорил с Ивайло преди или вече имал среща в календара му.
+ * Напомнянето е за първата среща, която екипът е докарал — следващите са
+ * между Ивайло и човека (на 05.10 Димитър напомняше на клиент с оферта).
  */
 export interface MeetingMsgRow {
   bookingId: string;
@@ -45,7 +51,21 @@ export async function loadMeetingMessages(now: Date = new Date(), daysAhead = 8)
     .not("attendee_phone", "is", null)
     .order("scheduled_at", { ascending: true })
     .limit(30);
-  return ((data ?? []) as Array<Record<string, unknown>>).map((r) => {
+  const rows = (data ?? []) as Array<Record<string, unknown>>;
+  // Само знаци отпреди днес: предстоящата среща сама по себе си не прави човека „на Ивайло“.
+  const ivailos = await loadIvailoClaimsForPeople(
+    rows.map((r) => ({
+      key: String(r.id),
+      email: (r.attendee_email as string | null) ?? null,
+      phone: (r.attendee_phone as string | null) ?? null,
+      ignoreBookingId: String(r.id),
+    })),
+    { now, before: now }
+  ).catch((e) => {
+    console.error("[sreshti] хората на Ивайло:", e instanceof Error ? e.message : e);
+    return new Map();
+  });
+  return rows.filter((r) => !ivailos.has(String(r.id))).map((r) => {
     const raw = (r.raw_payload ?? null) as Record<string, unknown> | null;
     const notes = String(raw?.notes ?? "");
     const by = /Записа:\s*([^·\n]+)/.exec(notes);
