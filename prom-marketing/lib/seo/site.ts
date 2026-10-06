@@ -196,6 +196,11 @@ export const SUPPORTING_PAGES: SitemapEntry[] = [
   { path: "/demo/dokumenti", priority: 0.6, changeFrequency: "monthly" },
   { path: "/demo/b2b", priority: 0.6, changeFrequency: "monthly" },
   { path: "/demo/influencer", priority: 0.6, changeFrequency: "monthly" },
+  { path: "/demo/hotel", priority: 0.6, changeFrequency: "monthly" },
+  // Лендингът на рекламата за гласовия агент. Индексируем е, значи мястото
+  // му е в картата — индексируема страница извън картата се открива само
+  // по вътрешни връзки. Под стълба /glasov-ai-agent по приоритет.
+  { path: "/glas", priority: 0.65, changeFrequency: "monthly" },
   { path: "/en", priority: 0.6, changeFrequency: "monthly" },
   { path: "/privacy", priority: 0.2, changeFrequency: "yearly" },
   { path: "/terms", priority: 0.2, changeFrequency: "yearly" },
