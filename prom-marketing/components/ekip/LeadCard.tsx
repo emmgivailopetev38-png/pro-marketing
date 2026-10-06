@@ -48,6 +48,7 @@ const SOURCE_LABEL: Record<string, string> = {
   facebook_messenger: "Messenger",
   hermes: "Хермес",
   manual: "Ръчно",
+  akademia: "Академията",
 };
 
 /** Етапът с думи — само в търсачката, където излизат и хора извън опашката. */
@@ -224,6 +225,17 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
           </span>
         )}
       </div>
+
+      {/* Човек на Ивайло (Академията, говорил с него, среща в календара му) — излиза
+          само в търсачката, за да знае Димитър с кого говори, ако той се обади. */}
+      {lead.ivailo_note && (
+        <p className="mt-3 rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-sm font-semibold text-amber-100">
+          {lead.ivailo_note}
+          <span className="mt-0.5 block text-xs font-normal text-amber-100/80">
+            Ако той ти звънне — кажи му, че Ивайло ще му се обади, и натисни „🤝 Ивайло да му звънне“.
+          </span>
+        </p>
+      )}
 
       <a
         href={`tel:${lead.phone}`}

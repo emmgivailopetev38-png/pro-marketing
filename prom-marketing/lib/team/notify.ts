@@ -7,6 +7,7 @@ import { newLeadNotifyMembers } from "./repository";
 import { leadOwnerOf, loadRotationPool } from "./routing";
 import { leadOwner, recipientsFor } from "./routing-rules";
 import { fmtSofia } from "./time";
+import { ivailoClaimFor } from "./ivailo";
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://promarketing.pw").replace(/\/$/, "");
 
@@ -64,6 +65,9 @@ export interface NewLeadForTeam {
  * където те нямат вход. Никога не хвърля — известието е странично.
  */
 export async function notifyTeamNewLead(lead: NewLeadForTeam): Promise<void> {
+  // Човек на Ивайло (Академията, говорил с него, среща в календара му) не е
+  // „нов човек за звънене“, дори да е попълнил формата пак (правило от 06.10.2026).
+  if (await ivailoClaimFor(lead.contactId, { now: new Date() })) return;
   let to: string[];
   try {
     to = await teamRecipients(lead.contactId);
@@ -124,6 +128,8 @@ export interface CancelledBooking {
   reason: string | null;
   /** кой я отмени, както ще се чете: „човекът“ · „Ивайло“ */
   by: string;
+  /** човек на Ивайло (ivailo-rules.ts) — екипът не научава, картонът не е за него */
+  ivailoNote?: string | null;
 }
 
 /**
@@ -151,7 +157,7 @@ export async function notifyCancelledBooking(c: CancelledBooking): Promise<void>
   // 1) Човекът за срещите — той ще звънне и ще я премести.
   let team: string[] = [];
   try {
-    team = await teamRecipients(c.contactId);
+    team = c.ivailoNote ? [] : await teamRecipients(c.contactId);
   } catch {
     team = [];
   }
@@ -185,9 +191,11 @@ ${table}
     c.phone ? `📞 ${escapeHtml(c.phone)}` : null,
     `Отмени я: ${escapeHtml(c.by)}`,
     c.reason ? `📝 ${escapeHtml(c.reason)}` : null,
-    team.length
-      ? `→ ${escapeHtml(team.join(", "))} получи известие да звънне и да я премести.`
-      : `⚠️ Никой от екипа не получи известие.`,
+    c.ivailoNote
+      ? `→ Звънни му ти — при Димитър не отива: ${escapeHtml(c.ivailoNote)}`
+      : team.length
+        ? `→ ${escapeHtml(team.join(", "))} получи известие да звънне и да я премести.`
+        : `⚠️ Никой от екипа не получи известие.`,
   ].filter(Boolean) as string[];
 
   await Promise.all([
@@ -200,7 +208,13 @@ ${table}
 <p><strong>${escapeHtml(c.name)} отказа срещата си.</strong> Часът ти е свободен.</p>
 ${table}
 <p style="margin-top:18px;">📊 <a href="${card}">Картонът в CRM-а</a> · <a href="${SITE}/admin/bookings">Срещи</a></p>
-<p style="color:#777;font-size:13px;">${team.length ? "Екипът е уведомен да звънне и да я премести." : "⚠️ Няма активен човек за звънене — никой не е уведомен."}</p>
+<p style="color:#777;font-size:13px;">${
+        c.ivailoNote
+          ? `Звънни му ти — при Димитър не отива: ${escapeHtml(c.ivailoNote)}`
+          : team.length
+            ? "Екипът е уведомен да звънне и да я премести."
+            : "⚠️ Няма активен човек за звънене — никой не е уведомен."
+      }</p>
 </div>`,
       text: `${c.name} отказа срещата си: ${when} (София)\nТелефон: ${c.phone ?? "—"}\nОтмени я: ${c.by}\nПричина: ${c.reason ?? "—"}\n\nКартон: ${card}`,
     }).catch(() => ({ id: null, error: "send failed" })),
@@ -665,47 +679,24 @@ export interface NoShowBooking {
   memberName: string | null;
 }
 
-/** Пропусната среща: екипът звъни и я премества, Ивайло знае. Никога не хвърля. */
+/**
+ * Пропусната среща: картонът е в списъка на Ивайло за днес — срещата е била в
+ * календара му, затова не отива при екипа (правило от 06.10.2026). Никога не хвърля.
+ */
 export async function notifyNoShowBooking(n: NoShowBooking): Promise<void> {
   const when = fmtSofia(n.scheduledAtIso);
-  const queue = n.contactId ? `${SITE}/ekip#lead-${n.contactId}` : `${SITE}/ekip`;
   const card = n.contactId ? `${SITE}/admin/clients/${n.contactId}` : `${SITE}/admin/bookings`;
-
-  let team: string[] = [];
-  try {
-    team = await teamRecipients(n.contactId);
-  } catch {
-    team = [];
-  }
-  const teamMail =
-    team.length && n.memberName
-      ? sendEmail({
-          to: team,
-          subject: `🙈 Не се яви на срещата · ${n.name} · ${when}`,
-          html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#0d1221;">
-<p><strong>${escapeHtml(n.name)} не се яви на срещата си с Ивайло (${escapeHtml(when)}).</strong></p>
-<p>Звънни му, разбери какво е станало и запиши нов час от картата. Готовото съобщение за Viber е там — ако не вдига, прати го и натисни „Не вдигна“.</p>
-<p>📞 ${n.phone ? `<a href="tel:${escapeHtml(n.phone)}">${escapeHtml(n.phone)}</a>` : "—"} · ✉️ ${n.email ? escapeHtml(n.email) : "—"}</p>
-<p style="margin-top:18px;"><a href="${queue}" style="display:inline-block;background:#0891b2;color:#fff;padding:10px 18px;border-radius:999px;text-decoration:none;font-weight:bold;">Отвори картата</a></p>
-</div>`,
-          text: `${n.name} не се яви на срещата си (${when}, София).\nТелефон: ${n.phone ?? "—"}\nЗвънни и запиши нов час: ${queue}`,
-        }).catch(() => {})
-      : Promise.resolve();
-
   const lines = [
     `🙈 <b>Не се яви на срещата</b>`,
     `${escapeHtml(n.name)} · ${escapeHtml(when)}`,
     n.phone ? `📞 ${escapeHtml(n.phone)}` : null,
     `Отбеляза: ${escapeHtml(n.by)}`,
-    n.memberName
-      ? `→ ${escapeHtml(n.memberName)} получи картата да звънне и да запише нов час.`
-      : `⚠️ Няма картон с телефон в CRM-а — никой от екипа не е получил задача.`,
+    n.contactId
+      ? `→ В списъка ти за звънене е за днес. При Димитър не отива — срещата е била в календара ти. Ако сте говорили по телефона, оправи срещата на „проведена“.`
+      : `⚠️ Няма картон в CRM-а — никой не е получил задача.`,
   ].filter(Boolean) as string[];
 
-  await Promise.all([
-    teamMail,
-    sendTelegram(lines.join("\n"), { buttons: [{ text: "Картонът в CRM-а", url: card }] }).catch(() => false),
-  ]);
+  await sendTelegram(lines.join("\n"), { buttons: [{ text: "Картонът в CRM-а", url: card }] }).catch(() => false);
 }
 
 // ── Върнат на Ивайло след 7 дни без резултат ───────────────────────────────

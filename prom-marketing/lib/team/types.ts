@@ -160,6 +160,8 @@ export interface QueueLead {
   missed_at?: string | null;
   missed_url?: string | null;
   missed_booking_id?: string | null;
+  /** Човек на Ивайло (Академията, разговор с него, среща в календара му) — защо не се звъни. Излиза само в търсачката. */
+  ivailo_note?: string | null;
 }
 
 export interface BookedRow {
