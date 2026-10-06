@@ -85,7 +85,7 @@ function KpiSlide() {
   const cards: Array<{ label: string; value: string; hint: string; color: string; delta: string }> = [
     { label: "Активни клиенти", value: "81", hint: "новo: +14", color: "var(--v2-cyan)", delta: "▲ 8" },
     { label: "Conversion", value: "42%", hint: "12 от 28 спечелени", color: "var(--v2-mint)", delta: "▲ 5" },
-    { label: "Pipeline €", value: "€124,500", hint: "оферти + преговори", color: "#facc15", delta: "▲ €18k" },
+    { label: "Сделки в ход", value: "€124,500", hint: "оферти + преговори", color: "#facc15", delta: "▲ €18k" },
     { label: "Срещи / месец", value: "23", hint: "проведени", color: "var(--v2-violet-2)", delta: "▲ 7" },
     { label: "Имейли / 7д", value: "47", hint: "пратени", color: "var(--v2-magenta)", delta: "▲ 12" },
     { label: "Просрочени", value: "0", hint: "всичко чисто", color: "var(--v2-mint)", delta: "—" },
@@ -366,7 +366,7 @@ function CopilotSlide() {
     <div className="p-6">
       <div className="mb-4 flex items-center justify-between">
         <p className="v2-mono text-[10px] uppercase tracking-[0.2em] text-[var(--v2-faint)]">
-          🎩 CEO Agent · говориш с шефа
+          🎩 Главният агент · даваш задачи
         </p>
         <span className="v2-mono inline-flex items-center gap-1 rounded-full border border-[var(--v2-line-bright)] bg-gradient-to-r from-[color-mix(in_srgb,var(--v2-cyan)_20%,transparent)] to-[color-mix(in_srgb,var(--v2-violet)_20%,transparent)] px-2 py-0.5 text-[10px] text-[var(--v2-cyan)]">
           <span className="h-1 w-1 animate-pulse rounded-full bg-[var(--v2-mint)]" />
@@ -417,7 +417,7 @@ function CopilotSlide() {
       </div>
       <div className="mt-4 rounded-[var(--v2-r-sm)] border border-[rgba(52,211,153,0.22)] bg-[rgba(52,211,153,0.06)] p-3 text-center">
         <p className="text-[11px] text-[var(--v2-mint)]">
-          ⏱️ <span className="font-bold">12-15 часа седмично</span> спестени · CEO Agent делегира · ти само одобряваш
+          Главният агент разпределя задачите · ти само одобряваш
         </p>
       </div>
     </div>
@@ -429,7 +429,7 @@ function CopilotSlide() {
 function AgentTeamSlide() {
   const workers: Array<{ name: string; role: string; status: string; tasks: number; color: string; icon: string }> = [
     { name: "Sales Agent", role: "Оферти + договори", status: "пише оферта · 3:42", tasks: 8, color: "var(--v2-mint)", icon: "🎯" },
-    { name: "Email Agent", role: "Imail кампании", status: "праща 12 follow-ups", tasks: 47, color: "var(--v2-violet-2)", icon: "✉️" },
+    { name: "Email Agent", role: "Имейл кампании", status: "праща 12 follow-ups", tasks: 47, color: "var(--v2-violet-2)", icon: "✉️" },
     { name: "Content Agent", role: "Постове + Reels", status: "генерира пост за IG", tasks: 5, color: "var(--v2-magenta)", icon: "📝" },
     { name: "Booking Agent", role: "Срещи + Google Meet", status: "потвърждава 2 резервации", tasks: 3, color: "#facc15", icon: "📅" },
     { name: "Analytics Agent", role: "Отчети + графики", status: "седмичен отчет готов", tasks: 1, color: "var(--v2-cyan)", icon: "📊" },
@@ -460,10 +460,10 @@ function AgentTeamSlide() {
       >
         <span className="text-2xl">🎩</span>
         <div className="flex-1">
-          <p className="text-sm font-bold text-[var(--v2-cyan)]" style={{ fontFamily: "var(--v2-font-display)" }}>CEO Agent</p>
-          <p className="text-[10px] text-[var(--v2-faint)]">Hermes · приема команди от теб</p>
+          <p className="text-sm font-bold text-[var(--v2-cyan)]" style={{ fontFamily: "var(--v2-font-display)" }}>Главен агент</p>
+          <p className="text-[10px] text-[var(--v2-faint)]">приема задачите от теб</p>
         </div>
-        <span className="v2-mono rounded-full bg-[var(--v2-mint)] px-1.5 py-0.5 text-[9px] font-bold text-[#04121a]">LIVE</span>
+        <span className="v2-mono rounded-full bg-[var(--v2-mint)] px-1.5 py-0.5 text-[9px] font-bold text-[#04121a]">пример</span>
       </motion.div>
 
       {/* Connection lines + workers */}
@@ -526,27 +526,27 @@ const SLIDES: Slide[] = [
     id: "team",
     tag: "AI Екип · 7 агента",
     title: "Виртуалният ти екип, който никога не спира",
-    desc: `CEO Agent (Hermes) приема командите ти и делегира на 6 специализирани работника — Sales, Email, Content, Booking, Analytics, Chat. Всеки знае работата си. Ти само водиш.`,
+    desc: `Главният агент приема задачите ти и ги разпределя на шест помощника — продажби, имейли, съдържание, срещи, анализи и чат. Всеки знае работата си. Ти само водиш.`,
     accent: "var(--v2-cyan)",
     aiBadge: "7 агента · 24/7",
-    savings: "екип за €0 заплати",
+    savings: "работи и в почивните дни",
     render: () => <AgentTeamSlide />,
   },
   {
     id: "copilot",
-    tag: "CEO Agent · команди",
+    tag: "Главният агент · задачи",
     title: "Казваш — екипът прави.",
-    desc: `Не пълниш форми и не цъкаш менюта. Пишеш на CEO Agent, той делегира: 'Изпрати оферти на топ 5', 'Защо паднаха продажбите?', 'Публикувай пост'. Workers вършат работата, ти само одобряваш.`,
+    desc: `Не пълниш форми и не цъкаш менюта. Пишеш на главния агент, той разпределя: 'Изпрати оферти на топ 5', 'Защо паднаха продажбите?', 'Публикувай пост'. Помощниците вършат работата, ти само одобряваш.`,
     accent: "var(--v2-cyan)",
-    aiBadge: "Делегира на workers",
-    savings: "спестява 12-15ч/седмично",
+    aiBadge: "Разпределя задачите",
+    savings: "по-малко рутина за теб",
     render: () => <CopilotSlide />,
   },
   {
     id: "kpi",
     tag: "Главно табло",
     title: "Виж бизнеса с 6 цифри",
-    desc: "AI следи всеки сигнал — pipeline, conversion, срещи, имейли, просрочени — и подчертава какво иска внимание. С тенденция спрямо миналата седмица.",
+    desc: "AI следи всичко важно — сделки, конверсии, срещи, имейли, просрочени задачи — и подчертава какво иска внимание. С тенденция спрямо миналата седмица.",
     accent: "var(--v2-cyan)",
     aiBadge: "AI приоритизира",
     savings: "30-секунден ежедневен преглед",
@@ -555,8 +555,8 @@ const SLIDES: Slide[] = [
   {
     id: "pipeline",
     tag: "Етапи на сделките",
-    title: "Pipeline без догадки",
-    desc: "AI премества клиентите между стадиите автоматично — според това какво се случва (среща → discovery, оферта → negotiation). Виждаш точно къде застива потока, AI ти казва защо.",
+    title: "Сделките без догадки",
+    desc: "AI премества клиентите между етапите сам — според това какво се случва (среща → проучване, оферта → преговори). Виждаш къде се бави потокът, а AI ти казва защо.",
     accent: "var(--v2-mint)",
     aiBadge: "AI премества стадии",
     savings: "0 ръчно цъкане",
@@ -647,22 +647,22 @@ export function CRMShowcaseV2() {
             <h2 className="v2-title-plain mt-4 text-[clamp(28px,5vw,52px)] leading-[1.06]">
               Командният център
               <br />
-              <span className="v2-grad">с AI на 100%</span>
+              <span className="v2-grad">с AI до теб</span>
             </h2>
             <p className="v2-sub mt-4">
-              Системата, която изграждаме за теб — но AI върши{" "}
-              <span className="font-semibold text-[var(--v2-cyan)]">90% от работата</span>.
-              Лидове, сделки, срещи, имейли, реклами — всичко тече автоматично. Ти само одобряваш.
+              Системата, която изграждаме за теб, а AI поема{" "}
+              <span className="font-semibold text-[var(--v2-cyan)]">рутината</span>: запитвания, сделки,
+              срещи, имейли, реклами. Ти само одобряваш.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               <span className="v2-mono rounded-full border border-[rgba(52,211,153,0.3)] bg-[rgba(52,211,153,0.1)] px-3 py-1 text-[11px] text-[var(--v2-mint)]">
-                ⏱️ 12-15ч/седмица спестено
+                🧾 Примерни данни
               </span>
               <span className="v2-mono rounded-full border border-[var(--v2-line-bright)] bg-[color-mix(in_srgb,var(--v2-cyan)_10%,transparent)] px-3 py-1 text-[11px] text-[var(--v2-cyan)]">
-                🤖 AI co-pilot · 24/7
+                🤖 AI помощник · 24/7
               </span>
               <span className="v2-mono rounded-full border border-[color-mix(in_srgb,var(--v2-violet)_35%,transparent)] bg-[color-mix(in_srgb,var(--v2-violet)_12%,transparent)] px-3 py-1 text-[11px] text-[var(--v2-violet-2)]">
-                📊 Real-time данни
+                📊 Данните се обновяват сами
               </span>
             </div>
           </div>
@@ -818,7 +818,7 @@ export function CRMShowcaseV2() {
                   className="h-1.5 w-1.5 animate-pulse rounded-full"
                   style={{ background: current.accent, boxShadow: `0 0 6px ${current.accent}` }}
                 />
-                на живо
+                примерни данни
               </span>
             </div>
 

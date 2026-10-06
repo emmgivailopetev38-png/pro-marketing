@@ -345,7 +345,7 @@ export function WebinarBuilderDocument() {
           <Text style={s.toolsTitle}>Следващата стъпка</Text>
           <Text style={s.toolLine}>
             И четирите системи ги виждаш живи на обучението — 23 юли, 19:00, Zoom. Ела 5 минути
-            по-рано; бонусите (540+ €) са само за присъстващите.
+            по-рано; бонусите са само за присъстващите.
           </Text>
         </View>
         <Footer page="5 / 5" />

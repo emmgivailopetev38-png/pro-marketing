@@ -21,7 +21,7 @@ const SYSTEM_PROMPT = `Ти си AI асистентът на ProMarketing — �
 - Meta/Google реклами с автоматичен отчет
 
 КАК РАБОТИ ПРОЦЕСЪТ:
-1. Разговор — кратък безплатен 45-мин разговор за бизнеса
+1. Разговор — безплатен 45-мин разговор за бизнеса
 2. Дизайн — измисляме персонализирано решение
 3. Изграждане — 30 дни средно за пълна система
 4. Старт — инсталация на място + обучение + 30 дни безплатна поддръжка
@@ -232,7 +232,7 @@ export async function POST(request: Request) {
   // Suggestion chips — light heuristic.
   const suggestions: string[] = [];
   if (action !== "open_booking") suggestions.push("Запиши среща");
-  if (action !== "show_pricing") suggestions.push("Кажи цените");
+  if (action !== "show_pricing") suggestions.push("Как започваме?");
   suggestions.push("Какво правите?");
   if (!storedVisitor.email && action !== "open_contact_form") suggestions.push("Изпрати ми оферта по имейл");
 

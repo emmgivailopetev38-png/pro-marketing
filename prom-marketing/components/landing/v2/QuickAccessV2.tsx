@@ -52,7 +52,7 @@ export function QuickAccessV2() {
           </span>
           <span>
             <span className="block text-[15px] font-bold text-white">Консултация</span>
-            <span className="block text-xs text-slate-400">15 мин · безплатна</span>
+            <span className="block text-xs text-slate-400">45 мин · безплатна</span>
           </span>
         </button>
       </div>

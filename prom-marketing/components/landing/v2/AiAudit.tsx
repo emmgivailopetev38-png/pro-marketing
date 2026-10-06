@@ -189,7 +189,7 @@ export function AiAudit() {
             </div>
 
             <div className="av-reveal mt-3 rounded-xl border border-[var(--color-accent-cyan)]/25 bg-[var(--color-accent-cyan)]/[0.06] px-3 py-2.5" style={{ animationDelay: "300ms" }}>
-              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent-cyan)]">Очакван ефект</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-accent-cyan)]">Към какво се стремим</p>
               <p className="mt-0.5 text-[13px] font-semibold text-[var(--color-text-primary)]">{industry.roi}</p>
             </div>
 

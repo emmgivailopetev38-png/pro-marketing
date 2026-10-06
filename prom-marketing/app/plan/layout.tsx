@@ -23,9 +23,9 @@ const mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   alternates: { canonical: "/plan" },
-  title: "Платформа + AI — план, фази и цени",
+  title: "Платформа + AI — план и фази",
   description:
-    "Изграждане на бизнес платформа с изкуствен интелект — 3 фази, ясни цени и поддръжка.",
+    "Изграждане на бизнес платформа с изкуствен интелект — 3 фази, ясен план и поддръжка.",
   // Досега тази страница беше noindex и същевременно стоеше в картата
   // на сайта — противоречив сигнал, който Search Console отчита като
   // грешка. Страницата е публична, обемна и линкната от менюто, значи
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
 export default function PlanLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <PageSchema path="/plan" name="План и цени за AI платформа" description="Фази, пакети и поддръжка — как изглежда пътят от първия процес до свързана система." crumb="План и цени" />
+      <PageSchema path="/plan" name="План и фази за AI платформа" description="Фази, пакети и поддръжка — как изглежда пътят от първия процес до свързана система." crumb="План и фази" />
     <div
       className={`${display.variable} ${body.variable} ${mono.variable}`}
       style={

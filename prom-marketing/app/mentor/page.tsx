@@ -153,7 +153,7 @@ export default function MentorPage() {
 
           <div className="mt-20 flex flex-wrap gap-4">
             <a
-              href="#price"
+              href="#usloviya"
               className="inline-flex items-center gap-2 rounded-full border-2 px-6 py-3 text-sm font-bold uppercase tracking-[0.15em] transition-colors"
               style={{
                 borderColor: "var(--color-violet-bright)",
@@ -297,18 +297,19 @@ export default function MentorPage() {
         </div>
       </section>
 
-      {/* PRICE */}
+      {/* УСЛОВИЯ — без цена: сайтът не показва цени (04.10.2026).
+          Условията се уговарят на безплатния разговор. */}
       <section
-        id="price"
+        id="usloviya"
         className="relative border-t border-[var(--color-border-default)] py-32"
         style={{ background: "rgba(139, 92, 246, 0.04)" }}
       >
         <div className="mx-auto max-w-4xl px-6 md:px-12">
           <p className="mb-4 text-center font-[family-name:var(--font-mono)] text-xs uppercase tracking-[0.4em] text-[var(--color-violet-bright)]">
-            Инвестиция
+            Условия
           </p>
           <h2 className="mb-16 text-center font-[family-name:var(--font-editorial)] text-[clamp(32px,5vw,56px)] font-extrabold leading-[1.05]">
-            <span className="text-[var(--color-violet-bright)]">По запитване</span> за 4 месеца.
+            <span className="text-[var(--color-violet-bright)]">4 месеца</span>, лично с мен.
           </h2>
 
           <div
@@ -320,10 +321,10 @@ export default function MentorPage() {
           >
             <div className="mb-8 text-center">
               <p className="font-[family-name:var(--font-editorial)] text-6xl font-extrabold text-[var(--color-text-primary)] md:text-7xl">
-                По запитване
+                16 сесии
               </p>
               <p className="mt-2 font-mono text-xs uppercase tracking-[0.3em] text-[var(--color-text-tertiary)]">
-                без ДДС · за цялата 4-месечна програма
+                1-на-1 · онлайн · за цялата 4-месечна програма
               </p>
             </div>
 
@@ -335,13 +336,13 @@ export default function MentorPage() {
               }}
             >
               <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-violet-bright)]">
-                Условие на плащане
+                Как започваме
               </p>
               <p className="mt-2 font-[family-name:var(--font-editorial)] text-2xl font-bold text-[var(--color-text-primary)]">
-                Еднократно · По запитване
+                Безплатен 45-мин разговор
               </p>
               <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                Цялата сума се заплаща при стартиране на програмата.
+                Ако усетим, че си пасваме — уговаряме условията и датата на старта.
               </p>
             </div>
 

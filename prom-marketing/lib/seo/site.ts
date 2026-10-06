@@ -182,9 +182,9 @@ export const SUPPORTING_PAGES: SitemapEntry[] = [
   { path: "/kurs", priority: 0.7, changeFrequency: "monthly" },
   { path: "/mentor", priority: 0.7, changeFrequency: "monthly" },
   { path: "/jarvis", priority: 0.7, changeFrequency: "monthly" },
+  { path: "/robot", priority: 0.6, changeFrequency: "weekly" },
   { path: "/plan", priority: 0.6, changeFrequency: "monthly" },
   { path: "/partneri", priority: 0.6, changeFrequency: "monthly" },
-  { path: "/model", priority: 0.6, changeFrequency: "monthly" },
   { path: "/strategii", priority: 0.6, changeFrequency: "monthly" },
   { path: "/booking", priority: 0.6, changeFrequency: "monthly" },
   { path: "/demo/schetovodstvo", priority: 0.6, changeFrequency: "monthly" },
@@ -222,6 +222,8 @@ export const PRIVATE_PREFIXES = [
   "/ai-trading",
   "/v2",
   "/kurs/uspeh",
+  // Вътрешен документ за продуктовия модел (имена, маржове, план) — от 04.10.2026.
+  "/model",
 ] as const;
 
 export function isPrivatePath(path: string): boolean {

@@ -71,7 +71,7 @@ export default async function KursUspehPage({
             <p className="mt-3 text-[15px] leading-relaxed text-slate-300">
               {m.tagline} Доплащаш само{" "}
               <strong className="text-violet-200">разликата</strong>, защото курсът ти се
-              признава като кредит. Тази цена се предлага само на тази страница.
+              признава като кредит. Това условие се предлага само на тази страница.
             </p>
             <ul className="mt-5 space-y-2 text-[15px] text-slate-300">
               <li>• 16 лични 1-на-1 сесии — изграждаме твоята система заедно</li>

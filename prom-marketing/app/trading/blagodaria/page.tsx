@@ -53,8 +53,8 @@ export default function TradingThankYouPage() {
             <p className="flex items-start gap-3 text-[15px] text-slate-200">
               <PhoneCall className="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" />
               <span>
-                <strong className="text-white">Какво следва:</strong> до 24 часа ще ти позвъним/пишем за краткия
-                15-минутен разговор. Ако бързаш — запази си час сега:{" "}
+                <strong className="text-white">Какво следва:</strong> до 24 часа ще ти позвъним/пишем за безплатния
+                45-минутен разговор. Ако бързаш — запази си час сега:{" "}
                 <Link href="/booking" className="font-semibold text-emerald-300 underline underline-offset-4">
                   promarketing.pw/booking
                 </Link>

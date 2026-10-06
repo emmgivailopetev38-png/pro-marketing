@@ -297,7 +297,7 @@ export function VoiceCallForm({ location }: { location: string }) {
           </strong>
           <ul className="mt-2 space-y-1.5 text-sm text-slate-300">
             <li>„Имам онлайн магазин и не смогвам с обажданията за поръчки.“</li>
-            <li>„Колко струва това и за колко време се пуска?“</li>
+            <li>„За колко време се пуска и какво трябва от мен?“</li>
             <li>„Запиши ме за четвъртък сутринта.“</li>
           </ul>
         </div>

@@ -61,7 +61,7 @@ function BookForm({ location }: { location: string }) {
     <form onSubmit={submit} className="space-y-3">
       <input className={input} placeholder="Твоето име" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
       <input className={input} placeholder="Имейл (там пристига книгата)" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-      <input className={input} placeholder="Телефон (за 15-мин разговор — задължително)" type="tel" required minLength={6} value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
+      <input className={input} placeholder="Телефон (за 45-мин разговор — задължително)" type="tel" required minLength={6} value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
       <button
         type="submit"
         disabled={state === "sending"}
@@ -115,13 +115,13 @@ const FAQS = [
   },
   {
     q: "Защо първо разговор, а не направо плащане?",
-    a: "Защото работим лично и местата са малко. В 15 минути преценяваме честно дали можем да ти помогнем — ако не, ти го казваме и оставаш с книгата.",
+    a: "Защото работим лично и местата са малко. В 45 минути преценяваме честно дали можем да ти помогнем — ако не, ти го казваме и оставаш с книгата.",
   },
 ];
 
 const STEPS = [
   { icon: BookOpen, t: "1 · Книгата (днес)", b: "Пълната карта: архитектура, правила, бектест, демо, инструменти по нива." },
-  { icon: PhoneCall, t: "2 · 15-мин разговор (до 24ч)", b: "Къде си, какво търгуваш, какво искаш да автоматизираш. Честна преценка — става ли за теб." },
+  { icon: PhoneCall, t: "2 · 45-мин разговор (до 24ч)", b: "Къде си, какво търгуваш, какво искаш да автоматизираш. Честна преценка — става ли за теб." },
   { icon: Workflow, t: "3 · Изграждаме агента ти", b: "4 месеца 1-на-1: стратегия → правила → бектест → демо → изпълнение. Твоят агент, твоя собственост." },
 ];
 
@@ -296,9 +296,9 @@ export function TradingLanding() {
                 ))}
               </ul>
               <div className="rounded-2xl border border-white/10 bg-[rgba(0,0,0,0.3)] p-6 text-center">
-                <p className="font-mono text-xs uppercase tracking-[0.22em] text-slate-400">Инвестиция</p>
-                <p className="mt-2 text-4xl font-bold">По запитване</p>
-                <p className="mt-1 text-sm text-slate-400">{m.months} месеца · 16 лични сесии</p>
+                <p className="font-mono text-xs uppercase tracking-[0.22em] text-slate-400">Програмата</p>
+                <p className="mt-2 text-4xl font-bold">{m.months} месеца</p>
+                <p className="mt-1 text-sm text-slate-400">16 лични сесии · 1-на-1</p>
                 <a
                   href="#kniga"
                   onClick={() => track("cta_clicked", { location: "trading_mentorship", target: "book_form" })}

@@ -218,7 +218,7 @@ export function WebinarGiftDocument() {
         <View style={s.topBar} />
         <View style={s.body}>
           <Brand />
-          <Text style={s.eyebrow}>Безплатен подарък · стойност 90 €</Text>
+          <Text style={s.eyebrow}>Безплатен подарък</Text>
           <Text style={s.h1}>
             AI <Text style={s.h1Accent}>Стартов Пакет</Text>
           </Text>
