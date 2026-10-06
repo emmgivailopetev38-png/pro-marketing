@@ -94,7 +94,7 @@ export function signature(ctx?: BuildCtx): string {
 <p style="margin:10px 0 0;color:#4a5651;font-size:14px">
 <a href="${SITE}" style="color:#0b6b4a">promarketing.pw</a> ·
 <a href="${SITE}/demo" style="color:#0b6b4a">живото демо</a> ·
-<a href="${SITE}/booking" style="color:#0b6b4a">запази 20 минути</a> ·
+<a href="${SITE}/booking" style="color:#0b6b4a">запази 45 минути</a> ·
 <a href="${SITE}/automation-audit" style="color:#0b6b4a">безплатен AI одит</a> ·
 <a href="${YT}" style="color:#0b6b4a">YouTube</a>
 </p>${
@@ -116,7 +116,7 @@ export function signatureText(ctx?: BuildCtx): string {
 
 Сайт: ${SITE}
 Живо демо: ${SITE}/demo
-Запази 20 минути: ${SITE}/booking
+Запази 45 минути: ${SITE}/booking
 Безплатен AI одит: ${SITE}/automation-audit
 YouTube: ${YT}${ctx?.unsubscribeUrl ? `\n\nНе искаш повече писма? Спри ги оттук: ${ctx.unsubscribeUrl}` : ""}`;
 }

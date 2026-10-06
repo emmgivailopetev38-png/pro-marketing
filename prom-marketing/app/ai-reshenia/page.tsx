@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   // absolute: без него шаблонът лепи марката и заглавието минава 60 знака.
   title: { absolute: "AI решения за бизнес — агенти, системи, обучения" },
   description:
-    "AI чат и гласови агенти, CRM системи на нива, пакети сайт + CRM + реклами, обучения и абонаментна поддръжка. Подредени по нива, с цени по запитване.",
+    "AI чат и гласови агенти, CRM системи на нива, пакети сайт + CRM + реклами, обучения и абонаментна поддръжка. Подредени по нива.",
 };
 
 /**
@@ -47,7 +47,6 @@ const LEVELS = [
     icon: Bot,
     lvl: "Ниво 1",
     name: "CRM Основата",
-    price: "По запитване",
     desc: "CRM ядро, контакти, AI лийд капта от сайта и Meta. Достъпът, с който всичко започва.",
     color: "cyan",
   },
@@ -55,7 +54,6 @@ const LEVELS = [
     icon: Rocket,
     lvl: "Ниво 2",
     name: "CRM + AI Автопилот",
-    price: "По запитване",
     desc: "AI агенти за чат и имейл, автоматичен follow-up, оферти, напомняния — продажбите тръгват сами.",
     color: "violet",
   },
@@ -63,7 +61,6 @@ const LEVELS = [
     icon: Megaphone,
     lvl: "Ниво 3",
     name: "CRM + Реклами и Мащаб",
-    price: "По запитване",
     desc: "Управление на реклами, аналитика, AI отчети и оптимизация — пълният команден център.",
     color: "amber",
   },
@@ -71,7 +68,6 @@ const LEVELS = [
     icon: Wrench,
     lvl: "Всичко",
     name: "Уебсайт + CRM + Реклами + Цялата автоматизация",
-    price: "По запитване",
     desc: "Трите нива заедно + уебсайтът — от първата реклама до автоматичната продажба.",
     color: "emerald",
     featured: true,
@@ -82,21 +78,16 @@ const AGENTS = [
   {
     icon: Bot,
     name: "AI Чат Агент",
-    price: "По запитване",
-    approx: true,
     desc: "Отговаря на клиентите ти в сайта, Messenger и Instagram за секунди — 24/7, на естествен български. Внедряване до 7 дни.",
   },
   {
     icon: Headphones,
     name: "AI Гласов Агент",
-    price: "По запитване",
-    approx: true,
     desc: "Поема обаждания и гласови съобщения: отговаря, записва часове, потвърждава поръчки и звъни за напомняния — с човешки глас.",
   },
   {
     icon: LineChart,
     name: "Трейдинг Агент · обучение 1-на-1",
-    price: "По запитване",
     buy: "trading-mentorship" as const,
     desc: "4 месеца, 16 лични сесии: стратегия, правила, бектест, демо — собствен агент, който разбираш и притежаваш.",
   },
@@ -124,9 +115,9 @@ const VERTICALS = [
 ];
 
 const SUPPORT = [
-  { name: "Поддръжка S", price: "По запитване", desc: "Мониторинг, дребни корекции, месечен отчет." },
-  { name: "Поддръжка M", price: "По запитване", desc: "S + нови автоматизации всеки месец + приоритет." },
-  { name: "Поддръжка L", price: "По запитване", desc: "M + управление на рекламите + тримесечна стратегия." },
+  { name: "Поддръжка S", desc: "Мониторинг, дребни корекции, месечен отчет." },
+  { name: "Поддръжка M", desc: "S + нови автоматизации всеки месец + приоритет." },
+  { name: "Поддръжка L", desc: "M + управление на рекламите + тримесечна стратегия." },
 ];
 
 const COLOR_MAP: Record<string, { border: string; text: string; bg: string }> = {
@@ -177,7 +168,7 @@ export default function MagazinPage() {
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-[15px] text-slate-400">
             Учиш се сам, работиш с ментор — или ние строим вместо теб. Директна покупка със
-            Stripe за обученията; системите тръгват от 15-минутен разговор.
+            Stripe за обученията; системите тръгват от безплатен 45-минутен разговор.
           </p>
         </div>
       </section>
@@ -199,7 +190,6 @@ export default function MagazinPage() {
                 30-дневен курс: оферта, фуния, реклами, AI агенти, автоматични продажби — с всички
                 наши шаблони и живи Q&A сесии.
               </p>
-              <p className="mt-5 text-4xl font-bold">По запитване</p>
               <p className="mb-5 mt-1 text-xs text-slate-500">Еднократно · достъп завинаги</p>
               <CheckoutButton product="course">Купи курса →</CheckoutButton>
             </div>
@@ -212,7 +202,6 @@ export default function MagazinPage() {
               <p className="mt-2 flex-1 text-[15px] text-slate-300">
                 {m.tagline} Изграждаме твоята AI система за клиенти заедно — до резултат.
               </p>
-              <p className="mt-5 text-4xl font-bold">По запитване</p>
               <p className="mb-5 mt-1 text-xs text-slate-500">
                 4 месеца · 16 сесии
               </p>
@@ -227,7 +216,7 @@ export default function MagazinPage() {
         <CategoryHead
           n="② AI Агенти · внедряваме или те учим"
           title="Работници, които не спят"
-          sub="Чат, глас и трейдинг — агентът поема повтарящата се работа. Цените „от” са ориентир; финализираме заедно според обема."
+          sub="Чат, глас и трейдинг — агентът поема повтарящата се работа. Обхвата уточняваме заедно, според обема."
         />
         <SectionReveal>
           <div className="mb-8 grid gap-5 md:grid-cols-2">
@@ -242,16 +231,12 @@ export default function MagazinPage() {
                 <a.icon className="h-8 w-8 text-violet-300" />
                 <h3 className="mt-4 text-lg font-bold">{a.name}</h3>
                 <p className="mt-2 flex-1 text-[15px] text-slate-300">{a.desc}</p>
-                <p className="mt-5 text-3xl font-bold">
-                  {a.price}
-                  {a.approx && <span className="ml-2 align-middle text-xs font-normal text-slate-500">ориентир</span>}
-                </p>
                 <div className="mt-4 space-y-2.5">
                   {"buy" in a && a.buy ? (
                     <CheckoutButton product={a.buy}>Запази мястото си →</CheckoutButton>
                   ) : (
                     <>
-                      <OrderDialog service={`${a.name} (${a.price})`} />
+                      <OrderDialog service={a.name} />
                       <Link
                         href="/booking"
                         className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-slate-300 transition hover:border-violet-300/50 hover:text-violet-200"
@@ -300,12 +285,11 @@ export default function MagazinPage() {
                     <p className={`font-mono text-[10px] uppercase tracking-[0.24em] ${cm.text}`}>{l.lvl}</p>
                     <div className="mt-1 flex flex-wrap items-baseline justify-between gap-2">
                       <h3 className="break-words pr-2 font-bold text-white sm:pr-16">{l.name}</h3>
-                      <span className={`whitespace-nowrap font-mono text-xl font-bold ${cm.text}`}>{l.price}</span>
                     </div>
                     <p className="mt-1.5 text-sm text-slate-300">{l.desc}</p>
                     <div className="mt-4">
                       <OrderDialog
-                        service={`${l.lvl} · ${l.name} (${l.price})`}
+                        service={`${l.lvl} · ${l.name}`}
                         buttonLabel="Поръчай нивото"
                         className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/[0.06] px-5 py-2.5 text-sm font-bold text-white transition hover:border-cyan-400/50 hover:bg-cyan-400/10"
                       />
@@ -319,7 +303,7 @@ export default function MagazinPage() {
         <SectionReveal delay={120}>
           <div className="mt-6 rounded-2xl border border-white/10 bg-[rgba(255,255,255,0.03)] p-5 text-center text-sm text-slate-400">
             Искаш само <strong className="text-white">уебсайт + CRM</strong> без рекламите?{" "}
-            <strong className="text-cyan-300">По запитване</strong> — казваме точна цена след 15-минутния разговор.
+            Кажи го на <strong className="text-cyan-300">безплатния разговор</strong> — правим и само това.
           </div>
         </SectionReveal>
       </section>
@@ -329,7 +313,7 @@ export default function MagazinPage() {
         <CategoryHead
           n="④ Пакети по бизнес · виж живото демо"
           title="Готови машини за твоя бранш"
-          sub="Кликни демото — виждаш системата, която ще получиш, преди да говорим за цена."
+          sub="Кликни демото — виждаш системата, която ще получиш, още преди да сме говорили."
         />
         <div className="grid gap-6 lg:grid-cols-3">
           {VERTICALS.map((v, i) => (
@@ -369,7 +353,6 @@ export default function MagazinPage() {
             <SectionReveal key={s.name} delay={i * 70}>
               <div className="h-full rounded-3xl border border-white/10 bg-[rgba(255,255,255,0.03)] p-6 text-center transition hover:border-emerald-400/35">
                 <h3 className="font-bold text-white">{s.name}</h3>
-                <p className="mt-2 text-2xl font-bold text-emerald-300">{s.price}</p>
                 <p className="mt-2 text-sm text-slate-400">{s.desc}</p>
               </div>
             </SectionReveal>
@@ -383,14 +366,14 @@ export default function MagazinPage() {
           <div className="rounded-[28px] border border-cyan-400/25 bg-[rgba(7,14,16,0.8)] p-8">
             <h2 className="text-2xl font-bold">Не си сигурен кое ниво е за теб?</h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
-              15 минути разговор — казваме ти честно откъде да започнеш (често отговорът е
+              45 минути разговор — казваме ти честно откъде да започнеш (често отговорът е
               безплатното обучение).
             </p>
             <Link
               href="/booking"
               className="mt-6 inline-flex items-center gap-2.5 rounded-full bg-[var(--color-accent-cyan)] px-8 py-4 font-bold text-[var(--color-bg-void)] shadow-[0_0_44px_rgba(34,211,238,0.4)] transition hover:shadow-[0_0_70px_rgba(34,211,238,0.65)]"
             >
-              <Calendar className="h-5 w-5" /> Запази 15-мин разговор
+              <Calendar className="h-5 w-5" /> Запази 45-мин разговор
             </Link>
           </div>
         </SectionReveal>

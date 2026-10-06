@@ -106,7 +106,7 @@ export async function POST(request: Request) {
 <p>Здравей, ${escapeHtml(greetName)},</p>
 <p>Ето я книгата — пълната карта как се изгражда автоматизирана търговска система:</p>
 <p><a href="${SITE}${TRADING.book.pdfPath}" style="display:inline-block;background:#7c3aed;color:#fff;font-weight:bold;padding:12px 24px;border-radius:999px;text-decoration:none;">Свали книгата (PDF) →</a></p>
-<p><strong>Какво следва:</strong> в следващите 24 часа ще ти пишем/позвъним за кратък 15-минутен разговор — къде си с трейдинга и има ли смисъл да работим заедно по твоя агент. Без ангажимент, без натиск.</p>
+<p><strong>Какво следва:</strong> в следващите 24 часа ще ти пишем/позвъним за безплатен 45-минутен разговор — къде си с трейдинга и има ли смисъл да работим заедно по твоя агент. Без ангажимент, без натиск.</p>
 <p>Ако бързаш — запази си час директно: <a href="${SITE}/booking">${SITE}/booking</a></p>
 <p>${escapeHtml(TRADING.host.name)}<br/><span style="color:#667;">${escapeHtml(TRADING.host.role)}</span></p>
 <p style="margin-top:18px;font-size:11px;color:#8a8f9c;">${escapeHtml(TRADING_DISCLAIMER)}</p>
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
 
 Книгата „Трейдинг Агентът — наръчникът”: ${SITE}${TRADING.book.pdfPath}
 
-Какво следва: до 24 часа ще се свържем за кратък 15-мин разговор — къде си и можем ли да помогнем. Ако бързаш: ${SITE}/booking
+Какво следва: до 24 часа ще се свържем за безплатен 45-мин разговор — къде си и можем ли да помогнем. Ако бързаш: ${SITE}/booking
 
 ${TRADING.host.name}
 

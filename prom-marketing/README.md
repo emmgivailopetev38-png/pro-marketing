@@ -40,7 +40,7 @@ select pg_reload_conf();
 ## Cal.com setup
 
 1. Sign up at cal.com.
-2. Create event "Безплатна консултация" — 30 min.
+2. Create event "Безплатна консултация" — 45 min.
 3. Webhooks → Add → URL `https://<your-domain>/api/webhooks/cal`, secret → copy into `CAL_WEBHOOK_SECRET`.
 4. Subscribe to events: `BOOKING_CREATED`, `BOOKING_RESCHEDULED`, `BOOKING_CANCELLED`.
 

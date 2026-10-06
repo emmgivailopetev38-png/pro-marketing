@@ -1,10 +1,11 @@
 "use client";
 /* =====================================================================
    WebinarOffer — офертната страница след уебинара (/webinar/oferta).
-   Две нива: Курсът (уебинар цена) и Пълното ниво (курс + менторство
-   1-на-1 с −30%). Таймер до изтичане на офертата (48ч след събитието),
-   подаръците-бонуси и гаранцията. Тук водят слайдът от презентацията
-   и follow-up имейлите.
+   Две нива: Курсът и Пълното ниво (курс + менторство 1-на-1). Таймер
+   до изтичане на офертата (48ч след събитието), подаръците-бонуси и
+   гаранцията. Тук водят слайдът от презентацията и follow-up имейлите.
+   04.10.2026: без цени на страницата — сайтът не показва цени. Сумата
+   се вижда чак в плащането на Stripe.
    ===================================================================== */
 import { useEffect, useMemo, useState } from "react";
 import { Check, Clock3, Crown, GraduationCap, ShieldCheck } from "lucide-react";
@@ -28,7 +29,7 @@ function OfferCountdown() {
   if (diff <= 0) {
     return (
       <p className="font-mono text-sm uppercase tracking-[0.2em] text-rose-400">
-        Уебинар цените са изтекли — важат стандартните цени
+        Офертата за участници изтече
       </p>
     );
   }
@@ -49,8 +50,6 @@ function OfferCountdown() {
 export function WebinarOffer() {
   const c = OFFERS.course;
   const m = OFFERS.mentorship;
-  const fullRegular = m.priceEur; // 2000 — котвата на пълното ниво
-  const fullWebinar = m.webinarPriceEur; // 1400 (−30%)
 
   return (
     <main className="min-h-screen bg-[var(--color-bg-void)] px-6 py-16 text-white">
@@ -71,7 +70,7 @@ export function WebinarOffer() {
           <h1 className="mx-auto mt-3 max-w-2xl text-[clamp(30px,4.6vw,50px)] font-bold leading-[1.1]">
             Избери своето ниво —{" "}
             <span className="bg-gradient-to-r from-amber-200 to-amber-400 bg-clip-text text-transparent">
-              на уебинар цените
+              с бонусите за участници
             </span>
           </h1>
           <div className="mt-6">
@@ -98,12 +97,8 @@ export function WebinarOffer() {
                   </li>
                 ))}
               </ul>
-              <div className="mt-6 flex items-baseline gap-3">
-                <span className="text-lg text-slate-500 line-through">{c.priceEur} €</span>
-                <span className="text-5xl font-bold text-cyan-300">{c.webinarPriceEur} €</span>
-              </div>
-              <div className="mt-5">
-                <CheckoutButton product="course-webinar">Взимам курса · {c.webinarPriceEur} €</CheckoutButton>
+              <div className="mt-6">
+                <CheckoutButton product="course-webinar">Взимам курса</CheckoutButton>
               </div>
             </div>
           </SectionReveal>
@@ -111,7 +106,7 @@ export function WebinarOffer() {
           <SectionReveal delay={100}>
             <div className="relative flex h-full flex-col overflow-hidden rounded-[28px] border-2 border-amber-300/50 bg-[linear-gradient(160deg,rgba(251,191,36,0.1),rgba(124,58,237,0.08))] p-8 shadow-[0_0_80px_-20px_rgba(251,191,36,0.5)]">
               <span className="absolute right-5 top-5 rounded-full bg-[linear-gradient(135deg,#fbbf24,#f59e0b)] px-3.5 py-1.5 text-[11px] font-black uppercase tracking-wider text-[#3d2a00]">
-                −30% · най-избирано
+                най-пълно
               </span>
               <Crown className="h-9 w-9 text-amber-300" />
               <h2 className="mt-4 text-2xl font-bold">Ниво 2 · Пълното ниво</h2>
@@ -132,15 +127,8 @@ export function WebinarOffer() {
                   </li>
                 ))}
               </ul>
-              <div className="mt-6 flex items-baseline gap-3">
-                <span className="text-lg text-slate-500 line-through">{fullRegular} €</span>
-                <span className="text-5xl font-bold text-amber-300">{fullWebinar} €</span>
-                <span className="text-sm font-bold text-emerald-300">спестяваш {fullRegular - fullWebinar} €</span>
-              </div>
-              <div className="mt-5">
-                <CheckoutButton product="mentorship-webinar">
-                  Взимам пълното ниво · {fullWebinar} €
-                </CheckoutButton>
+              <div className="mt-6">
+                <CheckoutButton product="mentorship-webinar">Взимам пълното ниво</CheckoutButton>
               </div>
             </div>
           </SectionReveal>

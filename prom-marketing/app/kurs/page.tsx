@@ -86,8 +86,8 @@ export default function KursPage() {
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-300">{c.tagline}</p>
           <p className="mx-auto mt-3 max-w-2xl text-[15px] text-slate-400">
-            Същата система, която внедряваме на клиенти за хиляди евро — разглобена на стъпки, с
-            всички шаблони, за да я изградиш сам за 30 дни.
+            Същата система, която внедряваме на клиенти — разглобена на стъпки, с всички шаблони,
+            за да я изградиш сам за 30 дни.
           </p>
           <div className="mt-9 flex flex-col items-center gap-4">
             <CheckoutButton product="course">Запиши се</CheckoutButton>
@@ -135,13 +135,9 @@ export default function KursPage() {
           </div>
           <div className="flex flex-col justify-between rounded-3xl border border-cyan-400/30 bg-[linear-gradient(160deg,rgba(34,211,238,0.1),rgba(124,58,237,0.08))] p-8 shadow-[0_0_80px_-24px_rgba(34,211,238,0.5)]">
             <div>
-              <p className="font-mono text-xs uppercase tracking-[0.24em] text-cyan-300">Инвестиция</p>
-              <p className="mt-3 text-5xl font-bold">
-                По запитване
-              </p>
+              <p className="font-mono text-xs uppercase tracking-[0.24em] text-cyan-300">Достъп</p>
               <p className="mt-2 text-sm text-slate-400">
-                Еднократно · достъп завинаги.{" "}
-                
+                Еднократно · достъп завинаги.
               </p>
               <p className="mt-4 flex items-center gap-2 text-sm text-slate-400">
                 <Clock3 className="h-4 w-4 text-cyan-300" /> Една спестена оперативна седмица покрива курса.

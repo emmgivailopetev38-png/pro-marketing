@@ -50,6 +50,16 @@ export function ConversionFloats() {
     if (isCoarse) return;
 
     const trigger = () => {
+      // Флагът се проверява и тук: друг прозорец може да е показан, след като
+      // страницата се е заредила (иначе излизаха два един след друг).
+      try {
+        if (sessionStorage.getItem(EXIT_FLAG) === "1") {
+          document.removeEventListener("mouseout", onMouseOut);
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
       setOpen(true);
       track("exit_intent_open", {});
       try {
