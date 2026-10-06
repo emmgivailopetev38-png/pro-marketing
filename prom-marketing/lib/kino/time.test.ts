@@ -74,16 +74,18 @@ describe("главите", () => {
     expect([...starts].sort((a, b) => a - b)).toEqual(starts);
   });
 
-  it("точките от двигателя (черновата от 06.10, 46:17)", () => {
+  it("точките от двигателя (tochki-zala-v2.json — черновата v2, 46:21)", () => {
     const f = KINO.film;
     expect(formatClock(f.filmStartSec)).toBe("2:22");
-    expect(formatClock(f.numberAtSec)).toBe("33:16");
-    expect(formatClock(f.offerAtSec)).toBe("38:28");
-    expect(formatClock(f.againAtSec)).toBe("39:28");
-    expect(formatClock(f.qaAtSec)).toBe("41:12");
-    expect(formatClock(f.goodnightAtSec)).toBe("45:32");
-    expect(formatClock(f.postCreditsAtSec)).toBe("46:01");
-    expect(formatClock(f.durationSec)).toBe("46:17");
+    expect(formatClock(f.numberAtSec)).toBe("33:20");
+    expect(formatClock(f.offerAtSec)).toBe("38:32");
+    expect(formatClock(f.againAtSec)).toBe("39:32");
+    expect(formatClock(f.qaAtSec)).toBe("41:17");
+    expect(formatClock(f.goodnightAtSec)).toBe("45:36");
+    expect(formatClock(f.giftSceneAtSec)).toBe("45:53");
+    expect(formatClock(f.postCreditsAtSec)).toBe("46:06");
+    expect(formatClock(f.durationSec)).toBe("46:21");
+    expect(f.chapters.map((c) => c.startSec)).toEqual([142, 226.4, 396.9, 525.9, 645.5, 701.9, 870.8, 1011.5, 1377, 1543.8, 2017.7, 2063.8]);
     // редът: надписите → „Ето ни отново“ → въпросите → „Лека вечер“ → подаръкът → краят
     const order = [f.filmStartSec, f.numberAtSec, f.offerAtSec, f.againAtSec, f.qaAtSec, f.goodnightAtSec, f.giftSceneAtSec, f.postCreditsAtSec, f.durationSec];
     expect([...order].sort((a, b) => a - b)).toEqual(order);
@@ -99,7 +101,7 @@ describe("главите", () => {
 
   it("последната глава свършва с надписите", () => {
     const spans = chapterSpans(KINO.film.chapters, KINO.film.offerAtSec);
-    expect(spans.at(-1)).toMatchObject({ fromSec: 2059.4, toSec: KINO.film.offerAtSec });
+    expect(spans.at(-1)).toMatchObject({ fromSec: 2063.8, toSec: KINO.film.offerAtSec });
     expect(spans[0]).toMatchObject({ fromSec: 142, toSec: 226.4 });
   });
 });

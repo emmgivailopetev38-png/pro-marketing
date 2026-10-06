@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pickVariant } from "./video";
+import { pickVariant, pickVideoSet, parseVideoBlobName } from "./video";
 import { blobVideo, KINO } from "./config";
 
 const V = [
@@ -57,5 +57,55 @@ describe("подаръкът и формулата", () => {
     expect("url" in KINO.bonus).toBe(false);
     expect(JSON.stringify(KINO)).not.toMatch(/30-poruchki-za-ai-[A-Za-z0-9]+\.pdf/);
     expect(KINO.bonus.blobPrefix).toBe("kino/podaraci/30-poruchki-za-ai");
+  });
+});
+
+describe("коя версия на филма от Blob", () => {
+  const B = "https://x.public.blob.vercel-storage.com/";
+  const f = (pathname: string, at: string) => ({ pathname, url: B + pathname, uploadedAt: at });
+  const files = [
+    f("kino/film/chernova-v1-1080-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.mp4", "2026-10-06T09:14:00Z"),
+    f("kino/film/chernova-v1-720-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.mp4", "2026-10-06T09:15:00Z"),
+    f("kino/film/chernova-v1-poster-cccccccccccccccccccccccccccccc.jpg", "2026-10-06T09:16:00Z"),
+    f("kino/film/chernova-v2-1080-dddddddddddddddddddddddddddddd.mp4", "2026-10-06T12:20:00Z"),
+    f("kino/film/chernova-v2-720-eeeeeeeeeeeeeeeeeeeeeeeeeeeeee.mp4", "2026-10-06T12:21:00Z"),
+    f("kino/film/chernova-v2-poster-ffffffffffffffffffffffffffffff.jpg", "2026-10-06T12:22:00Z"),
+  ];
+
+  it("разчита името: версия, вид, разширение", () => {
+    expect(parseVideoBlobName("v2-1080-dddd.mp4")).toEqual({ ver: "v2", kind: "1080" });
+    expect(parseVideoBlobName("1080-dddd.mp4")).toEqual({ ver: "", kind: "1080" });
+    expect(parseVideoBlobName("v3-poster-x.jpg")).toEqual({ ver: "v3", kind: "poster" });
+    expect(parseVideoBlobName("v3-poster-x.mp4")).toBeNull();
+    expect(parseVideoBlobName("v3-1080-x.jpg")).toBeNull();
+    expect(parseVideoBlobName("v3-480-x.mp4")).toBeNull();
+  });
+
+  it("най-новата качена версия печели — целият ѝ комплект", () => {
+    const s = pickVideoSet(files, "kino/film/chernova-")!;
+    expect(s.version).toBe("v2");
+    expect(s.v1080).toContain("chernova-v2-1080-");
+    expect(s.v720).toContain("chernova-v2-720-");
+    expect(s.poster).toContain("chernova-v2-poster-");
+  });
+
+  it("v3 влиза само с качването; нов постер на стара версия не мести избора", () => {
+    const more = [
+      ...files,
+      f("kino/film/chernova-v1-poster-gggggggggggggggggggggggggggggg.jpg", "2026-10-07T08:00:00Z"),
+      f("kino/film/chernova-v3-1080-hhhhhhhhhhhhhhhhhhhhhhhhhhhhhh.mp4", "2026-10-09T10:00:00Z"),
+    ];
+    const s = pickVideoSet(more, "kino/film/chernova-")!;
+    expect(s.version).toBe("v3");
+    expect(s.v720).toBeNull();
+    expect(pickVideoSet(more.slice(0, 7), "kino/film/chernova-")!.version).toBe("v2");
+  });
+
+  it("закована версия (draftPin) и истинският филм без версия", () => {
+    expect(pickVideoSet(files, "kino/film/chernova-", "v1")!.v1080).toContain("chernova-v1-1080-");
+    expect(pickVideoSet(files, "kino/film/chernova-", "v9")).toBeNull();
+    const film = [f("kino/film/valnata-film-1080-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzz.mp4", "2026-10-14T10:00:00Z")];
+    expect(pickVideoSet(film, "kino/film/valnata-film-")).toMatchObject({ version: "", v1080: B + film[0].pathname, v720: null });
+    expect(pickVideoSet(files, "kino/film/valnata-film-")).toBeNull();
   });
 });
