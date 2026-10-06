@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { signTicket, verifyTicket, uuidToB64, b64ToUuid } from "./token";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { signTicket, verifyTicket, uuidToB64, b64ToUuid, isKinoDemoEnv, kinoSecret } from "./token";
 import { normalizePhone, isBgMobile, seatFor, pickUtm, utmLine, costOfWaiting, isDecisionMaker } from "./people";
 
 const ID = "3f2c8a1e-9b7d-4c3a-8e21-5d6f7a8b9c0d";
@@ -32,6 +32,45 @@ describe("билетът (токенът)", () => {
     const t = signTicket(ID, "тайна")!;
     const forged = `${uuidToB64(other)}.${t.split(".")[1]}`;
     expect(verifyTicket(forged, "тайна")).toBeNull();
+  });
+});
+
+describe("демо средата (без база, без тайни)", () => {
+  afterEach(() => vi.unstubAllEnvs());
+  const prod = () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("KINO_TOKEN_SECRET", "");
+    vi.stubEnv("INTERNAL_SEND_TOKEN", "");
+    vi.stubEnv("CRON_SECRET", "");
+  };
+
+  it("в продукцията без тайна — никакви билети (не и с публичния демо ключ)", () => {
+    prod();
+    vi.stubEnv("VERCEL_ENV", "production");
+    expect(isKinoDemoEnv()).toBe(false);
+    expect(kinoSecret()).toBeNull();
+  });
+
+  it("Vercel preview без база — демо: залата се разглежда цялата", () => {
+    prod();
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
+    expect(isKinoDemoEnv()).toBe(true);
+    expect(kinoSecret()).toBeTruthy();
+  });
+
+  it("preview С база вече не е демо", () => {
+    prod();
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://x.supabase.co");
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "secret");
+    expect(isKinoDemoEnv()).toBe(false);
+  });
+
+  it("истинската тайна винаги печели", () => {
+    prod();
+    vi.stubEnv("KINO_TOKEN_SECRET", "истинска");
+    expect(kinoSecret()).toBe("истинска");
   });
 });
 

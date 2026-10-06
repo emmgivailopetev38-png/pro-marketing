@@ -1,7 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { ADMIN_COOKIE, verifySession } from "@/lib/admin/session";
-import { contactFromTicket } from "./token";
+import { contactFromTicket, isKinoDemoEnv } from "./token";
 import { getContact, isDbConfigured, type KinoContact } from "./server";
 import { seatFor } from "./people";
 
@@ -36,7 +36,7 @@ export async function resolveViewer(t: string | null): Promise<KinoViewer> {
 }
 
 export async function canPreview(): Promise<boolean> {
-  if (process.env.NODE_ENV !== "production") return true;
+  if (isKinoDemoEnv()) return true;
   try {
     const c = (await cookies()).get(ADMIN_COOKIE)?.value ?? null;
     return verifySession(c);

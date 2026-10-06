@@ -14,6 +14,7 @@ import { smsText } from "@/lib/kino/schedule";
 import { sendSms, smsStatus } from "@/lib/kino/sms";
 import { kinoCapi, safeEventId } from "@/lib/kino/meta";
 import { isDbConfigured, kinoLinks, firstName, SCREENING } from "@/lib/kino/server";
+import { isKinoDemoEnv } from "@/lib/kino/token";
 
 export const dynamic = "force-dynamic";
 
@@ -78,9 +79,9 @@ export async function POST(request: Request) {
   const eventId = safeEventId(d.eventId) ?? `kino_reg_${Date.now()}`;
   const labels = premiereLabels();
 
-  // Локален преглед без база: билетът работи, нищо не се записва.
+  // Преглед без база (локално или Vercel preview): билетът работи, нищо не се записва.
   if (!isDbConfigured()) {
-    if (process.env.NODE_ENV === "production") {
+    if (!isKinoDemoEnv()) {
       return NextResponse.json({ error: "Записването е временно недостъпно. Опитай пак след малко." }, { status: 503 });
     }
     const links = kinoLinks(demoContactId(d.email));

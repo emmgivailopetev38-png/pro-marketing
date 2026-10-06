@@ -52,12 +52,22 @@ export function verifyTicket(token: string | null | undefined, secret: string | 
   return id;
 }
 
+/**
+ * „Демо“ средата: локално, или Vercel preview БЕЗ база (там env-овете са само
+ * за production). Тогава залата се разглежда цялата, без да пише никъде.
+ * В продукцията — никога.
+ */
+export function isKinoDemoEnv(): boolean {
+  if (process.env.NODE_ENV !== "production") return true;
+  const hasDb = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+  return process.env.VERCEL_ENV === "preview" && !hasDb;
+}
+
 export function kinoSecret(): string | null {
   const s =
     process.env.KINO_TOKEN_SECRET || process.env.INTERNAL_SEND_TOKEN || process.env.CRON_SECRET || null;
   if (s) return s;
-  // Локално (без env) залата трябва да се отваря за преглед. В продукцията — никога.
-  return process.env.NODE_ENV === "production" ? null : "kino-dev-secret-not-for-production";
+  return isKinoDemoEnv() ? "kino-dev-secret-not-for-production" : null;
 }
 
 export function ticketToken(contactId: string): string | null {
