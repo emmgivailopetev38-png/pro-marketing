@@ -3,6 +3,7 @@ import { kinoTimeline, sofiaParts, sofiaTimeLabel, sofiaDayLabel, premiereLabels
 import { buildFlowStages, activeStages, inAudience, smsText } from "./schedule";
 import { smsSegments } from "./sms";
 import { ticketEmail, flowEmail, welcomeEmail, depositEmail, type KinoEmailCtx } from "./emails";
+import { KINO } from "./config";
 
 const tl = kinoTimeline();
 const p = sofiaParts(tl.premiereMs);
@@ -133,6 +134,13 @@ describe("писмата — тонът от CLAUDE.md", () => {
     expect(saw.html).toContain("в понеделник, 19 октомври");
     expect(saw.text).toContain("Благодаря ти, че беше в залата");
     expect(missed.text).toContain("само веднъж, без запис");
+  });
+
+  it("писмото след края носи обещаната формула (PDF) — и на гледалите, и на пропусналите", () => {
+    for (const m of [flowEmail("after", ctx)!, flowEmail("after", { ...ctx, entered: false })!]) {
+      expect(m.html).toContain(`href="${KINO.formula.url}"`);
+      expect(m.text).toContain(KINO.formula.url);
+    }
   });
 
   it("капарото: часът за срещата и личният линк „доплати“", () => {

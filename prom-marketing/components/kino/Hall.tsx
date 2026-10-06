@@ -19,7 +19,7 @@ import { track } from "@/lib/analytics/track";
 import { useKinoClock } from "./useKinoClock";
 import { KinoPlayer, type PlayerApi } from "./KinoPlayer";
 import { OfferBlock, StickyOfferBar, CallPanel, useOfferActions } from "./Offer";
-import { WaitingCalculator, QuestionBox, NumberBox } from "./HallWidgets";
+import { WaitingCalculator, QuestionBox, NumberBox, FormulaLink } from "./HallWidgets";
 import { LiveJoin, useKinoLive } from "./LiveJoin";
 import { PosterArt } from "./PosterArt";
 
@@ -151,6 +151,8 @@ export function Hall(props: HallProps) {
   // ── „Твоето число“ (сцена 9.7): полето под филма излиза от numberAtSec ──
   const [hours, setHours] = useState<number | null>(props.hours);
   const numberOpen = (inFilm && (livePos >= FILM.numberAtSec || hours != null)) || phase === "after";
+  // „Формулата“ — за всички под филма от глава 9 и след филма
+  const formulaOpen = (inFilm && livePos >= KINO.formula.fromSec) || phase === "after";
 
   const beatMode: BeatMode | null = phase === "doors" ? "doors" : inFilm ? "premiere" : phase === "after" ? "offer" : null;
   const posRef = useRef(pos);
@@ -576,6 +578,9 @@ export function Hall(props: HallProps) {
           </div>
         )}
 
+        {/* ── ФОРМУЛАТА — PDF за всички (под филма от глава 9) ── */}
+        {formulaOpen && inFilm && <FormulaLink token={preview ? null : token} pos={getPos} />}
+
         {/* ── ТВОЕТО ЧИСЛО — полето под филма (след филма — под поканата) ── */}
         {numberOpen && inFilm && <NumberBox token={preview ? null : token} pos={getPos} saved={hours} onSaved={setHours} />}
 
@@ -592,11 +597,20 @@ export function Hall(props: HallProps) {
               {bonusData.body}
             </p>
             {bonusData.url ? (
-              <a className="k-btn k-btn--primary" style={{ marginTop: 14 }} href={bonusData.url} target="_blank" rel="noopener">
-                Вземи подаръка
+              <a
+                className="k-btn k-btn--primary"
+                style={{ marginTop: 14 }}
+                href={bonusData.url}
+                target="_blank"
+                rel="noopener"
+                onClick={() => {
+                  track("kino_bonus_download");
+                  if (token && !preview) void postJson("/api/kino/track", { k: "ev", t: token, type: "click", value: "bonus", pos: Math.round(posRef.current) });
+                }}
+              >
+                Свали подаръка (PDF)
               </a>
             ) : (
-              // ⚠ Подаръкът (KINO_BONUS_URL, само на сървъра) — решение на Ивайло
               <p className="k-muted" style={{ marginTop: 10 }}>
                 Подаръкът идва на имейла ти до 24 часа.
               </p>
@@ -623,6 +637,7 @@ export function Hall(props: HallProps) {
           />
         )}
         {numberOpen && !inFilm && <NumberBox token={preview ? null : token} pos={getPos} saved={hours} onSaved={setHours} />}
+        {formulaOpen && !inFilm && <FormulaLink token={preview ? null : token} pos={getPos} />}
 
         {(inFilm || phase === "after") && (
           <div className="k-hall-grid">

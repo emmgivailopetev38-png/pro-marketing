@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { pickVariant } from "./video";
-import { blobVideo } from "./config";
+import { blobVideo, KINO } from "./config";
 
 const V = [
   { src: "https://x/film-1080.mp4", height: 1080 },
@@ -44,5 +44,18 @@ describe("blobVideo", () => {
       ],
       poster: "https://b/p.jpg",
     });
+  });
+});
+
+describe("подаръкът и формулата", () => {
+  it("формулата е публичен PDF във Vercel Blob", () => {
+    expect(KINO.formula.url).toMatch(/^https:\/\/[a-z0-9]+\.public\.blob\.vercel-storage\.com\/kino\/podaraci\/formulata\.pdf$/);
+    expect(KINO.formula.fromSec).toBe(KINO.film.chapters.find((c) => c.n === 9)!.startSec);
+  });
+
+  it("адресът на подаръка НЕ е в конфигурацията (репото е публично) — само пътят в Blob", () => {
+    expect("url" in KINO.bonus).toBe(false);
+    expect(JSON.stringify(KINO)).not.toMatch(/30-poruchki-za-ai-[A-Za-z0-9]+\.pdf/);
+    expect(KINO.bonus.blobPrefix).toBe("kino/podaraci/30-poruchki-za-ai");
   });
 });

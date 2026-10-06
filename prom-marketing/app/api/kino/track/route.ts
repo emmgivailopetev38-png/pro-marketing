@@ -59,8 +59,9 @@ const BUTTONS: Record<string, string> = {
   stream: "Влизам в потока",
   deposit: "Пазя място с капаро",
   call: "Искам първо да поговорим",
-  bonus: "Вземи подаръка",
+  bonus: "Свали подаръка",
   live: "НА ЖИВО — включи се",
+  formula: "Свали формулата (PDF)",
 };
 
 const minuteOf = (pos?: number) => (pos != null ? ` (минута ${Math.floor(pos / 60) + 1})` : "");
@@ -231,10 +232,12 @@ export async function POST(request: Request) {
         .eq("screening_id", SCREENING)
         .eq("contact_id", contactId)
         .maybeSingle();
-      if (!error && w && watchedRatio(((w.minutes as number[] | null) ?? []).length) < KINO.bonus.minWatchedRatio) {
-        return NextResponse.json({ ok: true, unlocked: false, reason: "watch-more" });
-      }
-      if (!error && w) {
+      if (error && !isMissingSchema(error)) return NextResponse.json({ ok: false, unlocked: false, reason: "error" });
+      if (!error) {
+        // Само за изгледалите: без ред в kino_watch (не е гледал) или под прага — не.
+        if (!w || watchedRatio(((w.minutes as number[] | null) ?? []).length) < KINO.bonus.minWatchedRatio) {
+          return NextResponse.json({ ok: true, unlocked: false, reason: "watch-more" });
+        }
         await sb.rpc("kino_claim_milestones", { p_screening: SCREENING, p_contact: contactId, p_names: ["bonus"] });
       }
       await kinoEvent({ contactId, type: "bonus", pos });
@@ -247,7 +250,12 @@ export async function POST(request: Request) {
           dedupeKey: `kino:bonus:${SCREENING}`,
         }),
       );
-      return NextResponse.json({ ok: true, unlocked: true, bonus: { title: KINO.bonus.title, body: KINO.bonus.body, url: KINO.bonus.url } });
+      // Адресът на PDF-а не излиза оттук — само пътят до /api/kino/gift, който пак проверява отключването.
+      return NextResponse.json({
+        ok: true,
+        unlocked: true,
+        bonus: { title: KINO.bonus.title, body: KINO.bonus.body, url: `/api/kino/gift?t=${encodeURIComponent(body.t)}` },
+      });
     }
     case "booking": {
       const uid = typeof body.value === "string" && /^[\w-]{4,80}$/.test(body.value) ? body.value : null;

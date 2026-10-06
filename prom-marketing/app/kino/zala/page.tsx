@@ -98,7 +98,7 @@ export default async function ZalaPage({ searchParams }: Props) {
         preview={preview}
         video={video}
         hours={state.hours}
-        bonusUrl={state.bonusUnlocked || preview ? KINO.bonus.url : null}
+        bonusUrl={state.bonusUnlocked || preview ? `/api/kino/gift${viewer.token ? `?t=${encodeURIComponent(viewer.token)}` : ""}` : null}
       />
       <KinoFooter />
       {viewer.token && !preview && <ViewBeacon content="zala" token={viewer.token} />}

@@ -4,6 +4,7 @@ import { costOfWaiting } from "@/lib/kino/people";
 import { formatEur } from "@/lib/kino/pricing";
 import { postJson } from "@/lib/kino/browser";
 import { NUMBER_QUESTION, NUMBER_MAX_HOURS, cleanHours } from "@/lib/kino/questions";
+import { KINO } from "@/lib/kino/config";
 import { track } from "@/lib/analytics/track";
 
 /* Малките неща под екрана: калкулаторът, въпросите, „Твоето число“. */
@@ -200,5 +201,34 @@ export function QuestionBox({ token, pos }: { token: string | null; pos: () => n
         {state === "sending" ? "Изпращаме…" : "Изпрати въпроса"}
       </button>
     </form>
+  );
+}
+
+/**
+ * „Формулата“ (PDF) — за всички под филма от глава 9 и след филма. Кликът
+ * отива в картона (kino_click „formula“) — знак, че човекът действа.
+ */
+export function FormulaLink({ token, pos }: { token: string | null; pos: () => number }) {
+  return (
+    <div className="k-panel k-formula">
+      <div>
+        <p className="k-h3">📄 {KINO.formula.title}</p>
+        <p className="k-muted" style={{ margin: "4px 0 0", fontSize: "0.9rem" }}>
+          {KINO.formula.body}
+        </p>
+      </div>
+      <a
+        className="k-btn"
+        href={KINO.formula.url}
+        target="_blank"
+        rel="noopener"
+        onClick={() => {
+          track("kino_formula");
+          if (token) void postJson("/api/kino/track", { k: "ev", t: token, type: "click", value: "formula", pos: Math.round(pos()) });
+        }}
+      >
+        Свали формулата (PDF)
+      </a>
+    </div>
   );
 }

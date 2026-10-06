@@ -8,6 +8,7 @@
 #   <име>-1080.mp4  H.264 High, CRF 21, таван 3,5 Mbps, AAC 160k
 #   <име>-720.mp4   H.264 High, CRF 23, таван 1,6 Mbps, AAC 128k
 #   <име>-poster.jpg  кадър от 3-тата секунда (POSTER_AT=секунди за друг)
+# PRESET=medium ускорява кодирането (по подразбиране slow).
 # И двата MP4 са с +faststart (индексът е в началото → тръгва веднага и се
 # превърта с Range заявки, без HLS) и ключов кадър на 2 s (бързо „влизане в
 # текущата минута“). Плейърът избира 1080p само на широк екран и нормална мрежа.
@@ -22,9 +23,10 @@ in="${1:?Подай входния файл}"
 name="${2:-valnata-film}"
 out="${3:-./kino-out}"
 poster_at="${POSTER_AT:-3}"
+preset="${PRESET:-slow}"   # PRESET=medium — по-бързо (за черновите)
 mkdir -p "$out"
 
-common=(-c:v libx264 -preset slow -profile:v high -pix_fmt yuv420p -g 48 -keyint_min 48
+common=(-c:v libx264 -preset "$preset" -profile:v high -pix_fmt yuv420p -g 48 -keyint_min 48
   -movflags +faststart -c:a aac -ac 2 -ar 48000)
 
 ffmpeg -hide_banner -y -i "$in" -vf "scale=-2:1080:flags=lanczos" -crf 21 -maxrate 3500k -bufsize 7000k \

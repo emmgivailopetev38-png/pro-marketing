@@ -1402,6 +1402,21 @@ button.k-chapter {
   }
 }
 
+/* „Формулата“ — PDF под филма */
+.k-formula {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 18px;
+  border-color: rgba(34, 211, 238, 0.35);
+}
+.k-formula > div {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
 /* след филма — само поканата */
 .k-after {
   margin-top: 4px;

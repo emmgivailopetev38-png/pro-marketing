@@ -159,8 +159,13 @@ const BUTTON_LABEL: Record<string, string> = {
   installments: "3 вноски",
   deposit: "Капаро",
   call: "Да поговорим",
-  bonus: "Подаръкът",
+  bonus: "Подаръкът (PDF)",
+  formula: "Формулата (PDF)",
+  live: "НА ЖИВО",
 };
+
+/** Бутоните на поканата — само те са „натиснал бутон“ в таблото. */
+const OFFER_BUTTONS = new Set(["stream", "full", "installments", "deposit", "call"]);
 
 export async function loadKinoDashboard(): Promise<KinoDashboard> {
   if (!isDbConfigured()) return empty("Няма Supabase env — таблото е празно (локален преглед).", false);
@@ -392,7 +397,7 @@ export async function loadKinoDashboard(): Promise<KinoDashboard> {
       cameLive: watches.filter((w) => (w.minutes ?? []).length > 0).length,
       watched50: watches.filter((w) => watchedRatio((w.minutes ?? []).length) >= 0.5).length,
       reachedEnd: watches.filter((w) => (w.milestones ?? []).includes("end")).length,
-      clickers: clicksBy.size,
+      clickers: [...clicksBy.values()].filter((set) => [...set].some((b) => OFFER_BUTTONS.has(b))).length,
       questions: byType("kino_question").length,
       bookings: new Set(byType("kino_booking").map((a) => a.contact_id)).size,
       deposits: depositors.size,
