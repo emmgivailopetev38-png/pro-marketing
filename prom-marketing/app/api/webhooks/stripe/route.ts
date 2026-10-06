@@ -7,6 +7,7 @@ import { escapeHtml } from "@/lib/email/escape";
 import { CHECKOUT_PRODUCTS, isCheckoutProductId } from "@/lib/stripe/products";
 import { findPayLinkOffer } from "@/lib/stripe/pay-link-offer";
 import { setOfferStatus } from "@/lib/crm/repository";
+import { handleKinoStripeEvent } from "@/lib/kino/stripe";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ export const dynamic = "force-dynamic";
  * Настройка в Stripe Dashboard → Developers → Webhooks:
  *   endpoint: https://promarketing.pw/api/webhooks/stripe
  *   event:    checkout.session.completed
+ *             + invoice.paid (вноските на киното — спират сами след третата)
  * Env: STRIPE_SECRET_KEY + STRIPE_WEBHOOK_SECRET (whsec_…).
  */
 export async function POST(request: Request) {
@@ -38,6 +40,14 @@ export async function POST(request: Request) {
     event = await stripe.webhooks.constructEventAsync(payload, signature ?? "", whSecret);
   } catch {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  }
+
+  // Онлайн киното „ВЪЛНАТА“ (metadata.funnel = "kino") има свой път: поток,
+  // 3 вноски, капаро → CRM + имейли (lib/kino/stripe.ts). Всичко друго
+  // продължава по стария код без промяна.
+  const kino = await handleKinoStripeEvent(stripe, event);
+  if (kino.handled) {
+    return NextResponse.json({ ok: true, kino: kino.info ?? null });
   }
 
   if (event.type !== "checkout.session.completed") {
