@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   const title = `🔔 Иска следващата прожекция на „${KINO.title}“`;
   const contactId = d.t ? contactFromTicket(d.t) : null;
   if (contactId) {
-    await kinoLog({ contactId, type: "kino_waitlist", title, dedupeKey: "kino:waitlist" });
+    await kinoLog({ contactId, type: "kino_waitlist", title, dedupeKey: `kino:waitlist:${SCREENING}` });
     return NextResponse.json({ ok: true });
   }
   const phone = d.phone ? normalizePhone(d.phone) : null;
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       type: "kino_waitlist",
       title,
       created_by: "website",
-      dedupe_key: "kino:waitlist",
+      dedupe_key: `kino:waitlist:${SCREENING}`,
       metadata: { funnel: "kino", screening: SCREENING },
     },
   });

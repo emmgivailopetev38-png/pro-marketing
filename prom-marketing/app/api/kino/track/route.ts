@@ -132,7 +132,7 @@ export async function POST(request: Request) {
             title: milestoneTitle(m as Parameters<typeof milestoneTitle>[0], body.mode),
             body: `Позиция ${formatClock(st.max_pos ?? 0)} · изгледани ${Math.round(ratio * 100)} % (${st.minutes ?? 0} мин).`,
             metadata: { milestone: m, mode: body.mode, pos: st.max_pos ?? 0, ratio },
-            dedupeKey: `kino:watch:${m}`,
+            dedupeKey: `kino:watch:${SCREENING}:${m}`,
           });
         }
       });
@@ -189,7 +189,7 @@ export async function POST(request: Request) {
           type: "kino_click",
           title: `👆 Натисна „${BUTTONS[button]}“${minuteOf(body.pos)}`,
           metadata: { button, pos: body.pos ?? null },
-          dedupeKey: `kino:click:${button}`,
+          dedupeKey: `kino:click:${SCREENING}:${button}`,
         }),
       );
       return NextResponse.json({ ok: true });
@@ -210,7 +210,7 @@ export async function POST(request: Request) {
           title: `🧮 Калкулатор: чакането му струва ~${formatEur(Math.round(r.yearlyEur))} на година`,
           body: `${Number(m.inquiries)} запитвания седмично × 52 × ${Number(m.rate)} % клиенти × ${formatEur(Number(m.value))}`,
           metadata: { inquiries: Number(m.inquiries), rate: Number(m.rate), value: Number(m.value), yearly: Math.round(r.yearlyEur) },
-          dedupeKey: `kino:calc:${Math.round(r.yearlyEur / 500)}`,
+          dedupeKey: `kino:calc:${SCREENING}:${Math.round(r.yearlyEur / 500)}`,
         }),
       );
       return NextResponse.json({ ok: true });
@@ -240,7 +240,7 @@ export async function POST(request: Request) {
           type: "kino_bonus",
           title: "🎁 Отключи подаръка след надписите",
           body: `„${KINO.bonus.title}“`,
-          dedupeKey: "kino:bonus",
+          dedupeKey: `kino:bonus:${SCREENING}`,
         }),
       );
       return NextResponse.json({ ok: true, unlocked: true, bonus: { title: KINO.bonus.title, body: KINO.bonus.body, url: KINO.bonus.url } });
@@ -256,7 +256,7 @@ export async function POST(request: Request) {
           title: "📅 Записа разговор от залата",
           body: uid ? `Cal.com резервация ${uid}` : null,
           metadata: { cal_uid: uid, ...(body.meta ?? {}) },
-          dedupeKey: `kino:booking:${uid ?? "x"}`,
+          dedupeKey: `kino:booking:${SCREENING}:${uid ?? "x"}`,
         });
         if (eventId) {
           const c = await getContact(contactId);

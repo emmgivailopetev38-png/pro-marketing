@@ -145,9 +145,18 @@ function calUrl(): string {
   return `https://cal.com/${KINO.cal.link}`;
 }
 
+/**
+ * Запис, без който плащането „изчезва“ от CRM-а. Не мине ли — грешка към
+ * webhook-а → 500 → Stripe опитва пак (всички записи са с ключ против двойно).
+ */
+function must(r: { error: string | null; activity_id?: string | null; id?: string | null }, what: string): void {
+  const done = (r.activity_id ?? r.id ?? null) !== null;
+  if (r.error && !done) throw new Error(`${what}: ${r.error}`);
+}
+
 /** Една платена вноска / плащане — в счетоводството на CRM-а (dedupe по ключ на Stripe). */
 async function bookPayment(args: { contactId: string; amountEur: number; paidAtSec: number; name: string; ref: string; dedupe: string }) {
-  await upsertPayment({
+  const r = await upsertPayment({
     contact_id: args.contactId,
     amount: args.amountEur,
     currency: "EUR",
@@ -158,7 +167,8 @@ async function bookPayment(args: { contactId: string; amountEur: number; paidAtS
     source: "manual",
     notes: `Кино „${KINO.title}“ · ${args.ref}`,
     dedupe_key: args.dedupe,
-  }).catch(() => null);
+  });
+  must(r, "плащането");
 }
 
 async function handleSession(s: Stripe.Checkout.Session): Promise<string> {
@@ -174,7 +184,7 @@ async function handleSession(s: Stripe.Checkout.Session): Promise<string> {
   const links = kinoLinks(contact.id);
 
   if (plan === "deposit") {
-    await kinoLog({
+    const act = await kinoLog({
       contactId: contact.id,
       type: "kino_deposit",
       title: `🔒 Капаро ${formatEur(amount)} · пази място в потока`,
@@ -184,8 +194,11 @@ async function handleSession(s: Stripe.Checkout.Session): Promise<string> {
       followupStatus: "ready_to_close",
       dealValueEur: Math.round(total),
     });
-    await kinoEvent({ contactId: contact.id, type: "deposit", value: plan, amountEur: amount, meta: { session_id: s.id } });
+    must(act, "капарото");
     await bookPayment({ contactId: contact.id, amountEur: amount, paidAtSec: s.created, name: contact.full_name ?? fullName ?? email, ref: "Кино · капаро", dedupe: `stripe:${s.id}` });
+    // Повторна доставка от Stripe — записът вече го има: без второ писмо и известие.
+    if (!act.created) return "deposit (повторно)";
+    await kinoEvent({ contactId: contact.id, type: "deposit", value: plan, amountEur: amount, meta: { session_id: s.id } });
     if (contact.email) {
       const m = depositEmail({ name, amountLine: formatEur(amount), calUrl: calUrl(), payUrl: links ? `${SITE}/kino/plashtane?t=${links.token}` : null });
       await sendEmail({ to: contact.email, ...m }).catch(() => null);
@@ -204,7 +217,7 @@ async function handleSession(s: Stripe.Checkout.Session): Promise<string> {
   const planLine = isSub
     ? `вноска 1 от ${s.metadata?.installments ?? "3"} · ${formatEur(amount)}`
     : `${formatEur(amount)} · пълно плащане`;
-  await kinoLog({
+  const act = await kinoLog({
     contactId: contact.id,
     type: "kino_payment",
     title: `💳 Влезе в потока · ${planLine}`,
@@ -214,14 +227,7 @@ async function handleSession(s: Stripe.Checkout.Session): Promise<string> {
     stage: "won",
     dealValueEur: Math.round(total),
   });
-  await kinoLog({
-    contactId: contact.id,
-    type: "kino_academy",
-    title: "🎓 Да се отключи Академията — влезе в потока",
-    body: `Покана на ${contact.email ?? email} (Академия → Покани). Писмото „Добре дошъл“ обещава покана до 24 часа.`,
-    dedupeKey: `kino:academy:${contact.id}`,
-  });
-  await kinoEvent({ contactId: contact.id, type: "payment", value: plan, amountEur: amount, meta: { session_id: s.id, total_eur: total } });
+  must(act, "плащането в CRM-а");
   await bookPayment({
     contactId: contact.id,
     amountEur: amount,
@@ -230,6 +236,16 @@ async function handleSession(s: Stripe.Checkout.Session): Promise<string> {
     ref: isSub ? "Кино · вноска 1" : "Кино · поток",
     dedupe: isSub && invoiceId ? `stripe:inv:${invoiceId}` : `stripe:${s.id}`,
   });
+  // Повторна доставка от Stripe — всичко вече е записано: без второ писмо, известие и Purchase.
+  if (!act.created) return isSub ? "installment-1 (повторно)" : "full (повторно)";
+  await kinoLog({
+    contactId: contact.id,
+    type: "kino_academy",
+    title: "🎓 Да се отключи Академията — влезе в потока",
+    body: `Покана на ${contact.email ?? email} (Академия → Покани). Писмото „Добре дошъл“ обещава покана до 24 часа.`,
+    dedupeKey: `kino:academy:${SCREENING}:${contact.id}`,
+  });
+  await kinoEvent({ contactId: contact.id, type: "payment", value: plan, amountEur: amount, meta: { session_id: s.id, total_eur: total } });
   if (contact.email) {
     await sendEmail({ to: contact.email, ...welcomeEmail({ name, planLine, calUrl: calUrl() }) }).catch(() => null);
   }
@@ -248,8 +264,19 @@ async function handleSession(s: Stripe.Checkout.Session): Promise<string> {
   return isSub ? "installment-1" : "full";
 }
 
+/**
+ * Абонаментът и неговите metadata във фактурата. От API 2025-03-31 те са в
+ * `parent.subscription_details`; по-старите версии (webhook адресите в Stripe
+ * пазят версията, с която са създадени) ги дават направо във фактурата.
+ */
+type LegacyInvoice = { subscription?: string | { id: string } | null; subscription_details?: { metadata?: Stripe.Metadata | null } | null };
+
+function subscriptionMetaOf(inv: Stripe.Invoice): Stripe.Metadata | null {
+  return inv.parent?.subscription_details?.metadata ?? (inv as unknown as LegacyInvoice).subscription_details?.metadata ?? null;
+}
+
 function subscriptionIdOf(inv: Stripe.Invoice): string | null {
-  const sub = inv.parent?.subscription_details?.subscription ?? null;
+  const sub = inv.parent?.subscription_details?.subscription ?? (inv as unknown as LegacyInvoice).subscription ?? null;
   return typeof sub === "string" ? sub : (sub?.id ?? null);
 }
 
@@ -268,17 +295,20 @@ export async function enforceInstallmentLimit(stripe: Stripe, subscriptionId: st
 }
 
 async function handleInvoice(stripe: Stripe, inv: Stripe.Invoice): Promise<string> {
-  const meta = inv.parent?.subscription_details?.metadata ?? null;
+  const meta = subscriptionMetaOf(inv);
   const subId = subscriptionIdOf(inv);
   if (!subId) return "no subscription";
   const total = Number(meta?.installments) || KINO.prices.installments;
+  const { paid, stopped } = await enforceInstallmentLimit(stripe, subId, total);
+  // Първата вноска я записва checkout.session.completed (идват почти едновременно —
+  // два записа на една вноска биха я преброили двойно).
+  if (inv.billing_reason === "subscription_create") return `installment 1/${total} (от сесията)${stopped ? " · stop" : ""}`;
   const email = (inv.customer_email ?? "").toLowerCase();
   const contact = await resolveContact(meta, email, inv.customer_name ?? null);
-  const { paid, stopped } = await enforceInstallmentLimit(stripe, subId, total);
   if (!contact) return `paid ${paid}/${total}, no contact`;
   const amount = (inv.amount_paid ?? 0) / 100;
   const n = Math.max(1, Math.min(paid, total));
-  await kinoLog({
+  const act = await kinoLog({
     contactId: contact.id,
     type: "kino_payment",
     title: `💳 Вноска ${n} от ${total} · ${formatEur(amount)}`,
@@ -287,6 +317,7 @@ async function handleInvoice(stripe: Stripe, inv: Stripe.Invoice): Promise<strin
     dedupeKey: `kino:inst:${inv.id}`,
     stage: "won",
   });
+  must(act, "вноската");
   await bookPayment({
     contactId: contact.id,
     amountEur: amount,
@@ -295,7 +326,7 @@ async function handleInvoice(stripe: Stripe, inv: Stripe.Invoice): Promise<strin
     ref: `Кино · вноска ${n}`,
     dedupe: `stripe:inv:${inv.id}`,
   });
-  if (inv.billing_reason !== "subscription_create") {
+  if (act.created) {
     await kinoEvent({ contactId: contact.id, type: "payment", value: "installments", amountEur: amount, meta: { invoice_id: inv.id, installment: n } });
   }
   return `installment ${n}/${total}${stopped ? " · stop" : ""}`;
@@ -315,7 +346,7 @@ export async function handleKinoStripeEvent(stripe: Stripe, event: Stripe.Event)
   }
   if (event.type === "invoice.paid") {
     const inv = event.data.object as Stripe.Invoice;
-    if (inv.parent?.subscription_details?.metadata?.funnel !== "kino") return { handled: false };
+    if (subscriptionMetaOf(inv)?.funnel !== "kino") return { handled: false };
     return { handled: true, info: await handleInvoice(stripe, inv) };
   }
   return { handled: false };

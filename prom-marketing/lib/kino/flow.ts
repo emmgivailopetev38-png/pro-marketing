@@ -7,7 +7,7 @@ import { KINO } from "./config";
 import { kinoTimeline, premiereLabels, sofiaParts } from "./time";
 import { buildFlowStages, activeStages, inAudience, smsText, type FlowStage } from "./schedule";
 import { flowEmail, type KinoEmailCtx } from "./emails";
-import { seatFor } from "./people";
+import { seatFor, normalizePhone } from "./people";
 import { isDbConfigured, kinoLinks, firstName, SCREENING } from "./server";
 import { sendSms, smsStatus } from "./sms";
 
@@ -60,9 +60,12 @@ async function idsWithActivity(contactIds: string[], type: string, filter?: (m: 
   const out = new Set<string>();
   for (const part of chunks(contactIds, 300)) {
     // PostgREST връща най-много 1000 реда — по страници (виж lib/supabase/all-rows.ts).
-    const { rows: data } = await allRows<{ id: string; contact_id: string; metadata: unknown }>((from, to) =>
+    const { rows: data, error } = await allRows<{ id: string; contact_id: string; metadata: unknown }>((from, to) =>
       sb.from("contact_activities").select("id, contact_id, metadata").eq("activity_type", type).in("contact_id", part).order("id").range(from, to),
     );
+    // Непълен списък = опасен списък („вече пратени“ празен → всички пак;
+    // „отписани“ празен → писма до отписали се). Затова грешката спира всичко.
+    if (error) throw new Error(`${type}: ${error}`);
     for (const r of data) {
       const m = (r.metadata ?? {}) as Record<string, unknown>;
       if (!filter || filter(m)) out.add(r.contact_id as string);
@@ -73,6 +76,14 @@ async function idsWithActivity(contactIds: string[], type: string, filter?: (m: 
 
 /** Едно завъртане. Вика се от /api/cron/kino-flow (на 15 минути). */
 export async function runKinoFlow(now = new Date()): Promise<KinoFlowResult> {
+  try {
+    return await runKinoFlowOnce(now);
+  } catch (e) {
+    return { ran: true, stagesActive: [], sent: [], skipped: [], errors: [`спряно: ${e instanceof Error ? e.message : String(e)}`] };
+  }
+}
+
+async function runKinoFlowOnce(now: Date): Promise<KinoFlowResult> {
   const started = Date.now();
   const base: KinoFlowResult = { ran: false, stagesActive: [], sent: [], skipped: [], errors: [] };
   if (!kinoFlowEnabled()) return { ...base, reason: "Изключено: KINO_FLOW_ENABLED не е 1" };
@@ -107,7 +118,11 @@ export async function runKinoFlow(now = new Date()): Promise<KinoFlowResult> {
 
   const optedOut = await idsWithActivity(ids, "note", (m) => m.email_opt_out === true);
   const entered = await idsWithActivity(ids, "kino_watch", (m) => m.screening === SCREENING && m.milestone === "entered");
-  const bought = await idsWithActivity(ids, "kino_payment", (m) => m.screening === SCREENING);
+  // „Купил“ за напомнянията = платил потока ИЛИ капаро: на тях им звъним, не им пишем „затваряме“.
+  const bought = new Set([
+    ...(await idsWithActivity(ids, "kino_payment", (m) => m.screening === SCREENING)),
+    ...(await idsWithActivity(ids, "kino_deposit", (m) => m.screening === SCREENING)),
+  ]);
 
   const labels = premiereLabels();
   const resendKey = process.env.RESEND_API_KEY;
@@ -197,6 +212,9 @@ export async function runKinoFlow(now = new Date()): Promise<KinoFlowResult> {
         let count = 0;
         for (const p of audience) {
           if (!p.phone || done.has(p.id)) continue;
+          // Старите картони пазят „0888 …“ — към Twilio отива +359…
+          const ph = normalizePhone(p.phone);
+          if (!ph.ok || !ph.bg) continue;
           if (Date.now() - started > BUDGET_MS) {
             skipped.push(`${stage.id}: SMS — времето свърши`);
             break;
@@ -204,7 +222,7 @@ export async function runKinoFlow(now = new Date()): Promise<KinoFlowResult> {
           const links = kinoLinks(p.id);
           const body = links ? smsText(stage.id, links.short.replace(/^https?:\/\//, ""), { day: labels.short.split(" · ")[0], time: labels.time }) : null;
           if (!body) continue;
-          const r = await sendSms(p.phone, body);
+          const r = await sendSms(ph.e164, body);
           if (!r.ok) {
             errors.push(`${stage.id} SMS → ${p.id}: ${r.error}`);
             continue;

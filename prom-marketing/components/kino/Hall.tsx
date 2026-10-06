@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { KINO } from "@/lib/kino/config";
+import { KINO, type KinoVideoSource } from "@/lib/kino/config";
 import {
   kinoTimeline,
   phaseAt,
@@ -35,8 +35,6 @@ const tl = kinoTimeline();
 const FILM = KINO.film;
 const labels = premiereLabels();
 const BEAT_MS = 15_000;
-const VIDEO = KINO.video;
-const PLAYABLE = VIDEO.kind !== "none";
 
 export interface HallProps {
   token: string | null;
@@ -53,6 +51,10 @@ export interface HallProps {
   preview: boolean;
   /** горната лента на страницата — рисува се ПОД лентата на прегледа */
   top?: React.ReactNode;
+  /** филмът (Blob MP4 / HLS / YouTube) или „none“ — суха прожекция с надписи */
+  video: KinoVideoSource;
+  /** линкът към подаръка — идва от сървъра само на отключилите (и в прегледа) */
+  bonusUrl: string | null;
 }
 
 type Mode = "premiere" | "live" | "replay";
@@ -122,7 +124,8 @@ function TitleCard({ pos, note }: { pos: number; note?: string }) {
 }
 
 export function Hall(props: HallProps) {
-  const { token, preview } = props;
+  const { token, preview, video } = props;
+  const playable = video.kind !== "none";
   const { now } = useKinoClock({ initialMs: props.initialNow, simMs: props.simMs, tickMs: 500 });
   const phase = phaseAt(now, tl);
   const [wantReplay, setWantReplay] = useState(false);
@@ -147,7 +150,7 @@ export function Hall(props: HallProps) {
     let last = performance.now();
     const id = window.setInterval(() => {
       const t = performance.now();
-      if (PLAYABLE) {
+      if (playable) {
         const p = player.current;
         if (p) setReplayPos(p.time());
       } else if (dryPlaying) {
@@ -156,10 +159,16 @@ export function Hall(props: HallProps) {
       last = t;
     }, 500);
     return () => window.clearInterval(id);
-  }, [mode, showsFilm, dryPlaying]);
+  }, [mode, showsFilm, dryPlaying, playable]);
 
   const pos = mode === "premiere" ? livePos : mode === "replay" ? replayPos : FILM.durationSec;
-  const filmPlaying = mode === "premiere" ? (PLAYABLE ? playing : armed) : mode === "replay" ? (PLAYABLE ? playing : dryPlaying) : false;
+  const filmPlaying = mode === "premiere" ? (playable ? playing : armed) : mode === "replay" ? (playable ? playing : dryPlaying) : false;
+
+  // Дължината на файла. По-късо видео от живата секунда (пробата с тийзъра,
+  // или самият край на филма) → плейърът спира на последния кадър, не се
+  // върти в кръг и не брои това за „пауза от човека“.
+  const [videoDur, setVideoDur] = useState<number | null>(null);
+  const pastVideoEnd = playable && mode === "premiere" && videoDur != null && livePos >= videoDur - 0.5;
 
   // ── поканата: точно в offerAt; видяна веднъж — остава ──
   const store = useMemo(() => offerStore(`kino_offer_${KINO.screening.id}_${token ?? "anon"}`), [token]);
@@ -192,7 +201,12 @@ export function Hall(props: HallProps) {
   // ── премиерата: плейърът върви по часа ──
   useEffect(() => {
     const p = player.current;
-    if (!PLAYABLE || !p || phase !== "film" || !armed || userPausedRef.current) return;
+    if (!playable || !p || phase !== "film" || !armed || userPausedRef.current) return;
+    const dur = p.duration();
+    if (dur != null && livePos >= dur - 0.5) {
+      if (p.playing()) p.pause();
+      return;
+    }
     if (Math.abs(p.time() - livePos) > 3) p.seek(livePos);
     if (!p.playing() && !tryingPlay.current) {
       tryingPlay.current = true;
@@ -204,7 +218,7 @@ export function Hall(props: HallProps) {
         tryingPlay.current = false;
       });
     }
-  }, [now, phase, armed, livePos]);
+  }, [now, phase, armed, livePos, playable]);
 
   // ── реакциите, които летят по екрана ──
   const [floats, setFloats] = useState<Float[]>([]);
@@ -268,7 +282,7 @@ export function Hall(props: HallProps) {
 
   // ── бонусът след надписите ──
   const reachedBonus = showsFilm && pos >= FILM.postCreditsAtSec + 15;
-  const defaultBonus: BonusData = { title: KINO.bonus.title, body: KINO.bonus.body, url: KINO.bonus.url };
+  const defaultBonus: BonusData = { title: KINO.bonus.title, body: KINO.bonus.body, url: props.bonusUrl };
   const [bonus, setBonus] = useState<{ state: "locked" | "open" | "more"; data?: BonusData }>(
     props.bonusUnlocked ? { state: "open", data: defaultBonus } : { state: "locked" },
   );
@@ -285,13 +299,24 @@ export function Hall(props: HallProps) {
       if (data.unlocked) {
         setBonus({ state: "open", data: data.bonus ?? defaultBonus });
         track("kino_bonus");
+      } else if (data.reason === "watch-more") {
+        setBonus({ state: "more" });
       } else {
-        bonusAsked.current = data.reason === "watch-more";
-        setBonus({ state: data.reason === "watch-more" ? "more" : "locked" });
+        // грешка/мрежа — пак при следващото стигане до края
+        bonusAsked.current = false;
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- defaultBonus е от конфигурацията
   }, [reachedBonus, bonus.state, token, preview]);
+  // „Догледай още“ не е окончателно: след минута пита пак (ако е догледал главите — отключва).
+  useEffect(() => {
+    if (bonus.state !== "more") return;
+    const id = window.setTimeout(() => {
+      bonusAsked.current = false;
+      setBonus({ state: "locked" });
+    }, 60_000);
+    return () => window.clearTimeout(id);
+  }, [bonus.state]);
   const bonusOpen = bonus.state === "open" || ((!token || preview) && reachedBonus);
   const bonusData = bonus.data ?? defaultBonus;
 
@@ -314,7 +339,7 @@ export function Hall(props: HallProps) {
     setUserPaused(false);
     track("kino_enter", { phase });
     const p = player.current;
-    if (!p || !PLAYABLE) return;
+    if (!p || !playable) return;
     if (phase === "film") {
       p.seek(livePos);
       if (!(await p.play())) {
@@ -356,13 +381,15 @@ export function Hall(props: HallProps) {
 
   function seekChapter(sec: number) {
     if (mode !== "replay") return;
-    if (PLAYABLE) player.current?.seek(sec);
+    if (playable) player.current?.seek(sec);
     setReplayPos(sec);
   }
 
   function onPlayerState(p: boolean) {
     setPlaying(p);
-    if (!p && phase === "film" && armed && !tryingPlay.current) {
+    const dur = player.current?.duration() ?? null;
+    const atEnd = dur != null && posRef.current >= dur - 1;
+    if (!p && phase === "film" && armed && !tryingPlay.current && !atEnd) {
       userPausedRef.current = true;
       setUserPaused(true);
     }
@@ -451,16 +478,22 @@ export function Hall(props: HallProps) {
         {onScreen && (
           <>
             <div className="k-screen">
-              {PLAYABLE ? (
+              {video.kind !== "none" ? (
                 <KinoPlayer
                   ref={player}
-                  source={VIDEO as Exclude<typeof VIDEO, { kind: "none" }>}
+                  source={video}
                   controls={mode === "replay" && phase !== "doors"}
                   title={KINO.title}
                   onStateChange={onPlayerState}
+                  onMeta={setVideoDur}
                 />
               ) : (
                 <TitleCard pos={pos} note={preview || process.env.NODE_ENV !== "production" ? "проба без филм" : undefined} />
+              )}
+              {pastVideoEnd && armed && (
+                <div className="k-screen-cover">
+                  <TitleCard pos={pos} note={preview || process.env.NODE_ENV !== "production" ? "пробното видео свърши — залата продължава по часа" : undefined} />
+                </div>
               )}
 
               {phase === "doors" && (
@@ -494,7 +527,7 @@ export function Hall(props: HallProps) {
                   </div>
                 </div>
               )}
-              {mode === "premiere" && armed && PLAYABLE && userPaused && (
+              {mode === "premiere" && armed && playable && userPaused && (
                 <div className="k-screen-corner">
                   <button type="button" className="k-icon-btn" onClick={backToLive}>
                     ● Върни се на живо
@@ -508,7 +541,7 @@ export function Hall(props: HallProps) {
                   </button>
                 </div>
               )}
-              {mode === "replay" && showsFilm && !PLAYABLE && (
+              {mode === "replay" && showsFilm && !playable && (
                 <div className="k-screen-corner">
                   <button type="button" className="k-icon-btn" onClick={() => setDryPlaying((x) => !x)}>
                     {dryPlaying ? "❚❚ Пауза" : "▶ Пусни"}
@@ -650,7 +683,7 @@ export function Hall(props: HallProps) {
                 Вземи подаръка
               </a>
             ) : (
-              // ⚠ Бонусът (NEXT_PUBLIC_KINO_BONUS_URL) — решение на Ивайло
+              // ⚠ Бонусът (KINO_BONUS_URL, само на сървъра) — решение на Ивайло
               <p className="k-muted" style={{ marginTop: 10 }}>
                 Подаръкът идва на имейла ти до 24 часа.
               </p>

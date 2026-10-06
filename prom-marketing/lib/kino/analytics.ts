@@ -185,3 +185,28 @@ export function callLists(args: {
     .sort((a, b) => b.ratio - a.ratio || b.maxPos - a.maxPos);
   return { dayBefore, warm };
 }
+
+// ── парите: едно плащане = една сесия / фактура в Stripe ─────────────────────
+
+/**
+ * Ключът на едно плащане: фактурата (вноските), иначе сесията на Checkout.
+ * Записът в CRM-а е идемпотентен, но таблото и капарото броят по този ключ
+ * — така двоен запис (ръчна поправка, стар webhook) не удвоява сумите.
+ */
+export function moneyKey(a: { id: string | number; metadata?: Record<string, unknown> | null }): string {
+  const m = a.metadata ?? {};
+  if (typeof m.invoice_id === "string" && m.invoice_id) return `inv:${m.invoice_id}`;
+  if (typeof m.session_id === "string" && m.session_id) return `ses:${m.session_id}`;
+  return `act:${a.id}`;
+}
+
+/** Първият запис за всеки ключ (редът се пази). */
+export function uniqueBy<T>(rows: readonly T[], key: (r: T) => string): T[] {
+  const seen = new Set<string>();
+  return rows.filter((r) => {
+    const k = key(r);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}

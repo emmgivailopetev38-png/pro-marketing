@@ -21,7 +21,7 @@ export function RegisterForm({
   /** след успех: към билета (по подразбиране) или направо в залата */
   goTo?: "bilet" | "zala";
 }) {
-  const [state, setState] = useState<"idle" | "sending" | "done">("idle");
+  const [state, setState] = useState<"idle" | "sending" | "done" | "mailed">("idle");
   const [error, setError] = useState<{ field?: string; message: string } | null>(null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -46,7 +46,7 @@ export function RegisterForm({
     setState("sending");
     const eventId = newKinoEventId("kino_reg");
     track("kino_register_submitted", { role });
-    const { ok, data } = await postJson<{ ok?: boolean; ticketUrl?: string; error?: string; field?: string }>("/api/kino/register", {
+    const { ok, data } = await postJson<{ ok?: boolean; ticketUrl?: string; sentByEmail?: boolean; isNew?: boolean; error?: string; field?: string }>("/api/kino/register", {
       name,
       phone,
       email,
@@ -64,13 +64,21 @@ export function RegisterForm({
       setError({ field: data.field, message: data.error ?? "Нещо се обърка — опитай пак след малко." });
       return;
     }
-    pixelTrack("CompleteRegistration", {
-      eventID: eventId,
-      params: { content_name: "ВЪЛНАТА · онлайн кино", content_category: "kino", status: role },
-    });
+    // Само първото записване е конверсия (сървърът праща CAPI със същия event_id само тогава).
+    if (data.isNew !== false) {
+      pixelTrack("CompleteRegistration", {
+        eventID: eventId,
+        params: { content_name: "ВЪЛНАТА · онлайн кино", content_category: "kino", status: role },
+      });
+    }
     track("kino_registered", { role });
+    if (data.sentByEmail || !data.ticketUrl) {
+      // Познаваме те с друг имейл — билетът е по пощата, не на страницата.
+      setState("mailed");
+      return;
+    }
     setState("done");
-    if (data.ticketUrl) window.location.assign(goTo === "zala" ? data.ticketUrl.replace("/kino/bilet", "/kino/zala") : data.ticketUrl);
+    window.location.assign(goTo === "zala" ? data.ticketUrl.replace("/kino/bilet", "/kino/zala") : data.ticketUrl);
   }
 
   const invalid = (f: string) => (error?.field === f ? true : undefined);
@@ -149,10 +157,13 @@ export function RegisterForm({
       <div id="k-form-error" aria-live="polite">
         {error && <p className="k-error">{error.message}</p>}
         {state === "done" && <p className="k-ok">Билетът е твой! Отваряме го…</p>}
+        {state === "mailed" && (
+          <p className="k-ok">Готово — мястото ти е запазено. Билетът с линка към залата е на имейла ти (виж и „Промоции“).</p>
+        )}
       </div>
 
       <button type="submit" className="k-btn k-btn--primary k-btn--block" disabled={state !== "idle"}>
-        {state === "sending" ? "Запазваме мястото ти…" : state === "done" ? "Готово ✓" : `🎟️ ${submitLabel}`}
+        {state === "sending" ? "Запазваме мястото ти…" : state === "done" || state === "mailed" ? "Готово ✓" : `🎟️ ${submitLabel}`}
       </button>
       <p className="k-muted" style={{ fontSize: "0.82rem", margin: 0, textAlign: "center" }}>
         Безплатно. Без карта. Около 40 минути филм + до 15 минути на живо.

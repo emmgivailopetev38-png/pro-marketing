@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { contactFromTicket } from "@/lib/kino/token";
-import { isDbConfigured, kinoLog, kinoEvent } from "@/lib/kino/server";
+import { isDbConfigured, kinoLog, kinoEvent, SCREENING } from "@/lib/kino/server";
 import { WARMUP_LEVELS, WARMUP_START, PRECALL_TOPICS, PRECALL_WHEN, labelOf } from "@/lib/kino/questions";
 
 export const dynamic = "force-dynamic";
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       title: "📝 Докато чака премиерата — 3 въпроса",
       body: lines.join("\n"),
       metadata: { time_eater: d.timeEater ?? null, level: d.level ?? null, start: d.start ?? null },
-      dedupeKey: `kino:warmup:${hash}`,
+      dedupeKey: `kino:warmup:${SCREENING}:${hash}`,
     });
     await kinoEvent({ contactId, type: "survey", value: "warmup", meta: { level: d.level ?? null, start: d.start ?? null } });
     return NextResponse.json({ ok: !r.error || r.created === false });

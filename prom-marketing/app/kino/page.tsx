@@ -265,7 +265,7 @@ export default function KinoAfishPage() {
         </div>
       </section>
 
-      {/* ── ОФЕРТАТА, ОБЯВЕНА ПРЕДВАРИТЕЛНО ── ⚠ ЧЕРНОВА — чака Ивайло */}
+      {/* ── ОФЕРТАТА, ОБЯВЕНА ПРЕДВАРИТЕЛНО ── съдържанието ✓ Ивайло 06.10; ⚠ формулировката — чернова */}
       <section className="k-section" aria-labelledby="k-prodalzhenie">
         <div className="k-wrap k-narrow">
           <span className="k-kicker">Без изненади</span>
@@ -273,9 +273,13 @@ export default function KinoAfishPage() {
             Накрая ще ти покажа как да продължиш с мен
           </h2>
           <p className="k-lead">
-            Филмът е безплатен и е цял. С надписите ще ти покажа програмата, в която правим това заедно — с живи срещи,
-            {KINO.seats ? ` за ${KINO.seats} души` : ""}. Платена е и ще ти кажа цената открито. Ако не е за теб — просто
-            затваряш екрана. Без натиск.
+            Филмът е безплатен и е цял. С надписите ще ти покажа програмата, в която правим това заедно: Академията, 12 седмици
+            живи групови срещи, готови агенти и шаблони и личен разговор за „AI картата на бизнеса ти“
+            {KINO.seats ? ` — за ${KINO.seats} души` : ""}. Платена е и ще ти кажа цената открито. Ако не е за теб — просто
+            затваряш екрана.
+          </p>
+          <p className="k-lead">
+            <strong>С гаранция:</strong> {KINO.program.guarantee.charAt(0).toLowerCase() + KINO.program.guarantee.slice(1)}
           </p>
           <p className="k-lead k-muted" style={{ fontSize: "0.92rem" }}>
             Записването в потока е отворено, докато филмът е на екран — до {when.replayUntilDay}, {when.replayUntilTime}. Цената е

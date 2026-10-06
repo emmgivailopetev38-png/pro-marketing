@@ -10,6 +10,8 @@ import {
   retentionByChapter,
   reactionsByMinute,
   callLists,
+  moneyKey,
+  uniqueBy,
   type WatchRow,
 } from "./analytics";
 
@@ -125,5 +127,23 @@ describe("callLists", () => {
     });
     expect(warm.map((p) => p.contact_id)).toEqual(["b", "a"]);
     expect(warm[0].ratio).toBe(1);
+  });
+});
+
+describe("парите — по едно на сесия/фактура", () => {
+  it("вноската се познава по фактурата, капарото/плащането по сесията", () => {
+    expect(moneyKey({ id: "a", metadata: { invoice_id: "in_1", session_id: "cs_1" } })).toBe("inv:in_1");
+    expect(moneyKey({ id: "b", metadata: { session_id: "cs_2" } })).toBe("ses:cs_2");
+    expect(moneyKey({ id: "c", metadata: null })).toBe("act:c");
+  });
+
+  it("двоен запис за същата сесия не удвоява сумата", () => {
+    const rows = [
+      { id: "1", metadata: { session_id: "cs_1", amount_eur: 100 } },
+      { id: "2", metadata: { session_id: "cs_1", amount_eur: 100 } },
+      { id: "3", metadata: { session_id: "cs_2", amount_eur: 100 } },
+    ];
+    const sum = uniqueBy(rows, moneyKey).reduce((s, r) => s + r.metadata.amount_eur, 0);
+    expect(sum).toBe(200);
   });
 });

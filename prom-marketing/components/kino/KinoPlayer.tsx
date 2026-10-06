@@ -1,10 +1,13 @@
 "use client";
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import type { KinoVideoSource } from "@/lib/kino/config";
+import { pickVariant, browserVideoEnv } from "@/lib/kino/video";
 
 /**
- * Един плейър за трите източника, които Ивайло може да избере:
- *  - mp4 — обикновен файл;
+ * Един плейър за източниците на киното:
+ *  - mp4 — прогресивен файл (филмът е във Vercel Blob: 1080p + 720p, плейърът
+ *          избира по екрана и мрежата; Blob отговаря на Range заявки, затова
+ *          превъртането и „влизането в текущата минута“ работят без HLS);
  *  - hls — Bunny / Cloudflare Stream (.m3u8): Safari го пуска сам, другите
  *          браузъри — през hls.js, който се тегли само тогава;
  *  - youtube — unlisted видео през IFrame API (тегли се само тогава).
@@ -21,6 +24,8 @@ export interface PlayerApi {
   playing(): boolean;
   setMuted(m: boolean): void;
   muted(): boolean;
+  /** Дължината на заредения файл в секунди (null, докато не е известна). */
+  duration(): number | null;
 }
 
 type PlayableSource = Exclude<KinoVideoSource, { kind: "none" }>;
@@ -32,6 +37,8 @@ interface Props {
   ambient?: boolean;
   onStateChange?: (playing: boolean) => void;
   onEnded?: () => void;
+  /** Дължината на видеото, щом браузърът я научи. */
+  onMeta?: (durationSec: number) => void;
   title?: string;
 }
 
@@ -42,6 +49,7 @@ interface YTPlayer {
   seekTo(s: number, allow: boolean): void;
   getCurrentTime(): number;
   getPlayerState(): number;
+  getDuration(): number;
   mute(): void;
   unMute(): void;
   isMuted(): boolean;
@@ -84,17 +92,27 @@ function loadYouTube(): Promise<YTNamespace> {
 }
 
 export const KinoPlayer = forwardRef<PlayerApi, Props>(function KinoPlayer(
-  { source, controls, ambient = false, onStateChange, onEnded, title = "Видео" },
+  { source, controls, ambient = false, onStateChange, onEnded, onMeta, title = "Видео" },
   ref,
 ) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const ytHost = useRef<HTMLDivElement>(null);
   const yt = useRef<YTPlayer | null>(null);
   const ytReady = useRef<Promise<void> | null>(null);
-  const cb = useRef({ onStateChange, onEnded });
+  const cb = useRef({ onStateChange, onEnded, onMeta });
   useEffect(() => {
-    cb.current = { onStateChange, onEnded };
-  }, [onStateChange, onEnded]);
+    cb.current = { onStateChange, onEnded, onMeta };
+  }, [onStateChange, onEnded, onMeta]);
+
+  // MP4: вариантът се избира в браузъра (на сървъра няма екран) — затова src
+  // се слага тук, а не в HTML-а; до тогава се вижда постерът.
+  useEffect(() => {
+    if (source.kind !== "mp4") return;
+    const video = videoRef.current;
+    if (!video) return;
+    const src = pickVariant(source.variants, browserVideoEnv())?.src ?? source.src;
+    if (video.getAttribute("src") !== src) video.src = src;
+  }, [source]);
 
   // HLS: Safari сам, останалите през hls.js.
   useEffect(() => {
@@ -146,7 +164,11 @@ export const KinoPlayer = forwardRef<PlayerApi, Props>(function KinoPlayer(
             ...(ambient ? { autoplay: 1, mute: 1, loop: 1, playlist: source.id } : {}),
           },
           events: {
-            onReady: () => resolve(),
+            onReady: () => {
+              const d = yt.current?.getDuration?.();
+              if (d && d > 0) cb.current.onMeta?.(d);
+              resolve();
+            },
             onStateChange: (e) => {
               if (e.data === 1) cb.current.onStateChange?.(true);
               if (e.data === 2) cb.current.onStateChange?.(false);
@@ -218,6 +240,10 @@ export const KinoPlayer = forwardRef<PlayerApi, Props>(function KinoPlayer(
         if (source.kind === "youtube") return yt.current?.isMuted?.() ?? true;
         return videoRef.current?.muted ?? true;
       },
+      duration() {
+        const d = source.kind === "youtube" ? yt.current?.getDuration?.() : videoRef.current?.duration;
+        return d && Number.isFinite(d) && d > 0 ? d : null;
+      },
     }),
     [source],
   );
@@ -228,7 +254,7 @@ export const KinoPlayer = forwardRef<PlayerApi, Props>(function KinoPlayer(
   return (
     <video
       ref={videoRef}
-      src={source.kind === "mp4" ? source.src : undefined}
+      poster={source.poster ?? undefined}
       playsInline
       preload={ambient ? "auto" : "metadata"}
       controls={controls}
@@ -241,6 +267,10 @@ export const KinoPlayer = forwardRef<PlayerApi, Props>(function KinoPlayer(
       onPlay={() => cb.current.onStateChange?.(true)}
       onPause={() => cb.current.onStateChange?.(false)}
       onEnded={() => cb.current.onEnded?.()}
+      onLoadedMetadata={(e) => {
+        const d = e.currentTarget.duration;
+        if (Number.isFinite(d) && d > 0) cb.current.onMeta?.(d);
+      }}
     />
   );
 });

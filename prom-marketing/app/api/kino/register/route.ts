@@ -1,7 +1,7 @@
 import { NextResponse, after } from "next/server";
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { upsertContactAndLog } from "@/lib/contacts/repository";
+import { upsertContactAndLog, phoneVariants } from "@/lib/contacts/repository";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/resend";
 import { unsubscribeUrl } from "@/lib/email/unsubscribe-token";
@@ -13,7 +13,7 @@ import { ticketEmail } from "@/lib/kino/emails";
 import { smsText } from "@/lib/kino/schedule";
 import { sendSms, smsStatus } from "@/lib/kino/sms";
 import { kinoCapi, safeEventId } from "@/lib/kino/meta";
-import { isDbConfigured, kinoLinks, firstName, SCREENING } from "@/lib/kino/server";
+import { isDbConfigured, kinoLinks, kinoLog, firstName, SCREENING } from "@/lib/kino/server";
 import { isKinoDemoEnv } from "@/lib/kino/token";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +24,8 @@ export const dynamic = "force-dynamic";
  * 1. Картон в CRM-а (намира се по имейл, после по телефона в какъвто и да е
  *    запис) с source „kino-valnata“ и активност kino_registration — ролята,
  *    какво му яде времето, UTM-ите и съгласието вътре.
- * 2. Личният билет (подписан линк) — връща се веднага на страницата.
+ * 2. Личният билет (подписан линк) — на страницата веднага, ако картонът е нов
+ *    или със същия имейл; иначе само по пощата (виж по-долу).
  * 3. След отговора (after): писмото с билета (Resend), SMS „билетът ти е
  *    запазен“ (само ако SMS-ите са включени), CompleteRegistration към Meta
  *    със същия event_id като пиксела, кратко известие към Ивайло.
@@ -93,32 +94,32 @@ export async function POST(request: Request) {
     d.pain ? `Яде му времето: „${d.pain}“` : null,
     utmLine(utm) ? `Източник: ${utmLine(utm)}` : null,
     `Телефон: ${phone.pretty}`,
+    `Имейл: ${d.email}`,
   ].filter(Boolean);
 
-  const res = await upsertContactAndLog({
-    full_name: d.name,
-    email: d.email,
-    phone: phone.e164,
-    source: KINO_SOURCE,
-    activity: {
-      type: "kino_registration",
-      title: `🎟️ Взе билет за „${KINO.title}“ · ${labels.short}`,
-      body: bodyLines.join("\n"),
-      created_by: "website",
-      dedupe_key: `kino:reg:${SCREENING}`,
-      metadata: {
-        funnel: "kino",
-        screening: SCREENING,
-        role: d.role,
-        pain: d.pain || null,
-        utm,
-        consent_at: new Date().toISOString(),
-        consent_channels: ["email", "sms", "viber"],
-        event_id: eventId,
-        page: d.page ?? null,
-      },
-    },
-  });
+  /**
+   * Чий е картонът? CRM-ът слива по имейл, после по телефон. Билетът е ключ към
+   * залата (името, мястото, въпросите в картона), затова линкът се връща на
+   * страницата САМО ако картонът е нов или е със същия имейл. Намерен ли е по
+   * телефон с друг имейл — билетът отива по пощата (на имейла от картона, ако
+   * има такъв), а страницата казва „изпратихме го“. Така никой не взема чужд
+   * билет с чужд телефон.
+   */
+  const sb = createServiceClient();
+  const { data: byEmail } = await sb.from("contacts").select("id, email").eq("email", d.email).maybeSingle();
+  let owner: { id: string; email: string | null } | null = (byEmail as { id: string; email: string | null } | null) ?? null;
+  if (!owner) {
+    const { data: byPhone } = await sb
+      .from("contacts")
+      .select("id, email")
+      .in("phone", phoneVariants(phone.e164))
+      .order("created_at", { ascending: true })
+      .limit(1);
+    owner = ((byPhone ?? [])[0] as { id: string; email: string | null } | undefined) ?? null;
+  }
+  const sameOwner = !owner || (owner.email ?? "").toLowerCase() === d.email;
+
+  const res = await upsertContactAndLog({ full_name: d.name, email: d.email, phone: phone.e164, source: KINO_SOURCE });
   if (!res.contact_id) {
     console.error("[kino/register]", res.error);
     return NextResponse.json({ error: "Не успяхме да запазим билета. Опитай пак след малко." }, { status: 500 });
@@ -130,22 +131,44 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Билетът е запазен, но линкът не се генерира. Пиши ни — ще ти го пратим." }, { status: 500 });
   }
 
+  // Активността е веднъж на прожекция; created казва дали е ново записване
+  // (тогава — Meta и Telegram; при повторно само писмото с билета пак).
+  const reg = await kinoLog({
+    contactId,
+    type: "kino_registration",
+    title: `🎟️ Взе билет за „${KINO.title}“ · ${labels.short}`,
+    body: bodyLines.join("\n"),
+    dedupeKey: `kino:reg:${SCREENING}`,
+    metadata: {
+      role: d.role,
+      pain: d.pain || null,
+      utm,
+      typed_name: d.name,
+      typed_email: d.email,
+      consent_at: new Date().toISOString(),
+      consent_channels: ["email", "sms", "viber"],
+      event_id: eventId,
+      page: d.page ?? null,
+    },
+  });
+  if (reg.error && !reg.activity_id) console.error("[kino/register] activity", reg.error);
+  const isNew = reg.created;
+  const mailTo = sameOwner ? d.email : owner?.email || d.email;
+
   after(async () => {
-    const name = firstName(d.name);
     const mail = ticketEmail({
-      name,
+      name: firstName(d.name),
       links,
       labels,
       seat: seatFor(contactId),
       viberUrl: KINO.viberClubUrl,
       unsubscribeUrl: unsubscribeUrl(contactId),
     });
-    const sent = await sendEmail({ to: d.email, ...mail });
+    const sent = await sendEmail({ to: mailTo, ...mail });
     if (sent.error) console.error("[kino/register] email", sent.error);
 
-    // SMS „билетът ти е запазен“ — веднъж на човек, само при включени SMS-и.
-    if (smsStatus().enabled && isBgMobile(phone.e164)) {
-      const sb = createServiceClient();
+    // SMS „билетът ти е запазен“ — веднъж на човек, само при включени SMS-и и само на собственика.
+    if (sameOwner && smsStatus().enabled && isBgMobile(phone.e164)) {
       const { data: already } = await sb
         .from("contact_activities")
         .select("id")
@@ -167,6 +190,7 @@ export async function POST(request: Request) {
       }
     }
 
+    if (!isNew) return;
     await kinoCapi({
       event: "CompleteRegistration",
       eventId,
@@ -177,9 +201,8 @@ export async function POST(request: Request) {
       fbc: d.fbc ?? null,
       custom: { status: d.role },
     });
-
     if (process.env.KINO_NOTIFY_REGISTRATIONS !== "0") {
-      const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const esc = (x: string) => x.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       await sendTelegram(
         `🎟️ Нов билет за „${KINO.title}“: <b>${esc(d.name)}</b> · ${esc(roleLabel(d.role))} · ${esc(phone.pretty)}${d.pain ? `\n„${esc(d.pain.slice(0, 160))}“` : ""}`,
         { buttons: [{ text: "👤 Картонът", url: `${KINO.site}/admin/clients/${contactId}` }] },
@@ -187,5 +210,6 @@ export async function POST(request: Request) {
     }
   });
 
-  return NextResponse.json({ ok: true, ticketUrl: `/kino/bilet?t=${links.token}`, eventId });
+  if (!sameOwner) return NextResponse.json({ ok: true, sentByEmail: true, eventId, isNew });
+  return NextResponse.json({ ok: true, ticketUrl: `/kino/bilet?t=${links.token}`, eventId, isNew });
 }

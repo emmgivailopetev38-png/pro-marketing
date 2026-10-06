@@ -493,6 +493,12 @@
   top: 12px;
   z-index: 3;
 }
+/* надпис върху спрелия плейър (пробното видео е по-късо от филма) */
+.k-screen-cover {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
 .k-screen-corner {
   position: absolute;
   right: 12px;

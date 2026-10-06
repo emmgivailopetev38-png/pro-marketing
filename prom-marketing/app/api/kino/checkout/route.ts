@@ -4,7 +4,7 @@ import { z } from "zod";
 import { KINO } from "@/lib/kino/config";
 import { isKinoPlan, isCartOpen } from "@/lib/kino/pricing";
 import { contactFromTicket } from "@/lib/kino/token";
-import { getContact, depositPaidEur, hasBoughtProgram, kinoEvent, kinoLog } from "@/lib/kino/server";
+import { getContact, depositPaidEur, hasBoughtProgram, hasKinoInvite, kinoEvent, kinoLog } from "@/lib/kino/server";
 import { createKinoCheckout } from "@/lib/kino/stripe";
 import { kinoCapi, safeEventId } from "@/lib/kino/meta";
 
@@ -52,10 +52,12 @@ export async function POST(request: Request) {
   if (plan === "deposit" && deposit > 0) {
     return NextResponse.json({ error: "Капарото ти вече е платено — избери час за разговора.", fallback: "call" }, { status: 409 });
   }
-  // Честният срок: от залата записването затваря с филма (нд 23:59). Личният
-  // линк след разговор (/kino/plashtane) и платилите капаро продължават.
+  // Честният срок: записването затваря с филма (нд 23:59). След това —
+  // само платилите капаро и хората след разговор (по CRM-а, не по линка:
+  // `from` идва от браузъра и не отваря нищо).
   const from = parsed.data.from ?? "zala";
-  if (!isCartOpen(Date.now(), { depositPaid: deposit > 0, personalLink: from === "plashtane" })) {
+  const openForAll = isCartOpen(Date.now(), { depositPaid: deposit > 0 });
+  if (!openForAll && !(await hasKinoInvite(contactId))) {
     return NextResponse.json(
       { error: "Записването в потока затвори заедно с филма. Избери час — ще видим заедно какво следва.", fallback: "call" },
       { status: 410 },

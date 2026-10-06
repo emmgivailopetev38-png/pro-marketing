@@ -13,11 +13,54 @@
  * така не се пипа кодът. Без env стоят стойностите по-долу.
  */
 
+/** Един вариант на прогресивното MP4 — плейърът избира по екрана и мрежата. */
+export interface KinoVideoVariant {
+  src: string;
+  height: number;
+}
+
 export type KinoVideoSource =
   | { kind: "none" }
-  | { kind: "mp4"; src: string }
-  | { kind: "hls"; src: string }
+  | { kind: "mp4"; src: string; variants?: KinoVideoVariant[]; poster?: string | null }
+  | { kind: "hls"; src: string; poster?: string | null }
   | { kind: "youtube"; id: string };
+
+/**
+ * Прогресивно MP4 от Vercel Blob (store „kino-video“): 1080p и 720p
+ * (H.264 + AAC, `+faststart` — moov е в началото, Blob отговаря на Range
+ * заявки, затова тръгва веднага и се превърта без HLS). Постерът е JPEG.
+ * Без поне един вариант → null.
+ */
+export function blobVideo(b: { v1080: string | null; v720: string | null; poster: string | null }): KinoVideoSource | null {
+  const variants: KinoVideoVariant[] = [];
+  if (b.v1080) variants.push({ src: b.v1080, height: 1080 });
+  if (b.v720) variants.push({ src: b.v720, height: 720 });
+  if (!variants.length) return null;
+  return { kind: "mp4", src: (b.v720 ?? b.v1080)!, variants, poster: b.poster };
+}
+
+/**
+ * ⚠ ФИЛМЪТ — адресите от Vercel Blob след качването (store „kino-video“,
+ * папка kino/). Сменят се тук и с това филмът е в залата за всички.
+ */
+const FILM_BLOB = {
+  v1080: null as string | null,
+  v720: null as string | null,
+  poster: null as string | null,
+};
+
+/**
+ * Пробата: тийзърът (1:10) в същия Blob store — 1080p, 720p и постер. Ползва
+ * се САМО в прегледа (локално и Vercel preview), докато филмът още не е
+ * качен; в продукцията никога (решава app/kino/zala/page.tsx). Локално може и
+ * файл: NEXT_PUBLIC_KINO_FILM=/път/до/файл.mp4 (в public/, не се качва в git).
+ */
+const TEST_BLOB = {
+  v1080: null as string | null,
+  v720: null as string | null,
+  poster: null as string | null,
+};
+export const KINO_TEST_VIDEO: KinoVideoSource | null = blobVideo(TEST_BLOB);
 
 export interface KinoChapter {
   /** 0…11 — номерът, както е в сценария. */
@@ -115,12 +158,12 @@ export const KINO = {
   },
 
   /**
-   * ⚠ Хостингът на видеото е решение на Ивайло (Bunny / Cloudflare Stream /
-   * YouTube unlisted). Дава се с NEXT_PUBLIC_KINO_FILM: адрес на .m3u8, .mp4
-   * или YouTube. Без него залата върви „на сухо“ — главите излизат като
-   * надписи по истинското време. Така целият поток се проверява и без филм.
+   * Филмът: Vercel Blob (решение на Ивайло, 06.10) — адресите са във FILM_BLOB
+   * по-горе. Резервно: NEXT_PUBLIC_KINO_FILM (.mp4, .m3u8 или YouTube). Без
+   * нищо залата върви „на сухо“ — главите излизат като надписи по истинското
+   * време (а в прегледа — с тийзъра, KINO_TEST_VIDEO).
    */
-  video: parseVideoSource(process.env.NEXT_PUBLIC_KINO_FILM),
+  video: blobVideo(FILM_BLOB) ?? parseVideoSource(process.env.NEXT_PUBLIC_KINO_FILM),
   /** Трейлърът на афиша (без звук + бутон за звук). Същите формати. */
   trailer: parseVideoSource(process.env.NEXT_PUBLIC_KINO_TRAILER ?? process.env.NEXT_PUBLIC_KINO_TRAILER_1),
   /**
@@ -162,25 +205,27 @@ export const KINO = {
     deposit: 100,
   },
 
-  // ⚠ ЧЕРНОВА — чака Ивайло: местата в потока (заради живите срещи)
+  // ✓ Ивайло, 06.10: 30 места (заради живите срещи)
   seats: 30,
 
   /** Поканата — името и стекът. Цената идва чак след стека. */
   program: {
-    // ⚠ ЧЕРНОВА — чака Ивайло: името на програмата и всяка точка от стека
+    // ⚠ ЧЕРНОВА — чака Ивайло: името на програмата
     name: "AI потокът на Pro Marketing",
     short: "потока",
+    /**
+     * ✓ Съдържанието — потвърдено от Ивайло (06.10): точно тези четири неща.
+     * (Описанията под тях са ⚠ чернова — без числа, които остаряват.)
+     */
     stack: [
-      { title: "Академията на Pro Marketing", body: "8 нива · 62 курса · 463 кратки урока, всеки с видео и задача." },
-      { title: "12 седмици живи срещи с Ивайло", body: "Носиш своя бизнес — решаваме го заедно, седмица след седмица." },
-      { title: "Готови агенти и шаблони", body: "Рецепционистка, оферти, отчети, публикации — пренасяш ги в бизнеса си." },
-      { title: "„AI картата на бизнеса ти“", body: "Личен разговор, в който я попълваме: къде AI ще ти върне време и пари и в какъв ред." },
-      { title: "Общността на потока", body: "Хора като теб, които правят същото в същите седмици." },
-      { title: "Подаръкът от сцената след надписите", body: "Само за изгледалите до края." },
+      { title: "Академията на Pro Marketing", body: "Всички нива — от първите стъпки с AI до собствените агенти. Кратки видео уроци, в твоето темпо." },
+      { title: "12 седмици живи групови срещи", body: "Носиш своя бизнес — движим го заедно, седмица след седмица." },
+      { title: "Готови агенти и шаблони", body: "За запитвания, оферти, отчети и публикации — пренасяш ги в бизнеса си, вместо да почваш от празен лист." },
+      { title: "„AI картата на бизнеса ти“", body: "Личен разговор, в който я чертаем заедно: къде AI ще ти върне време и пари — и в какъв ред." },
     ],
-    // ⚠ ЧЕРНОВА — чака Ивайло + юрист: гаранцията и условието ѝ
-    guarantee:
-      "Минеш ли първите 4 седмици, направиш задачите и нямаш работещ AI служител в бизнеса си — връщаме ти парите.",
+    /** ✓ Гаранцията — думите на Ивайло (06.10); точните условия влизат в общите условия (юрист). */
+    guarantee: "Минеш ли първите 4 седмици, направиш задачите и нямаш работещ AI служител — връщаме парите.",
+    // ⚠ ЧЕРНОВА — чака Ивайло: сравнението с цената на агенция
     anchor: "Една агенция у нас взема между 1 500 и 3 000 € за един-единствен AI агент.",
   },
 
@@ -189,7 +234,11 @@ export const KINO = {
     // ⚠ ЧЕРНОВА — чака Ивайло: какъв е бонусът (заглавие + линк)
     title: "Първите 30 дни с AI — плановете и шаблоните",
     body: "Стъпките, с които да започнеш още тази седмица — подредени по дни.",
-    url: clean(process.env.NEXT_PUBLIC_KINO_BONUS_URL),
+    /**
+     * Линкът към подаръка — САМО на сървъра (KINO_BONUS_URL, без NEXT_PUBLIC):
+     * не стига до браузъра, докато залата не го отключи за човека.
+     */
+    url: (process.env.KINO_BONUS_URL ?? "").trim() || null,
     /** Колко от филма (по минути) трябва да е изгледано, за да се отключи. */
     minWatchedRatio: 0.5,
   },

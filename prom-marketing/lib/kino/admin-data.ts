@@ -10,6 +10,8 @@ import {
   reactionsByMinute,
   totalMinutes,
   watchedRatio,
+  moneyKey,
+  uniqueBy,
   type WatchRow,
 } from "./analytics";
 import { chapterIndexAt } from "./time";
@@ -160,6 +162,7 @@ export async function loadKinoDashboard(): Promise<KinoDashboard> {
       .select("id, contact_id, activity_type, title, body, occurred_at, metadata")
       .in("activity_type", types)
       .order("occurred_at", { ascending: true })
+      .order("id", { ascending: true }) // стабилен ред между страниците
       .range(from, to),
   );
   if (acts.error) return empty(acts.error, true);
@@ -225,8 +228,11 @@ export async function loadKinoDashboard(): Promise<KinoDashboard> {
 
   const watches = watch.rows;
   const watchBy = new Map(watches.map((w) => [w.contact_id, w]));
-  const buyers = new Set(byType("kino_payment").map((a) => a.contact_id));
-  const depositors = new Set(byType("kino_deposit").map((a) => a.contact_id));
+  // Парите — по едно на сесия/фактура в Stripe (двоен запис не удвоява сумите).
+  const payments = uniqueBy(byType("kino_payment"), moneyKey);
+  const depositsPaid = uniqueBy(byType("kino_deposit"), moneyKey);
+  const buyers = new Set(payments.map((a) => a.contact_id));
+  const depositors = new Set(depositsPaid.map((a) => a.contact_id));
   const buyersOrDeposit = new Set([...buyers, ...depositors]);
 
   const regMeta = new Map<string, { role: string | null; pain: string | null; at: string; utm: KinoUtm }>();
@@ -307,7 +313,7 @@ export async function loadKinoDashboard(): Promise<KinoDashboard> {
   const clickPeople = new Map<string, number>();
   for (const set of clicksBy.values()) for (const b of set) clickPeople.set(b, (clickPeople.get(b) ?? 0) + 1);
 
-  const money = [...byType("kino_payment"), ...byType("kino_deposit")]
+  const money = [...payments, ...depositsPaid]
     .map((a) => ({
       id: a.id,
       contactId: a.contact_id,
@@ -320,7 +326,7 @@ export async function loadKinoDashboard(): Promise<KinoDashboard> {
     .sort((x, y) => y.at.localeCompare(x.at));
 
   const dealsEur = [...buyers].reduce((sum, id) => {
-    const first = byType("kino_payment").find((a) => a.contact_id === id && Number((a.metadata ?? {}).total_eur) > 0);
+    const first = payments.find((a) => a.contact_id === id && Number((a.metadata ?? {}).total_eur) > 0);
     return sum + (Number(first?.metadata?.total_eur) || 0);
   }, 0);
 
@@ -341,7 +347,7 @@ export async function loadKinoDashboard(): Promise<KinoDashboard> {
       questions: byType("kino_question").length,
       bookings: new Set(byType("kino_booking").map((a) => a.contact_id)).size,
       deposits: depositors.size,
-      depositsEur: byType("kino_deposit").reduce((s, a) => s + (Number((a.metadata ?? {}).amount_eur) || 0), 0),
+      depositsEur: depositsPaid.reduce((s, a) => s + (Number((a.metadata ?? {}).amount_eur) || 0), 0),
       buyers: buyers.size,
       collectedEur: money.reduce((s, m) => s + m.amount, 0),
       dealsEur,

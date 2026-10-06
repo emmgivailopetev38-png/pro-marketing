@@ -4,6 +4,7 @@ import { recordActivity, type ActivityResult } from "@/lib/crm/repository";
 import type { ContactStage, FollowupStatus } from "@/lib/contacts/types";
 import { KINO } from "./config";
 import { ticketToken } from "./token";
+import { moneyKey, uniqueBy } from "./analytics";
 
 /**
  * Сървърната страна на залата: CRM-ът, таблиците kino_* и линковете.
@@ -150,15 +151,42 @@ export async function depositPaidEur(contactId: string): Promise<number> {
   try {
     const { data } = await createServiceClient()
       .from("contact_activities")
-      .select("metadata")
+      .select("id, metadata")
       .eq("contact_id", contactId)
       .eq("activity_type", "kino_deposit");
-    return (data ?? []).reduce((sum, r) => {
-      const m = (r.metadata ?? {}) as Record<string, unknown>;
-      return m.screening === SCREENING ? sum + (Number(m.amount_eur) || 0) : sum;
-    }, 0);
+    const rows = (data ?? []) as Array<{ id: string; metadata: Record<string, unknown> | null }>;
+    // по едно на сесия в Stripe — двоен запис не удвоява капарото
+    return uniqueBy(
+      rows.filter((r) => (r.metadata ?? {}).screening === SCREENING),
+      moneyKey,
+    ).reduce((sum, r) => sum + (Number((r.metadata ?? {}).amount_eur) || 0), 0);
   } catch {
     return 0;
+  }
+}
+
+/**
+ * Покана след разговор. След затварянето (нд 23:59) плащането остава отворено
+ * само за хората, с които има истински разговор: записан час (kino_booking),
+ * анкета „първо да поговорим“ (kino_precall) или дадени на екипа от
+ * /admin/kino (team_assigned). Платилите капаро минават отделно. Решава
+ * сървърът по CRM-а — не линкът, от който идва заявката.
+ */
+export async function hasKinoInvite(contactId: string): Promise<boolean> {
+  if (!isDbConfigured()) return false;
+  try {
+    const { data } = await createServiceClient()
+      .from("contact_activities")
+      .select("activity_type, metadata")
+      .eq("contact_id", contactId)
+      .in("activity_type", ["kino_booking", "kino_precall", "team_assigned"])
+      .limit(100);
+    return (data ?? []).some((r) => {
+      const m = (r.metadata ?? {}) as Record<string, unknown>;
+      return r.activity_type === "team_assigned" ? m.kino_screening === SCREENING : m.screening === SCREENING;
+    });
+  } catch {
+    return false;
   }
 }
 
