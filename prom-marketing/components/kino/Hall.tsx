@@ -156,9 +156,27 @@ export function Hall(props: HallProps) {
   const [videoDur, setVideoDur] = useState<number | null>(null);
   const pastVideoEnd = playable && inFilm && videoDur != null && livePos >= videoDur - 0.5;
 
+  // Какво вижда човекът СЕГА. Плейърът изостава от часа с част от секундата
+  // (буфериране) — бутоните, „Твоето число“, формулата и подаръкът излизат по
+  // кадъра на екрана му, не по часа: никога преди надписите. Ако плейърът не
+  // върви или е далеч от живото (пауза, засечка) — по часа.
+  const [playerPos, setPlayerPos] = useState<number | null>(null);
+  useEffect(() => {
+    if (!playable || !inFilm || !armed) return;
+    const id = window.setInterval(() => {
+      const p = player.current;
+      setPlayerPos(p && p.playing() ? p.time() : null);
+    }, 250);
+    return () => {
+      window.clearInterval(id);
+      setPlayerPos(null);
+    };
+  }, [playable, inFilm, armed]);
+  const screenPos = playerPos != null && Math.abs(playerPos - livePos) < 3 ? playerPos : livePos;
+
   // ── поканата: точно с надписите; след филма — винаги (до срока) ──
   const canPayAfterClose = props.depositPaid > 0 || props.invited;
-  const offerOpen = inFilm ? isOfferOpen(livePos) : phase === "after" ? true : phase === "closed" ? canPayAfterClose || props.bought : false;
+  const offerOpen = inFilm ? isOfferOpen(screenPos) : phase === "after" ? true : phase === "closed" ? canPayAfterClose || props.bought : false;
   const offerTracked = useRef(false);
   useEffect(() => {
     if (offerOpen && !offerTracked.current) {
@@ -169,9 +187,9 @@ export function Hall(props: HallProps) {
 
   // ── „Твоето число“ (сцена 9.7): полето под филма излиза от numberAtSec ──
   const [hours, setHours] = useState<number | null>(props.hours);
-  const numberOpen = (inFilm && (livePos >= FILM.numberAtSec || hours != null)) || phase === "after";
+  const numberOpen = (inFilm && (screenPos >= FILM.numberAtSec || hours != null)) || phase === "after";
   // „Формулата“ — за всички под филма от глава 9 и след филма
-  const formulaOpen = (inFilm && livePos >= KINO.formula.fromSec) || phase === "after";
+  const formulaOpen = (inFilm && screenPos >= KINO.formula.fromSec) || phase === "after";
 
   const beatMode: BeatMode | null = phase === "doors" ? "doors" : inFilm ? "premiere" : phase === "after" ? "offer" : null;
   const posRef = useRef(pos);
@@ -265,7 +283,7 @@ export function Hall(props: HallProps) {
 
   // ── подаръкът след въпросите ──
   // точно когато на екрана излиза „Вземи подаръка ↓“ (гл. 13)
-  const reachedBonus = inFilm && livePos >= FILM.postCreditsAtSec;
+  const reachedBonus = inFilm && screenPos >= FILM.postCreditsAtSec;
   const defaultBonus: BonusData = { title: KINO.bonus.title, body: KINO.bonus.body, url: props.bonusUrl };
   const [bonus, setBonus] = useState<{ state: "locked" | "open" | "more"; data?: BonusData }>(
     props.bonusUnlocked ? { state: "open", data: defaultBonus } : { state: "locked" },
