@@ -17,6 +17,8 @@ export type MilestoneId = (typeof MILESTONES)[number];
 export interface FilmShape {
   durationSec: number;
   offerAtSec: number;
+  /** Краят на самия филм („Не бързайте“) — след него са въпросите и надписите. */
+  againAtSec: number;
   chapters: readonly KinoChapter[];
   offerChapter: number;
 }
@@ -43,7 +45,7 @@ export function reachedMilestones(state: { minutes: number; maxPos: number }, fi
   if (ratio >= 0.75) out.push("p75");
   const offerChapter = film.chapters.find((c) => c.n === film.offerChapter);
   if (offerChapter && state.maxPos >= offerChapter.startSec) out.push("offer_chapter");
-  if (state.maxPos >= film.offerAtSec) out.push("end");
+  if (state.maxPos >= film.againAtSec) out.push("end");
   return out;
 }
 
@@ -67,7 +69,7 @@ export function milestoneTitle(m: MilestoneId): string {
     case "offer_chapter":
       return "🧭 Стигна до „Част втора“ — поканата";
     case "end":
-      return "🏁 Изгледа филма до надписите";
+      return "🏁 Изгледа целия филм (до „Не бързайте“)";
   }
 }
 
@@ -110,7 +112,7 @@ export function retentionByChapter(
   rows: readonly WatchRow[],
   film: FilmShape = FILM,
 ): Array<{ n: number; title: string; viewers: number; pct: number }> {
-  const spans = chapterSpans(film.chapters, film.offerAtSec);
+  const spans = chapterSpans(film.chapters, film.againAtSec);
   const entered = rows.filter((r) => (r.minutes ?? []).length > 0).length;
   return spans.map(({ chapter, fromSec, toSec }) => {
     const fromMin = Math.floor(fromSec / 60);

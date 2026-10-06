@@ -91,14 +91,14 @@ function StatusPill({ phase, pos }: { phase: KinoPhase; pos: number }) {
 
 /**
  * Кое е на екрана в тази секунда — по точките от двигателя: „Добре дошли“,
- * главите, надписите, „Ето ни отново“, въпросите, „Лека вечер“, подаръкът.
+ * главите, „Не бързайте“, въпросите, „Лека вечер“, надписите, подаръкът.
  */
 function segmentAt(pos: number): { n: string; title: string } {
   if (pos >= FILM.giftSceneAtSec) return { n: "ПОДАРЪКЪТ", title: "За останалите до края" };
-  if (pos >= FILM.goodnightAtSec) return { n: "НА БЮРОТО", title: "Лека вечер" };
+  if (pos >= FILM.creditsAtSec) return { n: "НАДПИСИ", title: KINO.title };
+  if (pos >= FILM.goodnightAtSec) return { n: "СЛЕД ФИЛМА", title: "Лека вечер" };
   if (pos >= FILM.qaAtSec) return { n: "СЛЕД ФИЛМА", title: "Въпроси след прожекцията" };
-  if (pos >= FILM.againAtSec) return { n: "НА БЮРОТО", title: "Ето ни отново" };
-  if (pos >= FILM.offerAtSec) return { n: "НАДПИСИ", title: KINO.title };
+  if (pos >= FILM.againAtSec) return { n: "СЛЕД ФИЛМА", title: "Не бързайте" };
   if (pos < FILM.filmStartSec) return { n: "ПРЕДИ ФИЛМА", title: "Добре дошли" };
   const ch = FILM.chapters[chapterIndexAt(pos, FILM.chapters)];
   return { n: `ГЛАВА ${ch.n}`, title: `„${ch.title}“` };
@@ -391,7 +391,7 @@ export function Hall(props: HallProps) {
   }, [chapterIdx, inFilm, segment.title]);
 
   const cd = splitCountdown(tl.premiereMs - now);
-  const simLinks = ["lobby", "doors", "film:0", "film", "number", "offer", "again", "qa", "goodnight", "bonus", "after", "closed"];
+  const simLinks = ["lobby", "doors", "film:0", "film", "number", "offer", "again", "qa", "goodnight", "credits", "bonus", "after", "closed"];
   const dryNote = preview || process.env.NODE_ENV !== "production";
 
   return (
@@ -548,8 +548,8 @@ export function Hall(props: HallProps) {
                     </span>
                   )}
                   {FILM.chapters.map((c, i) => {
-                    const inChapters = pos >= FILM.filmStartSec && pos < FILM.offerAtSec;
-                    const done = pos >= FILM.offerAtSec || (inChapters && i < chapterIdx);
+                    const inChapters = pos >= FILM.filmStartSec && pos < FILM.againAtSec;
+                    const done = pos >= FILM.againAtSec || (inChapters && i < chapterIdx);
                     const nowCh = inChapters && i === chapterIdx;
                     return (
                       <span
@@ -561,7 +561,7 @@ export function Hall(props: HallProps) {
                       </span>
                     );
                   })}
-                  {pos >= FILM.offerAtSec && (
+                  {pos >= FILM.againAtSec && (
                     <span className="k-chapter k-chapter--now" data-now="1">
                       {segment.n === "НАДПИСИ" ? "Надписите" : segment.title}
                     </span>

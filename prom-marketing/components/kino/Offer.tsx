@@ -10,11 +10,11 @@ import { fbIds, newKinoEventId, postJson } from "@/lib/kino/browser";
 import { KinoCal } from "./KinoCal";
 
 /* =====================================================================
-   Поканата: трите бутона. Изплуват с надписите (залата решава кога),
+   Поканата: трите бутона. Изплуват със сцена 11.4 (залата решава кога),
    и в лепкавата лента долу.
-   ✓ Ивайло, 06.10: съдържанието (Академията · 12 седмици живи групови
-   срещи · агенти и шаблони · „AI картата“), 30 места, гаранцията,
-   1 900 € · 3 × 650 € · капаро 100 €.
+   ✓ Ивайло, 06.10: съдържанието (Академията и живите групови срещи — по
+   12 седмици · агенти и шаблони · „AI картата“), 30 места, гаранцията,
+   1 900 € · 3 × 650 € · капаро 30 €.
    ⚠ ЧЕРНОВА: формулировките и името (всичко идва от lib/kino/config.ts).
    ===================================================================== */
 
@@ -118,6 +118,9 @@ function PriceBlock({ depositPaid, cohort }: { depositPaid: number; cohort: Kino
           после {inst.count - 1} × {formatEur(inst.unitEur)}.
         </p>
       )}
+      <p className="k-muted" style={{ margin: "8px 0 0", fontSize: "0.9rem" }}>
+        {depositPaid > 0 ? KINO.program.priceNoteKept : KINO.program.priceNote}
+      </p>
       <CohortLine cohort={cohort} depositPaid={depositPaid} />
     </div>
   );
@@ -308,8 +311,8 @@ export function OfferBlock({
         ))}
       </ul>
       <p className="k-muted" style={{ margin: "14px 0 0", fontSize: "0.9rem" }}>
-        {KINO.program.anchor} Тук получаваш Академията, готовите агенти и шаблони, личната си AI карта — и 12 седмици, в които
-        го правим заедно.
+        {KINO.program.anchor} Тук получаваш 12 седмици в Академията и на живите срещи, готовите агенти и шаблони и личната си
+        AI карта — и го правим заедно.
       </p>
 
       <PriceBlock depositPaid={depositPaid} cohort={cohort} />
@@ -357,7 +360,8 @@ export function OfferBlock({
             <p>Капарото ти е платено — мястото ти е запазено. Избери час за разговора.</p>
           ) : (
             <p>
-              {formatEur(KINO.prices.deposit)} — пазиш мястото си в потока до разговора ни. Приспадат се изцяло от цената.
+              {formatEur(KINO.prices.deposit)} — пазиш мястото си в потока и цената на този поток до разговора ни. Приспадат се
+              изцяло от цената.
             </p>
           )}
           {depositPaid > 0 ? (

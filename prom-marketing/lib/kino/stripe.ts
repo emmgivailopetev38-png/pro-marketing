@@ -250,7 +250,7 @@ async function handleSession(s: Stripe.Checkout.Session): Promise<string> {
     contactId: contact.id,
     type: "kino_academy",
     title: "🎓 Да се отключи Академията — влезе в потока",
-    body: `Покана на ${contact.email ?? email} (Академия → Покани). Писмото „Добре дошъл“ обещава покана до 24 часа.`,
+    body: `Покана на ${contact.email ?? email} (Академия → Покани). Достъпът е за 12 седмици от началото на потока. Писмото „Добре дошъл“ обещава покана до 24 часа.`,
     dedupeKey: `kino:academy:${SCREENING}:${contact.id}`,
   });
   await kinoEvent({ contactId: contact.id, type: "payment", value: plan, amountEur: amount, meta: { session_id: s.id, total_eur: total } });

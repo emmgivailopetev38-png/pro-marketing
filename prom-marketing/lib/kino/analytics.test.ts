@@ -32,7 +32,7 @@ const row = (contact_id: string, minutes: number[], max_pos = Math.max(0, ...min
 const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
 describe("процентът е по изгледани минути, не по позиция", () => {
-  it("файлът (филмът + въпросите + подаръкът) е 47 минути (46:21)", () => {
+  it("файлът (филмът + въпросите + подаръкът) е 47 минути (46:35)", () => {
     expect(totalMinutes(KINO.film.durationSec)).toBe(47);
   });
 
@@ -53,7 +53,9 @@ describe("процентът е по изгледани минути, не по 
     const offerStart = KINO.film.chapters[11].startSec;
     expect(reachedMilestones({ minutes: 40, maxPos: offerStart })).toContain("offer_chapter");
     expect(reachedMilestones({ minutes: 40, maxPos: offerStart })).not.toContain("end");
-    expect(reachedMilestones({ minutes: 44, maxPos: KINO.film.offerAtSec })).toContain("end");
+    // бутоните (11.4) още не са краят — краят е „Не бързайте“ (againAt)
+    expect(reachedMilestones({ minutes: 42, maxPos: KINO.film.offerAtSec })).not.toContain("end");
+    expect(reachedMilestones({ minutes: 44, maxPos: KINO.film.againAtSec })).toContain("end");
   });
 });
 
@@ -66,7 +68,7 @@ describe("freshMilestones", () => {
 
   it("заглавията за CRM-а", () => {
     expect(milestoneTitle("entered")).toContain("Влезе в залата");
-    expect(milestoneTitle("end")).toContain("надписите");
+    expect(milestoneTitle("end")).toContain("целия филм");
   });
 
   it("само отворена страница (без изгледана минута) не е „влезе“", () => {

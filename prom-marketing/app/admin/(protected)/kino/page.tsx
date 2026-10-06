@@ -136,17 +136,19 @@ export default async function KinoAdminPage() {
     const what =
       at >= F.giftSceneAtSec
         ? "подаръкът"
-        : at >= F.goodnightAtSec
-          ? "„Лека вечер“"
-          : at >= F.qaAtSec
-            ? "въпросите след прожекцията"
-            : at >= F.againAtSec
-              ? "„Ето ни отново“"
-              : at >= F.offerAtSec
-                ? "надписите"
-                : at < F.filmStartSec
-                  ? "„Добре дошли“"
-                  : `„${c.title}“`;
+        : at >= F.creditsAtSec
+          ? "надписите"
+          : at >= F.goodnightAtSec
+            ? "„Лека вечер“"
+            : at >= F.qaAtSec
+              ? "въпросите след прожекцията"
+              : at >= F.againAtSec
+                ? "„Не бързайте“"
+                : at >= F.offerAtSec
+                  ? `„${c.title}“ · трите бутона`
+                  : at < F.filmStartSec
+                    ? "„Добре дошли“"
+                    : `„${c.title}“`;
     return `минута ${m + 1} · ${what}`;
   });
   const chapterStarts = KINO.film.chapters.map((c) => ({ minute: Math.floor(c.startSec / 60), label: c.title }));

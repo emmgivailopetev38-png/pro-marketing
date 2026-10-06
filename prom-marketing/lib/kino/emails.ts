@@ -229,7 +229,7 @@ export function welcomeEmail(args: {
 <p>Добре дошъл! Радвам се, че ще снимаме „Част втора“ заедно. Плащането мина: <strong>${escapeHtml(args.planLine)}</strong>.</p>
 <p><strong>Какво следва:</strong></p>
 <ol style="padding-left:20px;margin:0 0 16px;">
-<li>До 24 часа получаваш покана за Академията на този имейл.</li>
+<li>До 24 часа получаваш покана за Академията на този имейл — достъпът е за всичките 12 седмици на потока.</li>
 <li>Запази си първия разговор с мен — там започваме „AI картата на бизнеса ти“.</li>
 <li>${args.cohortStart ? `Потокът ти започва ${escapeHtml(args.cohortStart)} — д` : "Д"}атата на първата жива среща ще ти я пратя в отделно писмо.</li>
 </ol>
@@ -238,7 +238,7 @@ ${button(args.calUrl, "Избери час за първия разговор")}
 <p style="margin-top:26px;">${escapeHtml(KINO.host.name)}<br/><span style="color:${C.soft};">${escapeHtml(KINO.host.role)}</span></p>
 </div>`,
     text: sign(
-      `Здравей, ${args.name}!\n\nДобре дошъл! Плащането мина: ${args.planLine}.\n\nКакво следва:\n1. До 24 часа получаваш покана за Академията на този имейл.\n2. Запази си първия разговор с мен: ${args.calUrl}\n3. ${args.cohortStart ? `Потокът ти започва ${args.cohortStart}. ` : ""}Датата на първата жива среща идва в отделно писмо.\n\nВъпрос? Отговори на това писмо.`,
+      `Здравей, ${args.name}!\n\nДобре дошъл! Плащането мина: ${args.planLine}.\n\nКакво следва:\n1. До 24 часа получаваш покана за Академията на този имейл — достъпът е за всичките 12 седмици на потока.\n2. Запази си първия разговор с мен: ${args.calUrl}\n3. ${args.cohortStart ? `Потокът ти започва ${args.cohortStart}. ` : ""}Датата на първата жива среща идва в отделно писмо.\n\nВъпрос? Отговори на това писмо.`,
     ),
   };
 }
@@ -260,14 +260,14 @@ export function depositEmail(args: {
     subject: `🔒 Мястото ти е запазено — избери час за срещата`,
     html: `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.65;color:${C.ink};max-width:560px;">
 <p>Здравей, ${escapeHtml(args.name)}!</p>
-<p>Капарото мина (${escapeHtml(args.amountLine)}) — ${escapeHtml(where)}. Приспада се изцяло от цената.</p>
+<p>Капарото мина (${escapeHtml(args.amountLine)}) — ${escapeHtml(where)}, заедно с цената на този поток. Приспада се изцяло от нея.</p>
 ${button(args.calUrl, "Избери час за срещата")}
 <p>На срещата ще видим заедно откъде да започнеш и как потокът ще работи за твоя бизнес.</p>
 ${args.payUrl ? `<p><strong>Доплащането</strong> е на твоята лична страница — капарото вече е приспаднато там: <a href="${args.payUrl}">доплати тук</a>. Можеш по време на срещата или след нея.</p>` : ""}
 <p style="margin-top:26px;">${escapeHtml(KINO.host.name)}<br/><span style="color:${C.soft};">${escapeHtml(KINO.host.role)}</span></p>
 </div>`,
     text: sign(
-      `Здравей, ${args.name}!\n\nКапарото мина (${args.amountLine}) — ${where}. Приспада се изцяло.\n\nИзбери час за срещата: ${args.calUrl}${args.payUrl ? `\n\nДоплащане (капарото е приспаднато): ${args.payUrl}` : ""}`,
+      `Здравей, ${args.name}!\n\nКапарото мина (${args.amountLine}) — ${where}, заедно с цената на този поток. Приспада се изцяло.\n\nИзбери час за срещата: ${args.calUrl}${args.payUrl ? `\n\nДоплащане (капарото е приспаднато): ${args.payUrl}` : ""}`,
     ),
   };
 }

@@ -11,13 +11,14 @@ describe("quotePlan — една цена, без премиерна", () => {
     expect(quotePlan("installments")).toMatchObject({ mode: "subscription", unitEur: 650, count: 3, totalEur: 1950, dueNowEur: 650 });
   });
 
-  it("капарото е 100 €, а сделката — цената на програмата", () => {
-    expect(quotePlan("deposit")).toMatchObject({ mode: "payment", dueNowEur: KINO.prices.deposit, totalEur: KINO.prices.full });
+  it("капарото е 30 €, а сделката — цената на програмата", () => {
+    expect(KINO.prices.deposit).toBe(30);
+    expect(quotePlan("deposit")).toMatchObject({ mode: "payment", dueNowEur: 30, totalEur: KINO.prices.full });
   });
 
   it("платеното капаро се приспада от първото плащане", () => {
-    expect(quotePlan("full", { depositPaidEur: 100 })).toMatchObject({ unitEur: 1900, creditEur: 100, dueNowEur: 1800 });
-    expect(quotePlan("installments", { depositPaidEur: 100 })).toMatchObject({ unitEur: 650, creditEur: 100, dueNowEur: 550, totalEur: 1950 });
+    expect(quotePlan("full", { depositPaidEur: 30 })).toMatchObject({ unitEur: 1900, creditEur: 30, dueNowEur: 1870 });
+    expect(quotePlan("installments", { depositPaidEur: 30 })).toMatchObject({ unitEur: 650, creditEur: 30, dueNowEur: 620, totalEur: 1950 });
   });
 
   it("приспадането никога не прави плащането нула или отрицателно", () => {

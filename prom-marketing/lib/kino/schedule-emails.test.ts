@@ -101,7 +101,7 @@ describe("писмата — тонът от CLAUDE.md", () => {
     ...["trailer1", "trailer2", "tomorrow", "doors", "missing", "after", "last3h"].map((id) => flowEmail(id, ctx)!),
     flowEmail("after", { ...ctx, entered: false })!,
     welcomeEmail({ name: "Мария", planLine: "1 900 € · пълно плащане", calUrl: "https://cal.com/x", cohortStart: "в понеделник, 19 октомври" }),
-    depositEmail({ name: "Мария", amountLine: "100 €", calUrl: "https://cal.com/x", payUrl: null }),
+    depositEmail({ name: "Мария", amountLine: "30 €", calUrl: "https://cal.com/x", payUrl: null }),
   ];
   const FORBIDDEN = [/гоня/i, /преследва/i, /досажда/i, /натиска/i, /извинявам/i, /безпокоя/i, /губя времето/i, /да не преча/i, /гарантира(м|н) доход/i];
 
@@ -146,7 +146,7 @@ describe("писмата — тонът от CLAUDE.md", () => {
   it("капарото: часът за срещата и личният линк „доплати“", () => {
     const m = depositEmail({
       name: "Мария",
-      amountLine: "100 €",
+      amountLine: "30 €",
       calUrl: "https://cal.com/x",
       payUrl: "https://promarketing.pw/kino/plashtane?t=x",
       cohortStart: "в понеделник, 19 октомври",

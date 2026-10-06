@@ -76,7 +76,7 @@ export function chapterIndexAt(posSec: number, chapters: readonly KinoChapter[])
   return idx;
 }
 
-/** Колко секунди е главата (последната свършва там, където започват надписите). */
+/** Колко секунди е главата (последната свършва там, където свършва самият филм — againAt). */
 export function chapterSpans(
   chapters: readonly KinoChapter[],
   endSec: number,
@@ -88,7 +88,7 @@ export function chapterSpans(
   }));
 }
 
-/** Бутоните изплуват с надписите — точно в offerAt, никога по-рано. */
+/** Бутоните изплуват със сцена 11.4 „Под филма има три бутона“ — точно в offerAt, никога по-рано. */
 export function isOfferOpen(posSec: number, offerAtSec: number = KINO.film.offerAtSec): boolean {
   return posSec >= offerAtSec;
 }
@@ -237,7 +237,7 @@ export function sofiaDate(ms: number): string {
  * Прегледът на Ивайло: `?sim=` пренася залата в друг момент, без да чака
  * премиерата. Приема ISO време или кратко име на момента:
  * lobby · doors · film (началото на гл. 0) · film:<секунди във файла> · number · offer ·
- * again · qa · goodnight · bonus · after · last · closed.
+ * again · qa · goodnight · credits · bonus · after · last · closed.
  * Връща милисекунди или null (непознато → залата си върви по истинския час).
  */
 export function resolveSimTime(
@@ -249,6 +249,7 @@ export function resolveSimTime(
     againAtSec: number;
     qaAtSec: number;
     goodnightAtSec: number;
+    creditsAtSec: number;
     postCreditsAtSec: number;
     numberAtSec: number;
   } = KINO.film,
@@ -275,6 +276,8 @@ export function resolveSimTime(
       return tl.premiereMs + (cfg.qaAtSec + 5) * 1000;
     case "goodnight":
       return tl.premiereMs + (cfg.goodnightAtSec + 1) * 1000;
+    case "credits":
+      return tl.premiereMs + (cfg.creditsAtSec + 1) * 1000;
     case "bonus":
       return tl.premiereMs + (cfg.postCreditsAtSec + 2) * 1000;
     case "after":
