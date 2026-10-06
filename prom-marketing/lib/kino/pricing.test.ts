@@ -27,14 +27,16 @@ describe("quotePlan — една цена, без премиерна", () => {
 });
 
 describe("isCartOpen — честният срок", () => {
-  const close = Date.parse(KINO.screening.replayUntilISO);
-  it("записването от залата е отворено до неделя 23:59", () => {
+  const close = Date.parse(KINO.screening.closeISO);
+  it("записването е отворено до неделя, 18.10, 23:59 — и след филма", () => {
+    expect(new Date(close).toISOString()).toBe("2026-10-18T20:59:00.000Z");
     expect(isCartOpen(close - 1)).toBe(true);
     expect(isCartOpen(close)).toBe(false);
   });
-  it("след срока — само личният линк след разговор и платилите капаро", () => {
-    expect(isCartOpen(close + 1, { personalLink: true })).toBe(true);
+  it("след срока — само платилите капаро (доплащат) и поканените след разговор", () => {
+    expect(isCartOpen(close + 1, { invited: true })).toBe(true);
     expect(isCartOpen(close + 1, { depositPaid: true })).toBe(true);
+    expect(isCartOpen(close + 1, {})).toBe(false);
   });
 });
 

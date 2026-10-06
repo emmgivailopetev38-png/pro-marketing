@@ -9,6 +9,7 @@ import { KINO, KINO_SOURCE } from "./config";
 import { quotePlan, planProductName, formatEur, isKinoPlan, type KinoPlan, type PlanQuote } from "./pricing";
 import { welcomeEmail, depositEmail } from "./emails";
 import { getContact, kinoLog, kinoEvent, kinoLinks, firstName, SCREENING, type KinoContact } from "./server";
+import { cohortById, cohortView, firstCohort } from "./cohorts";
 import { kinoCapi } from "./meta";
 
 /**
@@ -43,6 +44,8 @@ export async function createKinoCheckout(args: {
   token: string;
   depositPaidEur: number;
   from: "zala" | "plashtane";
+  /** потокът, в който влиза (или за който е капарото) */
+  cohortId: string;
 }): Promise<KinoCheckoutResult> {
   const { stripe, plan, contact, token } = args;
   const quote = quotePlan(plan, { depositPaidEur: plan === "deposit" ? 0 : args.depositPaidEur });
@@ -57,6 +60,7 @@ export async function createKinoCheckout(args: {
   const metadata: Record<string, string> = {
     funnel: "kino",
     screening: SCREENING,
+    cohort: args.cohortId,
     plan,
     contact_id: contact.id,
     total_eur: String(quote.totalEur),
@@ -182,14 +186,18 @@ async function handleSession(s: Stripe.Checkout.Session): Promise<string> {
   const amount = (s.amount_total ?? 0) / 100;
   const total = Number(s.metadata?.total_eur) || amount;
   const links = kinoLinks(contact.id);
+  const cohort = cohortById(s.metadata?.cohort) ?? firstCohort();
+  const cohortStart = cohortView(cohort).startOnDay;
 
   if (plan === "deposit") {
     const act = await kinoLog({
       contactId: contact.id,
       type: "kino_deposit",
-      title: `🔒 Капаро ${formatEur(amount)} · пази място в потока`,
-      body: `Stripe сесия ${s.id}. Пази мястото в потока до разговора; приспада се от ${formatEur(total)}.`,
-      metadata: { plan, amount_eur: amount, session_id: s.id },
+      title: `🔒 Капаро ${formatEur(amount)} · пази място в потока от ${cohortView(cohort).startShort}`,
+      body: `Stripe сесия ${s.id}. Пази мястото в потока (започва ${cohortStart}) до срещата; приспада се от ${formatEur(total)}.${
+        links ? `\nЛинк за доплащане (капарото е приспаднато): ${links.pay}` : ""
+      }`,
+      metadata: { plan, amount_eur: amount, session_id: s.id, cohort: cohort.id },
       dedupeKey: `kino:deposit:${s.id}`,
       followupStatus: "ready_to_close",
       dealValueEur: Math.round(total),
@@ -200,7 +208,7 @@ async function handleSession(s: Stripe.Checkout.Session): Promise<string> {
     if (!act.created) return "deposit (повторно)";
     await kinoEvent({ contactId: contact.id, type: "deposit", value: plan, amountEur: amount, meta: { session_id: s.id } });
     if (contact.email) {
-      const m = depositEmail({ name, amountLine: formatEur(amount), calUrl: calUrl(), payUrl: links ? `${SITE}/kino/plashtane?t=${links.token}` : null });
+      const m = depositEmail({ name, amountLine: formatEur(amount), calUrl: calUrl(), payUrl: links?.pay ?? null, cohortStart });
       await sendEmail({ to: contact.email, ...m }).catch(() => null);
     }
     await notifyOwner(
@@ -222,7 +230,7 @@ async function handleSession(s: Stripe.Checkout.Session): Promise<string> {
     type: "kino_payment",
     title: `💳 Влезе в потока · ${planLine}`,
     body: `Stripe ${isSub ? "абонамент" : "плащане"} · сесия ${s.id}. Стойност на сделката: ${formatEur(total)}.`,
-    metadata: { plan, amount_eur: amount, total_eur: total, session_id: s.id, installment: isSub ? 1 : null, invoice_id: invoiceId },
+    metadata: { plan, amount_eur: amount, total_eur: total, session_id: s.id, installment: isSub ? 1 : null, invoice_id: invoiceId, cohort: cohort.id },
     dedupeKey: isSub && invoiceId ? `kino:inst:${invoiceId}` : `kino:pay:${s.id}`,
     stage: "won",
     dealValueEur: Math.round(total),
@@ -247,7 +255,7 @@ async function handleSession(s: Stripe.Checkout.Session): Promise<string> {
   });
   await kinoEvent({ contactId: contact.id, type: "payment", value: plan, amountEur: amount, meta: { session_id: s.id, total_eur: total } });
   if (contact.email) {
-    await sendEmail({ to: contact.email, ...welcomeEmail({ name, planLine, calUrl: calUrl() }) }).catch(() => null);
+    await sendEmail({ to: contact.email, ...welcomeEmail({ name, planLine, calUrl: calUrl(), cohortStart }) }).catch(() => null);
   }
   await kinoCapi({
     event: "Purchase",
@@ -313,7 +321,15 @@ async function handleInvoice(stripe: Stripe, inv: Stripe.Invoice): Promise<strin
     type: "kino_payment",
     title: `💳 Вноска ${n} от ${total} · ${formatEur(amount)}`,
     body: `Stripe фактура ${inv.id} · абонамент ${subId}.${stopped ? " Вноските са изплатени — абонаментът спира сам." : ""}`,
-    metadata: { plan: "installments", amount_eur: amount, installment: n, invoice_id: inv.id, subscription_id: subId, total_eur: Number(meta?.total_eur) || null },
+    metadata: {
+      plan: "installments",
+      amount_eur: amount,
+      installment: n,
+      invoice_id: inv.id,
+      subscription_id: subId,
+      total_eur: Number(meta?.total_eur) || null,
+      cohort: (cohortById(meta?.cohort) ?? firstCohort()).id,
+    },
     dedupeKey: `kino:inst:${inv.id}`,
     stage: "won",
   });

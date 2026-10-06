@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { KINO, type KinoVideoSource } from "@/lib/kino/config";
 import {
   kinoTimeline,
@@ -12,23 +12,28 @@ import {
   premiereLabels,
   type KinoPhase,
 } from "@/lib/kino/time";
+import type { KinoCohortView } from "@/lib/kino/cohorts";
 import { REACTIONS, type Reaction } from "@/lib/kino/analytics";
-import { postJson, beacon, safeLocal } from "@/lib/kino/browser";
+import { postJson, beacon } from "@/lib/kino/browser";
 import { track } from "@/lib/analytics/track";
 import { useKinoClock } from "./useKinoClock";
 import { KinoPlayer, type PlayerApi } from "./KinoPlayer";
 import { OfferBlock, StickyOfferBar, CallPanel, useOfferActions } from "./Offer";
-import { WaitingCalculator, QuestionBox, WaitlistForm, NumberBox } from "./HallWidgets";
+import { WaitingCalculator, QuestionBox, NumberBox } from "./HallWidgets";
+import { LiveJoin, useKinoLive } from "./LiveJoin";
 import { PosterArt } from "./PosterArt";
 
 /* =====================================================================
-   Залата. Фоайе → вратите (19:25) → премиерата „на живо“ → живата част
-   → повторението → „филмът вече не е на екран“.
+   Залата — ЕДНА прожекция, изцяло автоматична:
+   фоайе → вратите (19:25) → филмът „на живо“ (с въпросите и подаръка
+   накрая) → след края само поканата (до затварянето на записването)
+   → „записването затвори“.
 
-   Премиерата: позицията идва от часа (simulive), не от човека. Без
-   превъртане напред; изоставащ плейър се връща на живата секунда.
-   Повторението: нормален плейър. Трите бутона изплуват точно в offerAt.
-   Пулс на 15 s → /api/kino/track (kino_watch + етапите в CRM-а).
+   Филмът: позицията идва от часа (simulive), не от човека. Без превъртане
+   напред; закъснелият влиза в текущата минута. Повторение НЯМА.
+   Трите бутона изплуват точно в offerAt (надписите).
+   Пулс на 15 s → /api/kino/track (kino_watch + етапите в CRM-а; „в залата
+   сега“ за Режисьорската кабина). „НА ЖИВО“ — когато Ивайло се включи.
    ===================================================================== */
 
 const tl = kinoTimeline();
@@ -42,10 +47,13 @@ export interface HallProps {
   seat: { hall: number; row: number; seat: number } | null;
   initialNow: number;
   simMs: number | null;
-  offerSeen: boolean;
+  /** гледал е филма (за текста след края) */
+  entered: boolean;
   bonusUnlocked: boolean;
   depositPaid: number;
   bought: boolean;
+  /** може да плати и след затварянето — записан час или даден на Димитър */
+  invited: boolean;
   email: string | null;
   /** прегледът на Ивайло — без пулс, с жълта лента горе */
   preview: boolean;
@@ -57,65 +65,45 @@ export interface HallProps {
   bonusUrl: string | null;
   /** „Твоето число“, ако вече го е написал */
   hours: number | null;
+  /** потокът, в който влиза човекът: стартът, срокът, местата */
+  cohort: KinoCohortView;
+  /** прегледът: ?live=<линк> показва бутона „НА ЖИВО“ */
+  simLive?: string | null;
 }
 
-type Mode = "premiere" | "live" | "replay";
+type BeatMode = "doors" | "premiere" | "offer";
 type Float = { id: number; emoji: string; left: number };
 type BonusData = { title: string; body: string; url: string | null };
-
-function liveTarget(url: string | null): { kind: "youtube"; id: string } | { kind: "link"; url: string } | null {
-  if (!url) return null;
-  const yt = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|live\/))([\w-]{6,})/i);
-  return yt ? { kind: "youtube", id: yt[1] } : { kind: "link", url };
-}
-
-// „Поканата е видяна“ — пази се в браузъра и оцелява презареждане.
-const OFFER_EVENT = "kino-offer-seen";
-function offerStore(key: string) {
-  return {
-    subscribe(cb: () => void) {
-      window.addEventListener(OFFER_EVENT, cb);
-      window.addEventListener("storage", cb);
-      return () => {
-        window.removeEventListener(OFFER_EVENT, cb);
-        window.removeEventListener("storage", cb);
-      };
-    },
-    get: () => safeLocal()?.getItem(key) === "1",
-    set() {
-      safeLocal()?.setItem(key, "1");
-      window.dispatchEvent(new Event(OFFER_EVENT));
-    },
-  };
-}
 
 function StatusPill({ phase, pos }: { phase: KinoPhase; pos: number }) {
   if (phase === "film")
     return (
       <span className="k-pill k-pill--live">
-        <span className="k-dot" /> НА ЖИВО · {formatClock(pos)}
+        <span className="k-dot" /> НА ЕКРАН · {formatClock(pos)}
       </span>
     );
-  if (phase === "live")
-    return (
-      <span className="k-pill k-pill--live">
-        <span className="k-dot" /> Ивайло на живо
-      </span>
-    );
-  if (phase === "replay") return <span className="k-pill">Повторение · до {labels.replayUntilDay.split(",")[0]}, {labels.replayUntilTime}</span>;
-  if (phase === "closed") return <span className="k-pill">Филмът свали</span>;
+  if (phase === "after") return <span className="k-pill">Прожекцията свърши</span>;
+  if (phase === "closed") return <span className="k-pill">Записването затвори</span>;
   if (phase === "doors") return <span className="k-pill k-pill--live">Вратите са отворени</span>;
   return <span className="k-pill">Фоайе · отваря в {labels.doorsTime}</span>;
 }
 
-function TitleCard({ pos, note }: { pos: number; note?: string }) {
+/** Кое е на екрана в тази секунда: глава, надписите, въпросите или подаръкът. */
+function segmentAt(pos: number): { n: string; title: string } {
+  if (pos >= FILM.postCreditsAtSec) return { n: "ПОДАРЪКЪТ", title: "За останалите до края" };
+  if (pos >= FILM.qaAtSec) return { n: "СЛЕД ФИЛМА", title: "Въпроси след прожекцията" };
+  if (pos >= FILM.offerAtSec) return { n: "НАДПИСИ", title: KINO.title };
   const ch = FILM.chapters[chapterIndexAt(pos, FILM.chapters)];
-  const credits = pos >= FILM.offerAtSec;
+  return { n: `ГЛАВА ${ch.n}`, title: `„${ch.title}“` };
+}
+
+function TitleCard({ pos, note }: { pos: number; note?: string }) {
+  const seg = segmentAt(pos);
   return (
     <div className="k-titlecard">
       <div>
-        <div className="k-titlecard-n">{credits ? (pos >= FILM.postCreditsAtSec ? "СЦЕНА СЛЕД НАДПИСИТЕ" : "НАДПИСИ") : `ГЛАВА ${ch.n}`}</div>
-        <div className="k-titlecard-t">{credits ? KINO.title : `„${ch.title}“`}</div>
+        <div className="k-titlecard-n">{seg.n}</div>
+        <div className="k-titlecard-t">{seg.title}</div>
         <div className="k-titlecard-c">
           {formatClock(pos)} / {formatClock(FILM.durationSec)}
           {note ? ` · ${note}` : ""}
@@ -126,15 +114,13 @@ function TitleCard({ pos, note }: { pos: number; note?: string }) {
 }
 
 export function Hall(props: HallProps) {
-  const { token, preview, video } = props;
+  const { token, preview, video, cohort } = props;
   const playable = video.kind !== "none";
   const { now } = useKinoClock({ initialMs: props.initialNow, simMs: props.simMs, tickMs: 500 });
   const phase = phaseAt(now, tl);
-  const [wantReplay, setWantReplay] = useState(false);
-  const mode: Mode = phase === "film" ? "premiere" : phase === "live" && !wantReplay ? "live" : "replay";
-  const showsFilm = phase === "film" || ((phase === "live" || phase === "replay") && mode === "replay");
-  const onScreen = showsFilm || phase === "doors";
+  const inFilm = phase === "film";
   const livePos = simulivePosition(now, tl);
+  const pos = inFilm ? livePos : phase === "after" || phase === "closed" ? FILM.durationSec : 0;
 
   const player = useRef<PlayerApi>(null);
   const [armed, setArmed] = useState(false);
@@ -143,78 +129,43 @@ export function Hall(props: HallProps) {
   const [userPaused, setUserPaused] = useState(false);
   const userPausedRef = useRef(false);
   const tryingPlay = useRef(false);
+  const filmPlaying = inFilm && (playable ? playing : armed);
 
-  // ── повторението: позицията от плейъра или от „сухия“ часовник без видео ──
-  const [replayPos, setReplayPos] = useState(0);
-  const [dryPlaying, setDryPlaying] = useState(false);
-  useEffect(() => {
-    if (mode !== "replay" || !showsFilm) return;
-    let last = performance.now();
-    const id = window.setInterval(() => {
-      const t = performance.now();
-      if (playable) {
-        const p = player.current;
-        if (p) setReplayPos(p.time());
-      } else if (dryPlaying) {
-        setReplayPos((x) => Math.min(FILM.durationSec, x + (t - last) / 1000));
-      }
-      last = t;
-    }, 500);
-    return () => window.clearInterval(id);
-  }, [mode, showsFilm, dryPlaying, playable]);
-
-  const pos = mode === "premiere" ? livePos : mode === "replay" ? replayPos : FILM.durationSec;
-  const filmPlaying = mode === "premiere" ? (playable ? playing : armed) : mode === "replay" ? (playable ? playing : dryPlaying) : false;
-
-  // Дължината на файла. По-късо видео от живата секунда (пробата с тийзъра,
-  // или самият край на филма) → плейърът спира на последния кадър, не се
-  // върти в кръг и не брои това за „пауза от човека“.
+  // Дължината на файла. По-късо видео от живата секунда (пробата с тийзъра)
+  // → плейърът спира на последния кадър, не се върти в кръг и не брои това
+  // за „пауза от човека“.
   const [videoDur, setVideoDur] = useState<number | null>(null);
-  const pastVideoEnd = playable && mode === "premiere" && videoDur != null && livePos >= videoDur - 0.5;
+  const pastVideoEnd = playable && inFilm && videoDur != null && livePos >= videoDur - 0.5;
 
-  // ── поканата: точно в offerAt; видяна веднъж — остава ──
-  const store = useMemo(() => offerStore(`kino_offer_${KINO.screening.id}_${token ?? "anon"}`), [token]);
-  const seenLocal = useSyncExternalStore(store.subscribe, store.get, () => false);
-  const offerSeen = props.offerSeen || seenLocal;
-  const offerOpen =
-    phase === "closed" || phase === "before" || phase === "doors"
-      ? false
-      : mode === "premiere"
-        ? isOfferOpen(livePos)
-        : mode === "live"
-          ? true
-          : offerSeen || isOfferOpen(replayPos);
+  // ── поканата: точно с надписите; след филма — винаги (до срока) ──
+  const canPayAfterClose = props.depositPaid > 0 || props.invited;
+  const offerOpen = inFilm ? isOfferOpen(livePos) : phase === "after" ? true : phase === "closed" ? canPayAfterClose || props.bought : false;
+  const offerTracked = useRef(false);
   useEffect(() => {
-    if (offerOpen && !seenLocal) {
-      store.set();
-      track("kino_offer_shown", { mode });
+    if (offerOpen && !offerTracked.current) {
+      offerTracked.current = true;
+      track("kino_offer_shown", { phase });
     }
-  }, [offerOpen, seenLocal, store, mode]);
+  }, [offerOpen, phase]);
 
   // ── „Твоето число“ (сцена 9.7): полето под филма излиза от numberAtSec ──
   const [hours, setHours] = useState<number | null>(props.hours);
-  const numberOpen =
-    phase === "closed" || phase === "before" || phase === "doors"
-      ? false
-      : mode === "premiere"
-        ? livePos >= FILM.numberAtSec || hours != null
-        : mode === "live"
-          ? true
-          : replayPos >= FILM.numberAtSec || hours != null || offerSeen;
+  const numberOpen = (inFilm && (livePos >= FILM.numberAtSec || hours != null)) || phase === "after";
 
+  const beatMode: BeatMode | null = phase === "doors" ? "doors" : inFilm ? "premiere" : phase === "after" ? "offer" : null;
   const posRef = useRef(pos);
-  const stateRef = useRef({ phase, mode, pos, playing: filmPlaying });
+  const stateRef = useRef({ beatMode, pos, playing: filmPlaying });
   useEffect(() => {
     posRef.current = pos;
-    stateRef.current = { phase, mode, pos, playing: filmPlaying };
+    stateRef.current = { beatMode, pos, playing: filmPlaying };
   });
   const getPos = useCallback(() => posRef.current, []);
   const actions = useOfferActions({ token: preview ? null : token, from: "zala", pos: getPos });
 
-  // ── премиерата: плейърът върви по часа ──
+  // ── филмът: плейърът върви по часа ──
   useEffect(() => {
     const p = player.current;
-    if (!playable || !p || phase !== "film" || !armed || userPausedRef.current) return;
+    if (!playable || !p || !inFilm || !armed || userPausedRef.current) return;
     const dur = p.duration();
     if (dur != null && livePos >= dur - 0.5) {
       if (p.playing()) p.pause();
@@ -231,7 +182,7 @@ export function Hall(props: HallProps) {
         tryingPlay.current = false;
       });
     }
-  }, [now, phase, armed, livePos, playable]);
+  }, [now, inFilm, armed, livePos, playable]);
 
   // ── реакциите, които летят по екрана ──
   const [floats, setFloats] = useState<Float[]>([]);
@@ -242,13 +193,13 @@ export function Hall(props: HallProps) {
     window.setTimeout(() => setFloats((f) => f.filter((x) => !items.some((i) => i.id === x.id))), 2700);
   }, []);
 
-  // ── пулсът ──
+  // ── пулсът: вратите, филмът и поканата след него (за „в залата сега“) ──
   const lastBeat = useRef(0);
   const sendBeat = useCallback(
     (viaBeacon = false) => {
       if (!token || preview) return;
       const s = stateRef.current;
-      if (s.phase !== "film" && s.phase !== "live" && s.phase !== "replay") return;
+      if (!s.beatMode) return;
       const t = Date.now();
       const d = lastBeat.current ? Math.min(20, (t - lastBeat.current) / 1000) : 0;
       lastBeat.current = t;
@@ -257,7 +208,7 @@ export function Hall(props: HallProps) {
         t: token,
         pos: Math.round(s.pos),
         d: s.playing ? Math.round(d) : 0,
-        mode: s.mode,
+        mode: s.beatMode,
         vis: document.visibilityState === "visible",
         play: s.playing,
       };
@@ -269,32 +220,30 @@ export function Hall(props: HallProps) {
     [token, preview, spawn],
   );
 
+  const beating = !!beatMode && !!token && !preview;
   useEffect(() => {
-    if (!token || preview) return;
+    if (!beating) return;
+    const first = window.setTimeout(() => sendBeat(), 1200);
     const id = window.setInterval(() => sendBeat(), BEAT_MS);
     const onVis = () => document.visibilityState === "hidden" && sendBeat(true);
     const onHide = () => sendBeat(true);
     document.addEventListener("visibilitychange", onVis);
     window.addEventListener("pagehide", onHide);
     return () => {
+      window.clearTimeout(first);
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("pagehide", onHide);
     };
-  }, [token, preview, sendBeat]);
+  }, [beating, sendBeat]);
 
-  // Първият пулс — веднага щом човекът реално е в залата (не след 15 s).
-  const firstBeatSent = useRef(false);
+  // Щом човекът влезе във филма — пулс веднага (не след 15 s).
   useEffect(() => {
-    if (firstBeatSent.current) return;
-    if ((phase === "film" && armed) || (phase === "live" && mode === "live") || (mode === "replay" && filmPlaying)) {
-      firstBeatSent.current = true;
-      sendBeat();
-    }
-  }, [phase, armed, mode, filmPlaying, sendBeat]);
+    if (inFilm && armed) sendBeat();
+  }, [inFilm, armed, sendBeat]);
 
-  // ── бонусът след надписите ──
-  const reachedBonus = showsFilm && pos >= FILM.postCreditsAtSec + 15;
+  // ── подаръкът след въпросите ──
+  const reachedBonus = inFilm && livePos >= FILM.postCreditsAtSec + 15;
   const defaultBonus: BonusData = { title: KINO.bonus.title, body: KINO.bonus.body, url: props.bonusUrl };
   const [bonus, setBonus] = useState<{ state: "locked" | "open" | "more"; data?: BonusData }>(
     props.bonusUnlocked ? { state: "open", data: defaultBonus } : { state: "locked" },
@@ -315,23 +264,21 @@ export function Hall(props: HallProps) {
       } else if (data.reason === "watch-more") {
         setBonus({ state: "more" });
       } else {
-        // грешка/мрежа — пак при следващото стигане до края
-        bonusAsked.current = false;
+        bonusAsked.current = false; // грешка/мрежа — пак след малко
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- defaultBonus е от конфигурацията
   }, [reachedBonus, bonus.state, token, preview]);
-  // „Догледай още“ не е окончателно: след минута пита пак (ако е догледал главите — отключва).
-  useEffect(() => {
-    if (bonus.state !== "more") return;
-    const id = window.setTimeout(() => {
-      bonusAsked.current = false;
-      setBonus({ state: "locked" });
-    }, 60_000);
-    return () => window.clearTimeout(id);
-  }, [bonus.state]);
   const bonusOpen = bonus.state === "open" || ((!token || preview) && reachedBonus);
   const bonusData = bonus.data ?? defaultBonus;
+
+  // ── „НА ЖИВО“ от Режисьорската кабина ──
+  const live = useKinoLive({
+    token: preview ? null : token,
+    enabled: phase === "doors" || inFilm || phase === "after",
+    preview,
+    simUrl: props.simLive,
+  });
 
   // ── действията ──
   const lastReact = useRef(0);
@@ -353,14 +300,14 @@ export function Hall(props: HallProps) {
     track("kino_enter", { phase });
     const p = player.current;
     if (!p || !playable) return;
-    if (phase === "film") {
+    if (inFilm) {
       p.seek(livePos);
       if (!(await p.play())) {
         p.setMuted(true);
         setMutedBlocked(await p.play());
       }
     } else {
-      // фоайето: кратко пускане „отключва“ звука за началото (iOS / Chrome)
+      // вратите: кратко пускане „отключва“ звука за началото (iOS / Chrome)
       if (await p.play()) p.pause();
     }
   }
@@ -383,26 +330,11 @@ export function Hall(props: HallProps) {
     setMutedBlocked(false);
   }
 
-  function startReplay() {
-    setWantReplay(true);
-    track("kino_replay_from_live");
-    window.setTimeout(() => {
-      player.current?.seek(0);
-      void player.current?.play();
-    }, 400);
-  }
-
-  function seekChapter(sec: number) {
-    if (mode !== "replay") return;
-    if (playable) player.current?.seek(sec);
-    setReplayPos(sec);
-  }
-
   function onPlayerState(p: boolean) {
     setPlaying(p);
     const dur = player.current?.duration() ?? null;
     const atEnd = dur != null && posRef.current >= dur - 1;
-    if (!p && phase === "film" && armed && !tryingPlay.current && !atEnd) {
+    if (!p && inFilm && armed && !tryingPlay.current && !atEnd) {
       userPausedRef.current = true;
       setUserPaused(true);
     }
@@ -415,12 +347,12 @@ export function Hall(props: HallProps) {
     const strip = chapterStrip.current;
     const el = strip?.querySelector<HTMLElement>('[data-now="1"]');
     if (el && strip) strip.scrollTo({ left: el.offsetLeft - strip.clientWidth / 2 + el.clientWidth / 2, behavior: "smooth" });
-  }, [chapterIdx, showsFilm]);
+  }, [chapterIdx, inFilm]);
 
-  const live = useMemo(() => liveTarget(KINO.liveUrl), []);
   const cd = splitCountdown(tl.premiereMs - now);
-  const [closedCall, setClosedCall] = useState(false);
-  const simLinks = ["lobby", "doors", "film", "film:1950", "offer", "bonus", "live", "replay", "closed"];
+  const simLinks = ["lobby", "doors", "film", "film:1950", "number", "offer", "qa", "bonus", "after", "last", "closed"];
+  const segment = useMemo(() => segmentAt(pos), [pos]);
+  const dryNote = preview || process.env.NODE_ENV !== "production";
 
   return (
     <>
@@ -463,7 +395,7 @@ export function Hall(props: HallProps) {
             </div>
             <div className="k-panel" style={{ marginTop: 16, textAlign: "center" }}>
               <p className="k-h3">
-                Премиерата започва {labels.onDay}, в {labels.time}
+                Прожекцията е {labels.onDay}, в {labels.time} — само веднъж
               </p>
               <div className="k-count" style={{ margin: "14px auto 0" }}>
                 {(
@@ -481,31 +413,25 @@ export function Hall(props: HallProps) {
                 ))}
               </div>
               <p className="k-muted" style={{ margin: "14px 0 0" }}>
-                Залата отваря вратите в {labels.doorsTime}. Остави таба отворен или се върни по линка от билета.
+                Залата отваря вратите в {labels.doorsTime}. Записи няма — затова си запази вечерта. Остави таба отворен или се върни по
+                линка от билета.
               </p>
             </div>
           </>
         )}
 
-        {/* ── ЕКРАНЪТ: вратите, премиерата, повторението — един и същ плейър ── */}
-        {onScreen && (
+        {/* ── ЕКРАНЪТ: вратите и филмът ── */}
+        {(phase === "doors" || inFilm) && (
           <>
             <div className="k-screen">
               {video.kind !== "none" ? (
-                <KinoPlayer
-                  ref={player}
-                  source={video}
-                  controls={mode === "replay" && phase !== "doors"}
-                  title={KINO.title}
-                  onStateChange={onPlayerState}
-                  onMeta={setVideoDur}
-                />
+                <KinoPlayer ref={player} source={video} controls={false} title={KINO.title} onStateChange={onPlayerState} onMeta={setVideoDur} />
               ) : (
-                <TitleCard pos={pos} note={preview || process.env.NODE_ENV !== "production" ? "проба без филм" : undefined} />
+                <TitleCard pos={pos} note={dryNote ? "проба без филм" : undefined} />
               )}
               {pastVideoEnd && armed && (
                 <div className="k-screen-cover">
-                  <TitleCard pos={pos} note={preview || process.env.NODE_ENV !== "production" ? "пробното видео свърши — залата продължава по часа" : undefined} />
+                  <TitleCard pos={pos} note={dryNote ? "пробното видео свърши — залата продължава по часа" : undefined} />
                 </div>
               )}
 
@@ -527,12 +453,12 @@ export function Hall(props: HallProps) {
                 ))}
               </div>
 
-              {mode === "premiere" && !armed && (
+              {inFilm && !armed && (
                 <div className="k-overlay">
                   <div className="k-overlay-inner">
                     <p className="k-overlay-title">Филмът върви от {formatClock(livePos)}</p>
                     <p className="k-muted" style={{ margin: "0 0 14px" }}>
-                      Влизаш в текущата минута — като в истинско кино. Началото те чака в повторението.
+                      Влизаш в текущата минута — като в истинско кино. Прожекцията е само сега.
                     </p>
                     <button type="button" className="k-btn k-btn--primary" onClick={enter}>
                       🔊 Влез в залата
@@ -540,7 +466,7 @@ export function Hall(props: HallProps) {
                   </div>
                 </div>
               )}
-              {mode === "premiere" && armed && playable && userPaused && (
+              {inFilm && armed && playable && userPaused && (
                 <div className="k-screen-corner">
                   <button type="button" className="k-icon-btn" onClick={backToLive}>
                     ● Върни се на живо
@@ -554,14 +480,9 @@ export function Hall(props: HallProps) {
                   </button>
                 </div>
               )}
-              {mode === "replay" && showsFilm && !playable && (
-                <div className="k-screen-corner">
-                  <button type="button" className="k-icon-btn" onClick={() => setDryPlaying((x) => !x)}>
-                    {dryPlaying ? "❚❚ Пауза" : "▶ Пусни"}
-                  </button>
-                </div>
-              )}
             </div>
+
+            <LiveJoin live={live} token={preview ? null : token} pos={getPos} />
 
             {phase === "doors" && (
               <div className="k-panel" style={{ marginTop: 16, textAlign: "center" }}>
@@ -575,101 +496,74 @@ export function Hall(props: HallProps) {
               </div>
             )}
 
-            {showsFilm && (
+            {inFilm && (
               <>
                 <div className="k-progress" aria-hidden="true">
                   <span style={{ width: `${Math.min(100, (pos / FILM.offerAtSec) * 100)}%` }} />
                 </div>
                 <div className="k-chapters" ref={chapterStrip} aria-label="Главите">
                   {FILM.chapters.map((c, i) => {
-                    const cls = `k-chapter${i === chapterIdx ? " k-chapter--now" : i < chapterIdx ? " k-chapter--done" : ""}`;
-                    const label = `${c.n}. ${c.title}`;
-                    const now1 = i === chapterIdx ? "1" : undefined;
-                    return mode === "replay" && (i <= chapterIdx || offerSeen) ? (
-                      <button key={c.n} type="button" className={cls} data-now={now1} onClick={() => seekChapter(c.startSec)}>
-                        {label}
-                      </button>
-                    ) : (
-                      <span key={c.n} className={cls} data-now={now1}>
-                        {label}
+                    const done = pos >= FILM.offerAtSec || i < chapterIdx;
+                    const nowCh = pos < FILM.offerAtSec && i === chapterIdx;
+                    return (
+                      <span
+                        key={c.n}
+                        className={`k-chapter${nowCh ? " k-chapter--now" : done ? " k-chapter--done" : ""}`}
+                        data-now={nowCh ? "1" : undefined}
+                      >
+                        {c.n}. {c.title}
                       </span>
                     );
                   })}
+                  {pos >= FILM.qaAtSec && (
+                    <span className="k-chapter k-chapter--now" data-now="1">
+                      {segment.title}
+                    </span>
+                  )}
                 </div>
               </>
             )}
           </>
         )}
 
-        {/* ── ЖИВАТА ЧАСТ ── */}
-        {phase === "live" && mode === "live" && (
+        {/* ── СЛЕД ФИЛМА: само поканата ── */}
+        {phase === "after" && (
           <>
-            <div className="k-screen">
-              {live?.kind === "youtube" ? (
-                <iframe
-                  src={`https://www.youtube.com/embed/${live.id}?autoplay=1&playsinline=1&rel=0`}
-                  title="Живата част с Ивайло"
-                  allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-                  allowFullScreen
-                />
-              ) : (
-                <div className="k-titlecard">
-                  <div>
-                    <div className="k-titlecard-n">НА ЖИВО</div>
-                    <div className="k-titlecard-t">Ивайло влиза на живо — за въпросите ти</div>
-                    {live?.kind === "link" ? (
-                      <a className="k-btn k-btn--primary" style={{ marginTop: 16 }} href={live.url} target="_blank" rel="noopener">
-                        ● Влез в живата част
-                      </a>
-                    ) : (
-                      // ⚠ Линкът за живата част (NEXT_PUBLIC_KINO_LIVE_URL) — решение на Ивайло
-                      <p className="k-muted" style={{ marginTop: 12 }}>Линкът се появява тук след надписите.</p>
-                    )}
-                  </div>
-                </div>
-              )}
+            <div className="k-panel k-after">
+              <span className="k-kicker">Прожекцията свърши</span>
+              <h1 className="k-h2" style={{ marginTop: 8 }}>
+                {props.entered ? "Благодаря, че беше в залата" : `„${KINO.title}“ беше ${labels.onDay}`}
+              </h1>
+              <p className="k-lead" style={{ margin: 0 }}>
+                {props.entered
+                  ? "Ето поканата от края на филма — трите начина да продължим заедно."
+                  : "Филмът беше само веднъж, без запис. Поканата от края му е тук — трите начина да продължим заедно."}{" "}
+                Записването в потока е отворено до {cohort.closeDay}, {cohort.closeTime}.
+              </p>
             </div>
-            <div className="k-cta-row" style={{ marginTop: 14 }}>
-              <button type="button" className="k-btn" onClick={startReplay}>
-                ▶ Гледай филма от началото
-              </button>
-            </div>
+            <LiveJoin live={live} token={preview ? null : token} pos={getPos} />
           </>
         )}
 
-        {/* ── СВАЛЕН ── */}
-        {phase === "closed" && (
+        {/* ── ЗАПИСВАНЕТО ЗАТВОРИ ── */}
+        {phase === "closed" && !offerOpen && (
           <div className="k-panel" style={{ textAlign: "center", padding: "34px 20px" }}>
             <p className="k-kicker" style={{ justifyContent: "center" }}>
-              Залата е затворена
+              Записването затвори
             </p>
-            <h1 className="k-h2">Филмът вече не е на екран</h1>
+            <h1 className="k-h2">Записването в първия поток затвори</h1>
             <p className="k-lead" style={{ marginInline: "auto" }}>
-              „{KINO.title}“ беше на екран до {labels.replayUntilDay}, {labels.replayUntilTime}. Искаш ли да научиш първи за
-              следващата прожекция?
+              Затвори {labels.closeDay}, {labels.closeTime}. Следващият поток започва {cohort.startOnDay} — нека поговорим дали е за
+              теб.
             </p>
-            <div style={{ maxWidth: 520, margin: "0 auto" }}>
-              <WaitlistForm token={preview ? null : token} />
+            <div style={{ textAlign: "left" }}>
+              <CallPanel token={preview ? null : token} name={props.name} email={props.email} />
             </div>
-            <p className="k-muted" style={{ marginTop: 22 }}>
-              Искаш да поговорим за твоя бизнес?{" "}
-              <button type="button" className="k-link" style={{ background: "none", border: 0, cursor: "pointer", font: "inherit" }} onClick={() => setClosedCall(true)}>
-                Избери час
-              </button>
-            </p>
-            {closedCall && (
-              <div style={{ textAlign: "left" }}>
-                <CallPanel token={preview ? null : token} name={props.name} email={props.email} />
-              </div>
-            )}
           </div>
         )}
 
-        {/* ── ТВОЕТО ЧИСЛО — полето под филма ── */}
-        {numberOpen && <NumberBox token={preview ? null : token} pos={getPos} saved={hours} onSaved={setHours} />}
-
         {/* ── РЕАКЦИИТЕ ── */}
-        {(showsFilm || (phase === "live" && mode === "live")) && (
+        {inFilm && (
           <div className="k-reactions" aria-label="Реакции">
             {REACTIONS.map((r) => (
               <button key={r} type="button" className="k-react" onClick={() => react(r)} aria-label={`Реакция ${r}`}>
@@ -677,12 +571,15 @@ export function Hall(props: HallProps) {
               </button>
             ))}
             <span className="k-muted" style={{ fontSize: "0.85rem" }}>
-              {mode === "premiere" ? "Реакциите на залата летят по екрана." : "Реагирай — броят се по минути."}
+              Реакциите на залата летят по екрана.
             </span>
           </div>
         )}
 
-        {/* ── БОНУСЪТ ── */}
+        {/* ── ТВОЕТО ЧИСЛО — полето под филма (след филма — под поканата) ── */}
+        {numberOpen && inFilm && <NumberBox token={preview ? null : token} pos={getPos} saved={hours} onSaved={setHours} />}
+
+        {/* ── ПОДАРЪКЪТ ── */}
         {bonusOpen && (
           <div className="k-bonus" role="status">
             <p className="k-kicker" style={{ color: "#fcd34d" }}>
@@ -699,7 +596,7 @@ export function Hall(props: HallProps) {
                 Вземи подаръка
               </a>
             ) : (
-              // ⚠ Бонусът (KINO_BONUS_URL, само на сървъра) — решение на Ивайло
+              // ⚠ Подаръкът (KINO_BONUS_URL, само на сървъра) — решение на Ивайло
               <p className="k-muted" style={{ marginTop: 10 }}>
                 Подаръкът идва на имейла ти до 24 часа.
               </p>
@@ -708,7 +605,7 @@ export function Hall(props: HallProps) {
         )}
         {bonus.state === "more" && (
           <p className="k-muted" style={{ marginTop: 14 }}>
-            🎁 Подаръкът след надписите е за изгледалите филма. Върни се към главите, които пропусна — и ще те чака тук.
+            🎁 Подаръкът в края е за изгледалите филма. Остани в залата до края — и ще те чака тук.
           </p>
         )}
 
@@ -722,10 +619,12 @@ export function Hall(props: HallProps) {
             name={props.name}
             email={props.email}
             hours={hours}
+            cohort={cohort}
           />
         )}
+        {numberOpen && !inFilm && <NumberBox token={preview ? null : token} pos={getPos} saved={hours} onSaved={setHours} />}
 
-        {phase !== "closed" && (
+        {(inFilm || phase === "after") && (
           <div className="k-hall-grid">
             <QuestionBox token={preview ? null : token} pos={getPos} />
             <WaitingCalculator token={preview ? null : token} />

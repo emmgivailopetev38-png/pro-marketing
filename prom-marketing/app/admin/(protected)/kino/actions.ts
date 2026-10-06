@@ -6,6 +6,8 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { KINO } from "@/lib/kino/config";
 import { SCREENING } from "@/lib/kino/server";
 import { isKinoList } from "@/lib/kino/analytics";
+import { parseLiveUrl } from "@/lib/kino/live-url";
+import { setLiveState } from "@/lib/kino/live";
 
 export interface GiveResult {
   ok: boolean;
@@ -90,5 +92,29 @@ export async function giveKinoListAction(_prev: GiveResult | null, formData: For
     message: given
       ? `Дадени: ${given}${who ? ` · при ${who}` : ""}. Излизат в опашката му в /ekip.${skip.size ? ` (${skip.size} вече бяха дадени)` : ""}`
       : "Всички от списъка вече са дадени.",
+  };
+}
+
+export interface LiveResult {
+  ok: boolean;
+  message: string;
+}
+
+/**
+ * „Влизам на живо“ от Режисьорската кабина. on=1 с линк (https — Zoom,
+ * Google Meet, YouTube Live) → залата показва бутона „НА ЖИВО“ до ~30 s;
+ * on=0 → бутонът изчезва. Всяко натискане остава в kino_live_log.
+ */
+export async function setKinoLiveAction(_prev: LiveResult | null, formData: FormData): Promise<LiveResult> {
+  const actor = await requireAdmin();
+  const on = formData.get("on") === "1";
+  const raw = String(formData.get("url") ?? "").trim();
+  const target = parseLiveUrl(raw);
+  if (on && !target) return { ok: false, message: "Сложи линк, който започва с https:// (Zoom, Google Meet или YouTube Live)." };
+  const r = await setLiveState(on, target?.url ?? (raw || null), actor);
+  if (!r.ok) return { ok: false, message: r.error ?? "Не стана." };
+  return {
+    ok: true,
+    message: on ? `● На живо (${target!.label}) — залата вижда бутона до ~30 секунди.` : "■ Изключено — бутонът изчезва от залата.",
   };
 }

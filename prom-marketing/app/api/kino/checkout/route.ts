@@ -4,7 +4,8 @@ import { z } from "zod";
 import { KINO } from "@/lib/kino/config";
 import { isKinoPlan, isCartOpen } from "@/lib/kino/pricing";
 import { contactFromTicket } from "@/lib/kino/token";
-import { getContact, depositPaidEur, hasBoughtProgram, hasKinoInvite, kinoEvent, kinoLog } from "@/lib/kino/server";
+import { getContact, hallState, hasKinoInvite, kinoEvent, kinoLog, seatsTaken } from "@/lib/kino/server";
+import { cohortForBuyer } from "@/lib/kino/cohorts";
 import { createKinoCheckout } from "@/lib/kino/stripe";
 import { kinoCapi, safeEventId } from "@/lib/kino/meta";
 
@@ -47,22 +48,28 @@ export async function POST(request: Request) {
   const contact = await getContact(contactId);
   if (!contact) return NextResponse.json({ error: "Не намерихме билета ти. Пиши ни — ще помогнем." }, { status: 404 });
 
-  const [deposit, bought] = await Promise.all([depositPaidEur(contactId), hasBoughtProgram(contactId)]);
+  const st = await hallState(contactId);
+  const deposit = st.depositPaid;
+  const bought = st.bought;
   if (bought) return NextResponse.json({ error: "Вече си в потока — провери пощата си за следващите стъпки.", done: true }, { status: 409 });
   if (plan === "deposit" && deposit > 0) {
     return NextResponse.json({ error: "Капарото ти вече е платено — избери час за разговора.", fallback: "call" }, { status: 409 });
   }
-  // Честният срок: записването затваря с филма (нд 23:59). След това —
-  // само платилите капаро и хората след разговор (по CRM-а, не по линка:
-  // `from` идва от браузъра и не отваря нищо).
+  // Честният срок: записването в първия поток затваря в нд 18.10, 23:59. След
+  // това — само платилите капаро (доплащат за своя поток) и поканените след
+  // разговор (по CRM-а, не по линка: `from` идва от браузъра и не отваря нищо).
   const from = parsed.data.from ?? "zala";
-  const openForAll = isCartOpen(Date.now(), { depositPaid: deposit > 0 });
+  const now = Date.now();
+  const openForAll = isCartOpen(now, { depositPaid: deposit > 0 });
   if (!openForAll && !(await hasKinoInvite(contactId))) {
     return NextResponse.json(
-      { error: "Записването в потока затвори заедно с филма. Избери час — ще видим заедно какво следва.", fallback: "call" },
+      { error: "Записването в първия поток затвори. Избери час — ще видим заедно следващия.", fallback: "call" },
       { status: 410 },
     );
   }
+  // Потокът: с капаро — неговият; иначе първият, който още записва и има места.
+  const taken = await seatsTaken();
+  const cohort = cohortForBuyer({ nowMs: now, depositCohortId: st.depositCohort, takenOf: (id) => taken?.get(id) ?? 0 });
 
   try {
     const stripe = new Stripe(key);
@@ -73,6 +80,7 @@ export async function POST(request: Request) {
       token: t,
       depositPaidEur: deposit,
       from,
+      cohortId: cohort.id,
     });
     if (!r.url || !r.quote) return NextResponse.json({ error: "Плащането не се отвори. Опитай пак." }, { status: 500 });
     const quote = r.quote;

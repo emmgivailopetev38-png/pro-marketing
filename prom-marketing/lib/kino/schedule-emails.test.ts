@@ -29,6 +29,12 @@ describe("загряването — кога тръгва всяка стъпк
     expect(byId("missing").audience).toBe("notEntered");
   });
 
+  it("след края: поканата и срокът — 5 минути след филма, без купилите (повторение няма)", () => {
+    expect(byId("after").opensMs).toBe(tl.filmEndMs + 5 * 60_000);
+    expect(byId("after").audience).toBe("notBought");
+    expect(stages.some((s) => s.id === "replay")).toBe(false);
+  });
+
   it("последните 3 часа — в 20:59 в неделя, без купилите", () => {
     expect(sofiaDayLabel(byId("last3h").opensMs)).toBe("неделя, 18 октомври");
     expect(sofiaTimeLabel(byId("last3h").opensMs)).toBe("20:59");
@@ -83,14 +89,17 @@ describe("писмата — тонът от CLAUDE.md", () => {
       ics: "https://promarketing.pw/api/kino/ics?t=x",
     },
     labels: premiereLabels(),
+    cohort: { startOnDay: "в понеделник, 19 октомври" },
+    entered: true,
     seat: { hall: 1, row: 7, seat: 12 },
     viberUrl: null,
     unsubscribeUrl: "https://promarketing.pw/api/email/unsubscribe?c=1&t=2",
   };
   const all = [
     ticketEmail(ctx),
-    ...["trailer1", "trailer2", "tomorrow", "doors", "missing", "replay", "last3h"].map((id) => flowEmail(id, ctx)!),
-    welcomeEmail({ name: "Мария", planLine: "1 490 € · пълно плащане", calUrl: "https://cal.com/x" }),
+    ...["trailer1", "trailer2", "tomorrow", "doors", "missing", "after", "last3h"].map((id) => flowEmail(id, ctx)!),
+    flowEmail("after", { ...ctx, entered: false })!,
+    welcomeEmail({ name: "Мария", planLine: "1 900 € · пълно плащане", calUrl: "https://cal.com/x", cohortStart: "в понеделник, 19 октомври" }),
     depositEmail({ name: "Мария", amountLine: "100 €", calUrl: "https://cal.com/x", payUrl: null }),
   ];
   const FORBIDDEN = [/гоня/i, /преследва/i, /досажда/i, /натиска/i, /извинявам/i, /безпокоя/i, /губя времето/i, /да не преча/i, /гарантира(м|н) доход/i];
@@ -111,6 +120,33 @@ describe("писмата — тонът от CLAUDE.md", () => {
     const evil = ticketEmail({ ...ctx, name: "<script>x</script>" });
     expect(evil.html).not.toContain("<script>x</script>");
     expect(evil.html).toContain("&lt;script&gt;");
+  });
+
+  it("никъде не се обещава повторение или живо включване след филма", () => {
+    for (const m of all) expect(`${m.subject} ${m.html} ${m.text}`, m.subject).not.toMatch(/повторени|влизам на живо|чета ги на живо/i);
+  });
+
+  it("след края: срокът и потокът; гледалият и пропусналият получават различно писмо", () => {
+    const saw = flowEmail("after", ctx)!;
+    const missed = flowEmail("after", { ...ctx, entered: false })!;
+    expect(saw.html).toContain("неделя, 18 октомври, 23:59");
+    expect(saw.html).toContain("в понеделник, 19 октомври");
+    expect(saw.text).toContain("Благодаря ти, че беше в залата");
+    expect(missed.text).toContain("само веднъж, без запис");
+  });
+
+  it("капарото: часът за срещата и личният линк „доплати“", () => {
+    const m = depositEmail({
+      name: "Мария",
+      amountLine: "100 €",
+      calUrl: "https://cal.com/x",
+      payUrl: "https://promarketing.pw/kino/plashtane?t=x",
+      cohortStart: "в понеделник, 19 октомври",
+    });
+    expect(m.html).toContain('href="https://promarketing.pw/kino/plashtane?t=x"');
+    expect(m.html).toContain("доплати");
+    expect(m.text).toContain("капарото е приспаднато");
+    expect(m.html).toContain("в понеделник, 19 октомври");
   });
 
   it("билетът казва мястото и часа", () => {

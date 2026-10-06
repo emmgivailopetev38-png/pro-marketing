@@ -2,7 +2,7 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 import { allRows } from "@/lib/supabase/all-rows";
 import { KINO } from "./config";
-import { isDbConfigured, isMissingSchema, SCREENING } from "./server";
+import { isDbConfigured, isMissingSchema, kinoLinks, SCREENING } from "./server";
 import {
   callLists,
   retentionByChapter,
@@ -81,7 +81,6 @@ export interface KinoDashboard {
     entered: number;
     decisionMakers: number;
     cameLive: number;
-    cameReplay: number;
     watched50: number;
     reachedEnd: number;
     clickers: number;
@@ -100,7 +99,17 @@ export interface KinoDashboard {
   questions: Array<{ id: string; name: string; contactId: string; text: string; minute: number | null; at: string }>;
   clicksByButton: Array<{ button: string; people: number }>;
   sources: Array<{ source: string; count: number }>;
-  money: Array<{ id: string; contactId: string; name: string; title: string; amount: number; at: string; kind: string }>;
+  money: Array<{
+    id: string;
+    contactId: string;
+    name: string;
+    title: string;
+    amount: number;
+    at: string;
+    kind: string;
+    /** капаро без доплащане — личният линк „доплати“ за срещата */
+    payUrl: string | null;
+  }>;
   /** натиснаха „купи“ и 15+ мин не платиха — най-горе за Димитър */
   abandoned: KinoPerson[];
   dayBefore: KinoPerson[];
@@ -119,7 +128,6 @@ const empty = (error: string | null, dbReady: boolean): KinoDashboard => ({
     entered: 0,
     decisionMakers: 0,
     cameLive: 0,
-    cameReplay: 0,
     watched50: 0,
     reachedEnd: 0,
     clickers: 0,
@@ -363,6 +371,7 @@ export async function loadKinoDashboard(): Promise<KinoDashboard> {
       amount: Number((a.metadata ?? {}).amount_eur) || 0,
       at: a.occurred_at,
       kind: a.activity_type === "kino_deposit" ? "капаро" : "плащане",
+      payUrl: a.activity_type === "kino_deposit" && !buyers.has(a.contact_id) ? (kinoLinks(a.contact_id)?.pay ?? null) : null,
     }))
     .sort((x, y) => y.at.localeCompare(x.at));
 
@@ -380,8 +389,7 @@ export async function loadKinoDashboard(): Promise<KinoDashboard> {
       registered: regMeta.size,
       entered: watches.filter((w) => (w.minutes ?? []).length > 0).length,
       decisionMakers: [...regMeta.values()].filter((r) => isDecisionMaker(r.role)).length,
-      cameLive: watches.filter((w) => (w.modes ?? []).includes("premiere")).length,
-      cameReplay: watches.filter((w) => (w.modes ?? []).includes("replay")).length,
+      cameLive: watches.filter((w) => (w.minutes ?? []).length > 0).length,
       watched50: watches.filter((w) => watchedRatio((w.minutes ?? []).length) >= 0.5).length,
       reachedEnd: watches.filter((w) => (w.milestones ?? []).includes("end")).length,
       clickers: clicksBy.size,

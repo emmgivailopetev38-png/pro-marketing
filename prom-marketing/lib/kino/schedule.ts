@@ -7,9 +7,9 @@
  *   Д−1              имейл „Утре в 19:30“ + трейлър 3
  *   Д, 12:00         SMS „Днес в 19:30“
  *   Д, 19:15         имейл + SMS с линка към залата
- *   +30 мин          имейл „Пропускаш най-важното“ — само на невлезлите
- *   след края        имейл „повторението + срока“ — без купилите
- *   последните 3 ч   имейл „Затваряме в полунощ“ + SMS — без купилите
+ *   +30 мин          имейл „Филмът върви — влез сега“ — само на невлезлите
+ *   след края        имейл „поканата + срокът“ — без купилите (повторение НЯМА)
+ *   последните 3 ч   имейл „Записването затваря в полунощ“ + SMS — без купилите
  * Viber („Кино клуб“) и обажданията на Димитър са ръчни — графикът им е в /admin/kino.
  *
  * Всяка стъпка има прозорец [отваря, затваря]: късно записалият се не получава
@@ -95,18 +95,18 @@ export function buildFlowStages(tl: KinoTimeline, premiereTime: { hour: number; 
       audience: "notEntered",
     },
     {
-      id: "replay",
-      label: "След края · повторението и срокът",
-      opensMs: tl.liveEndMs + 10 * MIN,
-      closesMs: tl.liveEndMs + 16 * 60 * MIN,
+      id: "after",
+      label: "След края · поканата и срокът",
+      opensMs: tl.filmEndMs + 5 * MIN,
+      closesMs: tl.filmEndMs + 16 * 60 * MIN,
       channels: ["email"],
       audience: "notBought",
     },
     {
       id: "last3h",
-      label: "Последните 3 часа · „Затваряме в полунощ“",
-      opensMs: tl.replayUntilMs - 3 * 60 * MIN,
-      closesMs: tl.replayUntilMs - 30 * MIN,
+      label: "Последните 3 часа · „Записването затваря в полунощ“",
+      opensMs: tl.closeMs - 3 * 60 * MIN,
+      closesMs: tl.closeMs - 30 * MIN,
       channels: ["email", "sms"],
       audience: "notBought",
     },
@@ -134,11 +134,11 @@ export function smsText(stageId: string, short: string, when: { day: string; tim
     case "ticket":
       return `Билетът ти за ВЪЛНАТА е запазен: ${when.day}, ${when.time}. ${short}`;
     case "today":
-      return `Днес в ${when.time} е премиерата на ВЪЛНАТА. Залата: ${short}`;
+      return `Днес в ${when.time} е ВЪЛНАТА — само веднъж. Залата: ${short}`;
     case "doors":
       return `След 15 минути гасим светлините. Влез: ${short}`;
     case "last3h":
-      return `Последни 3 часа: ВЪЛНАТА сваля в полунощ. ${short}`;
+      return `Последни 3 часа: записването в потока затваря в полунощ. ${short}`;
     default:
       return null;
   }

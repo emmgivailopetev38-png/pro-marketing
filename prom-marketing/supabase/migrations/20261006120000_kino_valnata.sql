@@ -5,9 +5,12 @@
 --   върви: записването, билетът, плащането и CRM активностите не зависят от
 --   нея. Без нея не се пишат само пулсовете (кривата на задържане) и kino_events.
 --
--- kino_watch  — един ред на човек и прожекция: изгледани минути, най-далечна
---               позиция, режими (премиера / повторение), етапи (25/50/75 %…).
--- kino_events — реакции, въпроси, кликове, плащания, капара, разговори, бонус.
+-- kino_watch    — един ред на човек и прожекция: изгледани минути, най-далечна
+--                 позиция, режими (вратите / филмът / поканата), етапи (25/50/75 %…).
+--                 last_seen_at + last_mode → „в залата сега“ в Режисьорската кабина.
+-- kino_events   — реакции, въпроси, кликове, плащания, капара, разговори, бонус.
+-- kino_live     — „Влизам на живо“: включено ли е и с какъв линк (един ред на прожекция).
+-- kino_live_log — всяко натискане на превключвателя: кой, кога, с какъв линк.
 --
 -- Сигурност: RLS е включен и НЯМА политики → anon и authenticated не виждат
 -- нищо. Пише и чете само сървърът (service_role) през /api/kino/* и таблото.
@@ -19,7 +22,9 @@ create table if not exists public.kino_watch (
   contact_id uuid not null references public.contacts(id) on delete cascade,
   first_seen_at timestamptz not null default now(),
   last_seen_at timestamptz not null default now(),
-  first_mode text not null default 'premiere' check (first_mode in ('premiere', 'replay', 'live')),
+  -- doors — чака във фоайето; premiere — филмът; offer — след филма (само поканата)
+  first_mode text not null default 'premiere' check (first_mode in ('doors', 'premiere', 'offer')),
+  last_mode text not null default 'premiere' check (last_mode in ('doors', 'premiere', 'offer')),
   modes text[] not null default '{}',
   -- най-далечната секунда, до която е стигнал, докато филмът върви
   max_pos integer not null default 0 check (max_pos >= 0),
@@ -56,10 +61,34 @@ create table if not exists public.kino_events (
 create index if not exists kino_events_screening_type_idx on public.kino_events (screening_id, type, created_at desc);
 create index if not exists kino_events_contact_idx on public.kino_events (contact_id);
 
+-- ── Режисьорската кабина: „Влизам на живо“ ──────────────────────────────────
+create table if not exists public.kino_live (
+  screening_id text primary key,
+  is_on boolean not null default false,
+  url text check (url is null or (url ~ '^https://' and length(url) <= 600)),
+  updated_at timestamptz not null default now(),
+  updated_by text
+);
+
+create table if not exists public.kino_live_log (
+  id bigint generated always as identity primary key,
+  screening_id text not null,
+  is_on boolean not null,
+  url text,
+  actor text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists kino_live_log_screening_idx on public.kino_live_log (screening_id, created_at desc);
+
 alter table public.kino_watch enable row level security;
 alter table public.kino_events enable row level security;
+alter table public.kino_live enable row level security;
+alter table public.kino_live_log enable row level security;
 revoke all on table public.kino_watch from anon, authenticated;
 revoke all on table public.kino_events from anon, authenticated;
+revoke all on table public.kino_live from anon, authenticated;
+revoke all on table public.kino_live_log from anon, authenticated;
 
 -- ── Пулсът: една атомарна стъпка ──────────────────────────────────────────
 -- Създава реда при първия пулс, добавя минутата (без повторение), вдига
@@ -84,10 +113,10 @@ declare
   v_created boolean := false;
   v_pos integer := greatest(0, least(coalesce(p_pos, 0), 6 * 3600));
   v_minute smallint := (greatest(0, least(coalesce(p_pos, 0), 6 * 3600)) / 60)::smallint;
-  v_mode text := case when p_mode in ('premiere', 'replay', 'live') then p_mode else 'replay' end;
+  v_mode text := case when p_mode in ('doors', 'premiere', 'offer') then p_mode else 'premiere' end;
 begin
-  insert into public.kino_watch (screening_id, contact_id, first_mode, modes, user_agent)
-  values (p_screening, p_contact, v_mode, array[v_mode], left(p_ua, 300))
+  insert into public.kino_watch (screening_id, contact_id, first_mode, last_mode, modes, user_agent)
+  values (p_screening, p_contact, v_mode, v_mode, array[v_mode], left(p_ua, 300))
   on conflict (screening_id, contact_id) do nothing;
   v_created := found;
 
@@ -98,6 +127,7 @@ begin
 
   update public.kino_watch w set
     last_seen_at = now(),
+    last_mode = v_mode,
     beats = w.beats + 1,
     hidden_beats = w.hidden_beats + case when coalesce(p_visible, true) then 0 else 1 end,
     modes = case when v_mode = any(w.modes) then w.modes else array_append(w.modes, v_mode) end,

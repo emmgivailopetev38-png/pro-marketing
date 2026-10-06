@@ -10,6 +10,8 @@ import { smsStatus } from "@/lib/kino/sms";
 import { serverNow } from "@/lib/kino/server";
 import { RetentionChart, ChapterBars, ReactionStrips } from "@/components/kino/admin/KinoCharts";
 import { GiveListButton } from "@/components/kino/admin/GiveListButton";
+import { KinoBooth } from "@/components/kino/admin/KinoBooth";
+import { loadBooth } from "@/lib/kino/live";
 
 export const dynamic = "force-dynamic";
 
@@ -21,12 +23,11 @@ export const dynamic = "force-dynamic";
    ===================================================================== */
 
 const PHASE_LABEL: Record<string, string> = {
-  before: "Преди премиерата",
+  before: "Преди прожекцията",
   doors: "Вратите са отворени",
   film: "Филмът върви",
-  live: "Живата част",
-  replay: "Повторение",
-  closed: "Свален",
+  after: "След филма — само поканата",
+  closed: "Записването затвори",
 };
 
 function Kpi({ label, value, sub, color }: { label: string; value: string | number; sub?: string; color: string }) {
@@ -117,7 +118,7 @@ function PeopleTable({ people, mode }: { people: KinoPerson[]; mode: KinoListId 
 }
 
 export default async function KinoAdminPage() {
-  const d = await loadKinoDashboard();
+  const [d, booth] = await Promise.all([loadKinoDashboard(), loadBooth()]);
   const tl = kinoTimeline();
   const now = serverNow();
   const phase = phaseAt(now, tl);
@@ -129,7 +130,10 @@ export default async function KinoAdminPage() {
   const minutes = totalMinutes();
   const minuteLabels = Array.from({ length: minutes }, (_, m) => {
     const c = KINO.film.chapters[chapterIndexAt(m * 60, KINO.film.chapters)];
-    return m * 60 >= KINO.film.offerAtSec ? `минута ${m + 1} · надписите` : `минута ${m + 1} · „${c.title}“`;
+    const at = m * 60;
+    if (at >= KINO.film.postCreditsAtSec) return `минута ${m + 1} · подаръкът`;
+    if (at >= KINO.film.qaAtSec) return `минута ${m + 1} · въпросите след прожекцията`;
+    return at >= KINO.film.offerAtSec ? `минута ${m + 1} · надписите` : `минута ${m + 1} · „${c.title}“`;
   });
   const chapterStarts = KINO.film.chapters.map((c) => ({ minute: Math.floor(c.startSec / 60), label: c.title }));
   const chips: Array<[string, boolean]> = [
@@ -147,7 +151,8 @@ export default async function KinoAdminPage() {
         <p className="hud text-[var(--color-accent-cyan)]">ProMarketing · Онлайн кино</p>
         <h1 className="cc-title mt-2 font-display text-4xl font-bold">{KINO.title} · залата</h1>
         <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-          Премиера {when.day}, {when.time} · повторение до {when.replayUntilDay}, {when.replayUntilTime} · сега: {PHASE_LABEL[phase]}
+          Прожекция {when.day}, {when.time} (само веднъж, без повторение) · записването до {when.closeDay}, {when.closeTime} · сега:{" "}
+          {PHASE_LABEL[phase]}
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           {chips.map(([t, ok]) => (
@@ -160,7 +165,7 @@ export default async function KinoAdminPage() {
           <Link className="cc-btn" href="/kino" target="_blank">
             Афишът ↗
           </Link>
-          {["lobby", "doors", "film", "offer", "bonus", "live", "replay", "closed"].map((s) => (
+          {["lobby", "doors", "film", "number", "offer", "qa", "bonus", "after", "closed"].map((s) => (
             <Link key={s} className="cc-btn" href={`/kino/zala?sim=${s}`} target="_blank">
               Залата · {s}
             </Link>
@@ -169,12 +174,13 @@ export default async function KinoAdminPage() {
         {d.error && <p className="mt-3 text-sm text-amber-300">{d.error}</p>}
       </header>
 
+      <KinoBooth initial={booth} />
+
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6">
         <Kpi label="Записани" value={k.registered} sub={`${k.decisionMakers} собственици/управители`} color="#06b6d4" />
-        <Kpi label="Дойдоха на живо" value={k.cameLive} sub={`${pct(k.cameLive, k.registered)} от записаните`} color="#a78bfa" />
-        <Kpi label="На повторение" value={k.cameReplay} sub="поне веднъж" color="#818cf8" />
-        <Kpi label="Изгледаха ≥ 50 %" value={k.watched50} sub={`${pct(k.watched50, k.cameLive + k.cameReplay)} от влезлите`} color="#22d3ee" />
-        <Kpi label="До надписите" value={k.reachedEnd} sub={`${k.bonus} отключиха бонуса`} color="#ec4899" />
+        <Kpi label="Дойдоха" value={k.entered} sub={`${pct(k.entered, k.registered)} от записаните`} color="#a78bfa" />
+        <Kpi label="Изгледаха ≥ 50 %" value={k.watched50} sub={`${pct(k.watched50, k.entered)} от дошлите`} color="#22d3ee" />
+        <Kpi label="До надписите" value={k.reachedEnd} sub={`${k.bonus} взеха подаръка`} color="#ec4899" />
         <Kpi label="Натиснаха бутон" value={k.clickers} sub={`${k.questions} въпроса`} color="#f472b6" />
         <Kpi label="Разговори" value={k.bookings} sub="записани от залата" color="#facc15" />
         <Kpi label="Капара" value={k.deposits} sub={formatEur(k.depositsEur)} color="#fb923c" />
@@ -212,7 +218,7 @@ export default async function KinoAdminPage() {
         <h2 className="mb-1 font-display text-base font-semibold">
           ❓ Въпроси от залата <span className="text-sm font-normal text-[var(--color-text-tertiary)]">({d.questions.length})</span>
         </h2>
-        <p className="mb-3 text-xs text-[var(--color-text-tertiary)]">За живата част — най-новите горе. Всеки е и в картона на човека.</p>
+        <p className="mb-3 text-xs text-[var(--color-text-tertiary)]">За срещите след филма — най-новите горе. Всеки е и в картона на човека.</p>
         {d.questions.length === 0 ? (
           <p className="text-sm text-[var(--color-text-tertiary)]">Още няма въпроси.</p>
         ) : (
@@ -319,7 +325,17 @@ export default async function KinoAdminPage() {
                           {m.name}
                         </Link>
                       </td>
-                      <td>{m.title}</td>
+                      <td>
+                        {m.title}
+                        {m.payUrl && (
+                          <div className="text-xs">
+                            <a href={m.payUrl} target="_blank" rel="noopener" className="text-[var(--color-accent-cyan)] hover:underline">
+                              Линк „доплати“ ↗
+                            </a>{" "}
+                            <span className="text-[var(--color-text-tertiary)]">— за срещата, капарото е приспаднато</span>
+                          </div>
+                        )}
+                      </td>
                       <td className="cc-num" style={{ textAlign: "right" }}>
                         {formatEur(m.amount)}
                       </td>

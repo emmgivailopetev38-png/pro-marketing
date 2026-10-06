@@ -15,6 +15,7 @@ import {
   sofiaTimeLabel,
   premiereLabels,
   resolveSimTime,
+  sofiaLocalMs,
 } from "./time";
 
 /**
@@ -31,24 +32,24 @@ describe("kinoTimeline", () => {
     expect(new Date(tl.doorsMs).toISOString()).toBe("2026-10-16T16:25:00.000Z");
   });
 
-  it("живата част започва с края на филма и трае колкото е в конфигурацията", () => {
+  it("филмът (с въпросите и подаръка) свършва след durationSec; записването затваря в нд 23:59", () => {
     expect(tl.filmEndMs - tl.premiereMs).toBe(KINO.film.durationSec * 1000);
-    expect(tl.liveEndMs - tl.filmEndMs).toBe(KINO.screening.liveMinutes * 60_000);
+    expect(KINO.film.durationSec).toBeLessThanOrEqual(60 * 60); // най-много час
+    expect(new Date(tl.closeMs).toISOString()).toBe("2026-10-18T20:59:00.000Z");
   });
 });
 
 describe("phaseAt", () => {
-  it("минава през всички фази в правилния ред", () => {
+  it("минава през всички фази в правилния ред — без повторение", () => {
     expect(phaseAt(at("2026-10-15T10:00:00Z"), tl)).toBe("before");
     expect(phaseAt(at("2026-10-16T16:26:00Z"), tl)).toBe("doors");
     expect(phaseAt(at("2026-10-16T16:30:00Z"), tl)).toBe("film");
     expect(phaseAt(tl.filmEndMs - 1, tl)).toBe("film");
-    expect(phaseAt(tl.filmEndMs, tl)).toBe("live");
-    expect(phaseAt(tl.liveEndMs, tl)).toBe("replay");
-    expect(phaseAt(at("2026-10-18T20:58:59Z"), tl)).toBe("replay");
+    expect(phaseAt(tl.filmEndMs, tl)).toBe("after");
+    expect(phaseAt(at("2026-10-18T20:58:59Z"), tl)).toBe("after");
   });
 
-  it("в неделя в 23:59 софийско филмът сваля", () => {
+  it("в неделя в 23:59 софийско записването затваря", () => {
     expect(phaseAt(at("2026-10-18T20:59:00Z"), tl)).toBe("closed");
   });
 });
@@ -94,11 +95,13 @@ describe("офертата", () => {
     expect(isOfferOpen(KINO.film.offerAtSec)).toBe(true);
   });
 
-  it("надписите са след поканата и преди сцената след тях", () => {
+  it("редът във файла: поканата → надписите → въпросите → подаръкът → краят", () => {
     const offerChapter = KINO.film.chapters.find((c) => c.n === KINO.film.offerChapter)!;
     expect(KINO.film.offerAtSec).toBeGreaterThan(offerChapter.startSec);
-    expect(KINO.film.postCreditsAtSec).toBeGreaterThan(KINO.film.offerAtSec);
+    expect(KINO.film.qaAtSec).toBeGreaterThan(KINO.film.offerAtSec);
+    expect(KINO.film.postCreditsAtSec).toBeGreaterThan(KINO.film.qaAtSec);
     expect(KINO.film.durationSec).toBeGreaterThan(KINO.film.postCreditsAtSec);
+    expect(KINO.film.numberAtSec).toBeLessThan(KINO.film.offerAtSec);
   });
 });
 
@@ -136,16 +139,24 @@ describe("етикетите на български", () => {
     expect(sofiaTimeLabel(tl.premiereMs)).toBe("19:30");
   });
 
-  it("всички етикети на премиерата", () => {
+  it("всички етикети на прожекцията", () => {
     expect(premiereLabels()).toEqual({
       day: "петък, 16 октомври",
       onDay: "в петък, 16 октомври",
       time: "19:30",
       short: "пт 16.10 · 19:30",
       doorsTime: "19:25",
-      replayUntilDay: "неделя, 18 октомври",
-      replayUntilTime: "23:59",
+      closeDay: "неделя, 18 октомври",
+      closeOnDay: "в неделя, 18 октомври",
+      closeTime: "23:59",
+      closeShort: "18.10, 23:59",
     });
+  });
+
+  it("софийски час → UTC, и през смяната на часовото време", () => {
+    expect(new Date(sofiaLocalMs(2026, 10, 18, 23, 59)).toISOString()).toBe("2026-10-18T20:59:00.000Z");
+    expect(new Date(sofiaLocalMs(2026, 11, 15, 23, 59)).toISOString()).toBe("2026-11-15T21:59:00.000Z");
+    expect(new Date(sofiaLocalMs(2026, 10, 19)).toISOString()).toBe("2026-10-18T21:00:00.000Z");
   });
 });
 
@@ -162,10 +173,12 @@ describe("resolveSimTime (прегледът на Ивайло)", () => {
     expect(phaseAt(resolveSimTime("lobby", tl)!, tl)).toBe("before");
     expect(phaseAt(resolveSimTime("doors", tl)!, tl)).toBe("doors");
     expect(phaseAt(resolveSimTime("film", tl)!, tl)).toBe("film");
+    expect(phaseAt(resolveSimTime("number", tl)!, tl)).toBe("film");
     expect(phaseAt(resolveSimTime("offer", tl)!, tl)).toBe("film");
-    expect(phaseAt(resolveSimTime("live", tl)!, tl)).toBe("live");
-    expect(phaseAt(resolveSimTime("replay", tl)!, tl)).toBe("replay");
-    expect(phaseAt(resolveSimTime("last", tl)!, tl)).toBe("replay");
+    expect(phaseAt(resolveSimTime("qa", tl)!, tl)).toBe("film");
+    expect(phaseAt(resolveSimTime("bonus", tl)!, tl)).toBe("film");
+    expect(phaseAt(resolveSimTime("after", tl)!, tl)).toBe("after");
+    expect(phaseAt(resolveSimTime("last", tl)!, tl)).toBe("after");
     expect(phaseAt(resolveSimTime("closed", tl)!, tl)).toBe("closed");
   });
 

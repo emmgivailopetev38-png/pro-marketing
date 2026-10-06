@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { KINO } from "@/lib/kino/config";
 import { kinoTimeline, premiereLabels } from "@/lib/kino/time";
+import { cohortView, firstCohort } from "@/lib/kino/cohorts";
 import { PosterArt } from "@/components/kino/PosterArt";
 import { TrailerScreen } from "@/components/kino/TrailerScreen";
 import { Countdown } from "@/components/kino/Countdown";
@@ -13,12 +14,14 @@ import { KinoTop, KinoFooter } from "@/components/kino/KinoChrome";
    /kino — афишът на „ВЪЛНАТА“. Една цел: безплатен билет.
    Честно от първия ред: филмът е направен изцяло с AI (и гласът), а накрая
    Ивайло показва как да продължиш с него. Без фалшиви броячи, без обещания
-   за доходи. Броячът е истински — до началото на премиерата.
+   за доходи. Броячът е истински — до началото на прожекцията. Прожекцията
+   е ЕДНА, без запис (решение на Ивайло, 06.10).
    Статична страница: всичко идва от lib/kino/config.ts.
    ===================================================================== */
 
 const when = premiereLabels();
 const tl = kinoTimeline();
+const potok = cohortView(firstCohort());
 const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
 
 const SEE = [
@@ -57,13 +60,13 @@ const FAQ = [
     q: "Безплатно ли е?",
     a: "Да. Билетът е безплатен и филмът е цял — не е реклама с трейлър. В края ще ти покажа как можеш да продължиш с мен: платено, ако решиш. Изборът е изцяло твой.",
   },
-  { q: "Колко трае?", a: "Около 40 минути филм. След премиерата влизам на живо за въпросите ти — до 15 минути." },
+  { q: "Колко трае?", a: "Около 50 минути — филмът, а накрая отговарям на въпросите, които хората ми задават най-често." },
   {
     q: "Ще има ли запис?",
-    a: `Филмът е на екран до ${when.replayUntilDay}, ${when.replayUntilTime}. После сваля — това е истинският срок, не номер.`,
+    a: "Не. Прожекцията е само веднъж — тогава, всички заедно. Затова си запази вечерта.",
   },
   { q: "AI ли е филмът?", a: "Да, изцяло — и гласът. Как — ще видиш." },
-  { q: "Ако закъснея?", a: "Влизаш в текущата минута — като в истинско кино. Началото те чака в повторението." },
+  { q: "Ако закъснея?", a: "Влизаш в текущата минута — като в истинско кино. Повторение няма." },
   { q: "Трябва ли да инсталирам нещо?", a: "Не. Гледаш в браузъра — от телефона или от компютъра. Линкът е в билета ти." },
 ];
 
@@ -89,7 +92,7 @@ export default function KinoAfishPage() {
                 {cap(when.day)} · {when.time}
               </strong>
               <span className="k-pill">онлайн</span>
-              <span className="k-pill">~40 мин филм + на живо</span>
+              <span className="k-pill">~50 мин · само веднъж</span>
             </div>
 
             <Countdown
@@ -244,22 +247,24 @@ export default function KinoAfishPage() {
           <div className="k-cards k-cards--2">
             <article className="k-card k-card--glow">
               <span className="k-pill k-pill--live">
-                <span className="k-dot" /> Премиера · на живо
+                <span className="k-dot" /> Премиера · само веднъж
               </span>
               <h3 className="k-h3" style={{ marginTop: 14 }}>
                 {cap(when.day)} · {when.time}
               </h3>
               <p>
-                Всички гледаме една и съща минута — като в истинско кино. Залата отваря в {when.doorsTime}. След филма влизам
-                на живо за въпросите ти.
+                Всички гледаме една и съща минута — като в истинско кино. Залата отваря в {when.doorsTime}. Закъснееш ли — влизаш в
+                текущата минута.
               </p>
             </article>
             <article className="k-card">
-              <span className="k-pill">Повторение</span>
+              <span className="k-pill">Без запис</span>
               <h3 className="k-h3" style={{ marginTop: 14 }}>
-                До {when.replayUntilDay}, {when.replayUntilTime}
+                Около 50 минути
               </h3>
-              <p>Ако не успееш вечерта — гледаш, когато ти е удобно. После филмът сваля. Истински срок, не номер.</p>
+              <p>
+                Филмът, а накрая — въпросите, които хората ми задават най-често. Повторение няма: прожекцията е само тази вечер.
+              </p>
             </article>
           </div>
         </div>
@@ -282,8 +287,7 @@ export default function KinoAfishPage() {
             <strong>С гаранция:</strong> {KINO.program.guarantee.charAt(0).toLowerCase() + KINO.program.guarantee.slice(1)}
           </p>
           <p className="k-lead k-muted" style={{ fontSize: "0.92rem" }}>
-            Записването в потока е отворено, докато филмът е на екран — до {when.replayUntilDay}, {when.replayUntilTime}. Цената е
-            крайна, с ДДС.
+            Потокът започва {potok.startOnDay}. Записването в него затваря {when.closeOnDay}, {when.closeTime}. Цената е крайна, с ДДС.
           </p>
         </div>
       </section>

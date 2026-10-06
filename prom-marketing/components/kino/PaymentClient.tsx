@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { track as pixelTrack } from "@/lib/meta/pixel-client";
 import { track } from "@/lib/analytics/track";
 import { OfferBlock, useOfferActions } from "./Offer";
+import type { KinoCohortView } from "@/lib/kino/cohorts";
 import { KinoCal } from "./KinoCal";
 
 /**
@@ -46,7 +47,15 @@ export function ThankYouCal({ name, email, notes }: { name?: string | null; emai
 }
 
 /** /kino/plashtane — поканата без залата (след разговор или с платено капаро). */
-export function PaymentOffer(props: { token: string; depositPaid: number; bought: boolean; name: string; email: string | null; hours?: number | null }) {
+export function PaymentOffer(props: {
+  token: string;
+  depositPaid: number;
+  bought: boolean;
+  name: string;
+  email: string | null;
+  hours?: number | null;
+  cohort: KinoCohortView;
+}) {
   const actions = useOfferActions({ token: props.token, from: "plashtane" });
   return (
     <OfferBlock
@@ -57,6 +66,7 @@ export function PaymentOffer(props: { token: string; depositPaid: number; bought
       name={props.name}
       email={props.email}
       hours={props.hours ?? null}
+      cohort={props.cohort}
     />
   );
 }

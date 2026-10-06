@@ -16,10 +16,12 @@ export const dynamic = "force-dynamic";
  * POST /api/kino/track — всичко, което залата казва за човека.
  *
  *  k: "beat"  пулс на 15 s: позиция, върви ли, видим ли е табът → kino_watch
- *             (атомарно, функцията kino_heartbeat). Прекрачи ли етап
- *             (влезе · 25/50/75 % · поканата · края) — активност в CRM-а, веднъж.
- *  k: "ev"    реакция · клик на бутон · калкулатор · бонус · записан разговор
- *  k: "q"     въпрос към Ивайло → активност в CRM-а + списъкът за живата част
+ *             (атомарно, функцията kino_heartbeat). mode: doors (чака) ·
+ *             premiere (филмът) · offer (след филма) — за „в залата сега“.
+ *             Прекрачи ли етап по време на филма (влезе · 25/50/75 % ·
+ *             поканата · края) — активност в CRM-а, веднъж.
+ *  k: "ev"    реакция · клик на бутон · калкулатор · подарък · записан разговор
+ *  k: "q"     въпрос към Ивайло → активност в CRM-а + Режисьорската кабина
  *
  * Тялото идва като текст (navigator.sendBeacon при затваряне на таба).
  * Без валиден билет — 401. Без миграцията — { ok: false } и залата не спира.
@@ -31,7 +33,7 @@ const beatSchema = z.object({
   t,
   pos: z.number().min(0).max(6 * 3600),
   d: z.number().min(0).max(600),
-  mode: z.enum(["premiere", "replay", "live"]),
+  mode: z.enum(["doors", "premiere", "offer"]),
   vis: z.boolean(),
   play: z.boolean(),
 });
@@ -58,6 +60,7 @@ const BUTTONS: Record<string, string> = {
   deposit: "Пазя място с капаро",
   call: "Искам първо да поговорим",
   bonus: "Вземи подаръка",
+  live: "НА ЖИВО — включи се",
 };
 
 const minuteOf = (pos?: number) => (pos != null ? ` (минута ${Math.floor(pos / 60) + 1})` : "");
@@ -114,7 +117,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, reason: isMissingSchema(error) ? "schema" : "error" });
     }
     const st = (data ?? {}) as { max_pos?: number; minutes?: number; milestones?: string[] };
-    const reached = reachedMilestones({ minutes: st.minutes ?? 0, maxPos: st.max_pos ?? 0 });
+    // Етапите са само от филма (вратите и поканата след него не са „гледане“).
+    const reached = body.mode === "premiere" ? reachedMilestones({ minutes: st.minutes ?? 0, maxPos: st.max_pos ?? 0 }) : [];
     const fresh = freshMilestones(reached, st.milestones ?? []);
     let claimed: string[] = [];
     if (fresh.length) {
@@ -129,7 +133,7 @@ export async function POST(request: Request) {
           await kinoLog({
             contactId,
             type: "kino_watch",
-            title: milestoneTitle(m as Parameters<typeof milestoneTitle>[0], body.mode),
+            title: milestoneTitle(m as Parameters<typeof milestoneTitle>[0]),
             body: `Позиция ${formatClock(st.max_pos ?? 0)} · изгледани ${Math.round(ratio * 100)} % (${st.minutes ?? 0} мин).`,
             metadata: { milestone: m, mode: body.mode, pos: st.max_pos ?? 0, ratio },
             dedupeKey: `kino:watch:${SCREENING}:${m}`,
@@ -164,7 +168,7 @@ export async function POST(request: Request) {
         contactId,
         type: "kino_question",
         title: `❓ Въпрос от залата${minuteOf(body.pos)}`,
-        body: `${body.text}\n\n(ще го обсъдим на живо или на срещата)`,
+        body: `${body.text}\n\n(ще го обсъдим на срещата после)`,
         metadata: { pos: body.pos ?? null },
       }),
     );

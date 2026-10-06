@@ -10,9 +10,10 @@ import { flowEmail, type KinoEmailCtx } from "./emails";
 import { seatFor, normalizePhone } from "./people";
 import { isDbConfigured, kinoLinks, firstName, SCREENING } from "./server";
 import { sendSms, smsStatus } from "./sms";
+import { cohortView, firstCohort } from "./cohorts";
 
 /**
- * Kino Flow — напомнянията преди и след премиерата. Моделът е Webinar Flow
+ * Kino Flow — напомнянията преди и след прожекцията (една, без повторение). Моделът е Webinar Flow
  * (lib/webinar/flow.ts): кронът се върти, всяка стъпка има прозорец, а една
  * активност `kino_email_<стъпка>` / `kino_sms_<стъпка>` на човек = едно писмо.
  *
@@ -125,6 +126,7 @@ async function runKinoFlowOnce(now: Date): Promise<KinoFlowResult> {
   ]);
 
   const labels = premiereLabels();
+  const cohort = cohortView(firstCohort());
   const resendKey = process.env.RESEND_API_KEY;
   const resend = resendKey ? new Resend(resendKey) : null;
   const from = process.env.EMAIL_FROM || "ProMarketing <onboarding@resend.dev>";
@@ -157,6 +159,8 @@ async function runKinoFlowOnce(now: Date): Promise<KinoFlowResult> {
               name: firstName(p.full_name),
               links,
               labels,
+              cohort: { startOnDay: cohort.startOnDay },
+              entered: entered.has(p.id),
               seat: seatFor(p.id),
               viberUrl: KINO.viberClubUrl,
               unsubscribeUrl: unsubscribeUrl(p.id),

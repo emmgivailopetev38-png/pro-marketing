@@ -44,3 +44,14 @@ export async function canPreview(): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Прегледът: `?as=deposit | invited | bought` показва страницата така, както
+ * я вижда човек с капаро (доплащането), поканен след разговор или купил —
+ * без нищо да се пише. Работи само в прегледа (canPreview).
+ */
+export type PreviewAs = "deposit" | "invited" | "bought" | null;
+
+export function previewAs(v: string | null): PreviewAs {
+  return v === "deposit" || v === "invited" || v === "bought" ? v : null;
+}

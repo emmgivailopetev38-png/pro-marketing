@@ -38,7 +38,7 @@ export function WarmupQuestions({ token }: { token: string }) {
       <div className="k-panel" role="status">
         <p className="k-h3">Благодаря! 🙌</p>
         <p className="k-lead" style={{ marginTop: 6 }}>
-          Ще го имам предвид, когато подготвям живата част след филма. До премиерата!
+          Ще го имам предвид за срещата ни. До прожекцията!
         </p>
       </div>
     );

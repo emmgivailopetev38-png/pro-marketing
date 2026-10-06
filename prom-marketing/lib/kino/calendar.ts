@@ -12,9 +12,9 @@ export function premiereEvent(hallUrl: string | null): KinoCalendarEvent {
   return {
     uid: `${KINO.screening.id}@promarketing.pw`,
     startMs: tl.premiereMs,
-    endMs: tl.liveEndMs,
-    title: `${KINO.title} · онлайн премиера`,
-    description: `${KINO.subtitle}. Около 40 минути филм, после Ивайло на живо.\n\nТвоята зала: ${link}\nВлез 5 минути по-рано и пусни звука. 🍿`,
+    endMs: tl.filmEndMs,
+    title: `${KINO.title} · онлайн прожекция`,
+    description: `${KINO.subtitle}. Около 50 минути, с въпросите накрая. Само веднъж — без запис.\n\nТвоята зала: ${link}\nВлез 5 минути по-рано и пусни звука. 🍿`,
     url: link,
     location: link,
     alarmsMinutes: [60, 10],

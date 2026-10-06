@@ -1350,6 +1350,64 @@ button.k-chapter {
   margin: 8px 0 0;
   color: var(--k-text-2);
 }
+/* „Потокът започва на 19.10 · записването затваря на 18.10, 23:59 · 30 места“ */
+.k-price .k-cohort {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--k-line-soft);
+  color: var(--k-text);
+  font-size: 0.95rem;
+}
+
+/* ── „НА ЖИВО — Ивайло влезе“ (Режисьорската кабина) ── */
+.k-live {
+  margin-top: 14px;
+  text-align: center;
+}
+.k-live-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  max-width: 100%;
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+  font-weight: 800;
+  white-space: normal;
+  animation: k-live-pulse 1.6s ease-out infinite;
+}
+.k-live-btn:hover {
+  background: #ef4444;
+}
+.k-live-dot {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  border-radius: 99px;
+  background: #fff;
+}
+.k-live-embed {
+  margin-top: 12px;
+}
+@keyframes k-live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.65);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+/* след филма — само поканата */
+.k-after {
+  margin-top: 4px;
+  border-color: var(--k-line);
+  background: var(--k-grad-soft);
+}
 .k-choose {
   display: grid;
   gap: 12px;

@@ -6,7 +6,7 @@ import { postJson } from "@/lib/kino/browser";
 import { NUMBER_QUESTION, NUMBER_MAX_HOURS, cleanHours } from "@/lib/kino/questions";
 import { track } from "@/lib/analytics/track";
 
-/* Малките неща под екрана: калкулаторът, въпросите, списъкът за следващата прожекция. */
+/* Малките неща под екрана: калкулаторът, въпросите, „Твоето число“. */
 
 /**
  * „Колко ти струва чакането“ — запитвания седмично × 52 × % клиенти ×
@@ -152,7 +152,7 @@ export function NumberBox({
   );
 }
 
-/** Въпрос към Ивайло → картонът в CRM-а + списъкът за живата част в /admin/kino. */
+/** Въпрос към Ивайло → картонът в CRM-а + живият списък в Режисьорската кабина (/admin/kino). */
 export function QuestionBox({ token, pos }: { token: string | null; pos: () => number }) {
   const [text, setText] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
@@ -179,7 +179,7 @@ export function QuestionBox({ token, pos }: { token: string | null; pos: () => n
     <form className="k-panel k-form" style={{ marginTop: 0 }} onSubmit={send}>
       <p className="k-h3">❓ Въпрос към Ивайло</p>
       <p className="k-muted" style={{ margin: 0, fontSize: "0.9rem" }}>
-        Чета ги лично — най-честите обсъждаме на живо след филма, а твоя — и на срещата ни.
+        Напиши въпроса си — ще го обсъдим на срещата после.
       </p>
       <textarea
         className="k-textarea"
@@ -194,53 +194,10 @@ export function QuestionBox({ token, pos }: { token: string | null; pos: () => n
       />
       <div aria-live="polite">
         {error && <p className="k-error">{error}</p>}
-        {state === "sent" && <p className="k-ok">Получих го. Ще го прочета лично. 🙌</p>}
+        {state === "sent" && <p className="k-ok">Получих го — ще го обсъдим на срещата. 🙌</p>}
       </div>
       <button type="submit" className="k-btn" disabled={state === "sending"}>
         {state === "sending" ? "Изпращаме…" : "Изпрати въпроса"}
-      </button>
-    </form>
-  );
-}
-
-/** „Филмът вече не е на екран“ → списъкът за следващата прожекция. */
-export function WaitlistForm({ token }: { token: string | null }) {
-  const [state, setState] = useState<"idle" | "sending" | "done">("idle");
-  const [error, setError] = useState<string | null>(null);
-
-  async function submit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    setState("sending");
-    const { ok, data } = await postJson<{ error?: string }>("/api/kino/waitlist", {
-      t: token ?? undefined,
-      name: String(fd.get("name") ?? "") || undefined,
-      email: String(fd.get("email") ?? "") || undefined,
-      phone: String(fd.get("phone") ?? "") || undefined,
-      website: String(fd.get("website") ?? "") || undefined,
-    });
-    if (!ok) {
-      setState("idle");
-      return setError(data.error ?? "Не успяхме — опитай пак.");
-    }
-    setState("done");
-  }
-
-  if (state === "done") return <p className="k-ok">Записан си — ще научиш за следващата прожекция пръв. 🎬</p>;
-  return (
-    <form className="k-form" onSubmit={submit} style={{ marginTop: 18 }}>
-      {!token && (
-        <div className="k-form-row">
-          <input className="k-input" name="name" placeholder="Име" autoComplete="name" aria-label="Име" />
-          <input className="k-input" name="email" type="email" placeholder="Имейл" autoComplete="email" aria-label="Имейл" required />
-        </div>
-      )}
-      <div className="k-hp" aria-hidden="true">
-        <input name="website" tabIndex={-1} autoComplete="off" />
-      </div>
-      {error && <p className="k-error">{error}</p>}
-      <button type="submit" className="k-btn k-btn--primary" disabled={state === "sending"}>
-        {state === "sending" ? "Записваме…" : "🔔 Искам да знам за следващата прожекция"}
       </button>
     </form>
   );

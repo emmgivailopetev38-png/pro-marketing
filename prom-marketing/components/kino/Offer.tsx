@@ -4,7 +4,7 @@ import { track as pixelTrack } from "@/lib/meta/pixel-client";
 import { track } from "@/lib/analytics/track";
 import { KINO } from "@/lib/kino/config";
 import { quotePlan, formatEur, type KinoPlan } from "@/lib/kino/pricing";
-import { sofiaDayLabel, sofiaTimeLabel } from "@/lib/kino/time";
+import type { KinoCohortView } from "@/lib/kino/cohorts";
 import { APP_TEAM, APP_START, labelOf } from "@/lib/kino/questions";
 import { fbIds, newKinoEventId, postJson } from "@/lib/kino/browser";
 import { KinoCal } from "./KinoCal";
@@ -81,10 +81,27 @@ export function useOfferActions({ token, from, pos }: { token: string | null; fr
   return { panel, open, busy, message, checkout, click };
 }
 
-function PriceBlock({ depositPaid }: { depositPaid: number }) {
+/** „Потокът започва на 19.10 · записването затваря на 18.10, 23:59“ — с местата. */
+export function CohortLine({ cohort, depositPaid = 0 }: { cohort: KinoCohortView; depositPaid?: number }) {
+  if (depositPaid > 0) {
+    return (
+      <p className="k-cohort">
+        🔒 Мястото ти в потока от <strong>{cohort.startShort}</strong> е запазено — капарото ({formatEur(depositPaid)}) се приспада.
+      </p>
+    );
+  }
+  const few = cohort.seatsLeft != null && cohort.seatsLeft <= 10;
+  return (
+    <p className="k-cohort">
+      Потокът започва на <strong>{cohort.startShort}</strong> · записването затваря на <strong>{cohort.closeShort}</strong> ·{" "}
+      {few ? `остават ${cohort.seatsLeft} от ${cohort.seats} места` : `${cohort.seats} места`}
+    </p>
+  );
+}
+
+function PriceBlock({ depositPaid, cohort }: { depositPaid: number; cohort: KinoCohortView }) {
   const full = quotePlan("full", { depositPaidEur: depositPaid });
   const inst = quotePlan("installments", { depositPaidEur: depositPaid });
-  const close = Date.parse(KINO.screening.replayUntilISO);
   return (
     <div className="k-price">
       <div className="k-price-main">
@@ -95,14 +112,13 @@ function PriceBlock({ depositPaid }: { depositPaid: number }) {
         Или на {inst.count} месечни вноски по <strong>{formatEur(inst.unitEur)}</strong> — и толкова. Абонаментът спира сам
         след последната.
       </p>
-      {depositPaid > 0 ? (
-        <p>Капарото ти ({formatEur(depositPaid)}) се приспада от първото плащане — мястото ти е запазено.</p>
-      ) : (
+      {depositPaid > 0 && (
         <p>
-          Записването в потока е отворено до {sofiaDayLabel(close)}, {sofiaTimeLabel(close)} — тогава филмът сваля и потокът
-          затваря. Местата са {KINO.seats}.
+          Доплащаш <strong>{formatEur(full.dueNowEur)}</strong> наведнъж — или първата вноска е <strong>{formatEur(inst.dueNowEur)}</strong>,
+          после {inst.count - 1} × {formatEur(inst.unitEur)}.
         </p>
       )}
+      <CohortLine cohort={cohort} depositPaid={depositPaid} />
     </div>
   );
 }
@@ -240,6 +256,7 @@ export function OfferBlock({
   name,
   email,
   hours,
+  cohort,
 }: {
   actions: OfferActions;
   token: string | null;
@@ -249,6 +266,8 @@ export function OfferBlock({
   email?: string | null;
   /** „Твоето число“ от сцена 9.7 — поканата го връща на човека */
   hours?: number | null;
+  /** потокът: стартът, срокът, местата */
+  cohort: KinoCohortView;
 }) {
   const full = quotePlan("full", { depositPaidEur: depositPaid });
   const inst = quotePlan("installments", { depositPaidEur: depositPaid });
@@ -293,19 +312,29 @@ export function OfferBlock({
         го правим заедно.
       </p>
 
-      <PriceBlock depositPaid={depositPaid} />
+      <PriceBlock depositPaid={depositPaid} cohort={cohort} />
 
       <div className="k-choose">
         <div className="k-option k-option--main">
-          <p className="k-h3">1 · Влизам в потока</p>
-          <p>Ако си готов. Плащаш наведнъж или на {inst.count} вноски — абонаментът спира сам след последната.</p>
-          {panel === "stream" ? (
+          <p className="k-h3">{depositPaid > 0 ? "1 · Доплащам и влизам" : "1 · Влизам в потока"}</p>
+          <p>
+            {depositPaid > 0
+              ? `Капарото (${formatEur(depositPaid)}) вече е приспаднато. Доплащаш наведнъж или на ${inst.count} вноски.`
+              : `Ако си готов. Плащаш наведнъж или на ${inst.count} вноски — абонаментът спира сам след последната.`}
+          </p>
+          {panel === "stream" || depositPaid > 0 ? (
             <div className="k-sub-actions">
               <button type="button" className="k-btn k-btn--primary" disabled={!!busy} onClick={() => checkout("full")}>
-                {busy === "full" ? "Отваряме плащането…" : `Плащам наведнъж · ${formatEur(full.dueNowEur)}`}
+                {busy === "full"
+                  ? "Отваряме плащането…"
+                  : `${depositPaid > 0 ? "Доплащам" : "Плащам"} наведнъж · ${formatEur(full.dueNowEur)}`}
               </button>
               <button type="button" className="k-btn" disabled={!!busy} onClick={() => checkout("installments")}>
-                {busy === "installments" ? "Отваряме плащането…" : `${inst.count} вноски × ${formatEur(inst.unitEur)}`}
+                {busy === "installments"
+                  ? "Отваряме плащането…"
+                  : inst.creditEur > 0
+                    ? `${inst.count} вноски · ${formatEur(inst.dueNowEur)} сега`
+                    : `${inst.count} вноски × ${formatEur(inst.unitEur)}`}
               </button>
             </div>
           ) : (

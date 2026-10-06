@@ -34,6 +34,8 @@ export function watchedRatio(minutesCount: number, durationSec: number = FILM.du
 
 /** Етапите, до които човек вече е стигнал (без значение кои са записани). */
 export function reachedMilestones(state: { minutes: number; maxPos: number }, film: FilmShape = FILM): MilestoneId[] {
+  // „Влезе“ = поне една изгледана минута (не само отворена страница).
+  if (state.minutes <= 0 && state.maxPos <= 0) return [];
   const out: MilestoneId[] = ["entered"];
   const ratio = watchedRatio(state.minutes, film.durationSec);
   if (ratio >= 0.25) out.push("p25");
@@ -52,11 +54,10 @@ export function freshMilestones(reached: readonly string[], recorded: readonly s
 }
 
 /** Заглавието на активността в CRM-а — по едно на етап. */
-export function milestoneTitle(m: MilestoneId, mode: string): string {
-  const how = mode === "premiere" ? "премиерата на живо" : mode === "live" ? "живата част" : "повторението";
+export function milestoneTitle(m: MilestoneId): string {
   switch (m) {
     case "entered":
-      return `🎬 Влезе в залата · ${how}`;
+      return "🎬 Влезе в залата · прожекцията";
     case "p25":
       return "⏱ Изгледа 25 % от „ВЪЛНАТА“";
     case "p50":

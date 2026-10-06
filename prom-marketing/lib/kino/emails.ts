@@ -7,11 +7,16 @@
  */
 import { escapeHtml } from "@/lib/email/escape";
 import { KINO } from "./config";
+import type { premiereLabels } from "./time";
 
 export interface KinoEmailCtx {
   name: string;
   links: { ticket: string; short: string; hall: string; ics: string };
-  labels: { day: string; onDay: string; time: string; short: string; doorsTime: string; replayUntilDay: string; replayUntilTime: string };
+  labels: ReturnType<typeof premiereLabels>;
+  /** потокът: „в понеделник, 19 октомври“ */
+  cohort?: { startOnDay: string } | null;
+  /** гледал ли е филма (писмото след края е различно) */
+  entered?: boolean;
   seat?: { hall: number; row: number; seat: number } | null;
   viberUrl?: string | null;
   unsubscribeUrl?: string;
@@ -71,14 +76,14 @@ export function ticketEmail(ctx: KinoEmailCtx): KinoEmail {
       `<p>Здравей, ${n}!</p>
 <p>Радвам се, че идваш. Мястото ти в залата е запазено:</p>
 ${ticketBlock(ctx)}
-<p>Филмът е около 40 минути, а след него влизам на живо — за въпросите ти. В билета ще намериш линка към залата, календара и Кино клуба.</p>
+<p>Филмът е около 50 минути — накрая отговарям на въпросите, които хората ми задават най-често. Прожекцията е <strong>само веднъж, без запис</strong> — затова си запази вечерта. В билета ще намериш линка към залата, календара и Кино клуба.</p>
 ${button(ctx.links.ticket, "Отвори билета си")}
 <p>📅 <a href="${ctx.links.ics}">Добави прожекцията в календара</a> — за да не се разминем.</p>
 ${viber}
 <p>Вземи си пуканки. 🍿</p>`,
     ),
     text: sign(
-      `Здравей, ${ctx.name}!\n\nРадвам се, че идваш. Мястото ти в залата е запазено: ${KINO.title} · ${ctx.labels.day} · ${ctx.labels.time} · онлайн.\n\nБилетът ти (линкът към залата, календарът, Кино клубът): ${ctx.links.ticket}\nДобави в календара: ${ctx.links.ics}${ctx.viberUrl ? `\nКино клубът във Viber: ${ctx.viberUrl}` : ""}\n\nВземи си пуканки.`,
+      `Здравей, ${ctx.name}!\n\nРадвам се, че идваш. Мястото ти в залата е запазено: ${KINO.title} · ${ctx.labels.day} · ${ctx.labels.time} · онлайн, само веднъж (без запис).\n\nБилетът ти (линкът към залата, календарът, Кино клубът): ${ctx.links.ticket}\nДобави в календара: ${ctx.links.ics}${ctx.viberUrl ? `\nКино клубът във Viber: ${ctx.viberUrl}` : ""}\n\nВземи си пуканки.`,
     ),
   };
 }
@@ -125,13 +130,13 @@ export function tomorrowEmail(ctx: KinoEmailCtx): KinoEmail {
     html: layout(
       ctx,
       `<p>Здравей, ${escapeHtml(ctx.name)}!</p>
-<p><strong>Утре в ${escapeHtml(ctx.labels.time)}</strong> гасим светлините. Филм за изкуствения интелект и българския бизнес — около 40 минути, после влизам на живо.</p>
+<p><strong>Утре в ${escapeHtml(ctx.labels.time)}</strong> гасим светлините. Филм за изкуствения интелект и българския бизнес — около 50 минути, с въпросите накрая. Само веднъж, без запис.</p>
 <p>Докато чакаш — третият трейлър: как направих целия филм с AI. Сам. Дори гласът.</p>
 ${button(url, "Виж зад кулисите")}
 <p>Приготви си 50 минути, звук и нещо за писане. Линкът към залата е в билета ти, а утре в ${escapeHtml(ctx.labels.doorsTime)} ще ти го пратя и тук.</p>`,
     ),
     text: sign(
-      `Здравей, ${ctx.name}!\n\nУтре в ${ctx.labels.time} гасим светлините. Около 40 минути филм, после влизам на живо.\n\nТрейлър 3 (зад кулисите): ${url}\n\nЛинкът към залата е в билета ти: ${ctx.links.ticket}`,
+      `Здравей, ${ctx.name}!\n\nУтре в ${ctx.labels.time} гасим светлините. Около 50 минути филм, с въпросите накрая. Само веднъж, без запис.\n\nТрейлър 3 (зад кулисите): ${url}\n\nЛинкът към залата е в билета ти: ${ctx.links.ticket}`,
     ),
   };
 }
@@ -144,10 +149,10 @@ export function doorsEmail(ctx: KinoEmailCtx): KinoEmail {
       `<p>Здравей, ${escapeHtml(ctx.name)}!</p>
 <p>Залата е отворена. Точно в ${escapeHtml(ctx.labels.time)} започваме — всички гледаме една и съща минута, като в истинско кино.</p>
 ${button(ctx.links.hall, "Влез в залата")}
-<p>Пусни звука — гласът е половината филм. Ако имаш въпрос, пиши го под филма: чета ги на живо след края.</p>`,
+<p>Пусни звука — гласът е половината филм. Въпросите си пиши под филма — ще ги обсъдим на срещата после.</p>`,
     ),
     text: sign(
-      `Здравей, ${ctx.name}!\n\nЗалата е отворена. Точно в ${ctx.labels.time} започваме.\n\nВлез: ${ctx.links.hall}\n\nПусни звука. Въпросите си пиши под филма — чета ги на живо след края.`,
+      `Здравей, ${ctx.name}!\n\nЗалата е отворена. Точно в ${ctx.labels.time} започваме.\n\nВлез: ${ctx.links.hall}\n\nПусни звука. Въпросите си пиши под филма — ще ги обсъдим на срещата после.`,
     ),
   };
 }
@@ -160,43 +165,48 @@ export function missingEmail(ctx: KinoEmailCtx): KinoEmail {
       `<p>Здравей, ${escapeHtml(ctx.name)}!</p>
 <p>„${escapeHtml(KINO.title)}“ върви от половин час, а мястото ти е свободно. Най-важното е напред — частта, в която показвам какво можеш да направиш още тази вечер.</p>
 ${button(ctx.links.hall, "Влез сега")}
-<p>Влизаш в текущата минута. Началото те чака в повторението — до ${escapeHtml(ctx.labels.replayUntilDay)}.</p>`,
+<p>Влизаш в текущата минута. Прожекцията е само тази вечер — записи няма.</p>`,
     ),
     text: sign(
-      `Здравей, ${ctx.name}!\n\nФилмът върви от половин час. Най-важното е напред.\n\nВлез сега: ${ctx.links.hall}\n\nНачалото те чака в повторението — до ${ctx.labels.replayUntilDay}.`,
+      `Здравей, ${ctx.name}!\n\nФилмът върви от половин час. Най-важното е напред.\n\nВлез сега: ${ctx.links.hall}\n\nПрожекцията е само тази вечер — записи няма.`,
     ),
   };
 }
 
-export function replayEmail(ctx: KinoEmailCtx): KinoEmail {
+/** След края: поканата и срокът. Повторение няма — затова писмото води към поканата. */
+export function afterEmail(ctx: KinoEmailCtx): KinoEmail {
+  const close = `${ctx.labels.closeDay}, ${ctx.labels.closeTime}`;
+  const start = ctx.cohort ? ` Потокът започва ${ctx.cohort.startOnDay}.` : "";
+  const lead = ctx.entered
+    ? `Благодаря ти, че беше в залата. Трите начина да продължим заедно те чакат там — поканата остава отворена до <strong>${escapeHtml(close)}</strong>.${escapeHtml(start)}`
+    : `Прожекцията беше само веднъж, без запис — но поканата от края на филма остава отворена до <strong>${escapeHtml(close)}</strong>.${escapeHtml(start)}`;
   return {
-    subject: `Повторението е на екран до ${ctx.labels.replayUntilDay}, ${ctx.labels.replayUntilTime}`,
+    subject: ctx.entered ? `Поканата от „${KINO.title}“ · отворена до ${close}` : `„${KINO.title}“ мина — поканата е отворена до ${close}`,
     html: layout(
       ctx,
       `<p>Здравей, ${escapeHtml(ctx.name)}!</p>
-<p>Благодаря ти, че беше част от премиерата. „${escapeHtml(KINO.title)}“ остава на екран до <strong>${escapeHtml(ctx.labels.replayUntilDay)}, ${escapeHtml(ctx.labels.replayUntilTime)}</strong> — после сваля, а записването в потока затваря. Това е истинският срок.</p>
-<p>Ако не успя да го видиш целия — сега е моментът. Ако го видя — под филма са трите начина да продължим заедно.</p>
-${button(ctx.links.hall, "Към залата")}
-<p>Имаш въпрос? Просто отговори на това писмо.</p>`,
+<p>${lead}</p>
+${button(ctx.links.hall, "Към поканата")}
+<p>Искаш първо да поговорим? Там е и календарът — кратка заявка, избираш час, 20 минути.</p>`,
     ),
     text: sign(
-      `Здравей, ${ctx.name}!\n\nФилмът остава на екран до ${ctx.labels.replayUntilDay}, ${ctx.labels.replayUntilTime} — после сваля.\n\nКъм залата: ${ctx.links.hall}\n\nИмаш въпрос? Отговори на това писмо.`,
+      `Здравей, ${ctx.name}!\n\n${ctx.entered ? "Благодаря ти, че беше в залата." : "Прожекцията беше само веднъж, без запис."} Поканата от края на филма е отворена до ${close}.${start}\n\nКъм поканата: ${ctx.links.hall}\n\nИскаш първо да поговорим? Там е и календарът.`,
     ),
   };
 }
 
 export function last3hEmail(ctx: KinoEmailCtx): KinoEmail {
   return {
-    subject: `Затваряме в полунощ · последните 3 часа на „${KINO.title}“`,
+    subject: `Записването затваря в полунощ · последните 3 часа`,
     html: layout(
       ctx,
       `<p>Здравей, ${escapeHtml(ctx.name)}!</p>
-<p>В ${escapeHtml(ctx.labels.replayUntilTime)} филмът сваля и записването в потока затваря. Ако си искал да го догледаш — или да се върнеш към края, където са трите бутона — имаш още три часа.</p>
-${button(ctx.links.hall, "Към залата")}
-<p>Искаш първо да поговорим? Под филма има календар — избираш час, 20 минути, без ангажимент.</p>`,
+<p>В ${escapeHtml(ctx.labels.closeTime)} записването в потока затваря. Трите бутона от края на филма са в залата — имаш още три часа.</p>
+${button(ctx.links.hall, "Към поканата")}
+<p>Искаш първо да поговорим? Там е календарът — кратка заявка, избираш час, 20 минути, без ангажимент.</p>`,
     ),
     text: sign(
-      `Здравей, ${ctx.name}!\n\nВ ${ctx.labels.replayUntilTime} филмът сваля и записването в потока затваря — имаш още три часа.\n\nКъм залата: ${ctx.links.hall}`,
+      `Здравей, ${ctx.name}!\n\nВ ${ctx.labels.closeTime} записването в потока затваря — имаш още три часа.\n\nКъм поканата: ${ctx.links.hall}`,
     ),
   };
 }
@@ -207,6 +217,8 @@ export function welcomeEmail(args: {
   planLine: string;
   calUrl: string;
   programName?: string;
+  /** „в понеделник, 19 октомври“ */
+  cohortStart?: string | null;
 }): KinoEmail {
   const program = args.programName ?? KINO.program.name;
   return {
@@ -218,36 +230,48 @@ export function welcomeEmail(args: {
 <ol style="padding-left:20px;margin:0 0 16px;">
 <li>До 24 часа получаваш покана за Академията на този имейл.</li>
 <li>Запази си първия разговор с мен — там започваме „AI картата на бизнеса ти“.</li>
-<li>Датата на първата жива среща ще ти я пратя в отделно писмо.</li>
+<li>${args.cohortStart ? `Потокът ти започва ${escapeHtml(args.cohortStart)} — д` : "Д"}атата на първата жива среща ще ти я пратя в отделно писмо.</li>
 </ol>
 ${button(args.calUrl, "Избери час за първия разговор")}
 <p>Касовата бележка от Stripe идва отделно. Въпрос? Отговори на това писмо — пише го човек.</p>
 <p style="margin-top:26px;">${escapeHtml(KINO.host.name)}<br/><span style="color:${C.soft};">${escapeHtml(KINO.host.role)}</span></p>
 </div>`,
     text: sign(
-      `Здравей, ${args.name}!\n\nДобре дошъл! Плащането мина: ${args.planLine}.\n\nКакво следва:\n1. До 24 часа получаваш покана за Академията на този имейл.\n2. Запази си първия разговор с мен: ${args.calUrl}\n3. Датата на първата жива среща идва в отделно писмо.\n\nВъпрос? Отговори на това писмо.`,
+      `Здравей, ${args.name}!\n\nДобре дошъл! Плащането мина: ${args.planLine}.\n\nКакво следва:\n1. До 24 часа получаваш покана за Академията на този имейл.\n2. Запази си първия разговор с мен: ${args.calUrl}\n3. ${args.cohortStart ? `Потокът ти започва ${args.cohortStart}. ` : ""}Датата на първата жива среща идва в отделно писмо.\n\nВъпрос? Отговори на това писмо.`,
     ),
   };
 }
 
-/** След капарото — направо към календара. */
-export function depositEmail(args: { name: string; amountLine: string; calUrl: string; payUrl: string | null }): KinoEmail {
+/**
+ * След капарото: часът за срещата (пон–чт) и личният линк „доплати“ —
+ * капарото е приспаднато там автоматично.
+ */
+export function depositEmail(args: {
+  name: string;
+  amountLine: string;
+  calUrl: string;
+  payUrl: string | null;
+  /** „в понеделник, 19 октомври“ */
+  cohortStart?: string | null;
+}): KinoEmail {
+  const where = args.cohortStart ? `мястото ти в потока, който започва ${args.cohortStart}, е запазено` : "мястото ти в потока е запазено";
   return {
-    subject: `🔒 Мястото ти е запазено — избери час за разговора`,
+    subject: `🔒 Мястото ти е запазено — избери час за срещата`,
     html: `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.65;color:${C.ink};max-width:560px;">
 <p>Здравей, ${escapeHtml(args.name)}!</p>
-<p>Капарото мина (${escapeHtml(args.amountLine)}) — мястото ти в потока е запазено до разговора ни. Приспада се изцяло от цената.</p>
-${button(args.calUrl, "Избери час за разговора")}
-<p>На разговора ще видим заедно дали потокът е точно за теб и откъде да започнеш.${args.payUrl ? ` Когато решиш — доплащането е тук: <a href="${args.payUrl}">твоята страница за плащане</a>.` : ""}</p>
+<p>Капарото мина (${escapeHtml(args.amountLine)}) — ${escapeHtml(where)}. Приспада се изцяло от цената.</p>
+${button(args.calUrl, "Избери час за срещата")}
+<p>На срещата ще видим заедно откъде да започнеш и как потокът ще работи за твоя бизнес.</p>
+${args.payUrl ? `<p><strong>Доплащането</strong> е на твоята лична страница — капарото вече е приспаднато там: <a href="${args.payUrl}">доплати тук</a>. Можеш по време на срещата или след нея.</p>` : ""}
 <p style="margin-top:26px;">${escapeHtml(KINO.host.name)}<br/><span style="color:${C.soft};">${escapeHtml(KINO.host.role)}</span></p>
 </div>`,
     text: sign(
-      `Здравей, ${args.name}!\n\nКапарото мина (${args.amountLine}) — мястото ти в потока е запазено до разговора ни. Приспада се изцяло.\n\nИзбери час: ${args.calUrl}${args.payUrl ? `\nДоплащане: ${args.payUrl}` : ""}`,
+      `Здравей, ${args.name}!\n\nКапарото мина (${args.amountLine}) — ${where}. Приспада се изцяло.\n\nИзбери час за срещата: ${args.calUrl}${args.payUrl ? `\n\nДоплащане (капарото е приспаднато): ${args.payUrl}` : ""}`,
     ),
   };
 }
 
-export type FlowEmailId = "trailer1" | "trailer2" | "tomorrow" | "doors" | "missing" | "replay" | "last3h";
+export type FlowEmailId = "trailer1" | "trailer2" | "tomorrow" | "doors" | "missing" | "after" | "last3h";
 
 export function flowEmail(stageId: string, ctx: KinoEmailCtx): KinoEmail | null {
   switch (stageId) {
@@ -261,8 +285,8 @@ export function flowEmail(stageId: string, ctx: KinoEmailCtx): KinoEmail | null 
       return doorsEmail(ctx);
     case "missing":
       return missingEmail(ctx);
-    case "replay":
-      return replayEmail(ctx);
+    case "after":
+      return afterEmail(ctx);
     case "last3h":
       return last3hEmail(ctx);
     default:

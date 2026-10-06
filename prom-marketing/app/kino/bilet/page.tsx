@@ -172,7 +172,7 @@ export default async function BiletPage({ searchParams }: Props) {
           <h2 id="k-3q" className="k-h2">
             3 въпроса към теб
           </h2>
-          <p className="k-lead">Отговорите ги чета лично — по тях подготвям живата част след филма.</p>
+          <p className="k-lead">Отговорите ги чета лично — по тях подготвям срещата ни.</p>
           <div style={{ marginTop: 22 }}>
             <WarmupQuestions token={token} />
           </div>

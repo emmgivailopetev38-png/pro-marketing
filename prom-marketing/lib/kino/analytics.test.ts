@@ -32,8 +32,8 @@ const row = (contact_id: string, minutes: number[], max_pos = Math.max(0, ...min
 const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
 describe("процентът е по изгледани минути, не по позиция", () => {
-  it("44-минутният филм има 44 минути", () => {
-    expect(totalMinutes(KINO.film.durationSec)).toBe(44);
+  it("файлът (филмът + въпросите + подаръкът) е 52 минути", () => {
+    expect(totalMinutes(KINO.film.durationSec)).toBe(52);
   });
 
   it("закъснелият с 30 минути, гледал до края, не е „изгледал 70 %“", () => {
@@ -45,7 +45,7 @@ describe("процентът е по изгледани минути, не по 
   });
 
   it("гледалият половината стига p25 и p50, но не p75", () => {
-    const m = reachedMilestones({ minutes: 22, maxPos: 22 * 60 });
+    const m = reachedMilestones({ minutes: 26, maxPos: 26 * 60 });
     expect(m).toEqual(["entered", "p25", "p50"]);
   });
 
@@ -64,10 +64,14 @@ describe("freshMilestones", () => {
     expect(freshMilestones(["entered"], ["entered"])).toEqual([]);
   });
 
-  it("заглавията за CRM-а казват как е гледал", () => {
-    expect(milestoneTitle("entered", "premiere")).toContain("премиерата на живо");
-    expect(milestoneTitle("entered", "replay")).toContain("повторението");
-    expect(milestoneTitle("end", "replay")).toContain("надписите");
+  it("заглавията за CRM-а", () => {
+    expect(milestoneTitle("entered")).toContain("Влезе в залата");
+    expect(milestoneTitle("end")).toContain("надписите");
+  });
+
+  it("само отворена страница (без изгледана минута) не е „влезе“", () => {
+    expect(reachedMilestones({ minutes: 0, maxPos: 0 })).toEqual([]);
+    expect(reachedMilestones({ minutes: 1, maxPos: 30 })).toContain("entered");
   });
 });
 
@@ -124,7 +128,7 @@ describe("callLists", () => {
   it("след филма: изгледалите ≥ 50 % без покупка, най-гледалите първи", () => {
     const { warm } = callLists({
       registrations: [],
-      watches: [row("a", range(0, 21)), row("b", range(0, 43)), row("c", range(0, 10)), row("d", range(0, 43))],
+      watches: [row("a", range(0, 25)), row("b", range(0, 51)), row("c", range(0, 10)), row("d", range(0, 51))],
       buyers: new Set(["d"]),
     });
     expect(warm.map((p) => p.contact_id)).toEqual(["b", "a"]);

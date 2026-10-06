@@ -59,12 +59,17 @@ export function quotePlan(plan: KinoPlan, opts: { depositPaidEur?: number } = {}
 }
 
 /**
- * Записването в потока от залата е отворено до срока (replayUntilISO).
- * След него — само личният линк след разговор и платилите капаро.
+ * Записването в потока е отворено до срока (screening.closeISO — нд 18.10,
+ * 23:59). След него — само платилите капаро („доплати“ след срещата) и
+ * поканените след разговор (`invited` го решава сървърът по CRM-а).
  */
-export function isCartOpen(nowMs: number, opts: { depositPaid?: boolean; personalLink?: boolean } = {}): boolean {
-  if (opts.depositPaid || opts.personalLink) return true;
-  return nowMs < Date.parse(KINO.screening.replayUntilISO);
+export function isCartOpen(
+  nowMs: number,
+  opts: { depositPaid?: boolean; invited?: boolean } = {},
+  closeMs: number = Date.parse(KINO.screening.closeISO),
+): boolean {
+  if (opts.depositPaid || opts.invited) return true;
+  return nowMs < closeMs;
 }
 
 /** 1900 → „1 900 €“ (с неразделящ интервал, както се пише на български). */

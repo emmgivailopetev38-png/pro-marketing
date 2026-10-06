@@ -5,6 +5,8 @@ import type { ContactStage, FollowupStatus } from "@/lib/contacts/types";
 import { KINO } from "./config";
 import { ticketToken } from "./token";
 import { moneyKey, uniqueBy } from "./analytics";
+import { allRows } from "@/lib/supabase/all-rows";
+import { cohortForBuyer, cohortView, seatsByCohort, type KinoCohortView } from "./cohorts";
 
 /**
  * Сървърната страна на залата: CRM-ът, таблиците kino_* и линковете.
@@ -49,7 +51,9 @@ export function firstName(fullName: string | null | undefined): string {
 }
 
 /** Всички лични адреси на човека — от едно място. */
-export function kinoLinks(contactId: string): { token: string; ticket: string; hall: string; short: string; ics: string; image: string } | null {
+export function kinoLinks(
+  contactId: string,
+): { token: string; ticket: string; hall: string; short: string; ics: string; image: string; pay: string } | null {
   const token = ticketToken(contactId);
   if (!token) return null;
   const site = KINO.site;
@@ -60,6 +64,8 @@ export function kinoLinks(contactId: string): { token: string; ticket: string; h
     short: `${site}/k/${token}`,
     ics: `${site}/api/kino/ics?t=${token}`,
     image: `${site}/api/kino/ticket?t=${token}`,
+    /** личната страница за плащане — „доплати“ след капарото, или след разговор */
+    pay: `${site}/kino/plashtane?t=${token}`,
   };
 }
 
@@ -143,29 +149,6 @@ export async function kinoEvent(args: {
 }
 
 /**
- * Колко капаро е платил човекът за тази прожекция. Чете от CRM-а (там пише
- * webhook-ът на Stripe), не от kino_events — така работи и без миграцията.
- */
-export async function depositPaidEur(contactId: string): Promise<number> {
-  if (!isDbConfigured()) return 0;
-  try {
-    const { data } = await createServiceClient()
-      .from("contact_activities")
-      .select("id, metadata")
-      .eq("contact_id", contactId)
-      .eq("activity_type", "kino_deposit");
-    const rows = (data ?? []) as Array<{ id: string; metadata: Record<string, unknown> | null }>;
-    // по едно на сесия в Stripe — двоен запис не удвоява капарото
-    return uniqueBy(
-      rows.filter((r) => (r.metadata ?? {}).screening === SCREENING),
-      moneyKey,
-    ).reduce((sum, r) => sum + (Number((r.metadata ?? {}).amount_eur) || 0), 0);
-  } catch {
-    return 0;
-  }
-}
-
-/**
  * Покана след разговор. След затварянето (нд 23:59) плащането остава отворено
  * само за хората с разговор: записан час (kino_booking) или дадени на екипа
  * от /admin/kino (team_assigned). Самата заявка (kino_precall) не отваря —
@@ -185,22 +168,6 @@ export async function hasKinoInvite(contactId: string): Promise<boolean> {
       const m = (r.metadata ?? {}) as Record<string, unknown>;
       return r.activity_type === "team_assigned" ? m.kino_screening === SCREENING : m.screening === SCREENING;
     });
-  } catch {
-    return false;
-  }
-}
-
-/** Платил ли е вече потока (изцяло или първа вноска). */
-export async function hasBoughtProgram(contactId: string): Promise<boolean> {
-  if (!isDbConfigured()) return false;
-  try {
-    const { data } = await createServiceClient()
-      .from("contact_activities")
-      .select("metadata")
-      .eq("contact_id", contactId)
-      .eq("activity_type", "kino_payment")
-      .limit(20);
-    return (data ?? []).some((r) => ((r.metadata ?? {}) as Record<string, unknown>).screening === SCREENING);
   } catch {
     return false;
   }
@@ -230,20 +197,29 @@ export function serverNow(): number {
 }
 
 export interface HallState {
-  offerSeen: boolean;
+  /** гледал е филма (поне минута) */
+  entered: boolean;
   bonusUnlocked: boolean;
   depositPaid: number;
+  /** потокът, в който е капарото му (там е мястото му) */
+  depositCohort: string | null;
   bought: boolean;
   /** „Твоето число“ — часовете седмично в повтаряща се работа (последният отговор) */
   hours: number | null;
 }
 
-export const EMPTY_HALL_STATE: HallState = { offerSeen: false, bonusUnlocked: false, depositPaid: 0, bought: false, hours: null };
+export const EMPTY_HALL_STATE: HallState = {
+  entered: false,
+  bonusUnlocked: false,
+  depositPaid: 0,
+  depositCohort: null,
+  bought: false,
+  hours: null,
+};
 
 /**
- * Какво вече е станало с човека в залата — за да не се крие поканата от
- * някой, който я е видял на премиерата и се връща в повторението, и за да
- * не му се предлага капаро, ако вече го е платил. Едно четене от CRM-а.
+ * Какво вече е станало с човека — гледал ли е, отключил ли е подаръка,
+ * платил ли е капаро (и за кой поток) или потока. Едно четене от CRM-а.
  */
 export async function hallState(contactId: string): Promise<HallState> {
   const empty: HallState = { ...EMPTY_HALL_STATE };
@@ -253,24 +229,52 @@ export async function hallState(contactId: string): Promise<HallState> {
       .from("contact_activities")
       .select("id, activity_type, metadata, occurred_at")
       .eq("contact_id", contactId)
-      .in("activity_type", ["kino_watch", "kino_bonus", "kino_deposit", "kino_payment", "kino_click", "kino_number"])
+      .in("activity_type", ["kino_watch", "kino_bonus", "kino_deposit", "kino_payment", "kino_number"])
       .order("occurred_at", { ascending: true });
     const st = { ...empty };
     const deposits: Array<{ id: string; metadata: Record<string, unknown> }> = [];
     for (const r of (data ?? []) as Array<{ id: string; activity_type: string; metadata: Record<string, unknown> | null }>) {
       const m = r.metadata ?? {};
       if (m.screening !== SCREENING) continue;
-      if (r.activity_type === "kino_watch" && m.milestone === "end") st.offerSeen = true;
-      if (r.activity_type === "kino_click") st.offerSeen = true;
+      if (r.activity_type === "kino_watch" && m.milestone === "entered") st.entered = true;
       if (r.activity_type === "kino_bonus") st.bonusUnlocked = true;
-      if (r.activity_type === "kino_deposit") deposits.push({ id: r.id, metadata: m });
+      if (r.activity_type === "kino_deposit") {
+        deposits.push({ id: r.id, metadata: m });
+        if (typeof m.cohort === "string" && m.cohort) st.depositCohort = m.cohort;
+      }
       if (r.activity_type === "kino_payment") st.bought = true;
       if (r.activity_type === "kino_number" && typeof m.hours === "number") st.hours = m.hours; // последният отговор
     }
     // по едно на сесия в Stripe — двоен запис не удвоява капарото
     st.depositPaid = uniqueBy(deposits, moneyKey).reduce((sum, r) => sum + (Number(r.metadata.amount_eur) || 0), 0);
+    if (st.depositPaid > 0 && !st.depositCohort) st.depositCohort = cohortForBuyer({ nowMs: 0 }).id; // стари записи — първият поток
     return st;
   } catch {
     return empty;
   }
+}
+
+/** Заетите места по потоци — различни хора с плащане или капаро за прожекцията. */
+export async function seatsTaken(): Promise<Map<string, number> | null> {
+  if (!isDbConfigured()) return null;
+  const res = await allRows<{ id: string; contact_id: string; metadata: Record<string, unknown> | null }>((from, to) =>
+    createServiceClient()
+      .from("contact_activities")
+      .select("id, contact_id, metadata")
+      .in("activity_type", ["kino_payment", "kino_deposit"])
+      .order("id")
+      .range(from, to),
+  );
+  if (res.error) return null;
+  return seatsByCohort(res.rows.filter((r) => (r.metadata ?? {}).screening === SCREENING));
+}
+
+/**
+ * Потокът, който човекът вижда в поканата: с капаро — неговият; иначе първият,
+ * който още записва и има места. С броя на свободните места (ако се знае).
+ */
+export async function cohortFor(nowMs: number, depositCohort: string | null): Promise<KinoCohortView> {
+  const taken = await seatsTaken();
+  const c = cohortForBuyer({ nowMs, depositCohortId: depositCohort, takenOf: (id) => taken?.get(id) ?? 0 });
+  return cohortView(c, taken ? (taken.get(c.id) ?? 0) : null);
 }
