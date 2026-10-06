@@ -69,4 +69,7 @@ for r in sorted(rows, key=lambda x: -(x["страници"] if isinstance(x["с�
           f" {', '.join(r['видове'])[:44]}{star}")
 print()
 print("Общо думи в целия наш сайт:", f"{words_total:,}".replace(",", " "))
-json.dump(rows, open("compare.json","w"), ensure_ascii=False, indent=1)
+# Пише се до самия скрипт, а не в текущата папка: иначе файлът пада в
+# корена на проекта, остава непроследен и рискува да влезе в чужд комит.
+json.dump(rows, open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "compare.json"), "w"),
+          ensure_ascii=False, indent=1)
