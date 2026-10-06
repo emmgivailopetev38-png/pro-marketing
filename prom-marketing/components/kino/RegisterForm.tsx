@@ -166,7 +166,7 @@ export function RegisterForm({
         {state === "sending" ? "Запазваме мястото ти…" : state === "done" || state === "mailed" ? "Готово ✓" : `🎟️ ${submitLabel}`}
       </button>
       <p className="k-muted" style={{ fontSize: "0.82rem", margin: 0, textAlign: "center" }}>
-        Безплатно. Без карта. Около 50 минути — само веднъж, без запис.
+        Безплатно. Без карта. Около 45 минути — само веднъж, без запис.
       </p>
     </form>
   );

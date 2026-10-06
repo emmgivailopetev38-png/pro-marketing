@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { firstCohort } from "@/lib/kino/cohorts";
-import { KINO, KINO_TEST_VIDEO } from "@/lib/kino/config";
-import { kinoTimeline, resolveSimTime, premiereLabels } from "@/lib/kino/time";
+import { KINO } from "@/lib/kino/config";
+import { hallVideo } from "@/lib/kino/film-source";
+import { kinoTimeline, resolveSimTime, premiereLabels, phaseAt } from "@/lib/kino/time";
 import { resolveViewer, canPreview, firstParam, previewAs } from "@/lib/kino/viewer";
 import { hallState, serverNow, EMPTY_HALL_STATE, hasKinoInvite, cohortFor } from "@/lib/kino/server";
-import { isKinoDemoEnv } from "@/lib/kino/token";
 import { Hall } from "@/components/kino/Hall";
 import { KinoTop, KinoFooter } from "@/components/kino/KinoChrome";
 import { RegisterForm } from "@/components/kino/RegisterForm";
@@ -74,9 +74,9 @@ export default async function ZalaPage({ searchParams }: Props) {
     (viewer.contactId && nowMs >= Date.parse(KINO.screening.closeISO) ? await hasKinoInvite(viewer.contactId) : false);
   const cohort = await cohortFor(nowMs, state.depositCohort);
   const simLive = preview ? (firstParam(sp.live) ?? null) : null;
-  // Филмът от конфигурацията. Докато не е качен — в прегледа (локално / Vercel
-  // preview) пробата с тийзъра; в продукцията никога.
-  const video = KINO.video.kind === "none" && isKinoDemoEnv() && KINO_TEST_VIDEO ? KINO_TEST_VIDEO : KINO.video;
+  // Филмът (от Blob, по префикс — адресът не е в кода). В продукцията — само
+  // от вратите до края; в прегледа — и черновата, ако филмът още го няма.
+  const video = await hallVideo({ phase: phaseAt(nowMs, kinoTimeline()), preview });
 
   return (
     <div className="kino kino--hall">

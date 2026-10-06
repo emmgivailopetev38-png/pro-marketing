@@ -236,18 +236,27 @@ export function sofiaDate(ms: number): string {
 /**
  * Прегледът на Ивайло: `?sim=` пренася залата в друг момент, без да чака
  * премиерата. Приема ISO време или кратко име на момента:
- * lobby · doors · film · film:<секунди> · number · offer · qa · bonus · after · last · closed.
+ * lobby · doors · film (началото на гл. 0) · film:<секунди във файла> · number · offer ·
+ * again · qa · goodnight · bonus · after · last · closed.
  * Връща милисекунди или null (непознато → залата си върви по истинския час).
  */
 export function resolveSimTime(
   param: string | null | undefined,
   tl: KinoTimeline,
-  cfg: { offerAtSec: number; qaAtSec: number; postCreditsAtSec: number; numberAtSec: number } = KINO.film,
+  cfg: {
+    filmStartSec: number;
+    offerAtSec: number;
+    againAtSec: number;
+    qaAtSec: number;
+    goodnightAtSec: number;
+    postCreditsAtSec: number;
+    numberAtSec: number;
+  } = KINO.film,
 ): number | null {
   const v = (param ?? "").trim().toLowerCase();
   if (!v) return null;
   const film = v.match(/^film:(\d{1,5})$/);
-  if (film) return tl.premiereMs + Math.min(Number(film[1]), tl.durationSec - 1) * 1000;
+  if (film) return tl.premiereMs + Math.min(Number(film[1]), Math.floor(tl.durationSec) - 1) * 1000;
   switch (v) {
     case "lobby":
     case "before":
@@ -255,15 +264,19 @@ export function resolveSimTime(
     case "doors":
       return tl.premiereMs - 3 * 60_000;
     case "film":
-      return tl.premiereMs + 45_000;
+      return tl.premiereMs + (cfg.filmStartSec + 5) * 1000;
     case "number":
       return tl.premiereMs + (cfg.numberAtSec + 3) * 1000;
     case "offer":
       return tl.premiereMs + (cfg.offerAtSec + 3) * 1000;
+    case "again":
+      return tl.premiereMs + (cfg.againAtSec + 2) * 1000;
     case "qa":
       return tl.premiereMs + (cfg.qaAtSec + 5) * 1000;
+    case "goodnight":
+      return tl.premiereMs + (cfg.goodnightAtSec + 1) * 1000;
     case "bonus":
-      return tl.premiereMs + (cfg.postCreditsAtSec + 30) * 1000;
+      return tl.premiereMs + (cfg.postCreditsAtSec + 2) * 1000;
     case "after":
       return tl.filmEndMs + 10 * 60_000;
     case "last":

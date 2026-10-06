@@ -2,7 +2,8 @@
 # Филмът за онлайн киното → Vercel Blob (store „kino-video“).
 #
 #   scripts/kino-video.sh <вход.mp4|.mov> [име] [папка]      — само кодиране
-#   UPLOAD=1 scripts/kino-video.sh <вход> [име] [папка]      — кодиране + качване
+#   UPLOAD=1 scripts/kino-video.sh <вход> valnata-film        — кодиране + качване (истинският филм)
+#   UPLOAD=1 scripts/kino-video.sh <вход> chernova-v2         — черновата за прегледа
 #
 # Прави три файла:
 #   <име>-1080.mp4  H.264 High, CRF 21, таван 3,5 Mbps, AAC 160k
@@ -13,10 +14,12 @@
 # превърта с Range заявки, без HLS) и ключов кадър на 2 s (бързо „влизане в
 # текущата минута“). Плейърът избира 1080p само на широк екран и нормална мрежа.
 #
-# Качването: `vercel blob put` в store „kino-video“ (store_zb1ApEiPtQXi1Vj7).
+# Качването: `vercel blob put` в store „kino-video“ (store_zb1ApEiPtQXi1Vj7) —
+# kino/film/<име>-1080-<случаен>.mp4 · …-720-… · …-poster-….jpg. Адресите НЕ
+# се пишат в кода (репото е публично): залата ги намира сама по префикса
+# (lib/kino/film-source.ts → KINO_BLOB_PREFIX: valnata-film- / chernova-v1-).
 # Иска BLOB_READ_WRITE_TOKEN в средата — от Vercel → Storage → kino-video →
-# „.env.local“ (не се пише в git). Пътят е kino/<файл>, без случаен суфикс;
-# накрая адресите се слагат във FILM_BLOB в lib/kino/config.ts.
+# „.env.local“ (не се пише в git и не се печата).
 set -euo pipefail
 
 in="${1:?Подай входния файл}"
@@ -41,7 +44,7 @@ ls -lh "$out/$name-1080.mp4" "$out/$name-720.mp4" "$out/$name-poster.jpg"
 if [[ "${UPLOAD:-0}" == "1" ]]; then
   : "${BLOB_READ_WRITE_TOKEN:?Сложи BLOB_READ_WRITE_TOKEN (Vercel → Storage → kino-video)}"
   for f in "$out/$name-1080.mp4" "$out/$name-720.mp4" "$out/$name-poster.jpg"; do
-    npx --yes vercel@latest blob put "$f" --access public --pathname "kino/$(basename "$f")"
+    npx --yes vercel@latest blob put "$f" --access public --pathname "kino/film/$(basename "$f")" --add-random-suffix true
   done
-  echo "Готово: адресите отгоре → FILM_BLOB в lib/kino/config.ts"
+  echo "Готово: залата ги намира сама по префикса kino/film/$name- (най-новите печелят)"
 fi

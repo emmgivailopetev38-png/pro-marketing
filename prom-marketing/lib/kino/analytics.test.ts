@@ -32,8 +32,8 @@ const row = (contact_id: string, minutes: number[], max_pos = Math.max(0, ...min
 const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
 describe("процентът е по изгледани минути, не по позиция", () => {
-  it("файлът (филмът + въпросите + подаръкът) е 52 минути", () => {
-    expect(totalMinutes(KINO.film.durationSec)).toBe(52);
+  it("файлът (филмът + въпросите + подаръкът) е 47 минути (46:17)", () => {
+    expect(totalMinutes(KINO.film.durationSec)).toBe(47);
   });
 
   it("закъснелият с 30 минути, гледал до края, не е „изгледал 70 %“", () => {

@@ -12,6 +12,7 @@ import { RetentionChart, ChapterBars, ReactionStrips } from "@/components/kino/a
 import { GiveListButton } from "@/components/kino/admin/GiveListButton";
 import { KinoBooth } from "@/components/kino/admin/KinoBooth";
 import { loadBooth } from "@/lib/kino/live";
+import { productionFilm } from "@/lib/kino/film-source";
 
 export const dynamic = "force-dynamic";
 
@@ -118,7 +119,7 @@ function PeopleTable({ people, mode }: { people: KinoPerson[]; mode: KinoListId 
 }
 
 export default async function KinoAdminPage() {
-  const [d, booth] = await Promise.all([loadKinoDashboard(), loadBooth()]);
+  const [d, booth, film] = await Promise.all([loadKinoDashboard(), loadBooth(), productionFilm()]);
   const tl = kinoTimeline();
   const now = serverNow();
   const phase = phaseAt(now, tl);
@@ -128,12 +129,25 @@ export default async function KinoAdminPage() {
   const stages = kinoStages();
   const k = d.kpi;
   const minutes = totalMinutes();
+  const F = KINO.film;
   const minuteLabels = Array.from({ length: minutes }, (_, m) => {
-    const c = KINO.film.chapters[chapterIndexAt(m * 60, KINO.film.chapters)];
     const at = m * 60;
-    if (at >= KINO.film.postCreditsAtSec) return `минута ${m + 1} · подаръкът`;
-    if (at >= KINO.film.qaAtSec) return `минута ${m + 1} · въпросите след прожекцията`;
-    return at >= KINO.film.offerAtSec ? `минута ${m + 1} · надписите` : `минута ${m + 1} · „${c.title}“`;
+    const c = F.chapters[chapterIndexAt(at, F.chapters)];
+    const what =
+      at >= F.giftSceneAtSec
+        ? "подаръкът"
+        : at >= F.goodnightAtSec
+          ? "„Лека вечер“"
+          : at >= F.qaAtSec
+            ? "въпросите след прожекцията"
+            : at >= F.againAtSec
+              ? "„Ето ни отново“"
+              : at >= F.offerAtSec
+                ? "надписите"
+                : at < F.filmStartSec
+                  ? "„Добре дошли“"
+                  : `„${c.title}“`;
+    return `минута ${m + 1} · ${what}`;
   });
   const chapterStarts = KINO.film.chapters.map((c) => ({ minute: Math.floor(c.startSec / 60), label: c.title }));
   const chips: Array<[string, boolean]> = [
@@ -141,7 +155,10 @@ export default async function KinoAdminPage() {
     [`SMS: ${sms.enabled ? "включени" : `изключени — ${sms.reason}`}`, sms.enabled],
     [`Stripe: ${process.env.STRIPE_SECRET_KEY ? "ключът е сложен" : "няма STRIPE_SECRET_KEY"}`, Boolean(process.env.STRIPE_SECRET_KEY)],
     [`Проследяване: ${d.trackingReady ? "работи" : "миграцията не е приложена"}`, d.trackingReady],
-    [`Видео: ${KINO.video.kind === "none" ? "няма (сухо)" : KINO.video.kind}`, KINO.video.kind !== "none"],
+    [
+      `Филмът: ${film.kind === "none" ? "още не е качен (kino/film/valnata-film-…)" : film.kind === "mp4" ? `в Blob · ${(film.variants ?? []).map((v) => `${v.height}p`).join(" + ")}` : film.kind}`,
+      film.kind !== "none",
+    ],
     [`Viber клуб: ${KINO.viberClubUrl ? "има линк" : "няма линк"}`, Boolean(KINO.viberClubUrl)],
   ];
 

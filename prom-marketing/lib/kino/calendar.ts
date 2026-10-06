@@ -14,7 +14,7 @@ export function premiereEvent(hallUrl: string | null): KinoCalendarEvent {
     startMs: tl.premiereMs,
     endMs: tl.filmEndMs,
     title: `${KINO.title} · онлайн прожекция`,
-    description: `${KINO.subtitle}. Около 50 минути, с въпросите накрая. Само веднъж — без запис.\n\nТвоята зала: ${link}\nВлез 5 минути по-рано и пусни звука. 🍿`,
+    description: `${KINO.subtitle}. Около 45 минути, с въпросите накрая. Само веднъж — без запис.\n\nТвоята зала: ${link}\nВлез 5 минути по-рано и пусни звука. 🍿`,
     url: link,
     location: link,
     alarmsMinutes: [60, 10],

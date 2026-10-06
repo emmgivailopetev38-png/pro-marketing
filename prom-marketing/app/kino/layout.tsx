@@ -7,7 +7,7 @@ const when = premiereLabels();
 
 export const metadata: Metadata = {
   title: { absolute: `${KINO.title} · онлайн премиера — ${when.short}` },
-  description: `${KINO.subtitle}. Безплатна онлайн прожекция, ${when.day}, ${when.time}. Около 50 минути филм, направен изцяло с AI — само веднъж, без запис.`,
+  description: `${KINO.subtitle}. Безплатна онлайн прожекция, ${when.day}, ${when.time}. Около 45 минути филм, направен изцяло с AI — само веднъж, без запис.`,
   // ⚠ Без индексиране, докато Ивайло не одобри страниците (рекламите не зависят от това).
   robots: { index: false, follow: false },
   alternates: { canonical: "/kino" },

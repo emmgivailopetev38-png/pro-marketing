@@ -67,25 +67,40 @@ describe("simulivePosition", () => {
 });
 
 describe("главите", () => {
-  it("12 глави, подредени по време, първата от нулата", () => {
+  it("12 глави, подредени по време; гл. 0 започва след „Добре дошли“", () => {
     expect(KINO.film.chapters).toHaveLength(12);
-    expect(KINO.film.chapters[0].startSec).toBe(0);
+    expect(KINO.film.chapters[0].startSec).toBe(KINO.film.filmStartSec);
     const starts = KINO.film.chapters.map((c) => c.startSec);
     expect([...starts].sort((a, b) => a - b)).toEqual(starts);
   });
 
+  it("точките от двигателя (черновата от 06.10, 46:17)", () => {
+    const f = KINO.film;
+    expect(formatClock(f.filmStartSec)).toBe("2:22");
+    expect(formatClock(f.numberAtSec)).toBe("33:16");
+    expect(formatClock(f.offerAtSec)).toBe("38:28");
+    expect(formatClock(f.againAtSec)).toBe("39:28");
+    expect(formatClock(f.qaAtSec)).toBe("41:12");
+    expect(formatClock(f.goodnightAtSec)).toBe("45:32");
+    expect(formatClock(f.postCreditsAtSec)).toBe("46:01");
+    expect(formatClock(f.durationSec)).toBe("46:17");
+    // редът: надписите → „Ето ни отново“ → въпросите → „Лека вечер“ → подаръкът → краят
+    const order = [f.filmStartSec, f.numberAtSec, f.offerAtSec, f.againAtSec, f.qaAtSec, f.goodnightAtSec, f.giftSceneAtSec, f.postCreditsAtSec, f.durationSec];
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+  });
+
   it("намира главата по секундата — и на самата граница", () => {
     const ch = KINO.film.chapters;
-    expect(ch[chapterIndexAt(0, ch)].title).toBe("Седни удобно");
-    expect(ch[chapterIndexAt(9 * 60 + 30, ch)].title).toBe("Правец");
-    expect(ch[chapterIndexAt(9 * 60 + 29, ch)].n).toBe(2);
-    expect(ch[chapterIndexAt(41 * 60, ch)].title).toBe("Част втора");
+    expect(ch[chapterIndexAt(KINO.film.filmStartSec, ch)].title).toBe("Седни удобно");
+    expect(ch[chapterIndexAt(525.9, ch)].title).toBe("Правец");
+    expect(ch[chapterIndexAt(525.8, ch)].n).toBe(2);
+    expect(ch[chapterIndexAt(KINO.film.offerAtSec - 1, ch)].title).toBe("Част втора");
   });
 
   it("последната глава свършва с надписите", () => {
     const spans = chapterSpans(KINO.film.chapters, KINO.film.offerAtSec);
-    expect(spans.at(-1)).toMatchObject({ fromSec: 38 * 60, toSec: KINO.film.offerAtSec });
-    expect(spans[0]).toMatchObject({ fromSec: 0, toSec: 160 });
+    expect(spans.at(-1)).toMatchObject({ fromSec: 2059.4, toSec: KINO.film.offerAtSec });
+    expect(spans[0]).toMatchObject({ fromSec: 142, toSec: 226.4 });
   });
 });
 

@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { KINO, type KinoVideoSource } from "@/lib/kino/config";
 import {
   kinoTimeline,
@@ -88,11 +89,17 @@ function StatusPill({ phase, pos }: { phase: KinoPhase; pos: number }) {
   return <span className="k-pill">Фоайе · отваря в {labels.doorsTime}</span>;
 }
 
-/** Кое е на екрана в тази секунда: глава, надписите, въпросите или подаръкът. */
+/**
+ * Кое е на екрана в тази секунда — по точките от двигателя: „Добре дошли“,
+ * главите, надписите, „Ето ни отново“, въпросите, „Лека вечер“, подаръкът.
+ */
 function segmentAt(pos: number): { n: string; title: string } {
-  if (pos >= FILM.postCreditsAtSec) return { n: "ПОДАРЪКЪТ", title: "За останалите до края" };
+  if (pos >= FILM.giftSceneAtSec) return { n: "ПОДАРЪКЪТ", title: "За останалите до края" };
+  if (pos >= FILM.goodnightAtSec) return { n: "НА БЮРОТО", title: "Лека вечер" };
   if (pos >= FILM.qaAtSec) return { n: "СЛЕД ФИЛМА", title: "Въпроси след прожекцията" };
+  if (pos >= FILM.againAtSec) return { n: "НА БЮРОТО", title: "Ето ни отново" };
   if (pos >= FILM.offerAtSec) return { n: "НАДПИСИ", title: KINO.title };
+  if (pos < FILM.filmStartSec) return { n: "ПРЕДИ ФИЛМА", title: "Добре дошли" };
   const ch = FILM.chapters[chapterIndexAt(pos, FILM.chapters)];
   return { n: `ГЛАВА ${ch.n}`, title: `„${ch.title}“` };
 }
@@ -121,6 +128,18 @@ export function Hall(props: HallProps) {
   const inFilm = phase === "film";
   const livePos = simulivePosition(now, tl);
   const pos = inFilm ? livePos : phase === "after" || phase === "closed" ? FILM.durationSec : 0;
+
+  // Адресът на филма идва с вратите (сървърът не го дава във фоайето) —
+  // щом вратите отворят, страницата се опреснява сама и плейърът го получава.
+  const router = useRouter();
+  const refreshed = useRef(false);
+  useEffect(() => {
+    if (refreshed.current || preview || video.kind !== "none") return;
+    if (phase === "doors" || phase === "film") {
+      refreshed.current = true;
+      router.refresh();
+    }
+  }, [phase, preview, video.kind, router]);
 
   const player = useRef<PlayerApi>(null);
   const [armed, setArmed] = useState(false);
@@ -245,7 +264,8 @@ export function Hall(props: HallProps) {
   }, [inFilm, armed, sendBeat]);
 
   // ── подаръкът след въпросите ──
-  const reachedBonus = inFilm && livePos >= FILM.postCreditsAtSec + 15;
+  // точно когато на екрана излиза „Вземи подаръка ↓“ (гл. 13)
+  const reachedBonus = inFilm && livePos >= FILM.postCreditsAtSec;
   const defaultBonus: BonusData = { title: KINO.bonus.title, body: KINO.bonus.body, url: props.bonusUrl };
   const [bonus, setBonus] = useState<{ state: "locked" | "open" | "more"; data?: BonusData }>(
     props.bonusUnlocked ? { state: "open", data: defaultBonus } : { state: "locked" },
@@ -344,16 +364,16 @@ export function Hall(props: HallProps) {
 
   // главата в средата на лентата
   const chapterIdx = chapterIndexAt(pos, FILM.chapters);
+  const segment = useMemo(() => segmentAt(pos), [pos]);
   const chapterStrip = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const strip = chapterStrip.current;
     const el = strip?.querySelector<HTMLElement>('[data-now="1"]');
     if (el && strip) strip.scrollTo({ left: el.offsetLeft - strip.clientWidth / 2 + el.clientWidth / 2, behavior: "smooth" });
-  }, [chapterIdx, inFilm]);
+  }, [chapterIdx, inFilm, segment.title]);
 
   const cd = splitCountdown(tl.premiereMs - now);
-  const simLinks = ["lobby", "doors", "film", "film:1950", "number", "offer", "qa", "bonus", "after", "last", "closed"];
-  const segment = useMemo(() => segmentAt(pos), [pos]);
+  const simLinks = ["lobby", "doors", "film:0", "film", "number", "offer", "again", "qa", "goodnight", "bonus", "after", "closed"];
   const dryNote = preview || process.env.NODE_ENV !== "production";
 
   return (
@@ -501,12 +521,18 @@ export function Hall(props: HallProps) {
             {inFilm && (
               <>
                 <div className="k-progress" aria-hidden="true">
-                  <span style={{ width: `${Math.min(100, (pos / FILM.offerAtSec) * 100)}%` }} />
+                  <span style={{ width: `${Math.min(100, (pos / FILM.durationSec) * 100)}%` }} />
                 </div>
                 <div className="k-chapters" ref={chapterStrip} aria-label="Главите">
+                  {pos < FILM.filmStartSec && (
+                    <span className="k-chapter k-chapter--now" data-now="1">
+                      {segment.title}
+                    </span>
+                  )}
                   {FILM.chapters.map((c, i) => {
-                    const done = pos >= FILM.offerAtSec || i < chapterIdx;
-                    const nowCh = pos < FILM.offerAtSec && i === chapterIdx;
+                    const inChapters = pos >= FILM.filmStartSec && pos < FILM.offerAtSec;
+                    const done = pos >= FILM.offerAtSec || (inChapters && i < chapterIdx);
+                    const nowCh = inChapters && i === chapterIdx;
                     return (
                       <span
                         key={c.n}
@@ -517,9 +543,9 @@ export function Hall(props: HallProps) {
                       </span>
                     );
                   })}
-                  {pos >= FILM.qaAtSec && (
+                  {pos >= FILM.offerAtSec && (
                     <span className="k-chapter k-chapter--now" data-now="1">
-                      {segment.title}
+                      {segment.n === "НАДПИСИ" ? "Надписите" : segment.title}
                     </span>
                   )}
                 </div>
