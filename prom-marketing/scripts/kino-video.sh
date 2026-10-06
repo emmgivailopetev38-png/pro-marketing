@@ -12,9 +12,10 @@
 # превърта с Range заявки, без HLS) и ключов кадър на 2 s (бързо „влизане в
 # текущата минута“). Плейърът избира 1080p само на широк екран и нормална мрежа.
 #
-# Качването: `vercel blob put` с BLOB_READ_WRITE_TOKEN от свързания store
-# (или влязъл `vercel` CLI). Пътят е kino/<файл>; накрая скриптът печата
-# адресите — те се слагат във FILM_BLOB в lib/kino/config.ts.
+# Качването: `vercel blob put` в store „kino-video“ (store_zb1ApEiPtQXi1Vj7).
+# Иска BLOB_READ_WRITE_TOKEN в средата — от Vercel → Storage → kino-video →
+# „.env.local“ (не се пише в git). Пътят е kino/<файл>, без случаен суфикс;
+# накрая адресите се слагат във FILM_BLOB в lib/kino/config.ts.
 set -euo pipefail
 
 in="${1:?Подай входния файл}"
@@ -36,6 +37,7 @@ ffmpeg -hide_banner -y -ss "$poster_at" -i "$in" -frames:v 1 -update 1 -vf "scal
 ls -lh "$out/$name-1080.mp4" "$out/$name-720.mp4" "$out/$name-poster.jpg"
 
 if [[ "${UPLOAD:-0}" == "1" ]]; then
+  : "${BLOB_READ_WRITE_TOKEN:?Сложи BLOB_READ_WRITE_TOKEN (Vercel → Storage → kino-video)}"
   for f in "$out/$name-1080.mp4" "$out/$name-720.mp4" "$out/$name-poster.jpg"; do
     npx --yes vercel@latest blob put "$f" --access public --pathname "kino/$(basename "$f")"
   done

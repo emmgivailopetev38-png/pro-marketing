@@ -40,8 +40,14 @@ export function blobVideo(b: { v1080: string | null; v720: string | null; poster
 }
 
 /**
- * ⚠ ФИЛМЪТ — адресите от Vercel Blob след качването (store „kino-video“,
- * папка kino/). Сменят се тук и с това филмът е в залата за всички.
+ * Vercel Blob store „kino-video“ (store_zb1ApEiPtQXi1Vj7 · fra1 · public),
+ * свързан с проекта pro-marketing. Адресите са постоянни (без случаен суфикс).
+ */
+const BLOB = "https://zb1apeiptqxi1vj7.public.blob.vercel-storage.com";
+
+/**
+ * ⚠ ФИЛМЪТ — адресите след качването (scripts/kino-video.sh → папка kino/).
+ * Сменят се тук и с това филмът е в залата за всички.
  */
 const FILM_BLOB = {
   v1080: null as string | null,
@@ -56,9 +62,9 @@ const FILM_BLOB = {
  * файл: NEXT_PUBLIC_KINO_FILM=/път/до/файл.mp4 (в public/, не се качва в git).
  */
 const TEST_BLOB = {
-  v1080: null as string | null,
-  v720: null as string | null,
-  poster: null as string | null,
+  v1080: `${BLOB}/kino/teaser/valnata-teaser-v1-1080.mp4` as string | null,
+  v720: `${BLOB}/kino/teaser/valnata-teaser-v1-720.mp4` as string | null,
+  poster: `${BLOB}/kino/teaser/valnata-teaser-v1-poster.jpg` as string | null,
 };
 export const KINO_TEST_VIDEO: KinoVideoSource | null = blobVideo(TEST_BLOB);
 
