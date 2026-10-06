@@ -74,19 +74,19 @@ describe("главите", () => {
     expect([...starts].sort((a, b) => a - b)).toEqual(starts);
   });
 
-  it("точките от двигателя (tochki-zala-v3.json — черновата v3, 46:35)", () => {
+  it("точките от двигателя (tochki-zala-v3.1.json — черновата v3.1, 46:34)", () => {
     const f = KINO.film;
-    expect(formatClock(f.filmStartSec)).toBe("1:29");
-    expect(formatClock(f.numberAtSec)).toBe("32:35");
-    expect(formatClock(f.offerAtSec)).toBe("35:59");
-    expect(formatClock(f.againAtSec)).toBe("37:56");
-    expect(formatClock(f.qaAtSec)).toBe("38:54");
-    expect(formatClock(f.goodnightAtSec)).toBe("44:49");
-    expect(formatClock(f.creditsAtSec)).toBe("45:10");
-    expect(formatClock(f.giftSceneAtSec)).toBe("46:10");
-    expect(formatClock(f.postCreditsAtSec)).toBe("46:20");
-    expect(formatClock(f.durationSec)).toBe("46:35");
-    expect(f.chapters.map((c) => c.startSec)).toEqual([89.8, 173, 344.2, 479.4, 598.9, 655.4, 824.3, 964.9, 1321.1, 1491.4, 1971.8, 2017.9]);
+    expect(formatClock(f.filmStartSec)).toBe("1:35");
+    expect(formatClock(f.numberAtSec)).toBe("32:34");
+    expect(formatClock(f.offerAtSec)).toBe("35:58");
+    expect(formatClock(f.againAtSec)).toBe("37:55");
+    expect(formatClock(f.qaAtSec)).toBe("38:52");
+    expect(formatClock(f.goodnightAtSec)).toBe("44:47");
+    expect(formatClock(f.creditsAtSec)).toBe("45:08");
+    expect(formatClock(f.giftSceneAtSec)).toBe("46:09");
+    expect(formatClock(f.postCreditsAtSec)).toBe("46:18");
+    expect(formatClock(f.durationSec)).toBe("46:34");
+    expect(f.chapters.map((c) => c.startSec)).toEqual([95.6, 171.7, 342.9, 478.1, 597.6, 654, 823, 963.6, 1319.8, 1490.1, 1970.4, 2016.6]);
     // редът: бутоните (11.4) → „Не бързайте“ → въпросите → „Лека вечер“ → надписите → подаръкът → краят
     const order = [f.filmStartSec, f.numberAtSec, f.offerAtSec, f.againAtSec, f.qaAtSec, f.goodnightAtSec, f.creditsAtSec, f.giftSceneAtSec, f.postCreditsAtSec, f.durationSec];
     expect([...order].sort((a, b) => a - b)).toEqual(order);
@@ -95,8 +95,8 @@ describe("главите", () => {
   it("намира главата по секундата — и на самата граница", () => {
     const ch = KINO.film.chapters;
     expect(ch[chapterIndexAt(KINO.film.filmStartSec, ch)].title).toBe("Седни удобно");
-    expect(ch[chapterIndexAt(479.4, ch)].title).toBe("Правец");
-    expect(ch[chapterIndexAt(479.3, ch)].n).toBe(2);
+    expect(ch[chapterIndexAt(478.1, ch)].title).toBe("Правец");
+    expect(ch[chapterIndexAt(478, ch)].n).toBe(2);
     // бутоните (11.4) излизат вътре в гл. 11, а тя върви до „Не бързайте“
     expect(ch[chapterIndexAt(KINO.film.offerAtSec - 1, ch)].title).toBe("Част втора");
     expect(ch[chapterIndexAt(KINO.film.againAtSec - 1, ch)].title).toBe("Част втора");
