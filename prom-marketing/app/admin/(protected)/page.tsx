@@ -35,6 +35,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const SOURCE_PALETTE: Record<string, { label: string; color: string }> = {
   meta_lead: { label: "Meta реклама", color: "#1877F2" },
   website_form: { label: "Сайт", color: "#06b6d4" },
+  akademia: { label: "Академия", color: "#f59e0b" },
   cal_booking: { label: "Cal.com", color: "#22c55e" },
   email: { label: "Имейл", color: "#a78bfa" },
   manual: { label: "Ръчно", color: "#facc15" },

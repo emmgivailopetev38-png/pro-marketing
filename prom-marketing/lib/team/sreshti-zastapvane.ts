@@ -45,12 +45,12 @@ function endMs(m: { startIso: string; minutes: number | null }): number {
   return startMs(m) + minutes * MIN;
 }
 
-function realEmail(e?: string | null): string | null {
+export function realEmail(e?: string | null): string | null {
   const v = (e ?? "").trim().toLowerCase();
   return v && !PLACEHOLDER_EMAIL.test(v) ? v : null;
 }
 
-function last9(phone?: string | null): string | null {
+export function last9(phone?: string | null): string | null {
   const d = (phone ?? "").replace(/\D/g, "");
   return d.length >= 9 ? d.slice(-9) : null;
 }

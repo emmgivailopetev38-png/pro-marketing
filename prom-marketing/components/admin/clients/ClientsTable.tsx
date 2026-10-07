@@ -16,6 +16,7 @@ const SOURCE_LABEL: Record<string, string> = {
   email: "Имейл",
   manual: "Ръчно",
   website_form: "Сайт",
+  akademia: "Академия",
 };
 
 // Pipeline-prioritized stage order (closest to deal first).

@@ -6,6 +6,8 @@ import { sendWelcomeEmail } from "@/lib/email/welcome";
 import { escapeHtml } from "@/lib/email/escape";
 import { notifyTeamNewLead } from "@/lib/team/notify";
 import { routeNewLead } from "@/lib/team/routing";
+import { phoneVariants } from "@/lib/contacts/repository";
+import { AKADEMIA_SOURCE, isAkademiaMessage } from "@/lib/team/ivailo-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +42,12 @@ export async function POST(request: Request) {
   const email = EMAIL_RE.test(emailRaw) ? emailRaw : null;
   const { company_activity, message } = parsed.data;
   const supabase = createServiceClient();
+  // Академията (akademia.promarketing.pw) праща заявките за достъп през тази
+  // форма с „Академия · …“. Това е човек за менторската на Ивайло, не лийд за
+  // звънене: без ротация към екипа, без писмо „нов човек за звънене“, без
+  // приветствен и продажбени имейли (06.10.2026: Димитър звъня на четирима
+  // от Академията и ги отбеляза „Не се интересува“).
+  const akademia = isAkademiaMessage(message);
 
   // Dedup by email when present, else by phone (matches Meta lead behaviour).
   let existing: { id: string; full_name: string | null; phone: string | null; company: string | null } | null = null;
@@ -52,12 +60,15 @@ export async function POST(request: Request) {
     existing = data;
   }
   if (!existing && phone) {
+    // Всички формати на същия номер (0889…, +359889…) — Академията праща „0…“,
+    // Meta „+359…“; буквалното сравнение правеше втори картон (Румен Тодоров, 02.10).
     const { data: byPhone } = await supabase
       .from("contacts")
       .select("id, full_name, phone, company")
-      .eq("phone", phone)
-      .maybeSingle();
-    existing = byPhone;
+      .in("phone", phoneVariants(phone))
+      .order("created_at", { ascending: true })
+      .limit(1);
+    existing = byPhone?.[0] ?? null;
   }
 
   let contactId: string;
@@ -79,7 +90,7 @@ export async function POST(request: Request) {
         phone,
         company: company_activity || null,
         stage: "lead",
-        source: "website_form",
+        source: akademia ? AKADEMIA_SOURCE : "website_form",
         notes: message || null,
       })
       .select("id")
@@ -93,7 +104,7 @@ export async function POST(request: Request) {
   await supabase.from("contact_activities").insert({
     contact_id: contactId,
     activity_type: "website_form",
-    title: "Изпрати форма от уебсайта",
+    title: akademia ? "🎓 Заявка от Академията" : "Изпрати форма от уебсайта",
     body:
       [
         company_activity ? `Фирма/дейност: ${company_activity}` : null,
@@ -112,7 +123,8 @@ export async function POST(request: Request) {
   });
 
   // Auto-welcome to the lead — only when we have an email (new contacts only).
-  if (!existing && email) {
+  // Не и за Академията: писмото „ще се чуем скоро“ е за запитване към агенцията.
+  if (!existing && email && !akademia) {
     await sendWelcomeEmail({
       supabase,
       contactId,
@@ -137,9 +149,9 @@ export async function POST(request: Request) {
   if (adminTo) {
     const notify = await sendEmail({
       to: adminTo,
-      subject: `🚀 Нов lead от сайта · ${full_name}`,
+      subject: akademia ? `🎓 Академия · ${full_name}` : `🚀 Нов lead от сайта · ${full_name}`,
       html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#0d1221;">
-<p><strong>Нов lead от формата на promarketing.pw</strong></p>
+<p><strong>${akademia ? "Заявка от Академията (akademia.promarketing.pw) — за теб, не за екипа" : "Нов lead от формата на promarketing.pw"}</strong></p>
 <table style="border-collapse:collapse;">
 <tr><td style="padding:4px 12px 4px 0;color:#777;">Име:</td><td><strong>${escapeHtml(full_name)}</strong></td></tr>
 <tr><td style="padding:4px 12px 4px 0;color:#777;">Имейл:</td><td>${email ? `<a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a>` : "—"}</td></tr>
@@ -149,7 +161,7 @@ ${message ? `<tr><td style="padding:4px 12px 4px 0;color:#777;vertical-align:top
 </table>
 <p style="margin-top:18px;">📊 <a href="https://promarketing.pw/admin/clients/${contactId}">Виж в CRM-а</a></p>
 </div>`,
-      text: `Нов lead от promarketing.pw
+      text: `${akademia ? "Заявка от Академията — за теб, не за екипа" : "Нов lead от promarketing.pw"}
 
 Име: ${full_name}
 Имейл: ${email || "—"}
@@ -163,6 +175,8 @@ CRM: https://promarketing.pw/admin/clients/${contactId}`,
   } else {
     console.error("[leads/submit] no admin recipient configured (ALLOWED_ADMIN_EMAILS / EMAIL_REPLY_TO)");
   }
+
+  if (akademia) return NextResponse.json({ ok: true });
 
   // Екипът, който звъни на лийдовете — с линк към опашката за звънене.
   // Първо ротацията (Димитър, Елена, Димитър…) — писмото отива само при него.
