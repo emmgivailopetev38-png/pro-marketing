@@ -222,3 +222,51 @@ describe("бележката тръгва с всеки бутон и не се 
     expect(list.compareDocumentPosition(answers) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
+
+describe("какво е поискал и с какво започва разговорът", () => {
+  const fresh: QueueLead = {
+    ...lead,
+    last_attempt: null,
+    attempts: 0,
+    ad_name: "Корица · AI наръчник · 2026-10-07",
+    offer_key: "narachnik",
+    offer_label: "📘 Наръчник",
+  };
+
+  it("новата карта показва значката и първото изречение с името на човека, който звъни", () => {
+    render(<LeadCard lead={fresh} mode="fresh" setterName="Димитър" />);
+    expect(screen.getByText("📘 Наръчник")).toBeInTheDocument();
+    expect(screen.getByText(/Започни така/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Здравейте, Димитър съм от Pro Marketing — обаждам се за AI наръчника, който изтеглихте\. Успяхте ли да го разгледате\?/)
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Корица · AI наръчник/)).toBeInTheDocument();
+  });
+
+  it("при отказана среща изречението за наръчника не излиза — поводът е срещата", () => {
+    render(<LeadCard lead={{ ...fresh, given_reason: "Отказа срещата" }} mode="cancelled" />);
+    expect(screen.getByText("📘 Наръчник")).toBeInTheDocument();
+    expect(screen.queryByText(/Започни така/)).not.toBeInTheDocument();
+  });
+
+  it("пак оставил данни: картата казва защо е пак тук и кога е новата заявка", () => {
+    render(
+      <LeadCard
+        lead={{
+          ...fresh,
+          created_at: "2026-09-26T09:00:00.000Z",
+          relead_at: "2026-10-07T12:38:00.000Z",
+          given_reason: "🔁 Пак остави данни · 📘 Наръчник — звънни като на нов лийд.",
+        }}
+        mode="fresh"
+      />
+    );
+    expect(screen.getByText(/🔁 Пак остави данни · 📘 Наръчник/)).toBeInTheDocument();
+    expect(screen.getByText(/картонът е от 26\.09\.2026/)).toBeInTheDocument();
+  });
+
+  it("без оферта — без значка и без изречение (както преди)", () => {
+    render(<LeadCard lead={{ ...fresh, offer_key: null, offer_label: null }} mode="fresh" />);
+    expect(screen.queryByText(/Започни така/)).not.toBeInTheDocument();
+  });
+});

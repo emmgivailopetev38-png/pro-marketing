@@ -35,6 +35,9 @@ export function escalationVerdict(rows: AttemptRow[], now: Date = new Date(), da
   const team: AttemptRow[] = [];
   for (const r of rows) {
     if (r.activity_type === ESCALATED_TYPE) break;
+    // Пак е оставил данни на рекламата: седемте дни тръгват отначало от новата заявка,
+    // иначе старите опити отпреди седмици биха го върнали на Ивайло още на сутринта.
+    if (r.activity_type === "team_assigned" && r.metadata?.kind === "relead") break;
     if (r.activity_type === "team_assigned") continue;
     if (r.metadata?.team !== true) continue;
     if (r.metadata?.booking_msg === true) continue;

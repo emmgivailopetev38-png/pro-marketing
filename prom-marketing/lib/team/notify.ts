@@ -57,6 +57,8 @@ export interface NewLeadForTeam {
   fieldData?: unknown;
   /** свободен текст (форма на сайта: дейност + съобщение) */
   extra?: Array<{ label: string; value: string | null | undefined }>;
+  /** какво е поискал — „📘 Наръчник“, „🎓 Безплатен курс“… (lib/leads/lead-offers.ts); влиза и в темата */
+  offerLabel?: string | null;
 }
 
 /**
@@ -111,7 +113,7 @@ ${rows.map(([k, v]) => `<tr><td style="padding:4px 12px 4px 0;color:#777;vertica
 
   await sendEmail({
     to,
-    subject: `📞 Нов лийд за звънене · ${name}`,
+    subject: lead.offerLabel ? `📞 Нов лийд · ${lead.offerLabel} · ${name}` : `📞 Нов лийд за звънене · ${name}`,
     html,
     text,
   }).catch(() => {});
@@ -348,6 +350,7 @@ export async function notifyOwnerHandoff(h: HandoffByTeam): Promise<void> {
 import { createServiceClient } from "@/lib/supabase/service";
 import {
   MAX_AGE_MINUTES,
+  REMINDER_EVENT_STATUS,
   dueReminders,
   levelLabel,
   reminderKey,
@@ -473,19 +476,26 @@ ${rowsHtml}
   }
   if (sentOk === 0) return { ok: false, reminded: 0, recipients: byEmail.size };
 
-  await sb
+  // ⚠️ status е от затворен списък (success · failed · skipped). До 07.10.2026 тук
+  // стоеше „done“ — базата отказваше реда, дневникът оставаше празен и същото
+  // напомняне тръгваше пак на всеки половин час, докато някой не звънне.
+  const { error: logErr } = await sb
     .from("automation_events")
     .insert(
       due.map((d) => ({
         event_type: "lead_reminder",
-        status: "done",
+        status: REMINDER_EVENT_STATUS,
         related_contact_id: d.contact.id,
         summary: `Напомняне ниво ${d.level} — ${d.contact.full_name ?? d.contact.phone ?? "лийд"} ${levelLabel(d.level)}`,
         detail: { level: d.level, age_minutes: d.ageMinutes, to: recipientsOf(d) },
         idempotency_key: reminderKey(d.contact.id, d.level),
       }))
     )
-    .then(() => null, () => null);
+    .then(
+      (r) => r,
+      (e: unknown) => ({ error: { message: e instanceof Error ? e.message : String(e) } })
+    );
+  if (logErr) console.error("[lead-reminders] дневникът не се записа:", logErr.message);
 
   return { ok: true, reminded: due.length, recipients: byEmail.size, names: due.map((d) => d.contact.full_name ?? d.contact.phone ?? "—") };
 }

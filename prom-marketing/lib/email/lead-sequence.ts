@@ -1,9 +1,11 @@
 import "server-only";
 import { sendEmail } from "./resend";
-import { LEAD_SEQUENCE, LEAD_SOURCES, leadSequenceFor } from "./lead-steps";
+import { LEAD_SEQUENCE, LEAD_SOURCES } from "./lead-steps";
+import { dueSequenceStep, optedOutIds } from "./lead-sequence-rules";
 import { firstName, type BuildCtx, type SequenceStep } from "./sequence-layout";
 import { unsubscribeUrl } from "./unsubscribe-token";
 import { loadAkademiaIds } from "@/lib/team/ivailo";
+import { magnetStepFor } from "@/lib/leads/meta-lead-rules";
 import type { createServiceClient } from "@/lib/supabase/service";
 
 type Sb = ReturnType<typeof createServiceClient>;
@@ -63,6 +65,33 @@ export async function sendSequenceStep(args: {
 }
 
 /**
+ * Материалът на лийд магнит (наръчникът, курсът…) до човек, който ВЕЧЕ има
+ * картон. Новият картон получава първото писмо на поредицата направо в
+ * webhook-а; досега старият не получаваше нищо — нито материала, който току-що
+ * е поискал. Веднъж на вариант: ако вече е получил същия материал (като първо
+ * писмо или оттук), не тръгва втори път. Форма, която не е магнит — нищо.
+ */
+export async function sendMagnetToExisting(args: {
+  supabase: Sb;
+  contactId: string;
+  to: string;
+  fullName: string | null;
+  formId: string | null | undefined;
+}): Promise<{ sent: boolean; skipped?: string; error?: string }> {
+  const step = magnetStepFor(args.formId, false);
+  if (!step?.variant) return { sent: false, skipped: "not_magnet" };
+  const { data: got } = await args.supabase
+    .from("contact_activities")
+    .select("id")
+    .eq("contact_id", args.contactId)
+    .eq("activity_type", "email_sent")
+    .contains("metadata", { seq_variant: step.variant })
+    .limit(1);
+  if ((got ?? []).length > 0) return { sent: false, skipped: "already_has_it" };
+  return sendSequenceStep({ supabase: args.supabase, contactId: args.contactId, to: args.to, fullName: args.fullName, step });
+}
+
+/**
  * ПРЕДПАЗИТЕЛ: поредицата важи само за лийдове, влезли СЛЕД този момент.
  * Без него един деплой би изсипал продажбени имейли върху 163-те исторически
  * лийда, внесени на 21.08 — хора отпреди месеци, които не чакат нищо от нас.
@@ -82,6 +111,7 @@ interface SeqContact {
   email: string | null;
   stage: string;
   source: string;
+  source_ref: string | null;
   created_at: string;
   last_heard_from_at: string | null;
 }
@@ -114,7 +144,7 @@ export async function runLeadSequence(supabase: Sb): Promise<{
 
   const { data: rows } = await supabase
     .from("contacts")
-    .select("id, full_name, email, stage, source, created_at, last_heard_from_at")
+    .select("id, full_name, email, stage, source, source_ref, created_at, last_heard_from_at")
     .in("source", [...LEAD_SOURCES])
     .in("stage", ["lead", "contacted"])
     .not("email", "is", null)
@@ -133,6 +163,23 @@ export async function runLeadSequence(supabase: Sb): Promise<{
     .in("contact_id", ids)
     .in("activity_type", ["call", "meeting"]);
   const talked = new Set((touches ?? []).map((t) => t.contact_id));
+  // Натиснал „Спри писмата“ — повече автоматични писма няма (така обещава страницата).
+  const { data: optRows } = await supabase
+    .from("contact_activities")
+    .select("contact_id, metadata")
+    .in("contact_id", ids)
+    .eq("activity_type", "note")
+    .eq("metadata->>email_opt_out", "true");
+  const optedOut = optedOutIds((optRows ?? []) as Array<{ contact_id: string; metadata: Record<string, unknown> | null }>);
+  // Формата на всеки Meta лийд — първото писмо на лийд магнита носи материала му.
+  const refs = contacts.filter((c) => c.source === "meta_lead" && c.source_ref).map((c) => c.source_ref as string);
+  const formByRef = new Map<string, string>();
+  if (refs.length > 0) {
+    const { data: forms } = await supabase.from("meta_leads").select("meta_lead_id, form_id").in("meta_lead_id", refs);
+    for (const f of (forms ?? []) as Array<{ meta_lead_id: string; form_id: string | null }>) {
+      if (f.form_id) formByRef.set(f.meta_lead_id, f.form_id);
+    }
+  }
   // Хората от Академията са в менторската на Ивайло — продажбен имейл „ето ти
   // демотата“ не е за тях (06.10.2026: трима от Академията получиха по два).
   // Не се знае ли кои са — днес не тръгва нищо, утре пак.
@@ -148,15 +195,18 @@ export async function runLeadSequence(supabase: Sb): Promise<{
     if (out.sent >= MAX_PER_RUN) break;
     out.checked++;
 
-    if (c.last_heard_from_at || talked.has(c.id) || akademia.has(c.id) || !c.email) {
+    if (c.last_heard_from_at || talked.has(c.id) || akademia.has(c.id) || optedOut.has(c.id) || !c.email) {
       out.skipped++;
       continue;
     }
 
     const ageDays = (now - new Date(c.created_at).getTime()) / 86400_000;
-    // Последната стъпка, чийто срок е настъпил.
-    const sequence = leadSequenceFor(c.source);
-    const due = [...sequence].reverse().find((s) => ageDays >= s.afterDays);
+    // Последната стъпка, чийто срок е настъпил (първото писмо — по формата на лийда).
+    const due = dueSequenceStep({
+      source: c.source,
+      ageDays,
+      formId: c.source_ref ? formByRef.get(c.source_ref) : null,
+    });
     if (!due) {
       out.skipped++;
       continue;

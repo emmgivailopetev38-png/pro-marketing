@@ -101,3 +101,15 @@ describe("isFresh", () => {
     expect(isFresh(null, today)).toBe(false);
   });
 });
+
+describe("лийд магнитите (07.10.2026)", () => {
+  it("„ПМ · Лийд магнит · …“ е наш лийд разход, не „неразпределено“", () => {
+    expect(classifyCampaign("ПМ · Лийд магнит · AI наръчник · 2026-10-07")).toBe("leads");
+    expect(classifyCampaign("ПМ · Лийд магнит · Безплатен курс · 2026-10-08")).toBe("leads");
+    expect(classifyCampaign("Безплатен курс · LEADS · 10 €")).toBe("leads");
+  });
+
+  it("„пм“ в средата на дума не прави кампанията наша", () => {
+    expect(classifyCampaign("Кампания · Пмакс тест")).toBe("other");
+  });
+});

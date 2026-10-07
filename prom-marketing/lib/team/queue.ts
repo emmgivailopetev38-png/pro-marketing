@@ -1,6 +1,8 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 import { decodeFormAnswers } from "@/lib/leads/form-labels";
+import { offerFor, offerLabel } from "@/lib/leads/lead-offers";
+import { magnetVariantFor } from "@/lib/leads/meta-lead-rules";
 import type { BookedRow, CardNote, QueueLead } from "./types";
 import { todayEndIso } from "./time";
 import {
@@ -18,6 +20,7 @@ import {
   type NoteRow,
 } from "./queue-rules";
 import { seesGiven, seesLead } from "./routing-rules";
+import { FRESH_WINDOW_DAYS, RELEAD_KIND } from "./relead-rules";
 import { loadRotationPool } from "./routing";
 import { loadIvailoClaims } from "./ivailo";
 import type { IvailoClaim } from "./ivailo-rules";
@@ -59,7 +62,7 @@ import { LIVE_BOOKING_STATUSES } from "@/lib/crm/booking-status";
 const COLS =
   "id, full_name, phone, email, company, business, source, source_ref, stage, followup_status, next_followup_at, created_at, notes, routed_to";
 const ATTEMPT_TYPES = ["call", "meeting", "viber_sent"];
-const WINDOW_DAYS = 90;
+const WINDOW_DAYS = FRESH_WINDOW_DAYS;
 const MAX_FRESH = 200;
 const MAX_SEARCH = 20;
 const MAX_ASSIGNED = 400;
@@ -83,7 +86,13 @@ interface ContactLite {
 }
 
 type Sb = ReturnType<typeof createServiceClient>;
-type FormInfo = { ad_name: string | null; field_data: unknown };
+type FormInfo = {
+  ad_name: string | null;
+  field_data: unknown;
+  form_id: string | null;
+  form_name: string | null;
+  campaign_name: string | null;
+};
 
 export interface SetterQueue {
   fresh: QueueLead[];
@@ -147,14 +156,48 @@ async function loadNotes(sb: Sb, ids: string[]): Promise<Map<string, CardNote[]>
   return notesByContact(rows);
 }
 
-/** Отговорите от формата — по meta_lead_id (source_ref на картона). */
+/**
+ * Формата на картона — ПОСЛЕДНАТА Meta заявка на човека (активност `meta_lead`),
+ * а не първата: ако е взел наръчника след AI одита, Димитър звъни за наръчника.
+ * Без такава активност — по meta_lead_id от source_ref, както досега.
+ * Ключът на картата е id-то на контакта.
+ */
 async function loadForms(sb: Sb, contacts: ContactLite[]): Promise<Map<string, FormInfo>> {
   const forms = new Map<string, FormInfo>();
-  const refs = contacts.filter((c) => c.source === "meta_lead" && c.source_ref).map((c) => c.source_ref as string);
+  if (contacts.length === 0) return forms;
+  const { data: acts } = await sb
+    .from("contact_activities")
+    .select("contact_id, occurred_at, metadata")
+    .in("contact_id", contacts.map((c) => c.id))
+    .eq("activity_type", "meta_lead")
+    .order("occurred_at", { ascending: false })
+    .limit(1000);
+  const latest = new Map<string, string>();
+  for (const a of (acts ?? []) as Array<{ contact_id: string; metadata: Record<string, unknown> | null }>) {
+    const ref = a.metadata?.meta_lead_id;
+    if (!latest.has(a.contact_id) && typeof ref === "string" && ref) latest.set(a.contact_id, ref);
+  }
+  const refOf = (c: ContactLite) => latest.get(c.id) ?? (c.source === "meta_lead" && c.source_ref ? c.source_ref : null);
+  const refs = [...new Set(contacts.map(refOf).filter((r): r is string => !!r))];
   if (refs.length === 0) return forms;
-  const { data } = await sb.from("meta_leads").select("meta_lead_id, ad_name, field_data").in("meta_lead_id", refs);
-  for (const m of (data ?? []) as Array<{ meta_lead_id: string; ad_name: string | null; field_data: unknown }>) {
-    forms.set(m.meta_lead_id, { ad_name: m.ad_name, field_data: m.field_data });
+  const { data } = await sb
+    .from("meta_leads")
+    .select("meta_lead_id, ad_name, field_data, form_id, form_name, campaign_name")
+    .in("meta_lead_id", refs);
+  const byRef = new Map<string, FormInfo>();
+  for (const m of (data ?? []) as Array<FormInfo & { meta_lead_id: string }>) {
+    byRef.set(m.meta_lead_id, {
+      ad_name: m.ad_name,
+      field_data: m.field_data,
+      form_id: m.form_id,
+      form_name: m.form_name,
+      campaign_name: m.campaign_name,
+    });
+  }
+  for (const c of contacts) {
+    const ref = refOf(c);
+    const form = (ref && byRef.get(ref)) || (c.source_ref ? byRef.get(c.source_ref) : undefined);
+    if (form) forms.set(c.id, form);
   }
   return forms;
 }
@@ -166,8 +209,15 @@ function toLead(
   notes: Map<string, CardNote[]>,
   claims: Map<string, IvailoClaim> = new Map()
 ): QueueLead {
-  const form = c.source_ref ? forms.get(c.source_ref) : undefined;
+  const form = forms.get(c.id);
   const att = attempts.get(c.id);
+  // Какво е поискал: лийд магнитът по формата, иначе по името на формата/кампанията, иначе по източника.
+  const offer = offerFor({
+    magnetVariant: magnetVariantFor(form?.form_id),
+    formName: form?.form_name,
+    campaignName: form?.campaign_name,
+    source: c.source,
+  });
   return {
     id: c.id,
     full_name: c.full_name,
@@ -192,6 +242,9 @@ function toLead(
     missed_url: att?.given?.missed_url ?? null,
     missed_booking_id: att?.given?.missed_booking_id ?? null,
     ivailo_note: claims.get(c.id)?.label ?? null,
+    offer_key: offer,
+    offer_label: offerLabel(offer),
+    relead_at: att?.given?.kind === RELEAD_KIND ? att.given.at : null,
   };
 }
 
@@ -205,12 +258,14 @@ async function loadAssigned(sb: Sb): Promise<ContactLite[]> {
     .limit(MAX_ASSIGNED);
   const ids = [...new Set((marks ?? []).map((m) => m.contact_id as string))];
   if (ids.length === 0) return [];
+  // Затворените („не се интересува“) се четат също: ако човекът пак е оставил
+  // данни (relead), той е при екипа отново. Останалите видове ги пропускат долу.
   const { data } = await sb
     .from("contacts")
     .select(COLS)
     .in("id", ids)
     .not("phone", "is", null)
-    .not("stage", "in", "(won,lost)");
+    .neq("stage", "won");
   return (data ?? []) as ContactLite[];
 }
 
@@ -271,17 +326,26 @@ export async function loadSetterQueue(now: Date = new Date(), viewerId: string |
   const leads = myLeads.filter(notIvailos);
   const due = myDue.filter(notIvailos);
 
-  const assignedOpen = pickGiven(assigned.filter(notIvailos), attempts).filter((c) =>
-    seesGiven(viewerId, attempts.get(c.id)?.given?.to_id ?? null, c.routed_to, pool)
-  );
-  const cancelledContacts = assignedOpen.filter((c) => attempts.get(c.id)?.given?.kind === "cancelled");
-  const noshowContacts = assignedOpen.filter((c) => attempts.get(c.id)?.given?.kind === "noshow");
+  const kindOf = (c: ContactLite) => attempts.get(c.id)?.given?.kind;
+  const assignedOpen = pickGiven(assigned.filter(notIvailos), attempts)
+    // Затворен картон се връща само с нова заявка от рекламата (relead).
+    .filter((c) => c.stage !== "lost" || kindOf(c) === RELEAD_KIND)
+    .filter((c) => seesGiven(viewerId, attempts.get(c.id)?.given?.to_id ?? null, c.routed_to, pool));
+  const cancelledContacts = assignedOpen.filter((c) => kindOf(c) === "cancelled");
+  const noshowContacts = assignedOpen.filter((c) => kindOf(c) === "noshow");
+  const reLeadContacts = assignedOpen.filter((c) => kindOf(c) === RELEAD_KIND);
   const givenContacts = assignedOpen.filter((c) => {
-    const k = attempts.get(c.id)?.given?.kind;
-    return k !== "cancelled" && k !== "noshow";
+    const k = kindOf(c);
+    return k !== "cancelled" && k !== "noshow" && k !== RELEAD_KIND;
   });
   const givenIds = new Set(assignedOpen.map((c) => c.id));
-  const freshContacts = leads.filter((c) => !attempts.has(c.id));
+  // „🆕 Нови“: картоните без нито един опит + тези, които пак са оставили данни
+  // (relead) — най-новата заявка най-горе.
+  const leadTime = (c: ContactLite) =>
+    kindOf(c) === RELEAD_KIND ? (attempts.get(c.id)?.given?.at ?? c.created_at) : c.created_at;
+  const freshContacts = [...leads.filter((c) => !attempts.has(c.id)), ...reLeadContacts].sort((a, b) =>
+    leadTime(b).localeCompare(leadTime(a))
+  );
   const split = splitTeamDue(due, attempts, todayEnd);
   const retry = split.retry.filter((c) => !givenIds.has(c.id));
   const waiting = split.waiting.filter((c) => !givenIds.has(c.id));

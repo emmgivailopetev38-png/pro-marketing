@@ -161,3 +161,17 @@ describe("надписът", () => {
     expect(ivailoClaim(person, [act("call", "2026-10-05T13:00:00Z", "Не вдигна", { created_by: "Димитър", metadata: { ...team, outcome: "no_answer" } })], [], { now: NOW })).toBeNull();
   });
 });
+
+describe("„пак остави данни“ (relead) не отнема човек от Ивайло", () => {
+  it("маркерът от входа на лийда не е изричното „🤝 Дай на екипа“", () => {
+    const talk = act("call", "2026-10-01T10:00:00Z", "📞 Разговор с Ивайло · Говорихме", { created_by: "ivailo" });
+    const relead = act("team_assigned", "2026-10-06T10:00:00Z", "🔁 Пак остави данни · Димитър да звънне", {
+      created_by: "meta_webhook",
+      metadata: { kind: "relead", to_team: true },
+    });
+    expect(ivailoClaim(person, [talk, relead], [], { now: NOW })?.why).toBe("talked");
+    // за сравнение: изричното даване от Ивайло след разговора го прави на екипа
+    const given = act("team_assigned", "2026-10-06T10:00:00Z", "🤝 Дадено на Димитър", { created_by: "Ивайло", metadata: { kind: "given" } });
+    expect(ivailoClaim(person, [talk, given], [], { now: NOW })).toBeNull();
+  });
+});

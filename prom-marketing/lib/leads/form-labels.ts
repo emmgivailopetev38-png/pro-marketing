@@ -6,17 +6,27 @@
  * една и съща форма се клонира с нови id-та, а въпросите остават.
  *
  * Източник: Graph API `/{form_id}?fields=questions` за формите
- * 3579321608891952 („Услуги по мярка“, 10.09.2026) и
- * 1383332500102053 („Пълна автоматизация за 1 ден“, 13.09.2026).
+ * 3579321608891952 („Услуги по мярка“, 10.09.2026),
+ * 1383332500102053 („Пълна автоматизация за 1 ден“, 13.09.2026),
+ * 2370073073842662 („Безплатен AI одит · за собственици · v5“, 23.09.2026),
+ * 4166605913635626 („Безплатен AI одит · 10.2026“), 1890328708605508
+ * („Преглед на рекламата · 10.2026“), 1114835581236832 („Менторска програма ·
+ * кандидатстване · 10.2026“) и 2280731429388395 (AI наръчникът, 07.10.2026).
+ *
+ * Един и същ ключ може да значи различно в различните форми („biznes“ е
+ * „с какво се занимаваш“ в старата и „имаш ли бизнес“ в новите) — тогава
+ * въпросът има няколко описания и се взима онова, чиито опции съдържат отговора.
  */
 import { BUSINESS_OPTIONS, type FormAnswer } from "@/lib/team/types";
 
 interface QuestionDef {
   label: string;
   options?: Record<string, string>;
+  /** отговорът казва „с какво се занимава“ — попълва дейността на картата */
+  business?: boolean;
 }
 
-const QUESTIONS: Record<string, QuestionDef> = {
+const QUESTIONS: Record<string, QuestionDef | QuestionDef[]> = {
   "Какво_търсиш?": {
     label: "Какво търси",
     options: {
@@ -31,6 +41,7 @@ const QUESTIONS: Record<string, QuestionDef> = {
   },
   "С_какво_се_занимаваш?": {
     label: "С какво се занимава",
+    business: true,
     options: {
       o1: "Онлайн магазин или е-търговия",
       o2: "Услуги или кабинет",
@@ -41,17 +52,30 @@ const QUESTIONS: Record<string, QuestionDef> = {
       o7: "Друго",
     },
   },
-  biznes: {
-    label: "С какво се занимава",
-    options: {
-      o1: "Услуги (сервиз, салон, ремонти, транспорт)",
-      o2: "Търговия / магазин / онлайн магазин",
-      o3: "Производство",
-      o4: "Строителство / имоти",
-      o5: "Консултант / обучения / финанси",
-      o6: "Друго",
+  biznes: [
+    {
+      label: "С какво се занимава",
+      business: true,
+      options: {
+        o1: "Услуги (сервиз, салон, ремонти, транспорт)",
+        o2: "Търговия / магазин / онлайн магазин",
+        o3: "Производство",
+        o4: "Строителство / имоти",
+        o5: "Консултант / обучения / финанси",
+        o6: "Друго",
+      },
     },
-  },
+    // „Имаш ли действащ бизнес?“ — AI одит v5 (23.09) и „Преглед на рекламата“ (10.2026).
+    {
+      label: "Има ли бизнес",
+      options: {
+        ekip_2_10: "Да, с екип 2–10 души",
+        ekip_nad_10: "Да, с екип над 10 души",
+        sam: "Да, сам е",
+        oshte_ne: "Още не — само разглежда",
+      },
+    },
+  ],
   bolka: {
     label: "Какво му яде най-много време",
     options: {
@@ -80,6 +104,7 @@ const QUESTIONS: Record<string, QuestionDef> = {
   // Лийд магнитът „AI наръчник за собственика“ — форма 2280731429388395 (07.10.2026).
   dejnost: {
     label: "С какво се занимава",
+    business: true,
     options: {
       uslugi: "Услуги (ремонти, транспорт, счетоводство…)",
       magazin: "Онлайн магазин",
@@ -101,13 +126,71 @@ const QUESTIONS: Record<string, QuestionDef> = {
       o4: "Само разглежда засега",
     },
   },
+  // AI одит v5 (23.09) — свободен текст, едно изречение.
+  firma: { label: "С какво се занимава", business: true },
+  // AI одит (10.2026) и v5: „Кое ти яде най-много време?“ — същите ключове, малко различен текст.
+  vreme: {
+    label: "Какво му яде най-много време",
+    options: {
+      vaprosi: "Едни и същи въпроси от клиенти",
+      dokumenti: "Оферти, фактури и документи на ръка",
+      zapitvania: "Запитванията от рекламата се губят",
+      reklama: "Рекламата върви, но запитванията се губят",
+      sreshti_plashtania: "Гони клиенти за срещи и плащания",
+      gonene: "Гони клиенти за срещи и плащания",
+      vsichko: "Всичко по малко",
+    },
+  },
+  kolko_dushi: {
+    label: "Колко души са във фирмата",
+    options: {
+      sam: "Сам е",
+      "2_10": "2–10 души",
+      "11_50": "11–50 души",
+      nad_50: "Над 50 души",
+      nyama_biznes: "Още няма бизнес",
+    },
+  },
+  // „Преглед на рекламата“ (10.2026).
+  reklama_sega: {
+    label: "Как върви рекламата му",
+    options: {
+      sam: "Пуска сам",
+      agencia: "Пуска му агенция или човек",
+      ne_puskam: "Не пуска, но иска да започне",
+      sprqh: "Спрял я е — не носела клиенти",
+    },
+  },
+  // „Менторска програма · кандидатстване“ (10.2026).
+  kakvo_pravish: {
+    label: "Какво прави в момента",
+    options: {
+      biznes: "Има собствен бизнес",
+      targovec: "Търговец е — продава за фирма",
+      zapochvam: "Иска да започне бизнес",
+      razglezhdam: "Само разглежда",
+    },
+  },
+  kakvo_iskash: {
+    label: "Какво иска да може сам",
+    options: {
+      reklami: "Да пуска реклами с AI, които носят клиенти",
+      avtomatizacia: "Да автоматизира фирмата си с AI",
+      prodazhbi: "Да продава по-уверено — разговор и възражения",
+      vsichko: "Всичко — цялата система",
+    },
+  },
 };
+
+/** Описанието на въпроса за този отговор — при няколко описания онова, чиито опции го съдържат. */
+function defFor(name: string, firstValue: string | undefined): QuestionDef | undefined {
+  const def = QUESTIONS[name];
+  if (!Array.isArray(def)) return def;
+  return def.find((d) => firstValue !== undefined && d.options?.[firstValue] !== undefined) ?? def[0];
+}
 
 /** Полета, които вече стоят в самия картон — не се показват като отговори. */
 const STANDARD = new Set(["full_name", "first_name", "last_name", "phone_number", "email", "phone", "company_name", "city", "street_address", "zip_code", "country"]);
-
-/** Кои въпроси казват „с какво се занимава“ — за предварително попълване на дейността. */
-const BUSINESS_KEYS = new Set(["С_какво_се_занимаваш?", "biznes", "dejnost"]);
 
 interface FieldDatum {
   name?: unknown;
@@ -135,7 +218,7 @@ export function decodeFormAnswers(fieldData: unknown): FormAnswer[] {
     if (!name || STANDARD.has(name)) continue;
     const values = Array.isArray(f.values) ? f.values.map((x) => String(x ?? "").trim()).filter(Boolean) : [];
     if (values.length === 0) continue;
-    const def = QUESTIONS[name];
+    const def = defFor(name, values[0]);
     const answer = values.map((v) => def?.options?.[v] ?? v).join(", ");
     out.push({ question: def?.label ?? name.replace(/_/g, " ").replace(/\?$/, ""), answer });
   }
@@ -146,11 +229,11 @@ export function decodeFormAnswers(fieldData: unknown): FormAnswer[] {
 export function businessFromForm(fieldData: unknown): string | null {
   for (const f of asArray(fieldData)) {
     const name = typeof f.name === "string" ? f.name : "";
-    if (!BUSINESS_KEYS.has(name)) continue;
     const values = Array.isArray(f.values) ? f.values.map((x) => String(x ?? "").trim()).filter(Boolean) : [];
     if (!values.length) continue;
-    const def = QUESTIONS[name];
-    return def?.options?.[values[0]] ?? values[0];
+    const def = defFor(name, values[0]);
+    if (!def?.business) continue;
+    return def.options?.[values[0]] ?? values[0];
   }
   return null;
 }
