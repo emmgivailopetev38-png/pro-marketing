@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/resend";
-import { LEAD_SEQUENCE, sendSequenceStep } from "@/lib/email/lead-sequence";
+import { sendSequenceStep } from "@/lib/email/lead-sequence";
+import { firstStepForForm } from "@/lib/email/lead-steps";
 import { getPageAccessToken } from "@/lib/meta/page-token";
 import { sendCapiEvent, isCapiConfigured } from "@/lib/meta/conversions-api";
 import { escapeHtml } from "@/lib/email/escape";
@@ -240,7 +241,8 @@ async function processLead(leadgenId: string, formId: string | null) {
       contactId,
       to: emailLower,
       fullName,
-      step: LEAD_SEQUENCE[0],
+      // Формата на лийд магнита („AI наръчник“) получава писмо с наръчника; останалите — демотата.
+      step: firstStepForForm(detail.form_id ?? formId),
     }).catch(() => {});
   }
 

@@ -67,3 +67,24 @@ describe("отговорите от Meta формите", () => {
     expect(guessBusinessOption(null)).toBe("Друго");
   });
 });
+
+describe("формата на AI наръчника (лийд магнит, 07.10.2026)", () => {
+  const NARACHNIK = [
+    { name: "dejnost", values: ["krasota"] },
+    { name: "full_name", values: ["Мария Иванова"] },
+    { name: "phone_number", values: ["+359888000000"] },
+    { name: "email", values: ["m@example.com"] },
+  ];
+
+  it("кодът на отговора става текст и дейността се попълва", () => {
+    expect(decodeFormAnswers(NARACHNIK)).toEqual([{ question: "С какво се занимава", answer: "Салон, красота, здраве" }]);
+    expect(businessFromForm(NARACHNIK)).toBe("Салон, красота, здраве");
+    expect(guessBusinessOption(businessFromForm(NARACHNIK))).toBe("Услуги / кабинет / салон");
+  });
+
+  it(`„Още нямам фирма“ не се бърка с бранш`, () => {
+    const a = [{ name: "dejnost", values: ["nyamam"] }];
+    expect(businessFromForm(a)).toBe("Още нямам фирма");
+    expect(guessBusinessOption(businessFromForm(a))).toBe("Друго");
+  });
+});

@@ -77,6 +77,21 @@ const QUESTIONS: Record<string, QuestionDef> = {
       o5: "Още не знае — иска план",
     },
   },
+  // Лийд магнитът „AI наръчник за собственика“ — форма 2280731429388395 (07.10.2026).
+  dejnost: {
+    label: "С какво се занимава",
+    options: {
+      uslugi: "Услуги (ремонти, транспорт, счетоводство…)",
+      magazin: "Онлайн магазин",
+      imoti: "Имоти",
+      stroitelstvo: "Строителство",
+      krasota: "Салон, красота, здраве",
+      turizam: "Ресторант, хотел, туризъм",
+      proizvodstvo: "Производство или търговия",
+      drugo: "Друго",
+      nyamam: "Още нямам фирма",
+    },
+  },
   koga: {
     label: "Кога иска да започне",
     options: {
@@ -92,7 +107,7 @@ const QUESTIONS: Record<string, QuestionDef> = {
 const STANDARD = new Set(["full_name", "first_name", "last_name", "phone_number", "email", "phone", "company_name", "city", "street_address", "zip_code", "country"]);
 
 /** Кои въпроси казват „с какво се занимава“ — за предварително попълване на дейността. */
-const BUSINESS_KEYS = new Set(["С_какво_се_занимаваш?", "biznes"]);
+const BUSINESS_KEYS = new Set(["С_какво_се_занимаваш?", "biznes", "dejnost"]);
 
 interface FieldDatum {
   name?: unknown;
