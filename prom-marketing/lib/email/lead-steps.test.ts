@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  KURS_FORM_IDS,
   LEAD_SEQUENCE,
   LEAD_SOURCES,
   NARACHNIK_FORM_IDS,
@@ -119,6 +120,44 @@ describe("лийд магнитът — AI наръчникът", () => {
   it("без гонене, извинения и самопринизяване", () => {
     const { html, text } = step.build(null, { contactId: "c1" });
     for (const bad of ["гоня", "извинявам се", "да не ви губя", "да не преча", "безпокоя"]) {
+      expect(html.toLowerCase()).not.toContain(bad);
+      expect(text.toLowerCase()).not.toContain(bad);
+    }
+    expect(text.startsWith("Здравей,")).toBe(true);
+  });
+});
+
+describe("лийд магнитът — безплатният видео курс „Фирма с AI служители“", () => {
+  const formId = [...KURS_FORM_IDS][0];
+  const step = firstStepForForm(formId);
+
+  it("формата на курса получава писмо с курса; наръчникът и другите форми — своите", () => {
+    expect(step.variant).toBe("kurs");
+    expect(firstStepForForm([...NARACHNIK_FORM_IDS][0]).variant).toBe("narachnik");
+    expect(firstStepForForm("3579321608891952")).toBe(LEAD_SEQUENCE[0]);
+    expect(firstStepForForm(null)).toBe(LEAD_SEQUENCE[0]);
+  });
+
+  it(`е в същия слот като първото писмо — кронът не праща отгоре и демотата`, () => {
+    expect(step.key).toBe(LEAD_SEQUENCE[0].key);
+    expect(step.afterDays).toBe(0);
+  });
+
+  it("линкът към курса е и в HTML-а, и в текста; има одита, отписване и гласовия агент", () => {
+    const { html, text } = step.build("Иван", { contactId: "c1", unsubscribeUrl: "https://x.bg/stop" });
+    for (const v of [html, text]) {
+      expect(v).toContain("https://www.promarketing.pw/bezplaten-kurs?");
+      expect(v).toContain("utm_campaign=kurs");
+      expect(v).toContain("https://www.promarketing.pw/booking");
+      expect(v).toContain(VOICE_URL);
+      expect(v).toContain("https://x.bg/stop");
+      expect(v).toContain("Здравей, Иван,");
+    }
+  });
+
+  it("без гонене, извинения и самопринизяване — и без непроверено „записва срещи“", () => {
+    const { html, text } = step.build(null, { contactId: "c1" });
+    for (const bad of ["гоня", "извинявам се", "да не ви губя", "да не преча", "безпокоя", "записва срещи"]) {
       expect(html.toLowerCase()).not.toContain(bad);
       expect(text.toLowerCase()).not.toContain(bad);
     }

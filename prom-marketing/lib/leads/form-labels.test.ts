@@ -145,3 +145,27 @@ describe("формите от 10.2026 — Димитър вижда думи, н
     ]);
   });
 });
+
+describe("формата на безплатния курс (1370445844914854, 07.10.2026)", () => {
+  const KURS = [
+    { name: "kolko_dushi", values: ["2_10"] },
+    { name: "vreme", values: ["vaprosi"] },
+    { name: "kurs_interes", values: ["telefon"] },
+    { name: "full_name", values: ["Мария Иванова"] },
+    { name: "phone_number", values: ["+359888000000"] },
+    { name: "email", values: ["m@example.com"] },
+  ];
+
+  it("трите въпроса стават думи за човека, който звъни", () => {
+    expect(decodeFormAnswers(KURS)).toEqual([
+      { question: "Колко души са във фирмата", answer: "2–10 души" },
+      { question: "Какво му яде най-много време", answer: "Едни и същи въпроси от клиенти" },
+      { question: "Кое го интересува най-много (курсът)", answer: "Телефонът на сайта, който се вдига сам" },
+    ]);
+  });
+
+  it(`„Още не знае — иска всичко“ и „Още няма бизнес“ се виждат с думи`, () => {
+    expect(decodeFormAnswers([{ name: "kurs_interes", values: ["vsichko"] }])[0].answer).toBe("Още не знае — иска всичко");
+    expect(decodeFormAnswers([{ name: "kolko_dushi", values: ["nyama_biznes"] }])[0].answer).toBe("Още няма бизнес");
+  });
+});
