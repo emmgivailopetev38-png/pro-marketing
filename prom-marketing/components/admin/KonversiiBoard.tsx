@@ -93,6 +93,7 @@ function Head() {
 const SOURCE: Record<string, string> = {
   meta_lead: "Meta реклама",
   website_form: "Формата на сайта",
+  akademia: "Академията",
   voice_web: "Гласов агент · сайт",
   voice_phone: "Гласов агент · телефон",
   hermes: "Хермес / ръчно",

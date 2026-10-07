@@ -207,6 +207,7 @@ function sourceLabel(s: string): string {
   const map: Record<string, string> = {
     meta_lead: "📥 Meta",
     website_form: "🌐 Уебсайт",
+    akademia: "🎓 Академия",
     cal_booking: "📅 Cal.com",
     email: "✉️ Имейл",
     manual: "✋ Ръчно",

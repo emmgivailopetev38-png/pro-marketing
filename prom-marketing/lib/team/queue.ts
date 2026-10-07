@@ -19,6 +19,8 @@ import {
 } from "./queue-rules";
 import { seesGiven, seesLead } from "./routing-rules";
 import { loadRotationPool } from "./routing";
+import { loadIvailoClaims } from "./ivailo";
+import type { IvailoClaim } from "./ivailo-rules";
 import { LIVE_BOOKING_STATUSES } from "@/lib/crm/booking-status";
 
 /**
@@ -48,6 +50,10 @@ import { LIVE_BOOKING_STATUSES } from "@/lib/crm/booking-status";
  * срещата трябва да се запише от нея (16.09.2026: два такива случая за един
  * следобед). Изчезва само когато човекът я скрие или часът ѝ дойде.
  * Правилата са в queue-rules.ts, за да се тестват без база.
+ *
+ * Във всеки списък НЕ влиза човек на Ивайло (правило от 06.10.2026, виж
+ * ivailo-rules.ts): от Академията, говорил с Ивайло поне веднъж или със среща
+ * в календара му — освен ако Ивайло сам го е дал на екипа след това.
  */
 
 const COLS =
@@ -157,7 +163,8 @@ function toLead(
   c: ContactLite,
   attempts: Map<string, AttemptSummary>,
   forms: Map<string, FormInfo>,
-  notes: Map<string, CardNote[]>
+  notes: Map<string, CardNote[]>,
+  claims: Map<string, IvailoClaim> = new Map()
 ): QueueLead {
   const form = c.source_ref ? forms.get(c.source_ref) : undefined;
   const att = attempts.get(c.id);
@@ -184,6 +191,7 @@ function toLead(
     missed_at: att?.given?.missed_at ?? null,
     missed_url: att?.given?.missed_url ?? null,
     missed_booking_id: att?.given?.missed_booking_id ?? null,
+    ivailo_note: claims.get(c.id)?.label ?? null,
   };
 }
 
@@ -248,11 +256,22 @@ export async function loadSetterQueue(now: Date = new Date(), viewerId: string |
   ]);
 
   const mine = (c: ContactLite) => seesLead(viewerId, c.routed_to, pool);
-  const leads = ((leadRows ?? []) as ContactLite[]).filter(mine);
-  const due = ((dueRows ?? []) as ContactLite[]).filter(mine);
-  const attempts = await loadAttempts(sb, [...new Set([...leads, ...due, ...assigned].map((c) => c.id))]);
+  const myLeads = ((leadRows ?? []) as ContactLite[]).filter(mine);
+  const myDue = ((dueRows ?? []) as ContactLite[]).filter(mine);
+  const [attempts, claims] = await Promise.all([
+    loadAttempts(sb, [...new Set([...myLeads, ...myDue, ...assigned].map((c) => c.id))]),
+    // Хората на Ивайло не са за екипа. При грешка в базата опашката излиза цяла,
+    // както преди — по-добре един излишен картон, отколкото празен екран.
+    loadIvailoClaims([...myLeads, ...myDue, ...assigned], { now }, sb).catch((e) => {
+      console.error("[ekip] хората на Ивайло:", e instanceof Error ? e.message : e);
+      return new Map<string, IvailoClaim>();
+    }),
+  ]);
+  const notIvailos = (c: ContactLite) => !claims.has(c.id);
+  const leads = myLeads.filter(notIvailos);
+  const due = myDue.filter(notIvailos);
 
-  const assignedOpen = pickGiven(assigned, attempts).filter((c) =>
+  const assignedOpen = pickGiven(assigned.filter(notIvailos), attempts).filter((c) =>
     seesGiven(viewerId, attempts.get(c.id)?.given?.to_id ?? null, c.routed_to, pool)
   );
   const cancelledContacts = assignedOpen.filter((c) => attempts.get(c.id)?.given?.kind === "cancelled");
@@ -311,6 +330,12 @@ export async function searchLeads(raw: string): Promise<QueueLead[]> {
   const found = (data ?? []) as ContactLite[];
   if (found.length === 0) return [];
   const ids = found.map((c) => c.id);
-  const [attempts, forms, notes] = await Promise.all([loadAttempts(sb, ids), loadForms(sb, found), loadNotes(sb, ids)]);
-  return found.map((c) => toLead(c, attempts, forms, notes));
+  const [attempts, forms, notes, claims] = await Promise.all([
+    loadAttempts(sb, ids),
+    loadForms(sb, found),
+    loadNotes(sb, ids),
+    // Търсачката показва всеки — но човекът на Ивайло излиза с надпис защо не се звъни.
+    loadIvailoClaims(found, { now: new Date() }, sb).catch(() => new Map<string, IvailoClaim>()),
+  ]);
+  return found.map((c) => toLead(c, attempts, forms, notes, claims));
 }
