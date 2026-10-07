@@ -88,3 +88,60 @@ describe("формата на AI наръчника (лийд магнит, 07.1
     expect(guessBusinessOption(businessFromForm(a))).toBe("Друго");
   });
 });
+
+describe("формите от 10.2026 — Димитър вижда думи, не кодове", () => {
+  it("AI одитът: колко души и кое му яде времето", () => {
+    const a = decodeFormAnswers([
+      { name: "kolko_dushi", values: ["2_10"] },
+      { name: "full_name", values: ["Dimitar Daskalov"] },
+      { name: "vreme", values: ["dokumenti"] },
+    ]);
+    expect(a).toEqual([
+      { question: "Колко души са във фирмата", answer: "2–10 души" },
+      { question: "Какво му яде най-много време", answer: "Оферти, фактури и документи на ръка" },
+    ]);
+  });
+
+  it("„Преглед на рекламата“: „biznes“ тук значи „има ли бизнес“ — и не се пише като дейност", () => {
+    const form = [
+      { name: "biznes", values: ["oshte_ne"] },
+      { name: "reklama_sega", values: ["ne_puskam"] },
+    ];
+    expect(decodeFormAnswers(form)).toEqual([
+      { question: "Има ли бизнес", answer: "Още не — само разглежда" },
+      { question: "Как върви рекламата му", answer: "Не пуска, но иска да започне" },
+    ]);
+    expect(businessFromForm(form)).toBeNull();
+  });
+
+  it("старата форма с „biznes“ си остава „с какво се занимава“", () => {
+    expect(decodeFormAnswers([{ name: "biznes", values: ["o4"] }])).toEqual([{ question: "С какво се занимава", answer: "Строителство / имоти" }]);
+    expect(businessFromForm([{ name: "biznes", values: ["o4"] }])).toBe("Строителство / имоти");
+  });
+
+  it("v5: свободният текст за фирмата попълва дейността", () => {
+    const v5 = [
+      { name: "biznes", values: ["ekip_2_10"] },
+      { name: "vreme", values: ["gonene"] },
+      { name: "firma", values: ["Автосервиз в Пловдив"] },
+    ];
+    expect(decodeFormAnswers(v5)).toEqual([
+      { question: "Има ли бизнес", answer: "Да, с екип 2–10 души" },
+      { question: "Какво му яде най-много време", answer: "Гони клиенти за срещи и плащания" },
+      { question: "С какво се занимава", answer: "Автосервиз в Пловдив" },
+    ]);
+    expect(businessFromForm(v5)).toBe("Автосервиз в Пловдив");
+  });
+
+  it("менторската: какво прави и какво иска да може", () => {
+    expect(
+      decodeFormAnswers([
+        { name: "kakvo_pravish", values: ["targovec"] },
+        { name: "kakvo_iskash", values: ["prodazhbi"] },
+      ])
+    ).toEqual([
+      { question: "Какво прави в момента", answer: "Търговец е — продава за фирма" },
+      { question: "Какво иска да може сам", answer: "Да продава по-уверено — разговор и възражения" },
+    ]);
+  });
+});

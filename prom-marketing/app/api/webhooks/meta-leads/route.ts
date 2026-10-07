@@ -2,13 +2,18 @@ import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/resend";
-import { sendSequenceStep } from "@/lib/email/lead-sequence";
+import { sendMagnetToExisting, sendSequenceStep } from "@/lib/email/lead-sequence";
 import { firstStepForForm } from "@/lib/email/lead-steps";
 import { getPageAccessToken } from "@/lib/meta/page-token";
 import { sendCapiEvent, isCapiConfigured } from "@/lib/meta/conversions-api";
 import { escapeHtml } from "@/lib/email/escape";
 import { notifyTeamNewLead } from "@/lib/team/notify";
 import { routeNewLead } from "@/lib/team/routing";
+import { giveReLeadToTeam } from "@/lib/team/relead";
+import { phoneVariants } from "@/lib/contacts/repository";
+import { fetchFormName } from "@/lib/meta/form-name";
+import { attributionBody, leadAttribution } from "@/lib/leads/meta-lead-rules";
+import { offerLabel, openerFor } from "@/lib/leads/lead-offers";
 
 export const dynamic = "force-dynamic";
 
@@ -115,23 +120,28 @@ async function processLead(leadgenId: string, formId: string | null) {
   const supabase = createServiceClient();
   const emailLower = email?.toLowerCase();
 
-  // Dedup by email if present, else by phone
-  let existing: { id: string; full_name: string | null; phone: string | null } | null = null;
+  // Dedup by email if present, else by phone. Телефонът във всичките му записи
+  // (+359…, 0…, 359…) — картон от формата на сайта е с „0…“, а Meta праща „+359…“.
+  // Два стари дубликата не бива да правят трети: взима се най-старият.
+  type Existing = { id: string; full_name: string | null; phone: string | null; email: string | null };
+  let existing: Existing | null = null;
   if (emailLower) {
     const { data } = await supabase
       .from("contacts")
-      .select("id, full_name, phone")
-      .eq("email", emailLower)
-      .maybeSingle();
-    existing = data;
+      .select("id, full_name, phone, email")
+      .in("email", [...new Set([emailLower, email as string])])
+      .order("created_at", { ascending: true })
+      .limit(1);
+    existing = ((data ?? []) as Existing[])[0] ?? null;
   }
   if (!existing && phone) {
     const { data } = await supabase
       .from("contacts")
-      .select("id, full_name, phone")
-      .eq("phone", phone)
-      .maybeSingle();
-    existing = data;
+      .select("id, full_name, phone, email")
+      .in("phone", phoneVariants(phone))
+      .order("created_at", { ascending: true })
+      .limit(1);
+    existing = ((data ?? []) as Existing[])[0] ?? null;
   }
 
   let contactId: string;
@@ -142,6 +152,11 @@ async function processLead(leadgenId: string, formId: string | null) {
     if (!existing.phone && phone) patch.phone = phone;
     if (Object.keys(patch).length > 0) {
       await supabase.from("contacts").update(patch).eq("id", contactId);
+    }
+    // Картон само с телефон (формата на сайта) получава и имейла — по него тръгват писмата.
+    // Отделно: имейлът е уникален и при сблъсък не бива да спре името и телефона.
+    if (!existing.email && emailLower) {
+      await supabase.from("contacts").update({ email: emailLower }).eq("id", contactId);
     }
   } else {
     const { data: created } = await supabase
@@ -160,6 +175,11 @@ async function processLead(leadgenId: string, formId: string | null) {
     contactId = created.id;
   }
 
+  // Откъде е дошъл: кампания, ад сет, реклама, форма (с имената) и какво е поискал.
+  const formName = await fetchFormName(detail.form_id ?? formId, pageAccessToken);
+  const attr = leadAttribution(detail, { formId, formName });
+  const offer = offerLabel(attr.offer);
+
   // Mirror into meta_leads for the existing lead-center compatible flow
   await supabase
     .from("meta_leads")
@@ -167,7 +187,7 @@ async function processLead(leadgenId: string, formId: string | null) {
       {
         meta_lead_id: leadgenId,
         form_id: detail.form_id ?? formId ?? "unknown",
-        form_name: null,
+        form_name: formName,
         campaign_id: detail.campaign_id ?? null,
         campaign_name: detail.campaign_name ?? null,
         ad_id: detail.ad_id ?? null,
@@ -188,15 +208,10 @@ async function processLead(leadgenId: string, formId: string | null) {
     contact_id: contactId,
     activity_type: "meta_lead",
     title: `Meta lead · ${detail.campaign_name ?? detail.ad_name ?? "Lead Form"}`,
-    body: detail.ad_name ? `Реклама: ${detail.ad_name}` : null,
+    body: attributionBody(attr) || null,
     occurred_at: detail.created_time,
-    metadata: {
-      meta_lead_id: leadgenId,
-      form_id: detail.form_id,
-      ad_id: detail.ad_id,
-      campaign_id: detail.campaign_id,
-      source: "meta_webhook",
-    },
+    // id-тата И имената: по тях се смята цената на лийд/среща/клиент по кампания.
+    metadata: { ...attr, source: "meta_webhook" },
     created_by: "meta_webhook",
   });
 
@@ -244,6 +259,10 @@ async function processLead(leadgenId: string, formId: string | null) {
       // Формата на лийд магнита („AI наръчник“) получава писмо с наръчника; останалите — демотата.
       step: firstStepForForm(detail.form_id ?? formId),
     }).catch(() => {});
+  } else if (existing && emailLower && autoWelcomeEnabled) {
+    // Картонът го има от преди, но материалът е поискан СЕГА — получава го веднага
+    // (веднъж на материал). Форма, която не е лийд магнит, не праща нищо — както досега.
+    await sendMagnetToExisting({ supabase, contactId, to: emailLower, fullName, formId: detail.form_id ?? formId }).catch(() => {});
   }
 
   // Notify admin (fire-and-forget)
@@ -259,12 +278,13 @@ async function processLead(leadgenId: string, formId: string | null) {
 <tr><td style="padding:4px 12px 4px 0;color:#777;">Име:</td><td><strong>${escapeHtml(fullName) || "—"}</strong></td></tr>
 <tr><td style="padding:4px 12px 4px 0;color:#777;">Имейл:</td><td>${email ? `<a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a>` : "—"}</td></tr>
 <tr><td style="padding:4px 12px 4px 0;color:#777;">Телефон:</td><td>${phone ? `<a href="tel:${escapeHtml(phone)}">${escapeHtml(phone)}</a>` : "—"}</td></tr>
+${offer ? `<tr><td style="padding:4px 12px 4px 0;color:#777;">Поиска:</td><td><strong>${escapeHtml(offer)}</strong>${existing ? " · картонът го има от преди" : ""}</td></tr>` : ""}
 <tr><td style="padding:4px 12px 4px 0;color:#777;">Кампания:</td><td>${escapeHtml(detail.campaign_name) || "—"}</td></tr>
 <tr><td style="padding:4px 12px 4px 0;color:#777;">Реклама:</td><td>${escapeHtml(detail.ad_name) || "—"}</td></tr>
 </table>
 <p style="margin-top:18px;">📊 <a href="https://promarketing.pw/admin/clients/${contactId}">Виж в CRM-а</a></p>
 </div>`,
-      text: `Нов Meta lead:\nИме: ${fullName ?? "—"}\nИмейл: ${email ?? "—"}\nТелефон: ${phone ?? "—"}\nКампания: ${detail.campaign_name ?? "—"}\nРеклама: ${detail.ad_name ?? "—"}\n\nCRM: https://promarketing.pw/admin/clients/${contactId}`,
+      text: `Нов Meta lead:\nИме: ${fullName ?? "—"}\nИмейл: ${email ?? "—"}\nТелефон: ${phone ?? "—"}${offer ? `\nПоиска: ${offer}` : ""}\nКампания: ${detail.campaign_name ?? "—"}\nРеклама: ${detail.ad_name ?? "—"}\n\nCRM: https://promarketing.pw/admin/clients/${contactId}`,
     }).catch(() => {});
   }
 
@@ -272,16 +292,34 @@ async function processLead(leadgenId: string, formId: string | null) {
   // от формата и линк към опашката за звънене (/ekip), не към /admin.
   // Awaited: fire-and-forget се губи, щом функцията върне (виж leads/submit).
   // Първо ротацията (Димитър, Елена, Димитър…) — писмото отива само при него.
-  await routeNewLead(contactId).catch(() => null);
+  const setter = await routeNewLead(contactId).catch(() => null);
+  // Пак е оставил данни (картонът го има от преди)? Връща се в „🆕 Нови“ на екипа —
+  // освен ако е клиент, при продавач или човек на Ивайло (виж relead-rules.ts).
+  const relead = existing
+    ? await giveReLeadToTeam({
+        contactId,
+        leadAt: detail.created_time ?? null,
+        metaLeadId: leadgenId,
+        offer: attr.offer,
+        offerLabel: offer,
+        adName: detail.ad_name ?? null,
+      }).catch(() => null)
+    : null;
+  const opener = openerFor(attr.offer, setter?.full_name ?? null);
   await notifyTeamNewLead({
     contactId,
     fullName: fullName ?? null,
     email: emailLower || null,
     phone: phone || null,
-    sourceLabel: "Meta реклама",
+    sourceLabel: offer ? `${offer} · Meta реклама` : "Meta реклама",
     adName: detail.ad_name ?? null,
     campaignName: detail.campaign_name ?? null,
     fieldData: detail.field_data,
+    offerLabel: offer,
+    extra: [
+      { label: "Започни така", value: opener ? `„${opener}“` : null },
+      { label: "Картонът", value: relead?.given ? "🔁 Има го от преди — пак остави данни. Стои най-горе в „🆕 Нови“." : null },
+    ],
   }).catch(() => {});
 
   return { ok: true, contact_id: contactId, leadgen_id: leadgenId };

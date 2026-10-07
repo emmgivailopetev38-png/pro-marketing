@@ -3,6 +3,7 @@ import { useActionState, useState, useSyncExternalStore } from "react";
 import { useFormStatus } from "react-dom";
 import { ekipAction } from "@/app/ekip/actions";
 import { guessBusinessOption } from "@/lib/leads/form-labels";
+import { openerFor } from "@/lib/leads/lead-offers";
 import { BUSINESS_OPTIONS, type EkipActionResult, type LeadCardMode, type QueueLead } from "@/lib/team/types";
 import { MEETING_MINUTES } from "@/lib/cal/types";
 import { RETRY_PRESETS, RETRY_PRESET_LABEL, TALKED_AFTER_DAYS, TALKED_DEFAULT_DAYS } from "@/lib/team/retry-rules";
@@ -159,6 +160,11 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
   const defaultDetail = lead.business ? saved.detail : fromForm && defaultOption === "Друго" ? fromForm : "";
 
   const name = lead.full_name?.trim() || "Без име";
+  // Първото изречение на разговора — докато с човека още не сме говорили.
+  const opener =
+    mode === "fresh" || mode === "waiting" || (mode === "search" && lead.stage === "lead")
+      ? openerFor(lead.offer_key ?? null, setterName)
+      : null;
   const calParams = new URLSearchParams();
   if (lead.full_name) calParams.set("name", lead.full_name);
   if (lead.email) calParams.set("email", lead.email);
@@ -189,9 +195,16 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="truncate text-lg font-bold text-[var(--color-text-primary)]">{name}</h3>
+          {lead.offer_label && (
+            <p className="mt-1">
+              <span className="inline-flex items-center rounded-full border border-[var(--color-accent-cyan)]/45 bg-[var(--color-accent-cyan)]/10 px-2.5 py-0.5 text-xs font-semibold text-[var(--color-accent-cyan)]">
+                {lead.offer_label}
+              </span>
+            </p>
+          )}
           <p className="mt-0.5 text-[11px] text-[var(--color-text-tertiary)]">
             {SOURCE_LABEL[lead.source] ?? lead.source}
-            {lead.ad_name ? ` · ${lead.ad_name}` : ""} · {ago(lead.created_at)}
+            {lead.ad_name ? ` · ${lead.ad_name}` : ""} · {ago(lead.relead_at ?? lead.created_at)}
           </p>
         </div>
         {mode === "retry" && lead.next_followup_at && (
@@ -244,6 +257,24 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
       >
         📞 {lead.phone}
       </a>
+
+      {opener && (
+        <p className="mt-2 rounded-lg border border-[var(--color-accent-cyan)]/25 bg-[var(--color-accent-cyan)]/[0.06] px-3 py-2 text-sm leading-snug text-[var(--color-text-primary)]">
+          <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--color-accent-cyan)]">
+            💬 Започни така
+          </span>
+          „{opener}“
+        </p>
+      )}
+
+      {lead.relead_at && (
+        <p className="mt-2 rounded-lg border border-amber-400/30 bg-amber-400/[0.07] px-3 py-2 text-xs text-amber-100">
+          {lead.given_reason ?? "🔁 Пак остави данни на рекламата — звънни като на нов лийд."}
+          <span className="mt-0.5 block text-[10px] text-amber-100/70">
+            Заявката: {when(lead.relead_at)} · картонът е от {new Date(lead.created_at).toLocaleDateString("bg-BG", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Europe/Sofia" })}
+          </span>
+        </p>
+      )}
 
       {/* Бележките — най-отгоре, най-новата първа: какво е казал човекът миналия път,
           с който и бутон да е записано („Само бележка“, „Говорихме, чуване пак“…). */}

@@ -154,6 +154,63 @@ export function KonversiiBoard({ d }: { d: KonversiiData }) {
         </Panel>
       </div>
 
+      {d.campaigns.length > 0 && (
+        <Panel
+          title="По кампания · цена на лийд, среща и клиент"
+          hint="картонът се брои към кампанията на първата си заявка · „обаждания“ са бутоните на екипа в /ekip (Димитър) · срещите и клиентите — по следите в картона"
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-[10px] uppercase tracking-wider text-[var(--color-text-tertiary)]">
+                  <th className="py-2 text-left font-medium">Кампания</th>
+                  <th className="py-2 text-right font-medium">Разход</th>
+                  <th className="py-2 text-right font-medium" title="лийдове в CRM-а · в скоби: колко брои самата Meta">Лийдове</th>
+                  <th className="py-2 text-right font-medium" title="поне едно човешко обаждане">Звънени</th>
+                  <th className="py-2 text-right font-medium" title="обажданията на екипа (Димитър) по тези лийдове">Обаждания</th>
+                  <th className="py-2 text-right font-medium">Говорихме</th>
+                  <th className="py-2 text-right font-medium">Срещи</th>
+                  <th className="py-2 text-right font-medium">Клиенти</th>
+                  <th className="py-2 text-right font-medium">€ / лийд</th>
+                  <th className="py-2 text-right font-medium">€ / среща</th>
+                  <th className="py-2 text-right font-medium">€ / клиент</th>
+                </tr>
+              </thead>
+              <tbody>
+                {d.campaigns.map((c) => (
+                  <tr key={c.campaign_id} className="border-t border-white/5">
+                    <td className="py-2 pr-3">
+                      {c.offer && (
+                        <span className="mr-1.5 inline-block rounded-full border border-[var(--color-accent-cyan)]/40 px-2 py-0.5 text-[10px] font-semibold text-[var(--color-accent-cyan)]">
+                          {c.offer}
+                        </span>
+                      )}
+                      {c.name}
+                    </td>
+                    <td className="py-2 text-right font-[family-name:var(--font-mono)]">{c.eur ? `${c.eur.toLocaleString("bg-BG")} €` : "—"}</td>
+                    <td className="py-2 text-right font-mono">
+                      {c.leads}
+                      {c.metaLeads > 0 && c.metaLeads !== c.leads ? <span className="text-[var(--color-text-tertiary)]"> ({c.metaLeads})</span> : null}
+                    </td>
+                    <td className="py-2 text-right font-mono">{c.touched}</td>
+                    <td className="py-2 text-right font-mono">{c.teamCalls}</td>
+                    <td className="py-2 text-right font-mono">{c.talked}</td>
+                    <td className="py-2 text-right font-mono">{c.meetings}</td>
+                    <td className="py-2 text-right font-mono text-emerald-300">{c.won}</td>
+                    <td className="py-2 text-right font-[family-name:var(--font-mono)] text-[#facc15]">{euro(c.cost.lead)}</td>
+                    <td className="py-2 text-right font-[family-name:var(--font-mono)] text-[#facc15]">{euro(c.cost.meeting)}</td>
+                    <td className="py-2 text-right font-[family-name:var(--font-mono)] text-[#facc15]">{euro(c.cost.won)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-2 text-[11px] text-[var(--color-text-tertiary)]">
+            Кампания без разход в таблицата още не е минала през синхрона с Meta (тегли се в 06:20 и 15:20 UTC) — цената ѝ излиза след него.
+          </p>
+        </Panel>
+      )}
+
       {d.spend.byCampaign.length > 0 && (
         <Panel title="Къде отидоха парите" hint="разход по кампания за периода — само редовете „наши лийдове“ влизат в цената на резултата">
           <div className="overflow-x-auto">
@@ -315,6 +372,10 @@ function Big({ value, label }: { value: number | null; label: string }) {
       <p className="text-[11px] uppercase tracking-wider text-[var(--color-text-tertiary)]">{label}</p>
     </div>
   );
+}
+
+function euro(v: number | null): string {
+  return v === null ? "—" : `${v.toLocaleString("bg-BG")} €`;
 }
 
 function human(minutes: number | null): string {

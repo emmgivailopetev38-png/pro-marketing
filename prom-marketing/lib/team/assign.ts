@@ -16,8 +16,13 @@ import { leadOwnerOf } from "./routing";
 export async function giveToTeam(args: {
   contactId: string;
   reason: string;
-  /** „given“ = Ивайло го дава · „cancelled“ = човекът отказа срещата · „noshow“ = не се яви на нея */
+  /**
+   * „given“ = Ивайло го дава · „cancelled“ = човекът отказа срещата · „noshow“ = не се яви на нея ·
+   * „relead“ = пак остави данни на рекламата (слага го входът на лийда, виж relead-rules.ts)
+   */
   kind?: GivenKind;
+  /** кога е станало (по подразбиране сега) — при „relead“ часът на новата заявка */
+  occurredAt?: string | null;
   createdBy?: string | null;
   /** допълнително в metadata — напр. коя среща е отказана */
   extra?: Record<string, unknown>;
@@ -32,7 +37,9 @@ export async function giveToTeam(args: {
       ? `❌ Отказана среща · ${setter.full_name} да звънне`
       : kind === "noshow"
         ? `🙈 Не се яви на срещата · ${setter.full_name} да звънне`
-        : `🤝 Дадено на ${setter.full_name} за звънене`;
+        : kind === "relead"
+          ? `🔁 Пак остави данни · ${setter.full_name} да звънне`
+          : `🤝 Дадено на ${setter.full_name} за звънене`;
 
   const sb = createServiceClient();
   const { error } = await sb.from("contact_activities").insert({
@@ -40,6 +47,7 @@ export async function giveToTeam(args: {
     activity_type: ASSIGN_TYPE,
     title,
     body: args.reason,
+    ...(args.occurredAt ? { occurred_at: args.occurredAt } : {}),
     metadata: {
       to_team: true,
       kind,

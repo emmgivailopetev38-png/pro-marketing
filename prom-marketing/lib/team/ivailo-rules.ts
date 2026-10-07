@@ -128,11 +128,15 @@ export function wasInCalendar(b: Pick<BookingRef, "status">): boolean {
   return !OFF_CALENDAR.has(String(b.status ?? ""));
 }
 
-/** Изричното „🤝 Дай на екипа“ от Ивайло — не „отказа срещата“, не „не се яви“, не продавачът. */
+/**
+ * Изричното „🤝 Дай на екипа“ от Ивайло — не „отказа срещата“, не „не се яви“,
+ * не продавачът и не „пак остави данни“ (relead): последното го слага входът на
+ * лийда сам и не бива да отнема човек от Ивайло.
+ */
 export function isManualGive(row: Pick<SignalRow, "activity_type" | "metadata">): boolean {
   if (row.activity_type !== "team_assigned") return false;
   const kind = row.metadata?.kind;
-  return kind !== "sales" && kind !== "cancelled" && kind !== "noshow";
+  return kind !== "sales" && kind !== "cancelled" && kind !== "noshow" && kind !== "relead";
 }
 
 function ms(iso: string | null | undefined): number {

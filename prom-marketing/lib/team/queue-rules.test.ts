@@ -4,6 +4,7 @@ import {
   GIVE_UP_AFTER_NO_ANSWERS,
   NOTES_ON_CARD,
   canGiveUp,
+  givenKindOf,
   isNoAnswer,
   looksLikePhone,
   notesByContact,
@@ -345,5 +346,36 @@ describe("бележката от изхода на разговора стои 
       ["гласова поща", "Не вдигна · пак на чт 02.10, 10:00"],
       ["Предпочита Viber", null],
     ]);
+  });
+});
+
+describe("пак остави данни (relead)", () => {
+  it("видът се чете от маркера; непознатият е „given“ като старите маркери на Ивайло", () => {
+    expect(givenKindOf("relead")).toBe("relead");
+    expect(givenKindOf("cancelled")).toBe("cancelled");
+    expect(givenKindOf(undefined)).toBe("given");
+    expect(givenKindOf("каквото")).toBe("given");
+  });
+
+  it("маркерът стои, докато екипът не звънне след него; после картата тръгва по обичайния път", () => {
+    const relead = (at: string): AttemptRow => ({
+      contact_id: "r",
+      activity_type: ASSIGN_TYPE,
+      title: "🔁 Пак остави данни · Димитър да звънне",
+      occurred_at: at,
+      created_by: "meta_webhook",
+      metadata: { kind: "relead", reason: "🔁 Пак остави данни · 📘 Наръчник", to_member_id: "m1", to_name: "Димитър" },
+    });
+    const before = summarizeAttempts(desc([relead("2026-10-07T12:38:00Z"), row("r", "2026-09-26T09:00:00Z", { ...member, outcome: "not_interested" })]));
+    expect(before.get("r")?.given).toMatchObject({ kind: "relead", to_id: "m1", reason: "🔁 Пак остави данни · 📘 Наръчник" });
+
+    const after = summarizeAttempts(
+      desc([
+        row("r", "2026-10-07T13:00:00Z", { ...member, outcome: "no_answer" }, "Не вдигна"),
+        relead("2026-10-07T12:38:00Z"),
+      ])
+    );
+    expect(after.get("r")?.given).toBeNull();
+    expect(after.get("r")?.last?.outcome).toBe("no_answer");
   });
 });

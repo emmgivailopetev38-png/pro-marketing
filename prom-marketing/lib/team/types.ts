@@ -2,6 +2,7 @@
  * Екипът в CRM-а — типове без "server-only", за да ги ползват и клиентските
  * компоненти (картата на лийда, страницата „Екип“).
  */
+import type { OfferKey } from "@/lib/leads/lead-offers";
 
 export const TEAM_ROLES = ["owner", "setter", "sales", "delivery", "marketing"] as const;
 export type TeamRole = (typeof TEAM_ROLES)[number];
@@ -162,6 +163,11 @@ export interface QueueLead {
   missed_booking_id?: string | null;
   /** Човек на Ивайло (Академията, разговор с него, среща в календара му) — защо не се звъни. Излиза само в търсачката. */
   ivailo_note?: string | null;
+  /** Какво е поискал (lib/leads/lead-offers.ts): наръчник, безплатен курс, AI одит… — значката и първото изречение. */
+  offer_key?: OfferKey | null;
+  offer_label?: string | null;
+  /** Пак е оставил данни на рекламата — кога (тогава картата е в „🆕 Нови“, макар картонът да е стар). */
+  relead_at?: string | null;
 }
 
 export interface BookedRow {

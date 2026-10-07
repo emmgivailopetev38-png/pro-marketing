@@ -66,6 +66,14 @@ export interface DueReminder {
   ageMinutes: number;
 }
 
+/**
+ * Статусът на реда в `automation_events`. Колоната има CHECK: само
+ * success · failed · skipped. С „done“ (до 07.10.2026) редът не се записваше,
+ * ключът по-долу никога не влизаше в дневника и напомнянето се повтаряше на
+ * всеки половин час.
+ */
+export const REMINDER_EVENT_STATUS = "success" as const;
+
 /** Ключът, по който напомнянето не се праща два пъти. */
 export function reminderKey(contactId: string, level: number): string {
   return `lead_reminder:${contactId}:${level}`;
