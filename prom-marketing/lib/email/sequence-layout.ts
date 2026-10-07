@@ -144,6 +144,12 @@ export function callout(html: string): string {
 export interface SequenceStep {
   /** Стабилен ключ — по него се пази идемпотентността. */
   key: string;
+  /**
+   * Друг текст в СЪЩИЯ слот на поредицата (същият `key`). Пише се в
+   * `metadata.seq_variant`, за да се вижда в картона кое писмо е тръгнало,
+   * а ключът остава общ — иначе кронът праща и обикновеното писмо на същото място.
+   */
+  variant?: string;
   /** Дни след началната точка на поредицата. 0 = веднага. */
   afterDays: number;
   subject: string;

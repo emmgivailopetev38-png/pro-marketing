@@ -56,7 +56,7 @@ export async function sendSequenceStep(args: {
     activity_type: "email_sent",
     title: `Поредица · ${step.subject}`,
     body: `Автоматичен продажбен имейл до ${to}. Отговорите отиват на ${replyTo()}.`,
-    metadata: { seq_step: step.key, resend_id: res.id, to, auto: true },
+    metadata: { seq_step: step.key, ...(step.variant ? { seq_variant: step.variant } : {}), resend_id: res.id, to, auto: true },
     created_by: "lead_sequence",
   });
   return { sent: true };

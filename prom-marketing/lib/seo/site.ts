@@ -178,6 +178,7 @@ export const PILLAR_PAGES: SitemapEntry[] = [
 export const SUPPORTING_PAGES: SitemapEntry[] = [
   { path: "/demo", priority: 0.8, changeFrequency: "monthly" },
   { path: "/automation-audit", priority: 0.8, changeFrequency: "monthly" },
+  { path: "/narachnik", priority: 0.7, changeFrequency: "monthly" },
   { path: "/ai-reshenia", priority: 0.8, changeFrequency: "weekly" },
   { path: "/kurs", priority: 0.7, changeFrequency: "monthly" },
   { path: "/mentor", priority: 0.7, changeFrequency: "monthly" },

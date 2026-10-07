@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { LEAD_SEQUENCE, LEAD_SOURCES, VOICE_LEAD_SEQUENCE, leadSequenceFor } from "./lead-steps";
+import {
+  LEAD_SEQUENCE,
+  LEAD_SOURCES,
+  NARACHNIK_FORM_IDS,
+  VOICE_LEAD_SEQUENCE,
+  firstStepForForm,
+  leadSequenceFor,
+} from "./lead-steps";
 import { ALL_WARM_STEPS } from "./warm-steps";
 import { VOICE_URL } from "./sequence-layout";
 
@@ -79,5 +86,42 @@ describe("текстовете на студената поредица", () => 
         expect([...inText].some((t) => t.startsWith(l)), `${step.key} · ${l}`).toBe(true);
       }
     }
+  });
+});
+
+describe("лийд магнитът — AI наръчникът", () => {
+  const formId = [...NARACHNIK_FORM_IDS][0];
+  const step = firstStepForForm(formId);
+
+  it("формата на наръчника получава писмо с наръчника, всяка друга — демотата", () => {
+    expect(step.variant).toBe("narachnik");
+    expect(firstStepForForm("3579321608891952")).toBe(LEAD_SEQUENCE[0]);
+    expect(firstStepForForm(null)).toBe(LEAD_SEQUENCE[0]);
+    expect(firstStepForForm(undefined)).toBe(LEAD_SEQUENCE[0]);
+  });
+
+  it(`е в същия слот като първото писмо — кронът не праща отгоре и демотата`, () => {
+    expect(step.key).toBe(LEAD_SEQUENCE[0].key);
+    expect(step.afterDays).toBe(0);
+  });
+
+  it("линкът към наръчника е и в HTML-а, и в текста; има отписване и гласовия агент", () => {
+    const { html, text } = step.build("Иван", { contactId: "c1", unsubscribeUrl: "https://x.bg/stop" });
+    for (const v of [html, text]) {
+      expect(v).toContain("https://www.promarketing.pw/narachnik?");
+      expect(v).toContain("https://www.promarketing.pw/booking");
+      expect(v).toContain(VOICE_URL);
+      expect(v).toContain("https://x.bg/stop");
+      expect(v).toContain("Здравей, Иван,");
+    }
+  });
+
+  it("без гонене, извинения и самопринизяване", () => {
+    const { html, text } = step.build(null, { contactId: "c1" });
+    for (const bad of ["гоня", "извинявам се", "да не ви губя", "да не преча", "безпокоя"]) {
+      expect(html.toLowerCase()).not.toContain(bad);
+      expect(text.toLowerCase()).not.toContain(bad);
+    }
+    expect(text.startsWith("Здравей,")).toBe(true);
   });
 });
