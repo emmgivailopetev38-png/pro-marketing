@@ -31,6 +31,17 @@ def text_of(h):
     t = re.sub(r'<[^>]+>', ' ', t)
     return re.sub(r'\s+', ' ', html.unescape(t)).strip()
 
+# Адресите, които next.config.ts пренасочва или пренаписва. Връзка към
+# такъв адрес НЕ е счупена: на 24.09.2026 /rabota (307 към
+# igra.promarketing.pw) се водеше „счупена връзка от 23 страници",
+# а работи без грешка. Държи се отделно от REDIRECTS, защото REDIRECTS
+# изхвърля страници от одита, а тези адреси изобщо не са страници тук.
+CONFIG_ROUTES = set()
+_cfg = os.path.join(ROOT, "next.config.ts")
+if os.path.exists(_cfg):
+    for m in re.finditer(r'source:\s*"(/[^":*]*)"', open(_cfg, encoding="utf-8").read()):
+        CONFIG_ROUTES.add(m.group(1).rstrip("/") or "/")
+
 REDIRECTS = set()
 for f in glob.glob(os.path.join(ROOT, "app/**/page.tsx"), recursive=True):
     src = open(f, encoding="utf-8", errors="replace").read()
@@ -143,7 +154,7 @@ for p, n in sorted(links.items()):
     if p in known or dynamic_ok.match(p): continue
     if p.startswith("/_next") or p.startswith("/videa") or p.startswith("/images"): continue
     if p in ("/manifest.webmanifest","/sitemap.xml","/robots.txt","/llms.txt"): continue
-    if p in REDIRECTS: continue
+    if p in REDIRECTS or p in CONFIG_ROUTES: continue
     if os.path.exists(os.path.join(ROOT, "public", p.lstrip("/"))): continue
     bad("високо","връзки", f"счупена вътрешна връзка към {p} (от {len(targets[p])} страници)")
 
