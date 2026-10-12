@@ -148,9 +148,9 @@ export function VoicePractice({ tema, temaIme, rejim, onFinished }: VoicePractic
         cache: "no-store",
         signal: attempt.abort.signal,
       });
-      const data = (await response.json()) as { signedUrl?: string; sesia?: string; error?: string };
+      const data = (await response.json()) as { agentId?: string; sesia?: string; error?: string };
       if (!isCurrent()) return;
-      if (!response.ok || !data.signedUrl || !data.sesia) {
+      if (!response.ok || !data.agentId || !data.sesia) {
         finish(response.status === 401 || response.status === 403
           ? "Сесията за вход е изтекла. Влез отново в администрацията."
           : data.error || "Не мога да отворя разговор в момента.");
@@ -159,7 +159,7 @@ export function VoicePractice({ tema, temaIme, rejim, onFinished }: VoicePractic
       attempt.sesia = data.sesia;
 
       const conversation = await Conversation.startSession({
-        signedUrl: data.signedUrl,
+        agentId: data.agentId,
         connectionType: "websocket",
         textOnly: false,
         dynamicVariables: { tema, tema_ime: temaIme, rejim, sesia: data.sesia },
