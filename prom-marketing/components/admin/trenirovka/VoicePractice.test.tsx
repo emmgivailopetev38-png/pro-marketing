@@ -30,7 +30,7 @@ beforeEach(() => {
   endSession.mockResolvedValue(undefined);
   fetchSession.mockResolvedValue({
     ok: true,
-    json: async () => ({ signedUrl: "wss://example.test/private", sesia: "session-1" }),
+    json: async () => ({ agentId: "agent_test", sesia: "session-1" }),
   });
   vi.stubGlobal("fetch", fetchSession);
   vi.mocked(Conversation.startSession).mockImplementation(async (options: PartialOptions) => {
@@ -54,7 +54,7 @@ describe("VoicePractice", () => {
     expect(getUserMedia).toHaveBeenCalledWith({ audio: true });
     await screen.findByText("Слуша те");
     expect(Conversation.startSession).toHaveBeenCalledWith(expect.objectContaining({
-      signedUrl: "wss://example.test/private",
+      agentId: "agent_test",
       connectionType: "websocket",
       dynamicVariables: { tema: "skript", tema_ime: "Скриптът", rejim: "izpit", sesia: "session-1" },
     }));
