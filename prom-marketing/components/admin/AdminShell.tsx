@@ -63,6 +63,7 @@ const LINK_GROUPS: LinkGroup[] = [
     label: "Тренировка",
     items: [
       { href: "/admin/skript", label: "Разговорът", icon: Route },
+      { href: "/admin/trenirovka", label: "Тренировка МВП", icon: GraduationCap },
       { href: "/admin/igra", label: "Кандидати · Играта", icon: Gamepad2 },
     ],
   },
@@ -142,6 +143,7 @@ function NavList({ path, onNav }: { path: string; onNav?: () => void }) {
                 onClick={onNav}
                 className={cn(
                   "group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
+                  l.href === "/admin/trenirovka" && "min-h-16 text-base",
                   active
                     ? "bg-[var(--color-accent-cyan)]/10 text-[var(--color-accent-cyan)]"
                     : "text-[var(--color-text-secondary)] hover:bg-white/5 hover:text-[var(--color-text-primary)]"
