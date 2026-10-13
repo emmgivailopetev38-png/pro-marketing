@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { organizationSchema, personSchema } from "./schema";
-import { ORG, SOCIAL_PROFILES } from "./site";
+import { ORG, PETEVAI, SOCIAL_PROFILES } from "./site";
 
 const HOST = {
   youtube: "www.youtube.com",
@@ -34,5 +34,14 @@ describe("социалните профили на Ивайло", () => {
     expect(ORG.founder.sameAs).toEqual(urls);
     expect(organizationSchema().sameAs).toEqual(urls);
     expect(personSchema().sameAs).toEqual(urls);
+  });
+
+  it("Petev.ai е отделен продукт: връзка с https://petevai.com, но извън профилите и sameAs", () => {
+    expect(PETEVAI.href).toBe("https://petevai.com");
+    expect(SOCIAL_PROFILES.map((p) => p.href)).not.toContain(PETEVAI.href);
+    expect(ORG.sameAs).not.toContain(PETEVAI.href);
+    expect(ORG.founder.sameAs).not.toContain(PETEVAI.href);
+    expect(organizationSchema().sameAs).not.toContain(PETEVAI.href);
+    expect(personSchema().sameAs).not.toContain(PETEVAI.href);
   });
 });
