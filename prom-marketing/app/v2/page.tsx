@@ -38,6 +38,7 @@ const RoiCalculatorV2 = dynamic(() => import("@/components/landing/v2/RoiCalcula
 const GuaranteeV2 = dynamic(() => import("@/components/landing/v2/GuaranteeV2").then((m) => ({ default: m.GuaranteeV2 })));
 const FAQV2 = dynamic(() => import("@/components/landing/v2/FAQV2").then((m) => ({ default: m.FAQV2 })));
 const QuickLeadFormV2 = dynamic(() => import("@/components/landing/v2/QuickLeadFormV2").then((m) => ({ default: m.QuickLeadFormV2 })));
+const SocialFollowV2 = dynamic(() => import("@/components/landing/v2/SocialFollowV2").then((m) => ({ default: m.SocialFollowV2 })));
 const FooterV2 = dynamic(() => import("@/components/landing/v2/FooterV2").then((m) => ({ default: m.FooterV2 })));
 const StickyMobileCTA = dynamic(() => import("@/components/landing/StickyMobileCTA").then((m) => ({ default: m.StickyMobileCTA })));
 const ChatWidget = dynamic(() => import("@/components/chatbot/ChatWidget").then((m) => ({ default: m.ChatWidget })));
@@ -59,6 +60,8 @@ export default function HomePageV2() {
         <GuaranteeV2 />
         <FAQV2 />
         <QuickLeadFormV2 />
+        {/* 13.10.2026 — „Последвай ме в мрежите": плочки към YouTube, Instagram, TikTok, Facebook. */}
+        <SocialFollowV2 />
       </main>
       <FooterV2 />
 

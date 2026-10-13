@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "./Logo";
+import { SocialLinks } from "./SocialLinks";
 
 export function Footer() {
   const year = new Date().getFullYear();
@@ -140,6 +141,11 @@ export function Footer() {
               </li>
             </ul>
           </div>
+        </div>
+
+        {/* Социалните мрежи — профилите живеят в lib/seo/site.ts (SOCIAL_PROFILES). */}
+        <div className="mb-10">
+          <SocialLinks skin="legacy" />
         </div>
 
         {/* Bottom row */}
