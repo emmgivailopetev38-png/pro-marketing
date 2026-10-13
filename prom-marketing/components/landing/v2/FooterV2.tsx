@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/landing/Logo";
 import { NeuralCoreLazy } from "@/components/landing/v2/NeuralCoreLazy";
+import { SocialLinks } from "@/components/landing/SocialLinks";
 
 /* =====================================================================
    FooterV2 — the original Footer, redrawn in the "2050" "Luminescent
@@ -191,6 +192,11 @@ export function FooterV2() {
               </li>
             </ul>
           </div>
+        </div>
+
+        {/* Социалните мрежи — профилите живеят в lib/seo/site.ts (SOCIAL_PROFILES). */}
+        <div className="mb-10">
+          <SocialLinks skin="v2" />
         </div>
 
         {/* Bottom row */}

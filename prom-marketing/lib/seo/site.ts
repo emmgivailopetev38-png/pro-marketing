@@ -12,6 +12,55 @@
 
 export const SITE_URL = "https://promarketing.pw";
 
+/* ---------------------------------------------------------------------
+   Социалните профили на Ивайло — ЕДИН списък за всичко: иконите в долния
+   колонтитул, блокът „Последвай ме" на началната и `sameAs` в
+   структурираните данни (фирмата и човекът). Нов профил се добавя само тук.
+
+   ⚠️ Facebook: адресът по id е нарочен. Двата id-та на страницата
+   (106080979260944 и 61550531045329) водят до една и съща страница, а
+   id-то, а не името, оцелява при преименуването ѝ.
+   ⚠️ LinkedIn НЯМА нарочно — в репото няма реален адрес на профила му, а
+   измислен адрес в `sameAs` е по-лош от липсващ. Добавя се тук, щом има.
+   --------------------------------------------------------------------- */
+export type SocialKey = "youtube" | "instagram" | "tiktok" | "facebook";
+
+export type SocialProfile = {
+  /** Съвпада с ключа в `components/brands.tsx` — оттам идват иконата и цветът. */
+  key: SocialKey;
+  label: string;
+  /** Кратък ред под името на плочката: потребителското име или „Страницата ми". */
+  handle: string;
+  href: string;
+};
+
+export const SOCIAL_PROFILES: readonly SocialProfile[] = [
+  {
+    key: "youtube",
+    label: "YouTube",
+    handle: "@promarketingbg",
+    href: "https://www.youtube.com/@promarketingbg",
+  },
+  {
+    key: "instagram",
+    label: "Instagram",
+    handle: "@ivailopetev28",
+    href: "https://www.instagram.com/ivailopetev28/",
+  },
+  {
+    key: "tiktok",
+    label: "TikTok",
+    handle: "@petevv",
+    href: "https://www.tiktok.com/@petevv",
+  },
+  {
+    key: "facebook",
+    label: "Facebook",
+    handle: "Страницата ми",
+    href: "https://www.facebook.com/profile.php?id=106080979260944",
+  },
+];
+
 /** Юридически и контактни данни — влизат в JSON-LD и в подписа на сайта. */
 export const ORG = {
   legalName: "Про Маркетинг ЕООД",
@@ -44,15 +93,9 @@ export const ORG = {
   founder: {
     name: "Ивайло Петев",
     jobTitle: "Основател и AI консултант",
-    sameAs: [
-      "https://www.instagram.com/ivailopetev28",
-      "https://www.youtube.com/@promarketingbg",
-    ],
+    sameAs: SOCIAL_PROFILES.map((p) => p.href),
   },
-  sameAs: [
-    "https://www.instagram.com/ivailopetev28",
-    "https://www.youtube.com/@promarketingbg",
-  ],
+  sameAs: SOCIAL_PROFILES.map((p) => p.href),
   /** Райони, които обслужваме. Пловдив е първи — там е физическото присъствие. */
   areaServed: ["Пловдив", "София", "Варна", "Бургас", "Стара Загора", "България"],
 } as const;
