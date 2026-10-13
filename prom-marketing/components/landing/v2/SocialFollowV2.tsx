@@ -12,13 +12,16 @@
    SOCIAL_PROFILES (lib/seo/site.ts) + BRANDS (components/brands.tsx) —
    същият списък, който храни `sameAs` и иконите във футъра.
 
+   Под решетката — тясна лента към Petev.ai (PETEVAI): отделен продукт,
+   не социален профил, затова е извън 2×2 / 4-те плочки и извън `sameAs`.
+
    Сървърен компонент: само връзки, нула JavaScript; входната анимация
    е в SectionReveal, като във всяка друга секция.
    ===================================================================== */
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Sparkles } from "lucide-react";
 import { BRANDS } from "@/components/brands";
 import { SectionReveal } from "@/components/effects/SectionReveal";
-import { SOCIAL_PROFILES } from "@/lib/seo/site";
+import { PETEVAI, SOCIAL_PROFILES } from "@/lib/seo/site";
 
 export function SocialFollowV2() {
   return (
@@ -90,6 +93,41 @@ export function SocialFollowV2() {
               );
             })}
           </ul>
+
+          <a
+            href={PETEVAI.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`${PETEVAI.label} — ${PETEVAI.tagline}`}
+            className="v2-card group mx-auto mt-3 flex max-w-4xl items-center justify-center gap-3 text-center sm:mt-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--v2-cyan)]"
+            style={{ padding: "clamp(14px, 2vw, 20px) 16px" }}
+          >
+            <span
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full"
+              style={{
+                color: "var(--v2-cyan)",
+                background: "color-mix(in srgb, var(--v2-cyan) 14%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--v2-cyan) 38%, transparent)",
+              }}
+            >
+              <Sparkles className="h-5 w-5" aria-hidden />
+            </span>
+            <span className="min-w-0 text-left">
+              <span
+                className="block text-base font-bold text-[var(--v2-ink)]"
+                style={{ fontFamily: "var(--v2-font-display)" }}
+              >
+                {PETEVAI.label}
+              </span>
+              <span className="v2-mono mt-0.5 block text-[11px] text-[var(--v2-muted)]">
+                {PETEVAI.tagline}
+              </span>
+            </span>
+            <ArrowUpRight
+              aria-hidden
+              className="h-4 w-4 shrink-0 text-[var(--v2-faint)] transition-colors group-hover:text-[var(--v2-cyan)]"
+            />
+          </a>
         </SectionReveal>
       </div>
     </section>
