@@ -11,8 +11,10 @@
  *
  * Цената е казана от Ивайло: 450 € без ДДС на месец (540 € с ДДС), месечно по фактура;
  * бюджетът за Meta се плаща директно с неговата карта. Число за продажбите НЕ обещаваме —
- * 70–80 на месец е посока. AI гласовият агент не е в плана. Хостингът и преместването —
- * без цена тук, уточняват се по телефона.
+ * 70–80 на месец е посока. AI гласовият агент не е в плана.
+ *
+ * 14.10.2026 (Ивайло): хостингът НЕ влиза в офертата — не го поемаме. Секцията „Сайтът и
+ * хостингът“ е махната; хостингът остава в „Не е включено“ като негов, при доставчика му.
  *
  * Обръщението е на „Вие“.
  */
@@ -91,7 +93,7 @@ html:has(.rbg-doc),body:has(.rbg-doc){background:#FBF7F5;color-scheme:light}
 .rbg-doc .card h3{font-size:17.5px;margin:0 0 8px}
 .rbg-doc .card p{font-size:15px;line-height:1.56;color:var(--ink-2)}
 
-/* ── редове: не е включено, сайтът ── */
+/* ── редове: не е включено ── */
 .rbg-doc .rows{display:grid;grid-template-columns:auto 1fr;gap:0 18px;background:var(--surface);border:1px solid var(--rule);border-radius:14px;padding:8px 22px;box-shadow:var(--shadow)}
 .rbg-doc .rows .t{font-family:var(--rbg-ui),sans-serif;font-weight:600;font-size:14.5px;color:var(--ink);padding:14px 0;border-top:1px dashed var(--rule);max-width:19ch}
 .rbg-doc .rows .w{font-size:15.5px;line-height:1.55;color:var(--ink-2);padding:14px 0;border-top:1px dashed var(--rule)}
@@ -273,8 +275,8 @@ const NE_E = [
     w: "Не е част от плана. Може да се тества по-нататък.",
   },
   {
-    t: "Хостинг и преместване на сайта",
-    w: "Уточняваме отделно, по телефона — вижте „Сайтът и хостингът“ по-долу.",
+    t: "Хостингът на сайта",
+    w: "Остава при <b>Вашия доставчик</b>. Ние поемаме рекламата, видеата и продажбите.",
   },
 ];
 
@@ -282,7 +284,7 @@ const DNI = [
   {
     d: "Седмици 1–2",
     h: "Преглед и първи тестове",
-    p: "Преглеждаме рекламния акаунт, пиксела и сайта. Правим първите нови видеа и пускаме първите тестове.",
+    p: "Преглеждаме рекламния акаунт и пиксела. Правим първите нови видеа и пускаме първите тестове.",
   },
   {
     d: "Месец 1",
@@ -293,29 +295,6 @@ const DNI = [
     d: "Месеци 2–3",
     h: "Растем върху работещото",
     p: "Вдигаме бюджета на рекламите, които работят, и включваме телефона за повторни покупки.",
-  },
-];
-
-const SAIT = [
-  {
-    t: "Как е направен",
-    w: "WordPress + WooCommerce + Elementor, тема Astra и LiteSpeed Cache, на <b>споделен хостинг</b> в SuperHosting.",
-  },
-  {
-    t: "Първото отваряне",
-    w: "На началната страница сървърът отговори за <b>3,7 сек</b> — само до първия байт.",
-  },
-  {
-    t: "Повторните отваряния",
-    w: "Около <b>0,8–1,0 сек</b>. Google смята за добро под 0,8 сек.",
-  },
-  {
-    t: "Бърза SEO поправка",
-    w: "Заглавието (title) на началната страница се повтаря два пъти.",
-  },
-  {
-    t: "Препоръката",
-    w: "При изтичането не подновявайте същия споделен план — минете на <b>по-силен WordPress хостинг с отделени ресурси</b>. Преместването можем да го поемем ние. Конкретния вариант и цената уточняваме по телефона, преди хостингът да изтече.",
   },
 ];
 
@@ -333,7 +312,7 @@ export default function RoseBulgariaOferta() {
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
       <header className="masthead">
-        <p className="eyebrow">RoseBulgaria · план за растеж · 07.10.2026</p>
+        <p className="eyebrow">RoseBulgaria · план за растеж · 14.10.2026</p>
         <h1>
           Историята на розата вече продава. <em>Време е да носи печалба.</em>
         </h1>
@@ -464,23 +443,6 @@ export default function RoseBulgariaOferta() {
         </div>
       </section>
 
-      <section>
-        <p className="kick">Сайтът и хостингът</p>
-        <h2 className="h2sub">Хостингът изтича до около 15{"\u00a0"}дни — точният момент за смяна</h2>
-        <p className="lead">
-          Рекламата докарва човека до сайта, а сайтът трябва да се отвори бързо. Ето какво
-          измерихме на 7{"\u00a0"}октомври{"\u00a0"}2026.
-        </p>
-        <div className="rows">
-          {SAIT.map((r) => (
-            <div style={{ display: "contents" }} key={r.t}>
-              <div className="t">{r.t}</div>
-              <div className="w" dangerouslySetInnerHTML={{ __html: r.w }} />
-            </div>
-          ))}
-        </div>
-      </section>
-
       <section className="sec-price">
         <p className="kick">Цената</p>
         <h2 className="h2sub">Една месечна сума, ясна от първия ден</h2>
@@ -531,8 +493,8 @@ export default function RoseBulgariaOferta() {
       <section className="closing">
         <h2>Следващата стъпка</h2>
         <p>
-          Прегледайте офертата спокойно с брат си. Чуваме се в понеделник, 12{"\u00a0"}октомври — и
-          уговаряме старта.
+          Прегледайте офертата спокойно с брат си. Щом решите, чуваме се и уговаряме старта —
+          първите нови видеа тръгват още в първите две седмици.
         </p>
         <p className="ctas">
           <a
@@ -550,7 +512,7 @@ export default function RoseBulgariaOferta() {
       <p className="sig">
         <b>Ивайло Петев</b> · Pro Marketing
         <br />
-        0877 399 963 · emmgivailopetev38@gmail.com · promarketing.pw
+        0877 399 963 · emmgivailopetev38@gmail.com · promarketing.pw · petevai.com
       </p>
     </main>
   );
