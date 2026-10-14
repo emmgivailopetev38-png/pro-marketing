@@ -24,9 +24,25 @@ const NOTIFY_TO = "emmgivailopetev38@gmail.com";
 const ADMIN_BASE = "https://promarketing.pw";
 
 const schema = z.object({
-  kind: z.enum(["signup", "mission", "abonament", "plashtane", "pro_start"]),
+  kind: z.enum(["signup", "mission", "abonament", "plashtane", "pro_start", "klouzar", "klouzar_zadacha"]),
   ref: z.string().min(1).max(200),
 });
+
+/** Кандидат за клоузър от /klouzar в играта (миграция 0014 на играта). */
+type KlouzarRow = {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  city: string | null;
+  answers: { k: string; q: string; a: string }[] | null;
+  source: Record<string, string> | null;
+  status: string;
+  task_path: string | null;
+  task_link: string | null;
+  task_reflection: string | null;
+  task_at: string | null;
+};
 
 type ProfileRow = {
   id: string;
@@ -181,6 +197,87 @@ export async function POST(request: Request) {
           <p style="margin:12px 0 4px;color:#444">Даде телефон и отиде към плащането. Ако до час не дойде писмо „Нов абонат“, е спрял на картата.</p>
           <p style="margin:16px 0 0"><a href="${ADMIN_BASE}/admin/igra/${p.id}">Виж профила в CRM-а →</a></p>
         </div>`;
+    } else if (kind === "klouzar" || kind === "klouzar_zadacha") {
+      // Подборът на клоузър (/klouzar в играта): ref е id в sg_klouzar.
+      // klouzar = стъпка 1 (кандидатура), klouzar_zadacha = стъпка 2 (записът).
+      const { data: row, error } = await sb
+        .from("sg_klouzar")
+        .select("id, name, phone, email, city, answers, source, status, task_path, task_link, task_reflection, task_at")
+        .eq("id", ref)
+        .maybeSingle();
+      if (error) {
+        console.error("[igra/sabitie] klouzar lookup failed:", error.message);
+        return NextResponse.json({ ok: false });
+      }
+      const k = row as KlouzarRow | null;
+      if (!k || (kind === "klouzar_zadacha" && !k.task_at)) {
+        return NextResponse.json({ ok: true, skipped: true });
+      }
+      const listUrl = `${ADMIN_BASE}/admin/igra/klouzar`;
+      const tel = k.phone.replace(/\s/g, "");
+
+      if (kind === "klouzar") {
+        const answers = Array.isArray(k.answers) ? k.answers : [];
+        const src = Object.entries(k.source ?? {}).map(([a, b]) => `${a}=${b}`).join(" · ");
+        subject = `🎯 Кандидат за клоузър: ${k.name} · стъпка 1`;
+        text = [
+          `Нов кандидат за клоузър (стъпка 1 от 3). Задачата му е отворена — ще дойде второ писмо, щом я предаде.`,
+          ``,
+          `Име: ${k.name}`,
+          `Телефон: ${k.phone}`,
+          `Имейл: ${k.email}`,
+          `Град: ${k.city || "—"}`,
+          ...(src ? [`Откъде: ${src}`] : []),
+          ``,
+          ...answers.flatMap((a) => [`${a.q}`, `→ ${a.a}`, ``]),
+          `Всички кандидати: ${listUrl}`,
+        ].join("\n");
+        html = `
+        <div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;color:#111">
+          <h2 style="margin:0 0 12px">🎯 Кандидат за клоузър · стъпка 1 от 3</h2>
+          <p style="margin:0 0 4px"><strong>${escapeHtml(k.name)}</strong> · ${escapeHtml(k.city) || "—"}</p>
+          <p style="margin:0 0 4px">Телефон: <a href="tel:${escapeHtml(tel)}">${escapeHtml(k.phone)}</a></p>
+          <p style="margin:0 0 4px">Имейл: ${escapeHtml(k.email)}</p>
+          ${src ? `<p style="margin:0 0 4px;color:#666">Откъде: ${escapeHtml(src)}</p>` : ""}
+          ${answers
+            .map(
+              (a) =>
+                `<p style="margin:12px 0 2px;color:#555">${escapeHtml(a.q)}</p><p style="margin:0">${escapeHtml(a.a)}</p>`,
+            )
+            .join("")}
+          <p style="margin:16px 0 0;color:#444">Задачата му е отворена — второ писмо идва, щом я предаде.</p>
+          <p style="margin:8px 0 0"><a href="${listUrl}">Всички кандидати в CRM-а →</a></p>
+        </div>`;
+      } else {
+        let audioUrl: string | null = null;
+        if (k.task_path) {
+          const { data: signed } = await sb.storage.from("klouzar").createSignedUrl(k.task_path, 60 * 60 * 24 * 7);
+          audioUrl = signed?.signedUrl ?? null;
+        }
+        subject = `🎙 ${k.name} предаде задачата за клоузър · стъпка 2`;
+        text = [
+          `${k.name} предаде задачата (стъпка 2 от 3).`,
+          ``,
+          ...(audioUrl ? [`Записът (линкът важи 7 дни): ${audioUrl}`] : []),
+          ...(k.task_link ? [`Линк от кандидата: ${k.task_link}`] : []),
+          ``,
+          `Какво би направил по-добре:`,
+          k.task_reflection || "—",
+          ``,
+          `Телефон: ${k.phone}`,
+          `Ако минава → покана за груповото предизвикателство (стъпка 3): ${listUrl}`,
+        ].join("\n");
+        html = `
+        <div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.6;color:#111">
+          <h2 style="margin:0 0 12px">🎙 ${escapeHtml(k.name)} предаде задачата · стъпка 2 от 3</h2>
+          ${audioUrl ? `<p style="margin:0 0 4px"><a href="${audioUrl}">▶ Слушай записа</a> <span style="color:#666">(линкът важи 7 дни)</span></p>` : ""}
+          ${k.task_link ? `<p style="margin:0 0 4px">Линк от кандидата: <a href="${escapeHtml(k.task_link)}">${escapeHtml(k.task_link)}</a></p>` : ""}
+          <p style="margin:12px 0 2px;color:#555">Какво би направил по-добре:</p>
+          <p style="margin:0"><em>${escapeHtml(k.task_reflection) || "—"}</em></p>
+          <p style="margin:12px 0 0">Телефон: <a href="tel:${escapeHtml(tel)}">${escapeHtml(k.phone)}</a></p>
+          <p style="margin:16px 0 0"><a href="${listUrl}">Мине ли → покани го на груповото (стъпка 3) от CRM-а →</a></p>
+        </div>`;
+      }
     } else if (kind === "abonament" || kind === "plashtane") {
       // Мастър Клас Продажби · ПРО — абонамент през Stripe. ref е user id (абонамент) или
       // „<user id>:<invoice id>“ (плащане). Истината е в базата: абонаментът
