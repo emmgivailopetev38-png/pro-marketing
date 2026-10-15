@@ -26,8 +26,15 @@ export const SITE_URL = "https://promarketing.pw";
 export type SocialKey = "youtube" | "instagram" | "tiktok" | "facebook";
 
 export type SocialProfile = {
+  /** Уникален ключ на плочката (React key). */
+  key: string;
   /** Съвпада с ключа в `components/brands.tsx` — оттам идват иконата и цветът. */
-  key: SocialKey;
+  brand: SocialKey;
+  /**
+   * В чий `sameAs` влиза адресът: на човека (Ивайло), на фирмата или и двете.
+   * Групата не е профил на никого — показва се, но не влиза в `sameAs`.
+   */
+  sameAs?: readonly ("person" | "org")[];
   label: string;
   /** Кратък ред под името на плочката: потребителското име или „Страницата ми". */
   handle: string;
@@ -37,29 +44,54 @@ export type SocialProfile = {
 export const SOCIAL_PROFILES: readonly SocialProfile[] = [
   {
     key: "youtube",
+    brand: "youtube",
     label: "YouTube",
     handle: "@promarketingbg",
     href: "https://www.youtube.com/@promarketingbg",
   },
   {
     key: "instagram",
+    brand: "instagram",
     label: "Instagram",
     handle: "@ivailopetev28",
     href: "https://www.instagram.com/ivailopetev28/",
   },
   {
     key: "tiktok",
+    brand: "tiktok",
     label: "TikTok",
     handle: "@petevv",
     href: "https://www.tiktok.com/@petevv",
   },
   {
     key: "facebook",
+    brand: "facebook",
     label: "Facebook",
     handle: "Страницата ми",
     href: "https://www.facebook.com/profile.php?id=106080979260944",
   },
+  {
+    key: "facebook-lichno",
+    brand: "facebook",
+    label: "Facebook · лично",
+    handle: "Ивайло Петев",
+    href: "https://www.facebook.com/profile.php?id=61557151023135",
+    sameAs: ["person"],
+  },
+  {
+    key: "ai-balgaria",
+    brand: "facebook",
+    label: "AI България",
+    handle: "групата ми във Facebook",
+    href: "https://www.facebook.com/groups/aizabiznesa",
+    sameAs: [],
+  },
 ];
+
+/** Адресите за `sameAs` на човека или на фирмата (по подразбиране профилът е и на двамата). */
+function sameAsFor(who: "person" | "org"): string[] {
+  return SOCIAL_PROFILES.filter((p) => (p.sameAs ?? ["person", "org"]).includes(who)).map((p) => p.href);
+}
 
 /* ---------------------------------------------------------------------
    Petev.ai — AI платформата за фирми на Ивайло. Отделен ПРОДУКТ, не социален
@@ -104,9 +136,9 @@ export const ORG = {
   founder: {
     name: "Ивайло Петев",
     jobTitle: "Основател и AI консултант",
-    sameAs: SOCIAL_PROFILES.map((p) => p.href),
+    sameAs: sameAsFor("person"),
   },
-  sameAs: SOCIAL_PROFILES.map((p) => p.href),
+  sameAs: sameAsFor("org"),
   /** Райони, които обслужваме. Пловдив е първи — там е физическото присъствие. */
   areaServed: ["Пловдив", "София", "Варна", "Бургас", "Стара Загора", "България"],
 } as const;

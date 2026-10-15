@@ -51,7 +51,7 @@ export function SocialLinks({ skin = "v2" }: { skin?: Skin }) {
       <span className={s.label}>Последвай ме</span>
       <ul className="flex flex-wrap items-center gap-2.5">
         {SOCIAL_PROFILES.map((p) => {
-          const { Icon, color } = BRANDS[p.key];
+          const { Icon, color } = BRANDS[p.brand];
           return (
             <li key={p.key}>
               <a
