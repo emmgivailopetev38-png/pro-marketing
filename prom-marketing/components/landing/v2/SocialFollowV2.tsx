@@ -3,8 +3,9 @@
 
    Стои веднага след формата за контакт (QuickLeadFormV2) и преди
    долния колонтитул: който не е оставил телефон, може поне да ни
-   последва. Четири големи плочки — YouTube, Instagram, TikTok,
-   Facebook — всяка е цяла връзка, голяма колкото да се натисне с палец.
+   последва. Шест големи плочки — YouTube, Instagram, TikTok, страницата,
+   личният Facebook и групата „AI България“ (2×3 на телефон, 3×2 на
+   компютър) — всяка е цяла връзка, голяма колкото да се натисне с палец.
 
    Изграден само от езика "Luminescent Depth" (app/v2/v2-design.css):
    .v2-eyebrow / .v2-title-plain / .v2-sub / .v2-card, без нов CSS.
@@ -13,7 +14,7 @@
    същият списък, който храни `sameAs` и иконите във футъра.
 
    Под решетката — тясна лента към Petev.ai (PETEVAI): отделен продукт,
-   не социален профил, затова е извън 2×2 / 4-те плочки и извън `sameAs`.
+   не социален профил, затова е извън плочките и извън `sameAs`.
 
    Сървърен компонент: само връзки, нула JavaScript; входната анимация
    е в SectionReveal, като във всяка друга секция.
@@ -50,9 +51,9 @@ export function SocialFollowV2() {
         </SectionReveal>
 
         <SectionReveal delay={120}>
-          <ul className="mx-auto grid max-w-4xl grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+          <ul className="mx-auto grid max-w-4xl grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
             {SOCIAL_PROFILES.map((p) => {
-              const { Icon, color } = BRANDS[p.key];
+              const { Icon, color } = BRANDS[p.brand];
               return (
                 <li key={p.key}>
                   <a

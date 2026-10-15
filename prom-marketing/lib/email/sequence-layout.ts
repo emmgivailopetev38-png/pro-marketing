@@ -8,6 +8,8 @@
  */
 
 export const SITE = "https://www.promarketing.pw";
+/** Petev.ai — платформата на Ивайло; по правило стои до promarketing.pw във всеки подпис. */
+export const PETEVAI_URL = "https://petevai.com";
 export const YT = "https://www.youtube.com/@promarketingbg";
 export const PHONE = "+359 877 399 963";
 
@@ -93,6 +95,7 @@ export function signature(ctx?: BuildCtx): string {
 <p style="margin:0 0 6px;color:#31413a">Или <a href="${VOICE_URL}" style="color:#0b6b4a;font-weight:600">говори с гласовия ни агент</a> — вдига веднага, по всяко време, и ти записва час в календара ми, докато сте на линията.</p>
 <p style="margin:10px 0 0;color:#4a5651;font-size:14px">
 <a href="${SITE}" style="color:#0b6b4a">promarketing.pw</a> ·
+<a href="${PETEVAI_URL}" style="color:#0b6b4a">petevai.com</a> ·
 <a href="${SITE}/demo" style="color:#0b6b4a">живото демо</a> ·
 <a href="${SITE}/booking" style="color:#0b6b4a">запази 45 минути</a> ·
 <a href="${SITE}/automation-audit" style="color:#0b6b4a">безплатен AI одит</a> ·
@@ -115,6 +118,7 @@ export function signatureText(ctx?: BuildCtx): string {
 Или говори с гласовия ни агент — вдига веднага и ти записва час в календара ми: ${VOICE_URL}
 
 Сайт: ${SITE}
+Petev.ai — сайт + CRM в едно: ${PETEVAI_URL}
 Живо демо: ${SITE}/demo
 Запази 45 минути: ${SITE}/booking
 Безплатен AI одит: ${SITE}/automation-audit
