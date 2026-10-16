@@ -3,6 +3,8 @@ import { sendEmail } from "./resend";
 import { CLOSING_KEY, WARM_SEQUENCE, subjectFor, trackFor, warmStepsFor, type WarmTrack } from "./warm-steps";
 import { firstName, type BuildCtx, type SequenceStep } from "./sequence-layout";
 import { unsubscribeUrl } from "./unsubscribe-token";
+import { loadClientMap } from "./klienti";
+import type { ClientWhy } from "./klienti-rules";
 import type { createServiceClient } from "@/lib/supabase/service";
 
 type Sb = ReturnType<typeof createServiceClient>;
@@ -22,8 +24,10 @@ type Sb = ReturnType<typeof createServiceClient>;
  * стига да е бил докоснат в последните `MAX_SILENCE_DAYS` дни.
  *
  * Кой НЕ влиза:
- *   • спечелените (`won`) — те си имат договор, а не оферта; продажбен имейл
- *     към клиент, който вече плаща, е най-евтиният начин да го подразниш;
+ *   • клиентите и хората в програмата — `won`, платили, Академията, ръчният
+ *     знак `no_auto_email`, проформа (виж klienti-rules.ts). Ивайло, 16.10.2026:
+ *     „Моите клиенти, аз си комуникирам с тях, няма нужда да им пращаме
+ *     повече имейли.“ Важи и за другите им картони със същия имейл;
  *   • отписалите се — един клик в подписа и повече нищо не тръгва;
  *   • `lost` върви на половин темпо (виж `paceFor`), а не спира: „не сега"
  *     почти никога не значи „никога", но значи „по-рядко".
@@ -263,6 +267,16 @@ export async function runWarmSequence(supabase: Sb): Promise<{
   const contacts = (rows ?? []) as WarmContact[];
   if (contacts.length === 0) return out;
 
+  // Клиентите не получават автоматични писма. Не се знае ли кои са — днес
+  // не тръгва нищо, утре пак: пропуснато писмо е по-евтино от писмо до клиент.
+  let clients: Map<string, ClientWhy>;
+  try {
+    clients = await loadClientMap(contacts, supabase);
+  } catch {
+    out.skipped.client_check_failed = contacts.length;
+    return out;
+  }
+
   const ids = contacts.map((c) => c.id);
   const { data: acts } = await supabase
     .from("contact_activities")
@@ -296,6 +310,13 @@ export async function runWarmSequence(supabase: Sb): Promise<{
   for (const c of contacts) {
     if (out.sent >= MAX_PER_RUN) break;
     out.checked++;
+
+    const clientWhy = clients.get(c.id);
+    if (clientWhy) {
+      const key = `client_${clientWhy}`;
+      out.skipped[key] = (out.skipped[key] ?? 0) + 1;
+      continue;
+    }
 
     const t = byContact.get(c.id)!;
     const decision = nextWarmStep(c, t, now);

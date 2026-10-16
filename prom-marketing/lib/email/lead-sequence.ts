@@ -4,7 +4,7 @@ import { LEAD_SEQUENCE, LEAD_SOURCES } from "./lead-steps";
 import { dueSequenceStep, optedOutIds } from "./lead-sequence-rules";
 import { firstName, type BuildCtx, type SequenceStep } from "./sequence-layout";
 import { unsubscribeUrl } from "./unsubscribe-token";
-import { loadAkademiaIds } from "@/lib/team/ivailo";
+import { loadClientMap } from "./klienti";
 import { magnetStepFor } from "@/lib/leads/meta-lead-rules";
 import type { createServiceClient } from "@/lib/supabase/service";
 
@@ -182,10 +182,15 @@ export async function runLeadSequence(supabase: Sb): Promise<{
   }
   // Хората от Академията са в менторската на Ивайло — продажбен имейл „ето ти
   // демотата“ не е за тях (06.10.2026: трима от Академията получиха по два).
+  // От 16.10 същото важи за всеки клиент, и по друг негов картон със същия
+  // имейл (нова форма от човек, който вече плаща) — виж klienti-rules.ts.
   // Не се знае ли кои са — днес не тръгва нищо, утре пак.
-  let akademia: Set<string>;
+  let clients: Map<string, unknown>;
   try {
-    akademia = await loadAkademiaIds(ids, supabase);
+    clients = await loadClientMap(
+      contacts.map((c) => ({ id: c.id, email: c.email, stage: c.stage, followup_status: null })),
+      supabase
+    );
   } catch {
     return out;
   }
@@ -195,7 +200,7 @@ export async function runLeadSequence(supabase: Sb): Promise<{
     if (out.sent >= MAX_PER_RUN) break;
     out.checked++;
 
-    if (c.last_heard_from_at || talked.has(c.id) || akademia.has(c.id) || optedOut.has(c.id) || !c.email) {
+    if (c.last_heard_from_at || talked.has(c.id) || clients.has(c.id) || optedOut.has(c.id) || !c.email) {
       out.skipped++;
       continue;
     }
