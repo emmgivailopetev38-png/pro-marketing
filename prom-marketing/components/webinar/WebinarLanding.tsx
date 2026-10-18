@@ -38,6 +38,7 @@ import { TiltCard } from "@/components/effects/TiltCard";
 import { ScrollProgress } from "@/components/effects/ScrollProgress";
 import { SpotlightCursor } from "@/components/effects/SpotlightCursor";
 import { track } from "@/lib/analytics/track";
+import { ga4Event, gadsConversion } from "@/lib/google/gtag-client";
 import { track as pixelTrack } from "@/lib/meta/pixel-client";
 import { WEBINAR, GIFT, webinarDateLabel } from "@/lib/webinar/config";
 
@@ -97,6 +98,8 @@ function RegisterForm({ location }: { location: string }) {
       });
       if (!res.ok) throw new Error("bad status");
       pixelTrack("Lead", { params: { content_name: "webinar_registration" } });
+      gadsConversion("lead");
+      ga4Event("generate_lead", { form: "WebinarLanding" });
       window.location.href = "/webinar/registriran";
     } catch {
       setState("error");

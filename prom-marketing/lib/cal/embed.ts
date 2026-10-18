@@ -1,6 +1,7 @@
 "use client";
 import { getCalApi } from "@calcom/embed-react";
 import { track, newEventId } from "@/lib/meta/pixel-client";
+import { ga4Event, gadsConversion } from "@/lib/google/gtag-client";
 
 const USERNAME = process.env.NEXT_PUBLIC_CAL_USERNAME ?? "promarketing";
 const SLUG = process.env.NEXT_PUBLIC_CAL_EVENT_SLUG ?? "consultation";
@@ -30,6 +31,8 @@ export async function initCalEmbed() {
   return cal;
 }
 
+let bookingListenerRegistered = false;
+
 export async function openBookingPopup() {
   // Fire Meta Lead + InitiateCheckout the moment intent is shown.
   track("Lead", {
@@ -39,6 +42,23 @@ export async function openBookingPopup() {
     params: { content_name: "Cal.com booking popup", content_category: "consultation" },
   });
   const cal = await initCalEmbed();
+  // Попъпът е iframe: без този слушател записана среща от бутоните по сайта
+  // не стига нито до Meta, нито до Google. Регистрира се веднъж на зареждане;
+  // повторното броене (BookingConfetti лови същото събитие) се пази от
+  // trackBookingSuccess. Същият API като в components/booking/BookingEmbed.tsx.
+  if (!bookingListenerRegistered) {
+    try {
+      cal("on", {
+        action: "bookingSuccessful",
+        callback: (e: unknown) => {
+          trackBookingSuccess((e as { detail?: unknown } | undefined)?.detail);
+        },
+      });
+      bookingListenerRegistered = true;
+    } catch {
+      /* аналитиката никога не чупи бутона */
+    }
+  }
   cal("modal", { calLink: CAL_LINK });
 }
 
@@ -59,6 +79,27 @@ function bookingUid(detail: unknown): string | null {
 }
 
 /**
+ * Една и съща записана среща може да стигне до няколко слушателя (Cal embed
+ * callback + window message на BookingConfetti). Ключът е uid-ът; ако Cal не
+ * го даде, пазим се с кратък прозорец, за да не се брои два пъти.
+ */
+const trackedBookings = new Set<string>();
+const UNKEYED_WINDOW_MS = 10_000;
+let lastUnkeyedAt = 0;
+
+function alreadyTracked(uid: string | null): boolean {
+  if (uid) {
+    if (trackedBookings.has(uid)) return true;
+    trackedBookings.add(uid);
+    return false;
+  }
+  const now = Date.now();
+  if (now - lastUnkeyedAt < UNKEYED_WINDOW_MS) return true;
+  lastUnkeyedAt = now;
+  return false;
+}
+
+/**
  * Meta events for a CONFIRMED booking. The event ids mirror the ones the
  * Cal.com webhook sends server-side (app/api/webhooks/cal), so the Pixel and
  * the Conversions API collapse each pair into a single conversion.
@@ -69,6 +110,7 @@ function bookingUid(detail: unknown): string | null {
  */
 export function trackBookingSuccess(detail?: unknown): void {
   const uid = bookingUid(detail);
+  if (alreadyTracked(uid)) return;
   const params = { content_name: "Cal.com consultation", content_category: "consultation" };
   track("Schedule", { eventID: uid ? `cal_sched_${uid}` : newEventId(), params });
   track("Lead", { eventID: uid ? `cal_lead_${uid}` : newEventId(), params });
@@ -76,4 +118,8 @@ export function trackBookingSuccess(detail?: unknown): void {
     eventID: uid ? `cal_${uid}` : newEventId(),
     params: { ...params, status: "confirmed" },
   });
+  // Google: Ads conversion + GA4. transaction_id = същият uid → Google сам
+  // изхвърля повторение. Добавено след Meta, редът на Meta не е пипан.
+  gadsConversion("booking", uid ? { transactionId: `cal_${uid}` } : undefined);
+  ga4Event("book_appointment", { ...params, ...(uid ? { transaction_id: `cal_${uid}` } : {}) });
 }

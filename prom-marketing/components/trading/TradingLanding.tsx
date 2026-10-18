@@ -25,6 +25,7 @@ import { TiltCard } from "@/components/effects/TiltCard";
 import { ScrollProgress } from "@/components/effects/ScrollProgress";
 import { TradingViz } from "@/components/trading/TradingViz";
 import { track } from "@/lib/analytics/track";
+import { ga4Event, gadsConversion } from "@/lib/google/gtag-client";
 import { track as pixelTrack } from "@/lib/meta/pixel-client";
 import { TRADING, TRADING_DISCLAIMER } from "@/lib/trading/config";
 
@@ -48,6 +49,8 @@ function BookForm({ location }: { location: string }) {
       });
       if (!res.ok) throw new Error("bad status");
       pixelTrack("Lead", { params: { content_name: "trading_book" } });
+      gadsConversion("lead");
+      ga4Event("generate_lead", { form: "TradingLanding" });
       window.location.href = "/trading/blagodaria";
     } catch {
       setState("error");

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "./Logo";
 import { SocialLinks } from "./SocialLinks";
+import { CookieSettingsItem } from "@/components/effects/CookieSettingsItem";
 
 export function Footer() {
   const year = new Date().getFullYear();
@@ -139,6 +140,7 @@ export function Footer() {
                   Бисквитки
                 </a>
               </li>
+              <CookieSettingsItem className="cursor-pointer text-left text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)]" />
             </ul>
           </div>
         </div>

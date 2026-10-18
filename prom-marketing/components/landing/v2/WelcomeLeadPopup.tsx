@@ -17,6 +17,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Phone, User, Mail, ArrowRight, Check, Loader2, X, Sparkles } from "lucide-react";
 import { track } from "@/lib/analytics/track";
+import { ga4Event, gadsConversion } from "@/lib/google/gtag-client";
 
 const SHOWN_FLAG = "pm_v2_welcome_shown"; // този попъп — веднъж/сесия
 const EXIT_FLAG = "pm_v2_exit_intent_shown"; // споделен — за да не гръмнат и двата
@@ -124,6 +125,8 @@ export function WelcomeLeadPopup() {
       if (res.ok && json.ok) {
         setStatus("done");
         track("welcome_popup_lead", {});
+        gadsConversion("lead");
+        ga4Event("generate_lead", { form: "WelcomeLeadPopup" });
       } else setStatus("error");
     } catch {
       setStatus("error");

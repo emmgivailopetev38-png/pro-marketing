@@ -10,6 +10,7 @@ import { useState } from "react";
 import { Check, PhoneCall, ShieldCheck, Timer } from "lucide-react";
 import { SectionReveal } from "@/components/effects/SectionReveal";
 import { track } from "@/lib/analytics/track";
+import { ga4Event, gadsConversion } from "@/lib/google/gtag-client";
 import { track as pixelTrack } from "@/lib/meta/pixel-client";
 
 function PhoneForm({ location }: { location: string }) {
@@ -34,6 +35,8 @@ function PhoneForm({ location }: { location: string }) {
       });
       if (!res.ok) throw new Error("bad");
       pixelTrack("Lead", { params: { content_name: "automation_audit" } });
+      gadsConversion("lead");
+      ga4Event("generate_lead", { form: "AuditLanding" });
       setState("done");
     } catch {
       setState("error");
