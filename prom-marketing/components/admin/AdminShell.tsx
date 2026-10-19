@@ -26,6 +26,7 @@ import {
   FolderOpen,
   SearchCheck,
   GraduationCap,
+  Headphones,
   Bot,
   MessageCircle,
   Share2,
@@ -62,6 +63,7 @@ const LINK_GROUPS: LinkGroup[] = [
   {
     label: "Тренировка",
     items: [
+      { href: "/admin/suvetnik", label: "Съветник на живо", icon: Headphones },
       { href: "/admin/skript", label: "Разговорът", icon: Route },
       { href: "/admin/trenirovka", label: "Тренировка МВП", icon: GraduationCap },
       { href: "/admin/igra", label: "Кандидати · Играта", icon: Gamepad2 },
