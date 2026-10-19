@@ -4,32 +4,37 @@ import { PREVENCII, type HintZaiavka, type Replika } from "./types";
 import { VAZRAZHENIYA, vazrazhenieOt } from "./biblioteka";
 import { tarsi, type Izvor } from "./tarsene";
 
+// Дългите полета се режат, вместо да чупят заявката — една дълга подсказка
+// не бива да спре съветника до края на разговора.
+const tekst = (n: number) => z.string().transform((x) => x.slice(0, n));
+const spisak = <T extends z.ZodTypeAny>(el: T, n: number) => z.array(el).transform((a) => a.slice(-n));
+
 const replika = z.object({
-  id: z.string().max(64),
+  id: tekst(64),
   s: z.enum(["I", "K", "?"]),
-  t: z.string().max(4000),
+  t: tekst(4000),
   at: z.number().nonnegative(),
 });
 
 export const hintSchema = z.object({
   rejim: z.enum(["online", "mikrofon"]),
   brif: z.object({
-    klient: z.string().max(200).optional(),
-    biznes: z.string().max(500).optional(),
-    cel: z.string().max(500).optional(),
-    oferta: z.string().max(500).optional(),
+    klient: tekst(200).optional(),
+    biznes: tekst(500).optional(),
+    cel: tekst(500).optional(),
+    oferta: tekst(500).optional(),
     obrashtenie: z.enum(["ти", "Вие"]).optional(),
-    belezhki: z.string().max(1500).optional(),
+    belezhki: tekst(1500).optional(),
   }),
   sastoyanie: z.object({
-    etap: z.string().max(40).optional(),
-    bolki: z.array(z.string().max(300)).max(20),
+    etap: tekst(40).optional(),
+    bolki: spisak(tekst(300), 20),
     prevencia: z.record(z.string(), z.boolean()),
-    vazrazheniya: z.array(z.string().max(200)).max(20),
-    poslednoKazano: z.array(z.string().max(400)).max(5),
+    vazrazheniya: spisak(tekst(200), 20),
+    poslednoKazano: spisak(tekst(400), 5),
   }),
-  replikI: z.array(replika).max(400),
-  povod: z.string().max(80),
+  replikI: spisak(replika, 400),
+  povod: tekst(80),
 });
 
 const ETIKET = { I: "И", K: "К", "?": "?" } as const;

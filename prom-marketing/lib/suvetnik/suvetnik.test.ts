@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { etapOt, prevenciiOt, razcheti, tonInfo } from "./razbor";
 import { tarsi } from "./tarsene";
-import { razgovorTekst, sglobiZayavka } from "./zayavka";
+import { hintSchema, razgovorTekst, sglobiZayavka } from "./zayavka";
 import { VAZRAZHENIYA, vazrazhenieOt } from "./biblioteka";
 import { METOD } from "./metod";
 import { eEho } from "@/components/admin/suvetnik/zvuk";
@@ -86,6 +86,15 @@ describe("съобщението към модела", () => {
     expect(t).toContain("Готовност да инвестира ✗");
     expect(t).toContain("К: От година и половина");
     expect(t).toContain("[цената]");
+  });
+
+  it("дълга подсказка не чупи заявката — реже се", () => {
+    const r = hintSchema.safeParse({ ...z, sastoyanie: { ...z.sastoyanie, poslednoKazano: ["а".repeat(1000)], bolki: Array.from({ length: 30 }, (_, i) => `болка ${i}`) } });
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.sastoyanie.poslednoKazano[0].length).toBe(400);
+      expect(r.data.sastoyanie.bolki.length).toBe(20);
+    }
   });
 
   it("реже стария разговор отпред", () => {
