@@ -6,6 +6,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { track } from "@/lib/analytics/track";
+import { ga4Event, gadsConversion } from "@/lib/google/gtag-client";
 
 type Module = { title: string; desc: string };
 type Industry = {
@@ -114,6 +115,8 @@ export function AiAudit() {
       if (res.ok && json.ok) {
         setStatus("done");
         track("ai_audit_lead", { industry: industry?.id });
+        gadsConversion("lead");
+        ga4Event("generate_lead", { form: "AiAudit" });
       } else setStatus("error");
     } catch {
       setStatus("error");

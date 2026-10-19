@@ -31,6 +31,7 @@ import {
   Bot,
 } from "lucide-react";
 import { track } from "@/lib/analytics/track";
+import { ga4Event, gadsConversion } from "@/lib/google/gtag-client";
 
 /* Колко от рутината реалистично поема AI слоят (60%). Консервативно —
    нарочно под „100% магия", за да е достоверно числото в офертата. */
@@ -160,6 +161,8 @@ export function RoiCalculatorV2() {
       if (res.ok && json.ok) {
         setStatus("done");
         track("roi_calc_lead", { hours, rate });
+        gadsConversion("lead");
+        ga4Event("generate_lead", { form: "RoiCalculatorV2" });
       } else {
         setStatus("error");
       }

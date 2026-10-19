@@ -9,6 +9,7 @@
 import { useState } from "react";
 import { Check, Phone, User } from "lucide-react";
 import { track } from "@/lib/analytics/track";
+import { ga4Event, gadsConversion } from "@/lib/google/gtag-client";
 
 const USES = ["Склад или магазин", "Ресторант или хотел", "Събития", "Друго"] as const;
 
@@ -40,6 +41,8 @@ export function RobotWaitlistForm({ location }: { location: string }) {
       if (res.ok && json?.ok) {
         setStatus("success");
         track("robot_waitlist_submitted", { location, use });
+        gadsConversion("lead");
+        ga4Event("generate_lead", { form: "RobotWaitlistForm" });
       } else {
         setStatus("error");
         setError(res.status === 400 ? "Провери телефона — поне 6 цифри." : "Не се изпрати. Опитай пак след малко.");

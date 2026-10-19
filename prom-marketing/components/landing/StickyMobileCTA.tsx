@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { openBookingPopup } from "@/lib/cal/embed";
 import { track } from "@/lib/analytics/track";
 
@@ -10,6 +10,7 @@ const SHOW_AFTER_PX = 600;
 
 export function StickyMobileCTA() {
   const [visible, setVisible] = useState(false);
+  const barRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handle = () => setVisible(window.scrollY > SHOW_AFTER_PX);
@@ -18,8 +19,18 @@ export function StickyMobileCTA() {
     return () => window.removeEventListener("scroll", handle);
   }, []);
 
+  // Публикува височината си, докато е на екрана — CookieConsent се подрежда над нея.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--pm-sticky-cta-h", visible ? `${barRef.current?.offsetHeight ?? 0}px` : "0px");
+    return () => {
+      root.style.removeProperty("--pm-sticky-cta-h");
+    };
+  }, [visible]);
+
   return (
     <div
+      ref={barRef}
       className={`fixed inset-x-0 bottom-0 z-40 transition-transform duration-300 md:hidden ${
         visible ? "translate-y-0" : "translate-y-full"
       }`}

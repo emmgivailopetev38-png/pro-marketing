@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { ShoppingCart, X } from "lucide-react";
 import { track } from "@/lib/analytics/track";
+import { ga4Event, gadsConversion } from "@/lib/google/gtag-client";
 import { track as pixelTrack } from "@/lib/meta/pixel-client";
 
 export function OrderDialog({
@@ -39,6 +40,8 @@ export function OrderDialog({
       });
       if (!res.ok) throw new Error("bad");
       pixelTrack("Lead", { params: { content_name: "store_order", content_category: service } });
+      gadsConversion("lead");
+      ga4Event("generate_lead", { form: "OrderDialog" });
       setState("done");
     } catch {
       setState("error");

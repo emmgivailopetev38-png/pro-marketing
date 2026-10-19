@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Logo } from "@/components/landing/Logo";
 import { NeuralCoreLazy } from "@/components/landing/v2/NeuralCoreLazy";
 import { SocialLinks } from "@/components/landing/SocialLinks";
+import { CookieSettingsItem } from "@/components/effects/CookieSettingsItem";
 
 /* =====================================================================
    FooterV2 — the original Footer, redrawn in the "2050" "Luminescent
@@ -190,6 +191,7 @@ export function FooterV2() {
                   Бисквитки
                 </a>
               </li>
+              <CookieSettingsItem className="cursor-pointer text-left text-[var(--v2-muted)] transition-colors hover:text-[var(--v2-ink)]" />
             </ul>
           </div>
         </div>

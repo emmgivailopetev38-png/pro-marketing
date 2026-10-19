@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Unbounded, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import { MetaPixel } from "@/components/effects/MetaPixel";
+import { GoogleTag } from "@/components/effects/GoogleTag";
+import { CookieConsent } from "@/components/effects/CookieConsent";
 import { PostHogProvider } from "@/components/analytics/PostHogProvider";
 import { Analytics } from "@vercel/analytics/next";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -132,8 +134,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Прескочи към съдържанието
         </a>
         <MetaPixel />
+        <GoogleTag />
         <PostHogProvider>{children}</PostHogProvider>
         <Analytics />
+        <CookieConsent />
       </body>
     </html>
   );

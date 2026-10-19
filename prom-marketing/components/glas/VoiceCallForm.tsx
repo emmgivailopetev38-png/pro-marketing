@@ -33,6 +33,7 @@ import {
   User,
 } from "lucide-react";
 import { track } from "@/lib/analytics/track";
+import { ga4Event, gadsConversion } from "@/lib/google/gtag-client";
 import { isInAppBrowser } from "@/lib/voice/in-app-browser";
 import { newEventId, track as pixelTrack } from "@/lib/meta/pixel-client";
 import {
@@ -187,6 +188,8 @@ export function VoiceCallForm({ location }: { location: string }) {
          съобщение в червено. */
       if (res.status === 429) {
         pixelTrack("Lead", { eventID: eventId, params: { content_name: "glas_reklama" } });
+        gadsConversion("lead", { transactionId: eventId });
+        ga4Event("generate_lead", { form: "VoiceCallForm" });
         setClosedText(data.spoken ?? "Гласовото демо е заето в момента.");
         setStep("closed");
         return;
@@ -204,6 +207,8 @@ export function VoiceCallForm({ location }: { location: string }) {
       }
 
       pixelTrack("Lead", { eventID: eventId, params: { content_name: "glas_reklama" } });
+      gadsConversion("lead", { transactionId: eventId });
+      ga4Event("generate_lead", { form: "VoiceCallForm" });
 
       setSession({ agentId: data.agent_id, variables: data.variables ?? null });
       setLimit(data.limit ?? null);
