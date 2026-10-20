@@ -172,14 +172,35 @@ export async function poiskai(povod: Povod) {
   }
 }
 
+const dumi = (x: string) => new Set(x.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").split(" ").filter((w) => w.length > 2));
+function blizki(a: string, b: string) {
+  const A = dumi(a), B = dumi(b);
+  if (!A.size || !B.size) return false;
+  let o = 0;
+  for (const w of A) if (B.has(w)) o++;
+  return o / Math.min(A.size, B.size) >= 0.5;
+}
+
+/** Нова болка, близка до стара, я заменя (моделът я уточнява) — без повторения. */
+function dobaviBolka(bolki: string[], nova?: string) {
+  if (prazno(nova)) return bolki;
+  const n = nova!.trim();
+  const bez = bolki.filter((b) => !blizki(b, n));
+  return [...bez, n].slice(-6);
+}
+
+/** Възражението се пише с името на веригата, ако я разпознаваме — така не се дублира. */
+function imeVazrazhenie(t: string) {
+  return vazrazhenieOt(t)?.ime ?? t.split("·")[0].trim();
+}
+
 function obnoviSastoyanie(st: SastoyanieRazgovor, p: Podskazka): SastoyanieRazgovor {
   const etap: EtapId | undefined = etapOt(p.etap) ?? (st.etap as EtapId | undefined);
-  const bolki = !prazno(p.bolka) && !st.bolki.includes(p.bolka!) ? [...st.bolki, p.bolka!].slice(-12) : st.bolki;
+  const bolki = dobaviBolka(st.bolki, p.bolka);
   const prevencia = { ...st.prevencia };
   for (const id of prevenciiOt(p.prevencia)) prevencia[id] = true;
-  const vazrazheniya = !prazno(p.vazrazhenie) && !st.vazrazheniya.some((v) => p.vazrazhenie!.startsWith(v))
-    ? [...st.vazrazheniya, p.vazrazhenie!.split("·")[0].trim()].slice(-12)
-    : st.vazrazheniya;
+  const ime = prazno(p.vazrazhenie) ? null : imeVazrazhenie(p.vazrazhenie!);
+  const vazrazheniya = ime && !st.vazrazheniya.includes(ime) ? [...st.vazrazheniya, ime].slice(-12) : st.vazrazheniya;
   const poslednoKazano = p.kazhi ? [...st.poslednoKazano, p.kazhi].slice(-3) : st.poslednoKazano;
   return { etap, bolki, prevencia, vazrazheniya, poslednoKazano };
 }
