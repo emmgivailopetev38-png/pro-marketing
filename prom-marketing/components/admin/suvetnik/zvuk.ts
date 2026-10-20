@@ -57,6 +57,8 @@ const zaredeni = new WeakSet<AudioContext>();
 export interface Tap {
   spri(): void;
   nivo(): number;
+  /** Колко ms потокът дава пълна тишина (нули). Жив микрофон никога не дава точни нули — дори в тиха стая. */
+  tihoMs(): number;
 }
 
 /** Закача поток към контекста и връща 100 ms парчета Int16 PCM. */
@@ -76,8 +78,10 @@ export async function zakachi(ctx: AudioContext, potok: MediaStream, naParche: (
     channelInterpretation: "speakers",
   });
   let nivo = 0;
+  let zhivoOt = -Infinity; // докато не дойде истински звук, потокът се брои за тих
   node.port.onmessage = (e: MessageEvent<{ pcm: ArrayBuffer; peak: number }>) => {
     nivo = e.data.peak;
+    if (nivo > 2e-5) zhivoOt = performance.now();
     naParche(e.data.pcm);
   };
   const tiho = ctx.createGain();
@@ -93,6 +97,7 @@ export async function zakachi(ctx: AudioContext, potok: MediaStream, naParche: (
       tiho.disconnect();
     },
     nivo: () => nivo,
+    tihoMs: () => performance.now() - zhivoOt,
   };
 }
 
@@ -145,6 +150,10 @@ export class ScribeLiniya {
   private bezEzik = false;
 
   constructor(private vzemiToken: () => Promise<string>, private h: Slushateli) {}
+
+  get otvorena() {
+    return this.ws?.readyState === WebSocket.OPEN;
+  }
 
   async otvori(): Promise<void> {
     if (this.zatvorena) return;
