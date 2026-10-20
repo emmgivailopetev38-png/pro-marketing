@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { suvetnikAuthorized } from "@/lib/suvetnik/http";
-import { cyal, DALBOK_MODEL, GeminiGreshka, geminiKlyuch } from "@/lib/suvetnik/gemini";
+import { BARZ_MODEL, cyal, GeminiGreshka, geminiKlyuch } from "@/lib/suvetnik/gemini";
 import { razgovorTekst } from "@/lib/suvetnik/zayavka";
 import { createServiceClient } from "@/lib/supabase/service";
 import { recordActivity } from "@/lib/crm/repository";
 import type { Obobshtenie, Replika } from "@/lib/suvetnik/types";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+// Разборът на дълъг разговор може да отнеме над минута — записът става преди него.
+export const maxDuration = 150;
 
 const schema = z.object({
   sesia: z.string().uuid().optional(),
@@ -43,8 +44,9 @@ const SISTEMA = `Ти си Георги Асенов (МВП — Майстор 
 Не измисляй нищо, което го няма в разговора.`;
 
 /**
- * POST /api/suvetnik/kraj — краят на разговора: разбор по трите въпроса на Георги,
- * запис в suvetnik_sesii и (ако е избран контакт) активност в картона му в CRM-а.
+ * POST /api/suvetnik/kraj — краят на разговора. Първо записва разговора в suvetnik_sesii
+ * (за да не се изгуби, ако разборът се забави), после прави разбора по трите въпроса на Георги
+ * и (ако е избран контакт) пише активност в картона му в CRM-а.
  */
 export async function POST(request: Request) {
   if (!(await suvetnikAuthorized())) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -52,35 +54,18 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Невалидна заявка." }, { status: 400 });
   const d = parsed.data;
   const replikI = d.replikI as Replika[];
-
-  let obobshtenie: Obobshtenie | null = null;
-  let greshka: string | null = null;
-  if (d.obobshti && replikI.length >= 4) {
-    if (!geminiKlyuch()) greshka = "Липсва GEMINI_API_KEY — разборът не е направен.";
-    else {
-      try {
-        const brif = JSON.stringify(d.brif);
-        const tekst = await cyal({
-          system: SISTEMA,
-          user: `БРИФ: ${brif}\n\nРАЗГОВОРЪТ (И = Ивайло, К = клиентът):\n${razgovorTekst(replikI, 60000)}`,
-          model: DALBOK_MODEL,
-          mislene: "low",
-          maxTokens: 4000,
-          json: true,
-        });
-        obobshtenie = JSON.parse(tekst.replace(/^```(?:json)?|```$/g, "").trim()) as Obobshtenie;
-      } catch (error) {
-        console.error("[suvetnik/kraj] разбор", error);
-        greshka = error instanceof GeminiGreshka ? error.message : "Разборът не излезе — транскриптът е запазен.";
-      }
-    }
-  }
-
   const sb = createServiceClient();
-  const zapis = d.sesia
-    // втори път (записът в CRM-а) — пипа само картона, разборът остава
-    ? await sb.from("suvetnik_sesii").update({ kontakt_id: d.crm?.kontakt_id ?? null }).eq("id", d.sesia).select("id,obobshtenie").single()
-    : await sb.from("suvetnik_sesii").insert({
+
+  // 1) записът — веднага
+  let id = d.sesia ?? null;
+  let obobshtenie: Obobshtenie | null = null;
+  let zapisGreshka: string | null = null;
+  if (id) {
+    const r = await sb.from("suvetnik_sesii").update({ kontakt_id: d.crm?.kontakt_id ?? null }).eq("id", id).select("id,obobshtenie").single();
+    if (r.error) zapisGreshka = r.error.message;
+    obobshtenie = (r.data?.obobshtenie as Obobshtenie | null) ?? null;
+  } else {
+    const r = await sb.from("suvetnik_sesii").insert({
       zapochna: d.zapochna,
       priklyuchi: new Date().toISOString(),
       rejim: d.rejim,
@@ -89,12 +74,44 @@ export async function POST(request: Request) {
       sastoyanie: d.sastoyanie,
       transcript: replikI,
       podskazki: d.podskazki,
-      obobshtenie,
       kontakt_id: d.crm?.kontakt_id ?? null,
-    }).select("id,obobshtenie").single();
-  if (!obobshtenie && zapis.data?.obobshtenie) obobshtenie = zapis.data.obobshtenie as Obobshtenie;
-  if (zapis.error) console.error("[suvetnik/kraj] запис", zapis.error.message);
+    }).select("id").single();
+    if (r.error) zapisGreshka = r.error.message;
+    id = r.data?.id ?? null;
+  }
+  if (zapisGreshka) console.error("[suvetnik/kraj] запис", zapisGreshka);
 
+  // 2) разборът — с бързия модел, с таван на времето
+  let greshka: string | null = null;
+  if (d.obobshti && replikI.length >= 4) {
+    if (!geminiKlyuch()) greshka = "Липсва GEMINI_API_KEY — разборът не е направен.";
+    else {
+      const tavan = AbortSignal.timeout(110_000);
+      try {
+        const tekst = await cyal({
+          system: SISTEMA,
+          user: `БРИФ: ${JSON.stringify(d.brif)}\n\nРАЗГОВОРЪТ (И = Ивайло, К = клиентът):\n${razgovorTekst(replikI, 40000)}`,
+          model: BARZ_MODEL,
+          mislene: "low",
+          maxTokens: 3000,
+          json: true,
+          signal: tavan,
+        });
+        obobshtenie = JSON.parse(tekst.replace(/^```(?:json)?|```$/g, "").trim()) as Obobshtenie;
+        if (id) {
+          const u = await sb.from("suvetnik_sesii").update({ obobshtenie }).eq("id", id);
+          if (u.error) console.error("[suvetnik/kraj] разбор → запис", u.error.message);
+        }
+      } catch (error) {
+        console.error("[suvetnik/kraj] разбор", error);
+        greshka = tavan.aborted
+          ? "Разборът се забави — разговорът е записан, опитай „Запиши в CRM“ без разбор."
+          : error instanceof GeminiGreshka ? error.message : "Разборът не излезе — разговорът е записан.";
+      }
+    }
+  }
+
+  // 3) картонът в CRM-а
   let crm: { activity_id: string | null; error: string | null } | null = null;
   if (d.crm) {
     const belezhka = d.crm.belezhka?.trim() || obobshtenie?.crm_belezhka || "";
@@ -110,13 +127,13 @@ export async function POST(request: Request) {
       body: tyalo || "Разговор със съветника (без разбор).",
       occurred_at: d.zapochna,
       created_by: "suvetnik",
-      metadata: { suvetnik_sesia: zapis.data?.id ?? null },
-      dedupe_key: zapis.data?.id ? `suvetnik:${zapis.data.id}` : undefined,
+      metadata: { suvetnik_sesia: id },
+      dedupe_key: id ? `suvetnik:${id}` : undefined,
       mark_heard: true,
       ...(d.crm.sledvashto ? { next_followup_at: new Date(d.crm.sledvashto).toISOString() } : {}),
     });
     crm = { activity_id: r.activity_id, error: r.error };
   }
 
-  return NextResponse.json({ id: zapis.data?.id ?? null, obobshtenie, greshka, crm, zapisGreshka: zapis.error?.message ?? null });
+  return NextResponse.json({ id, obobshtenie, greshka, crm, zapisGreshka });
 }
