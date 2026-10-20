@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Exo_2, Manrope, JetBrains_Mono } from "next/font/google";
+import { DemoViewTracker } from "@/components/tracking/DemoViewTracker";
 
 const display = Exo_2({
   subsets: ["latin", "cyrillic"],
@@ -66,6 +67,8 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
         } as React.CSSProperties
       }
     >
+      {/* Личният линк от писмата (?k=…) → „👀 Отвори демото“ в картона. */}
+      <DemoViewTracker />
       {children}
     </div>
   );

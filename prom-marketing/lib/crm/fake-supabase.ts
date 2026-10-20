@@ -8,6 +8,8 @@
  *   from(t).insert(row).select(cols).single()      (also bare: await insert(row))
  *   from(t).update(patch).eq(c,v)                  (awaited)
  *   from(t).delete().eq(c,v)                       (awaited)
+ *   .gte(c,v) / .lte(c,v) — сравнение като низове (ISO дати, uuid-и)
+ *   .range(a,b)           — без страниране: връща всичко наведнъж
  */
 
 type Row = Record<string, unknown>;
@@ -69,7 +71,20 @@ class Query implements PromiseLike<{ data: unknown; error: unknown }> {
     return this;
   }
 
+  gte(col: string, val: string): this {
+    this.filters.push((r) => String(r[col] ?? "") >= val);
+    return this;
+  }
+
+  lte(col: string, val: string): this {
+    this.filters.push((r) => String(r[col] ?? "") <= val);
+    return this;
+  }
+
   order(): this {
+    return this;
+  }
+  range(): this {
     return this;
   }
   limit(): this {

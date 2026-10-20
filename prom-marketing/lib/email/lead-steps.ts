@@ -50,9 +50,9 @@ const S1_LICHNO: SequenceStep = {
     const demo = demoLink(ctx);
     const rows = VERTICAL_DEMOS.map(
       (d) =>
-        `<li style="margin-bottom:9px"><a href="${SITE}/demo/${d.slug}" style="color:#0b6b4a;font-weight:600">${d.label}</a> <span style="color:#4a5651">— ${d.line}</span></li>`
+        `<li style="margin-bottom:9px"><a href="${demoLink(ctx, d.slug)}" style="color:#0b6b4a;font-weight:600">${d.label}</a> <span style="color:#4a5651">— ${d.line}</span></li>`
     ).join("\n");
-    const rowsText = VERTICAL_DEMOS.map((d) => `• ${d.label} — ${d.line}\n  ${SITE}/demo/${d.slug}`).join("\n");
+    const rowsText = VERTICAL_DEMOS.map((d) => `• ${d.label} — ${d.line}\n  ${demoLink(ctx, d.slug)}`).join("\n");
     return {
       html: shell(
         `<p>${hi}</p>

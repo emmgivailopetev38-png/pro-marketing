@@ -78,6 +78,22 @@ export const tgNotify = {
     sendTelegram(`🔍 Чака те решение: ${escapeHtml(title)}`, {
       buttons: [{ text: "Ръчна проверка", url: `${SITE}/admin/manual-review` }],
     }),
+  /** Лийд отговори на автоматично писмо — до 20.10 такъв отговор стоеше 4 дни непрочетен. */
+  emailReply: (name: string, subject: string, excerpt: string, contactId: string, threadId: string | null) =>
+    sendTelegram(
+      `📩 <b>${escapeHtml(name)}</b> отговори на имейла${subject ? ` „${escapeHtml(subject)}"` : ""}${excerpt ? `:\n<i>${escapeHtml(excerpt.slice(0, 300))}</i>` : ""}`,
+      {
+        buttons: [
+          { text: "👤 Профил", url: `${SITE}/admin/clients/${contactId}` },
+          ...(threadId ? [{ text: "✉️ В Gmail", url: `https://mail.google.com/mail/u/0/#all/${threadId}` }] : []),
+        ],
+      }
+    ),
+  /** Отвори демото от личния линк в писмото — веднъж на ден на човек. */
+  demoViewed: (name: string, page: string, contactId: string) =>
+    sendTelegram(`👀 <b>${escapeHtml(name)}</b> отвори ${escapeHtml(page)} от писмото В МОМЕНТА`, {
+      buttons: [{ text: "👤 Профил", url: `${SITE}/admin/clients/${contactId}` }],
+    }),
 };
 
 function escapeHtml(s: string): string {
