@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { prazno, tonInfo } from "@/lib/suvetnik/razbor";
-import type { ZhivaPodskazka } from "./dvigatel";
+import { useZhivo, varniMikrofona, type ZhivaPodskazka } from "./dvigatel";
 
 export const BOI: Record<string, string> = {
   sky: "border-sky-400/60 bg-sky-400/15 text-sky-100",
@@ -34,6 +34,35 @@ export function Tishina({ ot }: { ot: number | null }) {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-slate-400/50 bg-slate-500/20 px-4 py-2 text-lg font-semibold text-slate-100">
       <span className="text-2xl">🤫</span> Мълчи — остави го да отговори <span className="ml-auto font-mono text-2xl">{ostava}</span>
+    </div>
+  );
+}
+
+/** Пазачът на звука: замлъкнал микрофон (сам се връща) и бележки като „слушам само микрофона“. */
+export function MikBaner({ kompaktna = false }: { kompaktna?: boolean }) {
+  const mik = useZhivo((x) => x.zvuk.mik);
+  const belezhka = useZhivo((x) => x.zvuk.belezhka);
+  if (mik === "ok" && !belezhka) return null;
+  const razmer = kompaktna ? "text-xs" : "text-sm";
+  return (
+    <div className="grid gap-1.5">
+      {mik !== "ok" && (
+        <div
+          className={`flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 ${razmer} ${
+            mik === "nyama" ? "border-red-400/60 bg-red-500/20 text-red-100" : "border-amber-400/50 bg-amber-400/15 text-amber-100"
+          }`}
+        >
+          <span className="font-semibold">
+            {mik === "nyama" ? "🎙 Не те чувам. Провери микрофона (Системни настройки → Звук → Вход)." : "🎙 Не те чувам — връщам микрофона…"}
+          </span>
+          {mik === "nyama" && (
+            <button type="button" onClick={() => void varniMikrofona(true)} className="ml-auto rounded-lg bg-white/15 px-2.5 py-1 font-semibold hover:bg-white/25">
+              🔄 Опитай пак
+            </button>
+          )}
+        </div>
+      )}
+      {belezhka && <p className={`rounded-lg bg-white/5 px-3 py-1.5 text-white/70 ${razmer}`}>ℹ️ {belezhka}</p>}
     </div>
   );
 }

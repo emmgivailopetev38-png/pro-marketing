@@ -9,7 +9,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { ETAPI, PREVENCII } from "@/lib/suvetnik/types";
 import { ETAP_VAPROSI, VAZRAZHENIYA } from "@/lib/suvetnik/biblioteka";
 import { etapOt } from "@/lib/suvetnik/razbor";
-import { Karta, Tishina } from "./Karta";
+import { Karta, MikBaner, Tishina } from "./Karta";
 import { poiskai, useZhivo } from "./dvigatel";
 
 interface DocPip {
@@ -147,6 +147,7 @@ function PipIzgled({ prozorec }: { prozorec: Window }) {
         <span className="ml-auto">{mozak === "misli" ? "🧠 мисли…" : mozak === "greshka" ? "⚠️" : "🧠 готов"}</span>
       </div>
 
+      <MikBaner kompaktna />
       <Tishina ot={tishinaOt} />
       <Karta p={p} misli={mozak === "misli"} greshka={mozak === "greshka" ? sabshtenie : undefined} kompaktna />
 

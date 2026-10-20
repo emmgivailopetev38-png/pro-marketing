@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ETAPI, PREVENCII, type Brif, type Obobshtenie } from "@/lib/suvetnik/types";
 import { ETAP_VAPROSI, VAZRAZHENIYA, type Veriga } from "@/lib/suvetnik/biblioteka";
 import { etapOt, tonInfo } from "@/lib/suvetnik/razbor";
-import { BOI, Karta, Tishina } from "./Karta";
+import { BOI, Karta, MikBaner, Tishina } from "./Karta";
 import { DEMO, DEMO_BRIF } from "./demo";
 import { imaPip, otvoriPip, usePipOtvoren } from "./pip";
 import {
@@ -53,106 +53,92 @@ function useKontakti(q: string) {
 
 function BrifEkran() {
   const greshka = useZhivo((x) => (x.status.mozak === "greshka" ? x.status.sabshtenie : undefined));
-  const [rejim, setRejim] = useState<"online" | "mikrofon">("online");
   const [brif, setBrif] = useState<Brif>(() => sklad.get().brif);
   const [kontakt, setKontakt] = useState<Kontakt | null>(null);
   const [tarsene, setTarsene] = useState("");
+  const [oshte, setOshte] = useState(false);
   const kontakti = useKontakti(kontakt ? "" : tarsene);
-  const [tragva, setTragva] = useState(false);
 
   function izberi(k: Kontakt) {
     setKontakt(k);
     setBrif((b) => ({ ...b, klient: k.ime, biznes: b.biznes || k.firma, belezhki: b.belezhki || k.belezhki }));
   }
 
-  async function start(kak: "zhivo" | "demo") {
-    setTragva(true);
+  function start(kak: "online" | "mikrofon" | "demo") {
     if (kak === "demo") {
       zadaiBrif({ ...DEMO_BRIF, obrashtenie: "ти" });
       void demo(DEMO);
-    } else {
-      zadaiBrif(brif, kontakt?.id);
-      await zapochni(rejim);
-      // Chrome пуска прозорчето само при свеж клик — ако още го има, отваряме веднага
-      const aktivno = (navigator as Navigator & { userActivation?: { isActive: boolean } }).userActivation?.isActive;
-      if (imaPip() && aktivno && sklad.get().faza === "zhivo") otvoriPip().catch(() => undefined);
+      return;
     }
-    setTragva(false);
+    zadaiBrif(brif, kontakt?.id);
+    // Изборът на таба и прозорчето над срещата искат свеж клик — и двете тръгват от този.
+    void zapochni(kak);
+    if (kak === "online" && imaPip()) otvoriPip().catch(() => undefined);
   }
 
   const pole = "w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-[var(--color-text-primary)] outline-none focus:border-cyan-400/60";
+  const vtori = `${btn} border border-white/15 bg-white/5 text-sm text-[var(--color-text-primary)] hover:bg-white/10`;
   return (
-    <div className="grid gap-6">
-      <header>
+    <div className="mx-auto grid max-w-2xl gap-5 pt-2">
+      <header className="text-center">
         <h1 className="text-3xl font-bold text-[var(--color-text-primary)]">🎧 Съветникът на живо</h1>
-        <p className="mt-1 text-[var(--color-text-secondary)]">
-          Слуша разговора и ти казва какво да кажеш и с какъв тон — по метода на Георги. Всичко се смята в облака; Макът само праща звука.
-        </p>
+        <p className="mt-1 text-[var(--color-text-secondary)]">Слуша разговора и ти казва какво да кажеш и с какъв тон — по метода на Георги.</p>
       </header>
 
-      <section className="grid gap-3 md:grid-cols-2">
-        {([
-          ["online", "💻 Онлайн среща (Meet / Zoom в Chrome)", "Избираш таба със срещата и „Сподели и звука на таба“. Ти и клиентът сте на отделни линии — най-точно."],
-          ["mikrofon", "📱 Само микрофон", "Телефон на високоговорител или среща в стаята. Съветникът сам разпознава кой говори."],
-        ] as const).map(([id, ime, opis]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setRejim(id)}
-            className={`rounded-2xl border-2 p-4 text-left transition-colors ${rejim === id ? "border-cyan-400 bg-cyan-400/10" : "border-white/10 bg-white/5 hover:border-white/25"}`}
-          >
-            <p className="text-lg font-semibold text-[var(--color-text-primary)]">{ime}</p>
-            <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{opis}</p>
-          </button>
-        ))}
-      </section>
+      <div className="relative">
+        <input
+          className={pole}
+          placeholder="С кого говориш? (по желание — търси в CRM-а)"
+          value={kontakt ? `${kontakt.ime}${kontakt.firma ? ` · ${kontakt.firma}` : ""}` : tarsene}
+          onChange={(e) => {
+            setKontakt(null);
+            setTarsene(e.target.value);
+            setBrif((b) => ({ ...b, klient: e.target.value }));
+          }}
+        />
+        {!kontakt && kontakti.length > 0 && (
+          <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-white/15 bg-[#0b1220] shadow-xl">
+            {kontakti.map((k) => (
+              <button key={k.id} type="button" onClick={() => izberi(k)} className="block w-full px-3 py-2 text-left text-sm text-white/90 hover:bg-white/10">
+                {k.ime} {k.firma && <span className="text-white/50">· {k.firma}</span>} {k.telefon && <span className="text-white/40">· {k.telefon}</span>}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
-      <section className="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-        <p className="font-semibold text-[var(--color-text-primary)]">Брифът (по желание — помага на съветника)</p>
-        <div className="relative">
-          <input
-            className={pole}
-            placeholder="Клиент — търси в CRM-а по име, фирма или телефон"
-            value={kontakt ? `${kontakt.ime}${kontakt.firma ? ` · ${kontakt.firma}` : ""}` : tarsene}
-            onChange={(e) => {
-              setKontakt(null);
-              setTarsene(e.target.value);
-              setBrif((b) => ({ ...b, klient: e.target.value }));
-            }}
-          />
-          {!kontakt && kontakti.length > 0 && (
-            <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-white/15 bg-[#0b1220] shadow-xl">
-              {kontakti.map((k) => (
-                <button key={k.id} type="button" onClick={() => izberi(k)} className="block w-full px-3 py-2 text-left text-sm text-white/90 hover:bg-white/10">
-                  {k.ime} {k.firma && <span className="text-white/50">· {k.firma}</span>} {k.telefon && <span className="text-white/40">· {k.telefon}</span>}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="grid gap-3 md:grid-cols-2">
-          <input className={pole} placeholder="Бизнесът му" value={brif.biznes ?? ""} onChange={(e) => setBrif({ ...brif, biznes: e.target.value })} />
-          <input className={pole} placeholder="Какво иска (от анкетата/рекламата)" value={brif.cel ?? ""} onChange={(e) => setBrif({ ...brif, cel: e.target.value })} />
-          <input className={pole} placeholder="Офертата и цената (само ако вече ги имаш)" value={brif.oferta ?? ""} onChange={(e) => setBrif({ ...brif, oferta: e.target.value })} />
-          <select className={pole} value={brif.obrashtenie ?? "ти"} onChange={(e) => setBrif({ ...brif, obrashtenie: e.target.value as "ти" | "Вие" })}>
-            <option value="ти">Обръщение: „ти“</option>
-            <option value="Вие">Обръщение: „Вие“</option>
-          </select>
-        </div>
-        <textarea className={`${pole} min-h-20`} placeholder="Бележки — каквото знаеш за него" value={brif.belezhki ?? ""} onChange={(e) => setBrif({ ...brif, belezhki: e.target.value })} />
-      </section>
+      <button
+        type="button"
+        onClick={() => start("online")}
+        className="rounded-2xl bg-cyan-500 px-6 py-5 text-center text-black shadow-lg shadow-cyan-500/20 transition-colors hover:bg-cyan-400"
+      >
+        <span className="block text-2xl font-bold">▶ Старт</span>
+        <span className="mt-1 block text-sm font-medium text-black/70">Избери таба на срещата → „Сподели“. Прозорчето над срещата излиза само.</span>
+      </button>
+
+      <div className="flex flex-wrap justify-center gap-2">
+        <button type="button" onClick={() => start("mikrofon")} className={vtori}>📞 Телефон / на живо — само микрофон</button>
+        <button type="button" onClick={() => setOshte(!oshte)} className={vtori}>📝 Бриф {oshte ? "▴" : "▾"}</button>
+        <button type="button" onClick={() => start("demo")} className={vtori}>🎬 Демо</button>
+      </div>
+
+      {oshte && (
+        <section className="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="grid gap-3 md:grid-cols-2">
+            <input className={pole} placeholder="Бизнесът му" value={brif.biznes ?? ""} onChange={(e) => setBrif({ ...brif, biznes: e.target.value })} />
+            <input className={pole} placeholder="Какво иска (от анкетата/рекламата)" value={brif.cel ?? ""} onChange={(e) => setBrif({ ...brif, cel: e.target.value })} />
+            <input className={pole} placeholder="Офертата и цената (само ако вече ги имаш)" value={brif.oferta ?? ""} onChange={(e) => setBrif({ ...brif, oferta: e.target.value })} />
+            <select className={pole} value={brif.obrashtenie ?? "ти"} onChange={(e) => setBrif({ ...brif, obrashtenie: e.target.value as "ти" | "Вие" })}>
+              <option value="ти">Обръщение: „ти“</option>
+              <option value="Вие">Обръщение: „Вие“</option>
+            </select>
+          </div>
+          <textarea className={`${pole} min-h-20`} placeholder="Бележки — каквото знаеш за него" value={brif.belezhki ?? ""} onChange={(e) => setBrif({ ...brif, belezhki: e.target.value })} />
+        </section>
+      )}
 
       {greshka && <p className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-amber-100">⚠️ {greshka}</p>}
-
-      <div className="flex flex-wrap items-center gap-3">
-        <button type="button" disabled={tragva} onClick={() => void start("zhivo")} className={`${btn} bg-cyan-500 text-lg text-black hover:bg-cyan-400`}>
-          ▶ Започни разговора
-        </button>
-        <button type="button" disabled={tragva} onClick={() => void start("demo")} className={`${btn} border border-white/15 bg-white/5 text-[var(--color-text-primary)] hover:bg-white/10`}>
-          🎬 Демо без звук
-        </button>
-        <p className="text-sm text-[var(--color-text-tertiary)]">🎧 Със слушалки е най-точно — иначе микрофонът чува и клиента.</p>
-      </div>
+      <p className="text-center text-xs text-[var(--color-text-tertiary)]">🎧 Със слушалки е най-точно. Не избереш ли таб — слушам само микрофона.</p>
     </div>
   );
 }
@@ -170,7 +156,7 @@ function Taimer() {
   return <span className="font-mono text-lg text-[var(--color-text-primary)]">{String(Math.floor(sek / 60)).padStart(2, "0")}:{String(sek % 60).padStart(2, "0")}</span>;
 }
 
-const STATUS_IME: Record<string, string> = { izkl: "изкл.", svarzva: "свързва…", slusha: "слуша", prekasnato: "прекъсна", greshka: "грешка" };
+const STATUS_IME: Record<string, string> = { izkl: "изкл.", svarzva: "свързва…", slusha: "слуша", prekasnato: "прекъсна", greshka: "грешка", nechuva: "не те чува" };
 
 function Lampa({ ime, st, nivo }: { ime: string; st: string; nivo: number }) {
   const cvyat = st === "slusha" ? "bg-emerald-400" : st === "svarzva" ? "bg-amber-400" : st === "izkl" ? "bg-slate-500" : "bg-red-500";
@@ -189,6 +175,7 @@ function ZhivEkran() {
   const rejim = useZhivo((x) => x.rejim);
   const status = useZhivo((x) => x.status);
   const nivo = useZhivo((x) => x.nivo);
+  const mik = useZhivo((x) => x.zvuk.mik);
   const p = useZhivo((x) => x.podskazka);
   const tishinaOt = useZhivo((x) => x.tishinaOt);
   const sastoyanie = useZhivo((x) => x.sastoyanie);
@@ -229,7 +216,7 @@ function ZhivEkran() {
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center gap-2">
         <Taimer />
-        <Lampa ime="🎙 Ти" st={status.I} nivo={nivo.I} />
+        <Lampa ime="🎙 Ти" st={mik === "ok" ? status.I : "nechuva"} nivo={nivo.I} />
         {rejim === "online" && <Lampa ime="🔊 Клиентът" st={status.K} nivo={nivo.K} />}
         <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-xs text-white/80">
           🧠 {status.mozak === "misli" ? "мисли…" : status.mozak === "greshka" ? "грешка" : "готов"}
@@ -255,6 +242,8 @@ function ZhivEkran() {
       {(status.sabshtenie && status.mozak === "gotov") || pipGreshka ? (
         <p className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">⚠️ {pipGreshka || status.sabshtenie}</p>
       ) : null}
+
+      <MikBaner />
 
       {imaPip() && !pipOtvoren && (
         <button

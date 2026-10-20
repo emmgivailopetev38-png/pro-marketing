@@ -29,6 +29,8 @@ export interface Zhivo {
   status: { I: ScribeStatus; K: ScribeStatus; mozak: "gotov" | "misli" | "greshka"; sabshtenie?: string };
   tishinaOt: number | null;
   nivo: { I: number; K: number };
+  /** Пазачът на звука: „vrashta“ = микрофонът замлъкна и го взимаме наново; „nyama“ = не се върна. */
+  zvuk: { mik: "ok" | "vrashta" | "nyama"; belezhka?: string };
 }
 
 const nachalno = (): Zhivo => ({
@@ -44,6 +46,7 @@ const nachalno = (): Zhivo => ({
   status: { I: "izkl", K: "izkl", mozak: "gotov" },
   tishinaOt: null,
   nivo: { I: 0, K: 0 },
+  zvuk: { mik: "ok" },
 });
 
 let s: Zhivo = nachalno();
@@ -212,10 +215,19 @@ export function prevkluchiPrevencia(id: string) {
 // ───────────── старт и стоп ─────────────
 
 let ctx: AudioContext | null = null;
-let tapove: Tap[] = [];
-let linii: ScribeLiniya[] = [];
-let potoci: MediaStream[] = [];
-let nivoTaimer: ReturnType<typeof setInterval> | null = null;
+let liniyaI: ScribeLiniya | null = null;
+let liniyaK: ScribeLiniya | null = null;
+let mik: MediaStream | null = null;
+let tab: MediaStream | null = null;
+let tapI: Tap | null = null;
+let tapK: Tap | null = null;
+let nadzor: ReturnType<typeof setInterval> | null = null;
+// всяко „Старт“/„Край“ сменя поколението — закъснял микрофон или таб от стара сесия се спира
+let pokolenie = 0;
+// пазачът: микрофон с пълна тишина 3 s е замлъкнал (жив никога не дава точни нули) → взима се наново
+let vrashta = false;
+let opiti = 0;
+let posledenOpit = 0;
 
 async function token(): Promise<string> {
   const r = await fetch("/api/suvetnik/token?n=1", { cache: "no-store" });
@@ -228,47 +240,150 @@ export function zadaiBrif(brif: Brif, kontaktId?: string) {
   zadai({ brif, kontaktId });
 }
 
+function zvuk(p: Partial<Zhivo["zvuk"]>) {
+  zadai((x) => ({ zvuk: { ...x.zvuk, ...p } }));
+}
+
+/** Взима микрофона и го закача към линията на Ивайло; старият се спира чак след това — без дупка. */
+async function zakachiMikrofon() {
+  const moe = pokolenie;
+  const nov = await vzemiMikrofon();
+  if (moe !== pokolenie || !ctx || !liniyaI) {
+    nov.getTracks().forEach((t) => t.stop());
+    return;
+  }
+  const liniya = liniyaI;
+  const tap = await zakachi(ctx, nov, (pcm) => liniya.prati(pcm));
+  if (moe !== pokolenie) {
+    tap.spri();
+    nov.getTracks().forEach((t) => t.stop());
+    return;
+  }
+  nov.getAudioTracks()[0]?.addEventListener("ended", () => {
+    if (mik === nov) void varniMikrofona();
+  });
+  const stariTap = tapI;
+  const stariMik = mik;
+  tapI = tap;
+  mik = nov;
+  stariTap?.spri();
+  stariMik?.getTracks().forEach((t) => t.stop());
+}
+
+/** Замлъкнал микрофон: събужда звука на браузъра и взима микрофона наново. */
+export async function varniMikrofona(rachno = false) {
+  if (vrashta || s.faza !== "zhivo" || !ctx || !liniyaI) return;
+  if (rachno) opiti = 0;
+  vrashta = true;
+  opiti++;
+  posledenOpit = Date.now();
+  zvuk({ mik: "vrashta" });
+  try {
+    if (ctx.state !== "running") await ctx.resume().catch(() => undefined);
+    await zakachiMikrofon();
+  } catch {
+    zvuk({ mik: "nyama" });
+  } finally {
+    vrashta = false;
+  }
+}
+
+function pazach() {
+  zadai({ nivo: { I: tapI?.nivo() ?? 0, K: tapK?.nivo() ?? 0 } });
+  if (!ctx || !tapI || vrashta) return;
+  if (ctx.state === "suspended") void ctx.resume().catch(() => undefined);
+  const tiho = tapI.tihoMs();
+  if (tiho < 1000) {
+    opiti = 0;
+    if (s.zvuk.mik !== "ok") zvuk({ mik: "ok" });
+  } else if (tiho > 3000 && Date.now() - posledenOpit > 5000) {
+    if (opiti < 3) void varniMikrofona();
+    else if (s.zvuk.mik !== "nyama") zvuk({ mik: "nyama" });
+  }
+}
+
+/** За проверка от конзолата: window.__suvetnik() — без ключове и токени. */
+function diagnostika() {
+  const tm = mik?.getAudioTracks()[0];
+  const tt = tab?.getAudioTracks()[0];
+  return {
+    ctx: ctx?.state ?? "няма",
+    mik: tm ? `${tm.readyState}${tm.muted ? " muted" : ""} · ${tm.label}` : "няма",
+    tab: tt ? `${tt.readyState}${tt.muted ? " muted" : ""}` : "няма",
+    tihoMsI: Math.round(Math.min(tapI?.tihoMs() ?? -1, 9e9)),
+    linii: { I: liniyaI?.otvorena ?? false, K: liniyaK?.otvorena ?? false },
+    opiti,
+    zvuk: s.zvuk,
+  };
+}
+
+/**
+ * „Онлайн“ първо иска таба на срещата — преди всяко await, докато кликът е свеж (UI-ят отваря
+ * прозорчето от същия клик веднага след това). Откаже ли се изборът или е без звук, разговорът
+ * продължава само с микрофона — без спиране и без грешка.
+ */
 export async function zapochni(rejim: "online" | "mikrofon") {
+  const tabZayavka = rejim === "online" ? vzemiTab() : null;
+  tabZayavka?.catch(() => undefined);
+  spri();
+  const moe = ++pokolenie;
   zadai({ ...nachalno(), brif: s.brif, kontaktId: s.kontaktId, rejim, faza: "zhivo", zapochna: Date.now() });
   try {
-    const mic = await vzemiMikrofon();
-    potoci.push(mic);
-    let tab: MediaStream | null = null;
-    if (rejim === "online") {
-      tab = await vzemiTab();
-      potoci.push(tab);
-      tab.getAudioTracks()[0]?.addEventListener("ended", () =>
-        zadai((x) => ({ status: { ...x.status, K: "prekasnato", sabshtenie: "Споделянето на таба спря — клиентът не се чува." } })),
-      );
-    }
     // честотата е на системата (обикновено 48 kHz) — процесорът сам я прави 16 kHz
-    ctx = new AudioContext();
-    if (ctx.state === "suspended") await ctx.resume();
+    const c = new AudioContext();
+    ctx = c;
+    if (c.state === "suspended") await c.resume().catch(() => undefined);
+    c.addEventListener("statechange", () => {
+      if (c.state === "suspended") void c.resume().catch(() => undefined);
+    });
 
-    const liniyaI = new ScribeLiniya(token, {
+    liniyaI = new ScribeLiniya(token, {
       chernova: (t) => zadai((x) => ({ chernova: { ...x.chernova, I: t } })),
-      gotovo: (t) => (rejim === "online" ? naRepliceNaIvailo(t) : naRepliceBezRazdelyane(t)),
+      gotovo: (t) => (s.rejim === "online" ? naRepliceNaIvailo(t) : naRepliceBezRazdelyane(t)),
       status: (st, m) => zadai((x) => ({ status: { ...x.status, I: st, sabshtenie: m ?? x.status.sabshtenie } })),
     });
-    linii.push(liniyaI);
-    tapove.push(await zakachi(ctx, mic, (pcm) => liniyaI.prati(pcm)));
+    await zakachiMikrofon();
+    if (moe !== pokolenie) return;
     void liniyaI.otvori();
 
-    if (tab) {
-      const liniyaK = new ScribeLiniya(token, {
-        chernova: (t) => zadai((x) => ({ chernova: { ...x.chernova, K: t }, tishinaOt: t ? null : x.tishinaOt })),
-        gotovo: (t) => naRepliceNaKlienta(t, "K"),
-        status: (st, m) => zadai((x) => ({ status: { ...x.status, K: st, sabshtenie: m ?? x.status.sabshtenie } })),
-      });
-      linii.push(liniyaK);
-      tapove.push(await zakachi(ctx, tab, (pcm) => liniyaK.prati(pcm)));
-      void liniyaK.otvori();
+    if (tabZayavka) {
+      let t: MediaStream | null = null;
+      try {
+        t = await tabZayavka;
+      } catch (e) {
+        const bezZvuk = e instanceof Error && /звук/.test(e.message);
+        zadai({ rejim: "mikrofon" });
+        zvuk({ belezhka: bezZvuk ? "Избраното е без звук — слушам само микрофона." : "Без таб на среща — слушам само микрофона." });
+      }
+      if (t && moe !== pokolenie) {
+        t.getTracks().forEach((x) => x.stop());
+        return;
+      }
+      if (t) {
+        tab = t;
+        const potok = t;
+        potok.getAudioTracks()[0]?.addEventListener("ended", () => {
+          if (tab !== potok) return;
+          zadai((x) => ({ status: { ...x.status, K: "prekasnato" } }));
+          zvuk({ belezhka: "Споделянето на таба спря — клиентът не се чува. ⏹ Край и ▶ Старт го връщат." });
+        });
+        const liniya = new ScribeLiniya(token, {
+          chernova: (x) => zadai((y) => ({ chernova: { ...y.chernova, K: x }, tishinaOt: x ? null : y.tishinaOt })),
+          gotovo: (x) => naRepliceNaKlienta(x, "K"),
+          status: (st, m) => zadai((y) => ({ status: { ...y.status, K: st, sabshtenie: m ?? y.status.sabshtenie } })),
+        });
+        liniyaK = liniya;
+        tapK = await zakachi(c, potok, (pcm) => liniya.prati(pcm));
+        void liniya.otvori();
+      }
     }
-    nivoTaimer = setInterval(() => {
-      zadai({ nivo: { I: tapove[0]?.nivo() ?? 0, K: tapove[1]?.nivo() ?? 0 } });
-    }, 200);
+    opiti = 0;
+    posledenOpit = Date.now();
+    nadzor = setInterval(pazach, 200);
+    (window as unknown as { __suvetnik?: () => unknown }).__suvetnik = diagnostika;
     void poiskai("rachno");
   } catch (e) {
+    tabZayavka?.then((t) => t.getTracks().forEach((x) => x.stop())).catch(() => undefined);
     spri();
     zadai({
       faza: "brif",
@@ -284,18 +399,25 @@ function naRepliceBezRazdelyane(t: string) {
 }
 
 export function spri() {
+  pokolenie++;
   if (otlozheno) clearTimeout(otlozheno);
-  if (nivoTaimer) clearInterval(nivoTaimer);
-  nivoTaimer = null;
+  if (nadzor) clearInterval(nadzor);
+  nadzor = null;
   vPolet?.abort();
-  linii.forEach((l) => l.zatvori());
-  tapove.forEach((t) => t.spri());
-  potoci.forEach((p) => p.getTracks().forEach((t) => t.stop()));
-  void ctx?.close();
+  liniyaI?.zatvori();
+  liniyaK?.zatvori();
+  tapI?.spri();
+  tapK?.spri();
+  mik?.getTracks().forEach((t) => t.stop());
+  tab?.getTracks().forEach((t) => t.stop());
+  void ctx?.close().catch(() => undefined);
   ctx = null;
-  linii = [];
-  tapove = [];
-  potoci = [];
+  liniyaI = null;
+  liniyaK = null;
+  tapI = null;
+  tapK = null;
+  mik = null;
+  tab = null;
 }
 
 export function priklyuchi() {
