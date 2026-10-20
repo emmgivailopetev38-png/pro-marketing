@@ -141,6 +141,17 @@ describe("recordInboundReplies", () => {
     expect(r.skipped.logged_by_hand).toBe(1);
   });
 
+  it("изходяща чернова 10 минути по-късно не скрива истинския отговор", async () => {
+    h.fake = createFakeSupabase({
+      contacts: [{ id: "c1", full_name: "Стефан", email: "premium@auto.bg" }],
+      contact_activities: [
+        autoMail("c1"),
+        { contact_id: "c1", activity_type: "email", occurred_at: new Date(Date.parse(msg.date) + 10 * 60_000).toISOString(), metadata: {} },
+      ],
+    });
+    expect((await recordInboundReplies([msg])).recorded).toBe(1);
+  });
+
   it("пропуска непознати, хора без автоматично писмо и нашите адреси", async () => {
     h.fake = createFakeSupabase({
       contacts: [{ id: "c2", full_name: "Счетоводител", email: "office@opg-bg.com" }],

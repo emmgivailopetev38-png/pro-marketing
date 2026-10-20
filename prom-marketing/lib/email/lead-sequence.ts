@@ -157,13 +157,14 @@ export async function runLeadSequence(supabase: Sb): Promise<{
 
   // Кой вече е говорил с нас — при него поредицата спира. Отговорът на имейл
   // също е разговор: от 20.10.2026 Gmail скриптът го вписва сам
-  // (`email_received`, lib/crm/email-replies.ts), а ръчно вписаният е `email`.
+  // (`email_received`, lib/crm/email-replies.ts). `email` НЕ влиза — там са
+  // предимно изходящите писма и черновите на Ивайло.
   const ids = contacts.map((c) => c.id);
   const { data: touches } = await supabase
     .from("contact_activities")
     .select("contact_id")
     .in("contact_id", ids)
-    .in("activity_type", ["call", "meeting", "email_received", "email"]);
+    .in("activity_type", ["call", "meeting", "email_received"]);
   const talked = new Set((touches ?? []).map((t) => t.contact_id));
   // Натиснал „Спри писмата“ — повече автоматични писма няма (така обещава страницата).
   const { data: optRows } = await supabase

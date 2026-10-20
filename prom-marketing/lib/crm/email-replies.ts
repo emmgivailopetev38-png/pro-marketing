@@ -27,8 +27,12 @@ export const WATCH_DAYS = 60;
 /** Нашите адреси — писмо оттам никога не е „отговор от лийд“. */
 const OWN = new Set(["ivailo@promarketing.pw", (process.env.EMAIL_REPLY_TO || "emmgivailopetev38@gmail.com").toLowerCase()]);
 
-/** Колко назад от отговора търсим вече вписан ръчно имейл (Claude/Хермес) — да не се дублира. */
-const SAME_EMAIL_WINDOW_MS = 15 * 60_000;
+/**
+ * Ръчно вписан отговор (Claude/Хермес) носи часа на самото писмо — затова
+ * същото писмо се познава по час до 2 минути. По-широко не: типът `email` е
+ * предимно ИЗХОДЯЩИ писма и чернови и не бива да скрива истински отговор.
+ */
+const SAME_EMAIL_WINDOW_MS = 2 * 60_000;
 
 const PAGE = 1000;
 const IN_CHUNK = 150;
@@ -154,7 +158,7 @@ export interface RepliesResult {
 /**
  * Вписва отговорите в картоните. Идемпотентно: същото Gmail писмо втори път
  * не прави нищо (скриптът праща последните 3 дни при всяко пускане), а писмо,
- * вече вписано на ръка (Claude/Хермес с час до 15 минути от отговора), не се дублира.
+ * вече вписано на ръка (Claude/Хермес с часа на отговора), не се дублира.
  */
 export async function recordInboundReplies(messages: InboundMessage[]): Promise<RepliesResult> {
   const sb = createServiceClient();
@@ -264,7 +268,7 @@ export async function loadEngagement(sinceIso: string): Promise<Engagement> {
   const { data } = await sb
     .from("contact_activities")
     .select("contact_id, activity_type, title, body, metadata, occurred_at")
-    .in("activity_type", ["email_received", "email", "demo_view"])
+    .in("activity_type", ["email_received", "demo_view"])
     .gte("occurred_at", sinceIso)
     .order("occurred_at", { ascending: true })
     .limit(200);
