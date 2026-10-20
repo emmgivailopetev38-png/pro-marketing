@@ -6,7 +6,7 @@ import { ETAP_VAPROSI, VAZRAZHENIYA, type Veriga } from "@/lib/suvetnik/bibliote
 import { etapOt, tonInfo } from "@/lib/suvetnik/razbor";
 import { BOI, Karta, Tishina } from "./Karta";
 import { DEMO, DEMO_BRIF } from "./demo";
-import { imaPip, otvoriPip } from "./pip";
+import { imaPip, otvoriPip, usePipOtvoren } from "./pip";
 import {
   demo, otnachalo, poiskai, prevkluchiPrevencia, priklyuchi, sklad, useZhivo, zadaiBrif, zapochni,
 } from "./dvigatel";
@@ -73,6 +73,9 @@ function BrifEkran() {
     } else {
       zadaiBrif(brif, kontakt?.id);
       await zapochni(rejim);
+      // Chrome пуска прозорчето само при свеж клик — ако още го има, отваряме веднага
+      const aktivno = (navigator as Navigator & { userActivation?: { isActive: boolean } }).userActivation?.isActive;
+      if (imaPip() && aktivno && sklad.get().faza === "zhivo") otvoriPip().catch(() => undefined);
     }
     setTragva(false);
   }
@@ -192,6 +195,7 @@ function ZhivEkran() {
   const [veriga, setVeriga] = useState<{ v: Veriga; stapka: number } | null>(null);
   const [pipGreshka, setPipGreshka] = useState("");
   const [vsichki, setVsichki] = useState(false);
+  const pipOtvoren = usePipOtvoren();
 
   useEffect(() => {
     function klavish(e: KeyboardEvent) {
@@ -200,6 +204,8 @@ function ZhivEkran() {
       if (e.code === "Space") {
         e.preventDefault();
         void poiskai("rachno");
+      } else if (e.code === "KeyP" && imaPip()) {
+        otvoriPip().catch((err: unknown) => setPipGreshka(err instanceof Error ? err.message : "Не се отвори."));
       } else if (/^Digit[1-9]$/.test(e.code) && !e.metaKey && !e.ctrlKey && !e.altKey) {
         const v = VAZRAZHENIYA.find((x) => x.id === CHESTI[Number(e.code.slice(5)) - 1]);
         if (v) {
@@ -249,6 +255,20 @@ function ZhivEkran() {
       {(status.sabshtenie && status.mozak === "gotov") || pipGreshka ? (
         <p className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">⚠️ {pipGreshka || status.sabshtenie}</p>
       ) : null}
+
+      {imaPip() && !pipOtvoren && (
+        <button
+          type="button"
+          onClick={() => otvoriPip().catch((e: unknown) => setPipGreshka(e instanceof Error ? e.message : "Не се отвори."))}
+          className="flex items-center gap-3 rounded-2xl border-2 border-cyan-400/70 bg-cyan-400/10 px-4 py-3 text-left text-cyan-100 hover:bg-cyan-400/20"
+        >
+          <span className="text-2xl">🪟</span>
+          <span>
+            <span className="block font-semibold">Отвори прозорчето над срещата</span>
+            <span className="block text-sm text-cyan-100/70">Малко прозорче, което стои над Meet — какво да кажеш, тонът, въпросите. Или натисни P.</span>
+          </span>
+        </button>
+      )}
 
       <ol className="flex flex-wrap gap-1.5">
         {ETAPI.map((e, i) => {

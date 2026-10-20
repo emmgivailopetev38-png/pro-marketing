@@ -85,7 +85,8 @@ export function Karta({
           {!prazno(p.sledvashto) && <p className="text-white/60">↪ После: {p.sledvashto}</p>}
         </div>
       )}
-      {kompaktna && !prazno(p.sledvashto) && <p className="mt-2 text-xs text-white/60">↪ {p.sledvashto}</p>}
+      {kompaktna && !prazno(p.tehnika) && <p className="mt-1.5 truncate text-[11px] text-white/55">🎯 {p.tehnika}</p>}
+      {kompaktna && !prazno(p.sledvashto) && <p className="mt-1 text-xs text-white/65">↪ После: {p.sledvashto}</p>}
       {greshka && <p className="mt-2 text-xs text-amber-200">⚠️ {greshka}</p>}
     </div>
   );
