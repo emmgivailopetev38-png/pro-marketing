@@ -23,7 +23,11 @@ export const SITE_URL = "https://promarketing.pw";
    ⚠️ LinkedIn НЯМА нарочно — в репото няма реален адрес на профила му, а
    измислен адрес в `sameAs` е по-лош от липсващ. Добавя се тук, щом има.
    --------------------------------------------------------------------- */
-export type SocialKey = "youtube" | "instagram" | "tiktok" | "facebook";
+/** Поканата за Viber канала „AI България · Пари с AI“ — ползва се и от пренасочването /viber. */
+export const VIBER_KANAL =
+  "https://invite.viber.com/?g2=AQAqzZ05GRKnLVdWtuxQm%2FpaRecgu2KbzUByCyptRY7b8fkm5KfWqkJNJ%2Fldl9ts";
+
+export type SocialKey = "youtube" | "instagram" | "tiktok" | "facebook" | "viber";
 
 export type SocialProfile = {
   /** Уникален ключ на плочката (React key). */
@@ -84,6 +88,16 @@ export const SOCIAL_PROFILES: readonly SocialProfile[] = [
     label: "AI България",
     handle: "групата ми във Facebook",
     href: "https://www.facebook.com/groups/aizabiznesa",
+    sameAs: [],
+  },
+  {
+    // Viber каналът (20.10.2026): всеки ден в 9:00 инструмент, промпт или случка.
+    // Канал, не профил — като групата не влиза в `sameAs`. Кратък адрес: /viber.
+    key: "viber-kanal",
+    brand: "viber",
+    label: "Viber канал",
+    handle: "AI България · Пари с AI",
+    href: VIBER_KANAL,
     sameAs: [],
   },
 ];

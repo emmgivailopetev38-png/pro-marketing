@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { VIBER_KANAL } from "./lib/seo/site";
 
 const nextConfig: NextConfig = {
   // Версията на Next в отговорите не помага на никого освен на скенерите.
@@ -56,6 +57,10 @@ const nextConfig: NextConfig = {
       // 301, за да не се губи нищо от стария адрес.
       { source: "/magazin", destination: "/ai-reshenia", permanent: true },
       { source: "/reshenia", destination: "/ai-reshenia", permanent: true },
+
+      // Viber каналът „AI България · Пари с AI“ — кратък адрес за имейли, SMS и
+      // съобщения. Временен (307): ако Viber смени поканата, сменя се само тук.
+      { source: "/viber", destination: VIBER_KANAL, permanent: false },
     ];
   },
 

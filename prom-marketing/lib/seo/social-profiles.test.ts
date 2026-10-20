@@ -7,12 +7,13 @@ const HOST = {
   instagram: "www.instagram.com",
   tiktok: "www.tiktok.com",
   facebook: "www.facebook.com",
+  viber: "invite.viber.com",
 } as const;
 
 const href = (key: string) => SOCIAL_PROFILES.find((p) => p.key === key)?.href;
 
 describe("социалните профили на Ивайло", () => {
-  it("са шест, в реда на плочките: YouTube, Instagram, TikTok, страницата, личният Facebook, групата", () => {
+  it("са седем, в реда на плочките: YouTube, Instagram, TikTok, страницата, личният Facebook, групата, Viber каналът", () => {
     expect(SOCIAL_PROFILES.map((p) => p.key)).toEqual([
       "youtube",
       "instagram",
@@ -20,6 +21,7 @@ describe("социалните профили на Ивайло", () => {
       "facebook",
       "facebook-lichno",
       "ai-balgaria",
+      "viber-kanal",
     ]);
   });
 
@@ -46,6 +48,8 @@ describe("социалните профили на Ивайло", () => {
     expect(ORG.founder.sameAs).toEqual(naChoveka);
     expect(personSchema().sameAs).toEqual(naChoveka);
     expect(personSchema().sameAs).not.toContain(href("ai-balgaria"));
+    expect(personSchema().sameAs).not.toContain(href("viber-kanal"));
+    expect(ORG.sameAs).not.toContain(href("viber-kanal"));
   });
 
   it("Petev.ai е отделен продукт: връзка с https://petevai.com, но извън профилите и sameAs", () => {
