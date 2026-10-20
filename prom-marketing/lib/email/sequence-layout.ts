@@ -11,6 +11,8 @@ export const SITE = "https://www.promarketing.pw";
 /** Petev.ai — платформата на Ивайло; по правило стои до promarketing.pw във всеки подпис. */
 export const PETEVAI_URL = "https://petevai.com";
 export const YT = "https://www.youtube.com/@promarketingbg";
+/** Viber каналът „AI България · Пари с AI“ (20.10.2026) — кратък адрес, сочи към поканата. */
+export const VIBER_URL = "https://promarketing.pw/viber";
 export const PHONE = "+359 877 399 963";
 
 /**
@@ -99,7 +101,8 @@ export function signature(ctx?: BuildCtx): string {
 <a href="${SITE}/demo" style="color:#0b6b4a">живото демо</a> ·
 <a href="${SITE}/booking" style="color:#0b6b4a">запази 45 минути</a> ·
 <a href="${SITE}/automation-audit" style="color:#0b6b4a">безплатен AI одит</a> ·
-<a href="${YT}" style="color:#0b6b4a">YouTube</a>
+<a href="${YT}" style="color:#0b6b4a">YouTube</a> ·
+<a href="${VIBER_URL}" style="color:#0b6b4a">Viber канал</a>
 </p>${
     ctx?.unsubscribeUrl
       ? `
