@@ -48,6 +48,7 @@ import {
   type BuildCtx,
   type SequenceStep,
 } from "./sequence-layout";
+import { uebinarStep } from "./uebinar-step";
 
 /** Етапите, в които човекът вече има оферта или презентация на масата. */
 const LATE_STAGES = new Set(["presentation_sent", "offer_sent", "negotiating"]);
@@ -389,6 +390,12 @@ export const WARM_TRACKS: Record<WarmTrack, SequenceStep[]> = {
 export const CLOSING_KEY = "w10_tri_vrati";
 
 export const WARM_SEQUENCE: SequenceStep[] = [
+  // ── 0 · ПОДАРЪК — филмът-уебинар „ВЪЛНАТА“ (22.10.2026) ──────────────────
+  // Пръв в общия кръг: всеки, който е вътре, го получава на следващото си
+  // писмо — по най-много 25 на сутрин, тоест „лека-полека“. Ключът е общ със
+  // студената поредица, така че който го е получил като лийд, не го получава пак.
+  uebinarStep({ afterDays: 7, kind: "ПОДАРЪК", firstTouch: false }),
+
   // ── 1 · СТОЙНОСТ ─────────────────────────────────────────────────────────
   {
     key: "w1_60_sekundi",
