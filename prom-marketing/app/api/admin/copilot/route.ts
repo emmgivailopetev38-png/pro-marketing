@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
-import { ADMIN_COOKIE, verifySession } from "@/lib/admin/session";
+import { getAdminViewer } from "@/lib/admin/demo-access";
+import { DEMO_COPILOT_SNAPSHOT, DEMO_COPILOT_SYSTEM } from "@/lib/admin/demo-data";
 import { callChatProvider, type ProviderMessage } from "@/lib/chatbot/providers";
 import { buildCrmSnapshot } from "@/lib/crm/snapshot";
 
@@ -75,12 +75,13 @@ function intentReply(
 }
 
 export async function POST(request: Request) {
-  // Same-cookie auth as the rest of /admin — no extra tokens.
-  const cookieStore = await cookies();
-  const token = cookieStore.get(ADMIN_COOKIE)?.value ?? null;
-  if (!verifySession(token)) {
+  // Същата бисквитка като /admin: собственикът или демо достъпът на екипа.
+  // Демото получава измислена снимка, никога живата (lib/admin/demo-data.ts).
+  const viewer = await getAdminViewer();
+  if (!viewer) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const demo = viewer.kind === "demo";
 
   const raw = await request.json().catch(() => null);
   const parsed = requestSchema.safeParse(raw);
@@ -103,8 +104,8 @@ export async function POST(request: Request) {
 
   // Bring in light context — pull the contact row so the assistant grounds
   // answers in real CRM data when there's a contact_id.
-  let knowledge = await buildCrmSnapshot().catch(() => "");
-  if (context?.contact_id) {
+  let knowledge = demo ? DEMO_COPILOT_SNAPSHOT : await buildCrmSnapshot().catch(() => "");
+  if (!demo && context?.contact_id) {
     const supabase = createServiceClient();
     const { data: contact } = await supabase
       .from("contacts")
@@ -124,7 +125,7 @@ export async function POST(request: Request) {
     scope: "site_chatbot", // reuse the same provider routing
     messages,
     knowledge,
-    systemPersona: SYSTEM,
+    systemPersona: demo ? DEMO_COPILOT_SYSTEM : SYSTEM,
   });
 
   return NextResponse.json({ reply: result.reply, source: result.model, latency_ms: result.latency_ms });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { ADMIN_COOKIE, verifySession } from "@/lib/admin/session";
+import { getAdminViewer } from "@/lib/admin/demo-access";
 
 export const dynamic = "force-dynamic";
 
@@ -20,14 +21,15 @@ export const dynamic = "force-dynamic";
 const DEMO_AGENT_ID = "agent_3601m0fwfrjwey6bgdfrkf1qa5d0";
 
 export async function GET(request: Request) {
+  // ?agent=demo дава безопасния агент за показване пред клиент.
+  // Всичко друго дава личния, който вижда CRM-а — само за собственика.
+  const wantsDemo = new URL(request.url).searchParams.get("agent") === "demo";
   const cookieStore = await cookies();
-  if (!verifySession(cookieStore.get(ADMIN_COOKIE)?.value ?? null)) {
+  const owner = verifySession(cookieStore.get(ADMIN_COOKIE)?.value ?? null);
+  const demoViewer = !owner && wantsDemo && (await getAdminViewer())?.kind === "demo";
+  if (!owner && !demoViewer) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-
-  // ?agent=demo дава безопасния агент за показване пред клиент.
-  // Всичко друго дава личния, който вижда CRM-а.
-  const wantsDemo = new URL(request.url).searchParams.get("agent") === "demo";
 
   const apiKey = process.env.ELEVENLABS_API_KEY;
   const agentId = wantsDemo

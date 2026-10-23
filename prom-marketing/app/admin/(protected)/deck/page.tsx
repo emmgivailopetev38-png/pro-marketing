@@ -2,6 +2,8 @@ import Link from "next/link";
 import { LayoutDashboard } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/service";
 import { CommandDeck, type DeckBoard } from "@/components/admin/CommandDeck";
+import { isDemoViewer } from "@/lib/admin/demo-access";
+import { DEMO_DECK_STATS } from "@/lib/admin/demo-data";
 
 export const dynamic = "force-dynamic";
 
@@ -19,12 +21,14 @@ async function safeCount(
 }
 
 export default async function CommandDeckPage() {
+  const demo = await isDemoViewer();
   const supabase = createServiceClient();
   const nowIso = new Date().toISOString();
   const UNPAID = ["sent", "awaiting_payment", "partially_paid", "overdue"];
   const ACTIVE_PROJECT = ["planned", "in_progress", "waiting_client"];
 
-  const [contacts, upcoming, unprocessed, unpaid, openOffers, activeProjects] = await Promise.all([
+  // Демо достъпът не пипа базата — броячите са измислени (lib/admin/demo-data.ts).
+  const [contacts, upcoming, unprocessed, unpaid, openOffers, activeProjects] = demo ? [null, null, null, null, null, null] : await Promise.all([
     safeCount(() => supabase.from("contacts").select("*", { count: "exact", head: true }).neq("stage", "lost")),
     safeCount(() => supabase.from("bookings").select("*", { count: "exact", head: true }).neq("status", "cancelled").gte("scheduled_at", nowIso)),
     safeCount(() => supabase.from("meta_leads").select("*", { count: "exact", head: true }).eq("processed", false)),
@@ -35,7 +39,7 @@ export default async function CommandDeckPage() {
 
   const s = (v: number | null, label: string) => (v != null ? { value: String(v), label } : null);
 
-  const boards: DeckBoard[] = [
+  const liveBoards: DeckBoard[] = [
     { key: "clients", href: "/admin/clients", label: "Клиенти", desc: "Всички контакти и профили", icon: "Users", color: "#22d3ee", code: "CRM.01", stat: s(contacts, "активни") },
     { key: "followup", href: "/admin/follow-up", label: "Follow-up", desc: "Кого да чуеш и кога", icon: "Target", color: "#f59e0b", code: "CRM.02", stat: null },
     { key: "bookings", href: "/admin/bookings", label: "Срещи", desc: "Календар и предстоящи", icon: "Calendar", color: "#a78bfa", code: "CRM.03", stat: s(upcoming, "предстоящи") },
@@ -50,6 +54,11 @@ export default async function CommandDeckPage() {
     { key: "demo", href: "/admin/demo", label: "Demo", desc: "Публични мостри за клиенти", icon: "Clapperboard", color: "#2dd4bf", code: "AI.02", stat: null },
   ];
 
+  // В демото таблата остават на палубата (href към нея) и носят измислените броячи.
+  const boards: DeckBoard[] = demo
+    ? liveBoards.map((b) => ({ ...b, href: "/admin/deck", stat: DEMO_DECK_STATS[b.key] ?? null }))
+    : liveBoards;
+
   return (
     <div className="cc-content deck-page">
       <header className="deck-page-head">
@@ -60,9 +69,11 @@ export default async function CommandDeckPage() {
             Таблата на командния център се носят във въздуха. Завърти ги и влез в което пожелаеш.
           </p>
         </div>
-        <Link href="/admin" className="cc-btn">
-          <LayoutDashboard className="h-4 w-4" strokeWidth={1.75} /> Класически преглед
-        </Link>
+        {!demo && (
+          <Link href="/admin" className="cc-btn">
+            <LayoutDashboard className="h-4 w-4" strokeWidth={1.75} /> Класически преглед
+          </Link>
+        )}
       </header>
 
       <CommandDeck boards={boards} />
