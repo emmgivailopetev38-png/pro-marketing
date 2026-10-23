@@ -34,10 +34,11 @@ export async function initCalEmbed() {
 let bookingListenerRegistered = false;
 
 export async function openBookingPopup() {
-  // Fire Meta Lead + InitiateCheckout the moment intent is shown.
-  track("Lead", {
-    params: { content_name: "Cal.com booking popup", content_category: "consultation" },
-  });
+  // Само InitiateCheckout при отваряне на попъпа. Дотук тук тръгваше и „Lead“
+  // (без event_id) — т.е. всеки клик по „Запази час“ се броеше за лийд, преди
+  // човекът да е попълнил каквото и да е; записаната среща после пращаше втори
+  // Lead (cal_lead_<uid>). Ад сетовете оптимизират по Lead, затова намерението
+  // остава InitiateCheckout, а Lead идва само от истинска среща/форма.
   track("InitiateCheckout", {
     params: { content_name: "Cal.com booking popup", content_category: "consultation" },
   });

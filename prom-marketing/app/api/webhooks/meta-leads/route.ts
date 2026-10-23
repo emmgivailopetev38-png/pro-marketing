@@ -215,11 +215,17 @@ async function processLead(leadgenId: string, formId: string | null) {
     created_by: "meta_webhook",
   });
 
-  // --- Връщаме лийда към Meta през Conversions API ---
-  // Без това Meta вижда „някой е подал форма", но не знае КОЙ — event match
-  // quality пада до нула и оптимизацията се влошава. lead_id свързва събитието
-  // с точния лийд, реклама и кампания.
-  if (isCapiConfigured()) {
+  // --- Ехото на лийда към Meta през Conversions API — СПРЯНО по подразбиране ---
+  // Идеята беше Meta да знае КОЙ е подал формата (lead_id + имейл/телефон).
+  // На практика (21.10.2026, кампания ИСТИНСКИ v2): Meta вече брои лийда от
+  // собствената си форма (onsite lead_grouped) и го брои ВТОРИ път като пиксел
+  // Lead от това ехо (offsite fb_pixel_lead, съвпада по lead_id) — 8 истински
+  // лийда станаха 21 „lead“ в Ads Manager, а ад сетът (пиксел Lead) се учи от
+  // отражението на собствената си форма. Дедупликацията на Meta е само
+  // браузър↔сървър; сървърно събитие срещу форма НЕ се отсява.
+  // Пуска се обратно само с META_LEADS_CAPI_ECHO=1 (напр. за „conversion leads“
+  // оптимизация с CRM интеграция — виж PR #166).
+  if (isCapiConfigured() && process.env.META_LEADS_CAPI_ECHO === "1") {
     const [firstName, ...rest] = (fullName ?? "").trim().split(/\s+/);
     void sendCapiEvent({
       event_name: "Lead",
