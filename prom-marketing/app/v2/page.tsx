@@ -15,9 +15,8 @@ import dynamic from "next/dynamic";
 import "./v2-design.css";
 
 import { NavbarV2 } from "@/components/landing/v2/NavbarV2";
-import { HeroV2 } from "@/components/landing/v2/HeroV2";
-import { JarvisSpotlightV2 } from "@/components/landing/v2/JarvisSpotlightV2";
-import { RobotTeaserV2 } from "@/components/landing/v2/RobotTeaserV2";
+import { HeroV3 } from "@/components/landing/v2/HeroV3";
+import { ClientsV2 } from "@/components/landing/v2/ClientsV2";
 import { ConversionFloats } from "@/components/landing/v2/ConversionFloats";
 import { BookingConfetti } from "@/components/effects/BookingConfetti";
 import { Toaster } from "@/components/ui/sonner";
@@ -32,7 +31,6 @@ import { Toaster } from "@/components/ui/sonner";
 const VideoGalleryV2 = dynamic(() => import("@/components/landing/v2/VideoGalleryV2").then((m) => ({ default: m.VideoGalleryV2 })));
 const ServicesV2 = dynamic(() => import("@/components/landing/v2/ServicesV2").then((m) => ({ default: m.ServicesV2 })));
 const CRMShowcaseV2 = dynamic(() => import("@/components/landing/v2/CRMShowcaseV2").then((m) => ({ default: m.CRMShowcaseV2 })));
-const WhyUsV2 = dynamic(() => import("@/components/landing/v2/WhyUsV2").then((m) => ({ default: m.WhyUsV2 })));
 const ExpertV2 = dynamic(() => import("@/components/landing/v2/ExpertV2").then((m) => ({ default: m.ExpertV2 })));
 const RoiCalculatorV2 = dynamic(() => import("@/components/landing/v2/RoiCalculatorV2").then((m) => ({ default: m.RoiCalculatorV2 })));
 const GuaranteeV2 = dynamic(() => import("@/components/landing/v2/GuaranteeV2").then((m) => ({ default: m.GuaranteeV2 })));
@@ -48,15 +46,17 @@ export default function HomePageV2() {
     <div data-v2 className="v2-scope">
       <NavbarV2 />
       <main data-v2>
-        <HeroV2 />
-        <VideoGalleryV2 />
+        {/* 23.10.2026 — v3 „лице, доказателство, стълба“: Ивайло на видео в
+            първия екран, истинските клиенти веднага след него, половината
+            секции по-малко. Jarvis и роботът слязоха от началото — имат си
+            страници (/jarvis, /robot). HeroV2 остава във v2/ за връщане. */}
+        <HeroV3 />
+        <ClientsV2 />
         <ServicesV2 />
-        <CRMShowcaseV2 />
-        <WhyUsV2 />
+        <VideoGalleryV2 />
         <ExpertV2 />
         <RoiCalculatorV2 />
-        <JarvisSpotlightV2 />
-        <RobotTeaserV2 />
+        <CRMShowcaseV2 />
         <GuaranteeV2 />
         <FAQV2 />
         <QuickLeadFormV2 />

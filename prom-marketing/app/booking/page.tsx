@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { BookingEmbed } from "@/components/booking/BookingEmbed";
 import { ConversionSeoBlock } from "@/components/seo/ConversionSeoBlock";
+import { AGENT_PHONE_DISPLAY, AGENT_PHONE_LINE, AGENT_PHONE_TEL } from "@/lib/site/agent-phone";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/booking" },
@@ -48,6 +49,22 @@ export default function BookingPage() {
 
         <div className="rounded-2xl border border-cyan-500/15 bg-[#0a0a1f]/60 p-2 md:p-4">
           <BookingEmbed />
+        </div>
+
+        {/* Телефонът на гласовия агент: екранът след лийд формата в Meta води
+            тук, и половината хора предпочитат да се обадят, вместо да цъкат
+            в календар. Агентът записва часа още по телефона. */}
+        <div className="mt-6 flex flex-col items-center gap-3 rounded-2xl border border-cyan-400/25 bg-cyan-400/5 px-6 py-5 text-center sm:flex-row sm:justify-between sm:text-left">
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-cyan-300">Или по телефона · AI агентът записва часа</p>
+            <p className="mt-1 text-sm text-[#a5b0c8]">{AGENT_PHONE_LINE}</p>
+          </div>
+          <a
+            href={`tel:${AGENT_PHONE_TEL}`}
+            className="inline-flex shrink-0 items-center gap-2 rounded-full bg-cyan-300 px-6 py-3 text-base font-bold text-[#030308] transition hover:bg-cyan-200"
+          >
+            Звънни: {AGENT_PHONE_DISPLAY}
+          </a>
         </div>
 
         {/* Fallback — ако вграденият календар не се зареди (блокери, бавна мрежа) */}
