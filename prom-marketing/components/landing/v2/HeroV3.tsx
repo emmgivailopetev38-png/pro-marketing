@@ -78,10 +78,10 @@ export function HeroV3() {
             AI автоматизация · Пловдив · цяла България
           </span>
 
-          <h1 className="font-display text-[clamp(32px,5vw,60px)] font-bold leading-[1.06] tracking-tight" lang="bg">
+          <h1 className="font-display text-[clamp(30px,4.6vw,54px)] font-bold leading-[1.06] tracking-tight" lang="bg">
             Телефонът ти вдига сам.
             <br />
-            <span className="font-light text-[var(--color-text-secondary)]">Клиентите ти</span>{" "}
+            <span className="font-light text-[var(--color-text-secondary)]">Клиентите</span>{" "}
             <HolographicText>се записват сами.</HolographicText>
           </h1>
 
