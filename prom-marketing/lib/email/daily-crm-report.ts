@@ -6,6 +6,8 @@ import { loadTopCalls } from "@/lib/crm/top-calls";
 import type { TopCallsResult } from "@/lib/crm/top-calls-rules";
 import { runInvoiceReminders, type InvoiceRemindersResult } from "@/lib/crm/invoice-reminders";
 import { overdueBucket } from "@/lib/crm/invoice-reminders-rules";
+import { isOfferActivity } from "@/lib/crm/consistency-rules";
+import { planFollowupAt, planOfferReminders, type OfferSignal } from "@/lib/crm/offer-reminders-rules";
 
 /** Vercel върви на UTC — без това сутрешният отчет показва 08:00 вместо 11:00. */
 const TZ = "Europe/Sofia";
@@ -51,6 +53,8 @@ interface OfferReminder {
   offerSentAt: string;
   daysSince: number;
   lastActivity: { title: string; occurred_at: string } | null;
+  dedupeKey: string;
+  label: string;
 }
 
 const HOST = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "https://promarketing.pw";
@@ -65,9 +69,6 @@ export async function buildDailyCrmReport() {
   // occurred_at = the meeting time, every FUTURE meeting was counted as "вчера".
   const yesterday = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
   const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
-  const sevenDaysAgoStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  sevenDaysAgoStart.setHours(0, 0, 0, 0);
-  const eightDaysAgoStart = new Date(sevenDaysAgoStart.getTime() - 24 * 60 * 60 * 1000);
 
   // --- 1. Yesterday's activity ---
   const { data: yesterdayActsRaw } = await supabase
@@ -167,67 +168,100 @@ export async function buildDailyCrmReport() {
     (c) => followupState(c, attempts.get(c.id) ?? null, now) === "overdue"
   );
 
-  // --- 4. 7-day offer follow-up reminders ---
-  // Намери всички 'offer_sent' / 'contract_sent' / 'presentation_sent' активности
-  // отпреди ~7 дни (между 7 и 8 дни назад), след което провери дали има по-нова комуникация.
-  const { data: sevenDayOffers } = await supabase
-    .from("contact_activities")
-    .select("contact_id, activity_type, title, occurred_at, contacts!inner(id, full_name, company, email, phone, stage, next_followup_at)")
-    .in("activity_type", ["offer_sent", "contract_sent", "presentation_sent"])
-    .gte("occurred_at", eightDaysAgoStart.toISOString())
-    .lt("occurred_at", sevenDaysAgoStart.toISOString());
+  // --- 4. Напомняния за пратена оферта — на 3-ия и на 7-ия ден ---
+  // Сигналите: активности offer_sent / contract_sent / presentation_sent (или
+  // ръчно пратен имейл с „оферта" в заглавието) и редове в `offers` със
+  // status sent/viewed. Отговор от човека след офертата → без напомняне.
+  // Всяко напомняне: бележка с dedupe_key + „да се обади" + напомняне за
+  // следващата работна сутрин (10:00 София), ако няма по-ранна бъдеща дата.
+  const windowFrom = new Date(todayStart.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString();
+  const windowTo = new Date(todayStart.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString();
+  const [{ data: offerActsRaw }, { data: offerRowsRaw }, { data: offerNotesRaw }] = await Promise.all([
+    supabase
+      .from("contact_activities")
+      .select("id, contact_id, activity_type, title, occurred_at")
+      .in("activity_type", ["offer_sent", "contract_sent", "presentation_sent", "email_sent"])
+      .gte("occurred_at", windowFrom)
+      .lt("occurred_at", windowTo),
+    supabase
+      .from("offers")
+      .select("id, contact_id, title, sent_at, status")
+      .in("status", ["sent", "viewed"])
+      .gte("sent_at", windowFrom)
+      .lt("sent_at", windowTo),
+    supabase.from("contact_activities").select("metadata").like("metadata->>dedupe_key", "offer-reminder:%").limit(3000),
+  ]);
+  const signals: OfferSignal[] = [];
+  for (const a of (offerActsRaw ?? []) as Array<{ id: string; contact_id: string; activity_type: string; title: string | null; occurred_at: string }>) {
+    if (!isOfferActivity(a) && a.activity_type !== "contract_sent" && a.activity_type !== "presentation_sent") continue;
+    signals.push({ contact_id: a.contact_id, sent_at: a.occurred_at, label: a.title ?? activityLabel(a.activity_type) });
+  }
+  for (const o of (offerRowsRaw ?? []) as Array<{ id: string; contact_id: string | null; title: string; sent_at: string | null }>) {
+    if (o.contact_id && o.sent_at) signals.push({ contact_id: o.contact_id, sent_at: o.sent_at, label: `Оферта „${o.title}"` });
+  }
+  const existingOfferKeys = new Set<string>();
+  for (const n of (offerNotesRaw ?? []) as Array<{ metadata: Record<string, unknown> | null }>) {
+    const k = n.metadata?.dedupe_key;
+    if (typeof k === "string") existingOfferKeys.add(k);
+  }
+  const planned = planOfferReminders(signals, existingOfferKeys, now);
 
   const reminders: OfferReminder[] = [];
-  const seen = new Set<string>();
-  for (const a of (sevenDayOffers ?? []) as Array<{
-    contact_id: string;
-    title: string;
-    occurred_at: string;
-    activity_type: string;
-    contacts: ContactBrief | ContactBrief[];
-  }>) {
-    if (seen.has(a.contact_id)) continue;
-    const contact = Array.isArray(a.contacts) ? a.contacts[0] : a.contacts;
+  for (const pl of planned) {
+    const { data: contactRow } = await supabase
+      .from("contacts")
+      .select("id, full_name, company, email, phone, stage, next_followup_at")
+      .eq("id", pl.contact_id)
+      .maybeSingle();
+    const contact = contactRow as ContactBrief | null;
     if (!contact || contact.stage === "lost" || contact.stage === "won") continue;
 
-    // Проверка: има ли по-нова активност от offer-а?
+    // Отговорил ли е човекът след офертата?
     const { data: latestAct } = await supabase
       .from("contact_activities")
-      .select("title, occurred_at")
-      .eq("contact_id", a.contact_id)
-      .gt("occurred_at", a.occurred_at)
+      .select("activity_type, title, occurred_at")
+      .eq("contact_id", pl.contact_id)
+      .gt("occurred_at", pl.sent_at)
+      .lte("occurred_at", now.toISOString())
       .order("occurred_at", { ascending: false })
-      .limit(1);
-
+      .limit(10);
     const hasResponse = (latestAct ?? []).some(
       (la) =>
+        la.activity_type === "email_received" ||
         la.title.toLowerCase().includes("email_received") ||
         la.title.includes("📨") ||
         la.title.includes("получен")
     );
-
     if (hasResponse) continue;
 
-    seen.add(a.contact_id);
-    const daysSince = Math.floor((now.getTime() - new Date(a.occurred_at).getTime()) / (1000 * 60 * 60 * 24));
     reminders.push({
       contact,
-      offerSentAt: a.occurred_at,
-      daysSince,
+      offerSentAt: pl.sent_at,
+      daysSince: pl.day,
       lastActivity: (latestAct ?? [])[0] ?? null,
+      dedupeKey: pl.dedupe_key,
+      label: pl.label,
     });
   }
 
-  // Auto-log a "reminder" note on each contact's timeline so it shows up in /admin
+  // Бележка в картона (с dedupe_key) + „да се обади" + напомняне за следващата
+  // работна сутрин — така офертата влиза в „Топ 10 за днес", не само в този имейл.
   for (const r of reminders) {
-    await supabase.from("contact_activities").insert({
+    const sentStr = new Date(r.offerSentAt).toLocaleDateString("bg-BG", { timeZone: TZ });
+    const { error: nErr } = await supabase.from("contact_activities").insert({
       contact_id: r.contact.id,
       activity_type: "note",
-      title: `🔔 Напомняне: 7 дни от изпратена оферта — звънни`,
-      body: `Изпратена оферта/презентация преди ${r.daysSince} дни (${new Date(r.offerSentAt).toLocaleDateString("bg-BG", { timeZone: TZ })}). Все още без отговор. Време е за follow-up разговор.`,
-      occurred_at: new Date().toISOString(),
+      title: `🔔 ${r.daysSince} дни от изпратена оферта — звънни`,
+      body: `${r.label} · пратена на ${sentStr}, без отговор. ${r.daysSince === 3 ? "Първо" : "Второ"} напомняне към Ивайло — към клиента не е пращано нищо.`,
+      occurred_at: now.toISOString(),
       created_by: "auto-reminder",
+      metadata: { dedupe_key: r.dedupeKey, kind: "offer_reminder", day: r.daysSince, offer_sent_at: r.offerSentAt },
     });
+    if (nErr) continue;
+    const nextAt = planFollowupAt(r.contact.next_followup_at, now);
+    const patch: Record<string, unknown> = { followup_status: "needs_call" };
+    if (nextAt) patch.next_followup_at = nextAt;
+    await supabase.from("contacts").update(patch).eq("id", r.contact.id);
   }
 
   // --- 4b. „📞 Топ 10 за днес" — просрочените и днешните по стойност, после по давност.
@@ -327,10 +361,10 @@ export async function buildDailyCrmReport() {
     ${todayCount === 0 ? `<p style="margin:0;color:#666">Празно. Време за хладен outreach или follow-up.</p>` : ""}
   </div>`;
 
-  // 7-day reminders
+  // Напомнянията за оферти (3-ия / 7-ия ден)
   if (reminders.length > 0) {
     html += `<div style="background:#fff3cd;border-left:4px solid #f59e0b;border-radius:8px;padding:18px;margin-bottom:18px">
-    <h2 style="margin:0 0 10px;font-size:16px;color:#b45309">🔔 7 дни от изпратена оферта — време за звънване</h2>
+    <h2 style="margin:0 0 10px;font-size:16px;color:#b45309">🔔 Оферти без отговор — 3-ия / 7-ия ден, време за звънване</h2>
     <ul style="margin:0;padding-left:20px">
       ${reminders
         .map(
@@ -448,7 +482,7 @@ ${(todayFollowups ?? []).map((c) => `  📞 ${formatTime(c.next_followup_at!)} �
 
 ${
   reminders.length > 0
-    ? `\n🔔 7-ДНЕВНИ НАПОМНЯНИЯ ЗА ОФЕРТИ\n${reminders.map((r) => `  ${r.contact.full_name}${r.contact.phone ? ` (${r.contact.phone})` : ""} — ${r.daysSince} дни`).join("\n")}\n`
+    ? `\n🔔 ОФЕРТИ БЕЗ ОТГОВОР (3-ия / 7-ия ден)\n${reminders.map((r) => `  ${r.contact.full_name}${r.contact.phone ? ` (${r.contact.phone})` : ""} — ${r.daysSince} дни`).join("\n")}\n`
     : ""
 }
 ${
