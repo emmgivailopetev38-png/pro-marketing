@@ -2,6 +2,8 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 import { ATTEMPT_TYPES, followupState } from "@/lib/contacts/followup";
 import { escapeHtml } from "./escape";
+import { loadTopCalls } from "@/lib/crm/top-calls";
+import type { TopCallsResult } from "@/lib/crm/top-calls-rules";
 
 /** Vercel върви на UTC — без това сутрешният отчет показва 08:00 вместо 11:00. */
 const TZ = "Europe/Sofia";
@@ -226,6 +228,15 @@ export async function buildDailyCrmReport() {
     });
   }
 
+  // --- 4b. „📞 Топ 10 за днес" — просрочените и днешните по стойност, после по давност.
+  // Студените (lead/contacted без сума, needs_call > 14 дни) са само брой — за вълната.
+  let topCalls: TopCallsResult = { top: [], cold: 0, warm_total: 0 };
+  try {
+    topCalls = await loadTopCalls(now);
+  } catch {
+    // отчетът е по-важен от този блок
+  }
+
   // --- 5. Pipeline counts ---
   const { data: byStageRaw } = await supabase.from("contacts").select("stage");
   const byStage = new Map<string, number>();
@@ -322,6 +333,22 @@ export async function buildDailyCrmReport() {
   </div>`;
   }
 
+  // „📞 Топ 10 за днес"
+  if (topCalls.top.length > 0 || topCalls.cold > 0) {
+    html += `<div style="background:#eef2ff;border-left:4px solid #4f46e5;border-radius:8px;padding:18px;margin-bottom:18px">
+    <h2 style="margin:0 0 10px;font-size:16px;color:#3730a3">📞 Топ ${topCalls.top.length} за днес${topCalls.warm_total > topCalls.top.length ? ` <span style="font-weight:normal;color:#666;font-size:13px">(от ${topCalls.warm_total} живи)</span>` : ""}</h2>
+    <ol style="margin:0;padding-left:20px">
+      ${topCalls.top
+        .map(
+          (r) =>
+            `<li style="margin-bottom:6px"><a href="${HOST}/admin/clients/${r.id}" style="color:#0066cc;font-weight:bold">${escapeHtml(r.name)}</a>${r.company && r.company !== r.name ? ` <span style="color:#666">(${escapeHtml(r.company)})</span>` : ""}${r.amount ? ` · <strong>${r.amount.toLocaleString("bg-BG")} €</strong>` : ""} · ${stageLabel(r.stage)} · <span style="color:${r.days_overdue > 0 ? "#b91c1c" : "#22a722"}">${r.days_overdue > 0 ? `${r.days_overdue} дни просрочие` : "за днес"}</span>${r.last_activity ? ` · <span style="color:#666;font-size:12px">последно: ${activityIcon(r.last_activity.type)} ${activityLabel(r.last_activity.type)} ${formatRelative(r.last_activity.occurred_at)}</span>` : ""}${r.phone ? ` · <a href="tel:${escapeHtml(r.phone)}" style="color:#22a722">${escapeHtml(r.phone)}</a>` : ""}</li>`
+        )
+        .join("")}
+    </ol>
+    ${topCalls.cold > 0 ? `<p style="margin:10px 0 0;color:#444">❄️ студени за вълна: <strong>${topCalls.cold}</strong> (по 10 на ден)</p>` : ""}
+  </div>`;
+  }
+
   // Overdue
   if ((overdueFollowups?.length ?? 0) > 0) {
     html += `<div style="background:#fee2e2;border-left:4px solid #ef4444;border-radius:8px;padding:18px;margin-bottom:18px">
@@ -387,6 +414,16 @@ ${
     : ""
 }
 ${
+  topCalls.top.length > 0 || topCalls.cold > 0
+    ? `\n📞 ТОП ${topCalls.top.length} ЗА ДНЕС\n${topCalls.top
+        .map(
+          (r, i) =>
+            `  ${i + 1}. ${r.name}${r.company && r.company !== r.name ? ` (${r.company})` : ""}${r.amount ? ` · ${r.amount} €` : ""} · ${stageLabel(r.stage)} · ${r.days_overdue > 0 ? `${r.days_overdue} дни просрочие` : "за днес"}${r.last_activity ? ` · последно: ${activityLabel(r.last_activity.type)} ${formatRelative(r.last_activity.occurred_at)}` : ""}${r.phone ? ` · ${r.phone}` : ""}`
+        )
+        .join("\n")}${topCalls.cold > 0 ? `\n  ❄️ студени за вълна: ${topCalls.cold} (по 10 на ден)` : ""}\n`
+    : ""
+}
+${
   (overdueFollowups?.length ?? 0) > 0
     ? `\n⚠️ ПРОСРОЧЕНИ · ${overdueFollowups?.length}\n${(overdueFollowups ?? []).slice(0, 8).map((c) => `  ${c.full_name}${c.company ? ` (${c.company})` : ""}`).join("\n")}\n`
     : ""
@@ -408,6 +445,8 @@ ${pipelineOrder.map((s) => `  ${stageLabel(s)}: ${byStage.get(s) ?? 0}`).join("\
       todayBookings: todayBookings.length,
       overdueFollowups: overdueFollowups?.length ?? 0,
       sevenDayReminders: reminders.length,
+      topCalls: topCalls.top.length,
+      coldForWave: topCalls.cold,
     },
   };
 }
