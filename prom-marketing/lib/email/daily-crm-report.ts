@@ -8,6 +8,7 @@ import { runInvoiceReminders, type InvoiceRemindersResult } from "@/lib/crm/invo
 import { overdueBucket } from "@/lib/crm/invoice-reminders-rules";
 import { isOfferActivity } from "@/lib/crm/consistency-rules";
 import { planFollowupAt, planOfferReminders, type OfferSignal } from "@/lib/crm/offer-reminders-rules";
+import { settlePhoneBookings, type PhoneBookingsResult } from "@/lib/crm/phone-bookings";
 
 /** Vercel върви на UTC — без това сутрешният отчет показва 08:00 вместо 11:00. */
 const TZ = "Europe/Sofia";
@@ -282,6 +283,16 @@ export async function buildDailyCrmReport() {
     // отчетът е по-важен от този блок
   }
 
+  // --- 4d. Телефонните срещи (без meeting_url): 2 ч след края — проведена при
+  // следа в картона, иначе остава accepted + „да се обади" + бележка. Тук е
+  // броят „❓ Срещи без статус".
+  let phone: PhoneBookingsResult = { checked: 0, completed: 0, unclear: 0, notes_written: 0, errors: [] };
+  try {
+    phone = await settlePhoneBookings(now);
+  } catch {
+    // отчетът е по-важен от този блок
+  }
+
   // --- 5. Pipeline counts ---
   const { data: byStageRaw } = await supabase.from("contacts").select("stage");
   const byStage = new Map<string, number>();
@@ -359,6 +370,7 @@ export async function buildDailyCrmReport() {
         : ""
     }
     ${todayCount === 0 ? `<p style="margin:0;color:#666">Празно. Време за хладен outreach или follow-up.</p>` : ""}
+    ${phone.unclear > 0 ? `<p style="margin:10px 0 0;color:#b45309">❓ Срещи без статус: <strong>${phone.unclear}</strong> — телефонни срещи без следа в картона · <a href="${HOST}/admin/bookings" style="color:#0066cc">отбележи ги</a></p>` : ""}${phone.completed > 0 ? `<p style="margin:4px 0 0;color:#666;font-size:12px">✅ ${phone.completed} телефонни срещи затворени като проведени (има обаждане в картона).</p>` : ""}
   </div>`;
 
   // Напомнянията за оферти (3-ия / 7-ия ден)
@@ -479,7 +491,7 @@ ${
 📅 ДНЕС · ${todayCount} срещи
 ${todayBookings.map((b) => `  📅 ${formatTime(b.scheduled_at)} · ${b.attendee_name}${b.status === "rescheduled" ? " (преместена)" : ""}${b.attendee_phone ? ` · ${b.attendee_phone}` : ""}`).join("\n")}
 ${(todayFollowups ?? []).map((c) => `  📞 ${formatTime(c.next_followup_at!)} · ${c.full_name}${c.company ? ` (${c.company})` : ""}`).join("\n")}
-
+${phone.unclear > 0 ? `  ❓ Срещи без статус: ${phone.unclear} (телефонни, без следа — /admin/bookings)\n` : ""}
 ${
   reminders.length > 0
     ? `\n🔔 ОФЕРТИ БЕЗ ОТГОВОР (3-ия / 7-ия ден)\n${reminders.map((r) => `  ${r.contact.full_name}${r.contact.phone ? ` (${r.contact.phone})` : ""} — ${r.daysSince} дни`).join("\n")}\n`
@@ -527,6 +539,8 @@ ${pipelineOrder.map((s) => `  ${stageLabel(s)}: ${byStage.get(s) ?? 0}`).join("\
       coldForWave: topCalls.cold,
       overdueInvoices: unpaid.overdue.length,
       invoiceNotes: unpaid.notes_written,
+      phoneBookingsUnclear: phone.unclear,
+      phoneBookingsCompleted: phone.completed,
     },
   };
 }
