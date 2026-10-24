@@ -4,6 +4,8 @@ import { ATTEMPT_TYPES, followupState } from "@/lib/contacts/followup";
 import { escapeHtml } from "./escape";
 import { loadTopCalls } from "@/lib/crm/top-calls";
 import type { TopCallsResult } from "@/lib/crm/top-calls-rules";
+import { runInvoiceReminders, type InvoiceRemindersResult } from "@/lib/crm/invoice-reminders";
+import { overdueBucket } from "@/lib/crm/invoice-reminders-rules";
 
 /** Vercel върви на UTC — без това сутрешният отчет показва 08:00 вместо 11:00. */
 const TZ = "Europe/Sofia";
@@ -237,6 +239,15 @@ export async function buildDailyCrmReport() {
     // отчетът е по-важен от този блок
   }
 
+  // --- 4c. „💶 Неплатени" — просрочените фактури (3/7/14+ дни след падежа) +
+  // бележка в картона на всеки праг. Нищо към клиента.
+  let unpaid: InvoiceRemindersResult = { overdue: [], notes_written: 0, errors: [] };
+  try {
+    unpaid = await runInvoiceReminders(now);
+  } catch {
+    // отчетът е по-важен от този блок
+  }
+
   // --- 5. Pipeline counts ---
   const { data: byStageRaw } = await supabase.from("contacts").select("stage");
   const byStage = new Map<string, number>();
@@ -365,6 +376,33 @@ export async function buildDailyCrmReport() {
   </div>`;
   }
 
+  // „💶 Неплатени"
+  if (unpaid.overdue.length > 0) {
+    const total = unpaid.overdue.reduce((s, o) => s + o.remaining, 0);
+    const buckets: Array<["14+" | "7+" | "3+" | "1+", string]> = [
+      ["14+", "14+ дни"],
+      ["7+", "7–13 дни"],
+      ["3+", "3–6 дни"],
+      ["1+", "1–2 дни"],
+    ];
+    html += `<div style="background:#fdf2f8;border-left:4px solid #be185d;border-radius:8px;padding:18px;margin-bottom:18px">
+    <h2 style="margin:0 0 10px;font-size:16px;color:#9d174d">💶 Неплатени · ${unpaid.overdue.length} фактури · ${total.toLocaleString("bg-BG", { maximumFractionDigits: 0 })} €</h2>
+    ${buckets
+      .map(([b, label]) => {
+        const rows = unpaid.overdue.filter((o) => overdueBucket(o.days_overdue) === b);
+        if (rows.length === 0) return "";
+        return `<p style="margin:8px 0 2px;font-weight:bold;color:${b === "14+" ? "#b91c1c" : b === "7+" ? "#b45309" : "#444"}">${label}</p><ul style="margin:0;padding-left:20px">${rows
+          .map(
+            (o) =>
+              `<li style="margin-bottom:4px">${o.invoice.contact_id ? `<a href="${HOST}/admin/clients/${o.invoice.contact_id}" style="color:#0066cc">${escapeHtml(o.invoice.client_name ?? "—")}</a>` : escapeHtml(o.invoice.client_name ?? "—")} · №${escapeHtml(o.invoice.invoice_number ?? "—")} · <strong>${o.remaining.toLocaleString("bg-BG", { maximumFractionDigits: 2 })} €</strong>${o.paid > 0 ? ` <span style="color:#666;font-size:12px">(остатък, платени ${o.paid.toLocaleString("bg-BG", { maximumFractionDigits: 2 })} €)</span>` : ""} · <span style="color:#888;font-size:12px">падеж ${o.invoice.due_date ? new Date(o.invoice.due_date).toLocaleDateString("bg-BG", { timeZone: TZ }) : "—"} · ${o.days_overdue} дни</span></li>`
+          )
+          .join("")}</ul>`;
+      })
+      .join("")}
+    ${unpaid.notes_written > 0 ? `<p style="margin:8px 0 0;color:#666;font-size:12px">🔔 ${unpaid.notes_written} бележки „просрочена“ записани в картоните (към клиентите не е пращано нищо).</p>` : ""}
+  </div>`;
+  }
+
   // Pipeline snapshot
   const pipelineOrder = ["won", "negotiating", "offer_sent", "presentation_sent", "discovery", "contacted", "lead"];
   html += `<div style="background:#f5f7fa;border-radius:8px;padding:18px;margin-bottom:18px">
@@ -428,7 +466,13 @@ ${
     ? `\n⚠️ ПРОСРОЧЕНИ · ${overdueFollowups?.length}\n${(overdueFollowups ?? []).slice(0, 8).map((c) => `  ${c.full_name}${c.company ? ` (${c.company})` : ""}`).join("\n")}\n`
     : ""
 }
-
+${
+  unpaid.overdue.length > 0
+    ? `\n💶 НЕПЛАТЕНИ · ${unpaid.overdue.length}\n${unpaid.overdue
+        .map((o) => `  ${o.invoice.client_name ?? "—"} · №${o.invoice.invoice_number ?? "—"} · ${o.remaining} €${o.paid > 0 ? ` (остатък)` : ""} · ${o.days_overdue} дни след падежа`)
+        .join("\n")}\n`
+    : ""
+}
 🚀 PIPELINE
 ${pipelineOrder.map((s) => `  ${stageLabel(s)}: ${byStage.get(s) ?? 0}`).join("\n")}
 
@@ -447,6 +491,8 @@ ${pipelineOrder.map((s) => `  ${stageLabel(s)}: ${byStage.get(s) ?? 0}`).join("\
       sevenDayReminders: reminders.length,
       topCalls: topCalls.top.length,
       coldForWave: topCalls.cold,
+      overdueInvoices: unpaid.overdue.length,
+      invoiceNotes: unpaid.notes_written,
     },
   };
 }
