@@ -16,6 +16,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Phone, ArrowRight, Check, Loader2, X, MessageCircle } from "lucide-react";
 import { track } from "@/lib/analytics/track";
+import { ga4Event, gadsConversion } from "@/lib/google/gtag-client";
 
 const WHATSAPP_URL = "https://wa.me/359877399963";
 const EXIT_FLAG = "pm_v2_exit_intent_shown"; // sessionStorage: показвай само веднъж/сесия
@@ -136,6 +137,8 @@ export function ConversionFloats() {
       if (res.ok && json.ok) {
         setStatus("done");
         track("exit_intent_lead", {});
+        gadsConversion("lead");
+        ga4Event("generate_lead", { form: "ConversionFloats" });
       } else setStatus("error");
     } catch {
       setStatus("error");

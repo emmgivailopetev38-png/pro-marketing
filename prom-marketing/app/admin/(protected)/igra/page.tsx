@@ -133,6 +133,11 @@ export default async function IgraPage() {
         <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
           Кандидатите за търговец играят „Мастър Клас Продажби“ — тук се вижда кой докъде е стигнал и как продава.
         </p>
+        <p className="mt-3 text-sm">
+          <Link href="/admin/igra/klouzar" className="font-medium text-[var(--color-accent-cyan)] hover:underline">
+            🎙 Клоузър · подбор в 3 стъпки →
+          </Link>
+        </p>
       </header>
 
       <section className="cc-panel p-5">

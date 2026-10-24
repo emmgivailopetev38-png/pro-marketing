@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Phone, Mail, User, MessageSquare, Send, Loader2, Check, Building2 } from "lucide-react";
 import { track } from "@/lib/analytics/track";
+import { ga4Event, gadsConversion } from "@/lib/google/gtag-client";
 import { NeuralCoreLazy } from "@/components/landing/v2/NeuralCoreLazy";
 
 type Status = "idle" | "submitting" | "success" | "error";
@@ -32,6 +33,8 @@ export function QuickLeadFormV2() {
       if (res.ok && json.ok) {
         setStatus("success");
         track("lead_form_submitted", { source: "homepage_quick_form" });
+        gadsConversion("lead");
+        ga4Event("generate_lead", { form: "QuickLeadFormV2" });
         setForm({ full_name: "", email: "", phone: "", company_activity: "", message: "" });
       } else {
         setStatus("error");

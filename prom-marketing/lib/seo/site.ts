@@ -12,6 +12,112 @@
 
 export const SITE_URL = "https://promarketing.pw";
 
+/* ---------------------------------------------------------------------
+   Социалните профили на Ивайло — ЕДИН списък за всичко: иконите в долния
+   колонтитул, блокът „Последвай ме" на началната и `sameAs` в
+   структурираните данни (фирмата и човекът). Нов профил се добавя само тук.
+
+   ⚠️ Facebook: адресът по id е нарочен. Двата id-та на страницата
+   (106080979260944 и 61550531045329) водят до една и съща страница, а
+   id-то, а не името, оцелява при преименуването ѝ.
+   ⚠️ LinkedIn НЯМА нарочно — в репото няма реален адрес на профила му, а
+   измислен адрес в `sameAs` е по-лош от липсващ. Добавя се тук, щом има.
+   --------------------------------------------------------------------- */
+/** Поканата за Viber канала „AI България · Пари с AI“ — ползва се и от пренасочването /viber. */
+export const VIBER_KANAL =
+  "https://invite.viber.com/?g2=AQAqzZ05GRKnLVdWtuxQm%2FpaRecgu2KbzUByCyptRY7b8fkm5KfWqkJNJ%2Fldl9ts";
+
+export type SocialKey = "youtube" | "instagram" | "tiktok" | "facebook" | "viber";
+
+export type SocialProfile = {
+  /** Уникален ключ на плочката (React key). */
+  key: string;
+  /** Съвпада с ключа в `components/brands.tsx` — оттам идват иконата и цветът. */
+  brand: SocialKey;
+  /**
+   * В чий `sameAs` влиза адресът: на човека (Ивайло), на фирмата или и двете.
+   * Групата не е профил на никого — показва се, но не влиза в `sameAs`.
+   */
+  sameAs?: readonly ("person" | "org")[];
+  label: string;
+  /** Кратък ред под името на плочката: потребителското име или „Страницата ми". */
+  handle: string;
+  href: string;
+};
+
+export const SOCIAL_PROFILES: readonly SocialProfile[] = [
+  {
+    key: "youtube",
+    brand: "youtube",
+    label: "YouTube",
+    handle: "@promarketingbg",
+    href: "https://www.youtube.com/@promarketingbg",
+  },
+  {
+    key: "instagram",
+    brand: "instagram",
+    label: "Instagram",
+    handle: "@ivailopetev28",
+    href: "https://www.instagram.com/ivailopetev28/",
+  },
+  {
+    key: "tiktok",
+    brand: "tiktok",
+    label: "TikTok",
+    handle: "@petevv",
+    href: "https://www.tiktok.com/@petevv",
+  },
+  {
+    key: "facebook",
+    brand: "facebook",
+    label: "Facebook",
+    handle: "Страницата ми",
+    href: "https://www.facebook.com/profile.php?id=106080979260944",
+  },
+  {
+    key: "facebook-lichno",
+    brand: "facebook",
+    label: "Facebook · лично",
+    handle: "Ивайло Петев",
+    href: "https://www.facebook.com/profile.php?id=61557151023135",
+    sameAs: ["person"],
+  },
+  {
+    key: "ai-balgaria",
+    brand: "facebook",
+    label: "AI България",
+    handle: "групата ми във Facebook",
+    href: "https://www.facebook.com/groups/aizabiznesa",
+    sameAs: [],
+  },
+  {
+    // Viber каналът (20.10.2026): всеки ден в 9:00 инструмент, промпт или случка.
+    // Канал, не профил — като групата не влиза в `sameAs`. Кратък адрес: /viber.
+    key: "viber-kanal",
+    brand: "viber",
+    label: "Viber канал",
+    handle: "AI България · Пари с AI",
+    href: VIBER_KANAL,
+    sameAs: [],
+  },
+];
+
+/** Адресите за `sameAs` на човека или на фирмата (по подразбиране профилът е и на двамата). */
+function sameAsFor(who: "person" | "org"): string[] {
+  return SOCIAL_PROFILES.filter((p) => (p.sameAs ?? ["person", "org"]).includes(who)).map((p) => p.href);
+}
+
+/* ---------------------------------------------------------------------
+   Petev.ai — AI платформата за фирми на Ивайло. Отделен ПРОДУКТ, не социален
+   профил: нарочно НЕ е в SOCIAL_PROFILES и затова не влиза в `sameAs`.
+   Показва се като обикновена връзка във футъра и под плочките на началната.
+   --------------------------------------------------------------------- */
+export const PETEVAI = {
+  label: "Petev.ai",
+  tagline: "AI платформа за фирми",
+  href: "https://petevai.com",
+} as const;
+
 /** Юридически и контактни данни — влизат в JSON-LD и в подписа на сайта. */
 export const ORG = {
   legalName: "Про Маркетинг ЕООД",
@@ -44,15 +150,9 @@ export const ORG = {
   founder: {
     name: "Ивайло Петев",
     jobTitle: "Основател и AI консултант",
-    sameAs: [
-      "https://www.instagram.com/ivailopetev28",
-      "https://www.youtube.com/@promarketingbg",
-    ],
+    sameAs: sameAsFor("person"),
   },
-  sameAs: [
-    "https://www.instagram.com/ivailopetev28",
-    "https://www.youtube.com/@promarketingbg",
-  ],
+  sameAs: sameAsFor("org"),
   /** Райони, които обслужваме. Пловдив е първи — там е физическото присъствие. */
   areaServed: ["Пловдив", "София", "Варна", "Бургас", "Стара Загора", "България"],
 } as const;
@@ -178,6 +278,7 @@ export const PILLAR_PAGES: SitemapEntry[] = [
 export const SUPPORTING_PAGES: SitemapEntry[] = [
   { path: "/demo", priority: 0.8, changeFrequency: "monthly" },
   { path: "/automation-audit", priority: 0.8, changeFrequency: "monthly" },
+  { path: "/narachnik", priority: 0.7, changeFrequency: "monthly" },
   { path: "/ai-reshenia", priority: 0.8, changeFrequency: "weekly" },
   { path: "/kurs", priority: 0.7, changeFrequency: "monthly" },
   { path: "/mentor", priority: 0.7, changeFrequency: "monthly" },

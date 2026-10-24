@@ -264,3 +264,117 @@ export function costPer(spend: number, funnel: FunnelCounts) {
   const per = (n: number) => (n > 0 && spend > 0 ? Math.round((spend / n) * 100) / 100 : null);
   return { lead: per(funnel.leads), talked: per(funnel.talked), meeting: per(funnel.meetings), won: per(funnel.won) };
 }
+
+// ── По кампания: цена на лийд, среща и клиент ──────────────────────────────
+
+/** Откъде е дошъл картонът: кампанията на първата му Meta заявка и какво е поискал. */
+export interface LeadCampaign {
+  id: string;
+  name: string | null;
+  /** значката от lib/leads/lead-offers.ts („📘 Наръчник“…) */
+  offer: string | null;
+}
+
+/** Разходът на кампания за периода (от ad_spend_daily, сумиран). */
+export interface CampaignSpend {
+  campaign_id: string;
+  name: string;
+  purpose: string;
+  eur: number;
+  metaLeads: number;
+}
+
+export interface CampaignRow {
+  campaign_id: string;
+  name: string;
+  offer: string | null;
+  purpose: string | null;
+  /** разход за периода, € */
+  eur: number;
+  /** лийдове по Meta (самата Meta ги брои) */
+  metaLeads: number;
+  /** нови картони в CRM-а от тази кампания */
+  leads: number;
+  /** поне едно човешко обаждане */
+  touched: number;
+  /** обажданията на екипа за звънене (Димитър) по тези картони — бутоните в /ekip */
+  teamCalls: number;
+  talked: number;
+  meetings: number;
+  won: number;
+  cost: { lead: number | null; meeting: number | null; won: number | null };
+}
+
+/**
+ * Фунията и цената по кампания. Картонът се брои към кампанията на ПЪРВАТА си
+ * Meta заявка (source_ref) — като „лийдове от реклами“ горе, иначе един човек
+ * би се броил два пъти. Обажданията на екипа са активностите `call` с
+ * `metadata.team` (бутоните на Димитър), по всяко време след лийда.
+ *
+ * Редове: кампаниите „наши лийдове“ с разход за периода + всяка кампания, от
+ * която има картони (дори синхронът на разхода още да не я е видял).
+ */
+export function byCampaign(args: {
+  traces: LeadTrace[];
+  campaignOf: Map<string, LeadCampaign>;
+  spend: CampaignSpend[];
+  activities: KActivity[];
+}): CampaignRow[] {
+  const rows = new Map<string, CampaignRow>();
+  const blank = (id: string, name: string): CampaignRow => ({
+    campaign_id: id,
+    name,
+    offer: null,
+    purpose: null,
+    eur: 0,
+    metaLeads: 0,
+    leads: 0,
+    touched: 0,
+    teamCalls: 0,
+    talked: 0,
+    meetings: 0,
+    won: 0,
+    cost: { lead: null, meeting: null, won: null },
+  });
+  for (const s of args.spend) {
+    if (s.purpose !== "leads") continue;
+    const r = blank(s.campaign_id, s.name);
+    r.purpose = s.purpose;
+    r.eur = s.eur;
+    r.metaLeads = s.metaLeads;
+    rows.set(s.campaign_id, r);
+  }
+  const campaignOfLead = new Map<string, string>();
+  for (const t of args.traces) {
+    const c = args.campaignOf.get(t.id);
+    if (!c) continue;
+    let r = rows.get(c.id);
+    if (!r) {
+      const s = args.spend.find((x) => x.campaign_id === c.id);
+      r = blank(c.id, c.name ?? s?.name ?? c.id);
+      if (s) {
+        r.purpose = s.purpose;
+        r.eur = s.eur;
+        r.metaLeads = s.metaLeads;
+      }
+      rows.set(c.id, r);
+    }
+    if (!r.offer && c.offer) r.offer = c.offer;
+    campaignOfLead.set(t.id, c.id);
+    r.leads += 1;
+    if (t.touched) r.touched += 1;
+    if (t.talked) r.talked += 1;
+    if (t.meeting) r.meetings += 1;
+    if (t.won) r.won += 1;
+  }
+  for (const a of args.activities) {
+    if (a.activity_type !== "call" || a.metadata?.team !== true) continue;
+    const id = campaignOfLead.get(a.contact_id);
+    const r = id ? rows.get(id) : undefined;
+    if (r) r.teamCalls += 1;
+  }
+  const per = (eur: number, n: number) => (n > 0 && eur > 0 ? Math.round((eur / n) * 100) / 100 : null);
+  return [...rows.values()]
+    .map((r) => ({ ...r, eur: Math.round(r.eur * 100) / 100, cost: { lead: per(r.eur, r.leads), meeting: per(r.eur, r.meetings), won: per(r.eur, r.won) } }))
+    .sort((a, b) => b.eur - a.eur || b.leads - a.leads);
+}

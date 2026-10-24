@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { phoneVariants } from "@/lib/contacts/repository";
 import { fmtSofia } from "./time";
 import { giveToTeam } from "./assign";
+import { ivailoClaimFor } from "./ivailo";
 import { notifyCancelledBooking } from "./notify";
 
 /**
@@ -12,6 +13,10 @@ import { notifyCancelledBooking } from "./notify";
  *   1. картонът влиза в списъка на човека за срещите („❌ Отказаха срещата“),
  *      за да звънне и да я премести, вместо срещата да се изпари тихо;
  *   2. и двамата получават известие.
+ *
+ * Освен ако човекът вече е на Ивайло (ivailo-rules.ts, правило от 06.10.2026):
+ * от Академията, говорил с него или с друга среща в календара му. Тогава
+ * картонът не отива при екипа и научава само Ивайло.
  *
  * Странично действие е — никога не хвърля и никога не блокира отмяната.
  */
@@ -31,7 +36,9 @@ export async function handleCancelledBooking(input: CancelledBookingInput): Prom
     const by = input.by?.trim() || "човекът";
     const contact = await findContactByEmailOrPhone(input.attendeeEmail, input.attendeePhone);
 
-    if (contact?.id && contact.phone) {
+    // Отменената среща сама не е знак (не е стояла в календара до часа си).
+    const ivailos = contact?.id ? await ivailoClaimFor(contact.id, { now: new Date() }) : null;
+    if (contact?.id && contact.phone && !ivailos) {
       const reason = [
         `❌ Отказа срещата за ${fmtSofia(input.scheduledAtIso)}.`,
         input.reason?.trim() ? `Причина: ${input.reason.trim()}` : null,
@@ -56,6 +63,7 @@ export async function handleCancelledBooking(input: CancelledBookingInput): Prom
       scheduledAtIso: input.scheduledAtIso,
       reason: input.reason?.trim() || null,
       by,
+      ivailoNote: ivailos?.reason ?? null,
     });
   } catch {
     // известието не бива да вали отмяната

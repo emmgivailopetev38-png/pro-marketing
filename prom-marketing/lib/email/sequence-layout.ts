@@ -8,7 +8,11 @@
  */
 
 export const SITE = "https://www.promarketing.pw";
+/** Petev.ai — платформата на Ивайло; по правило стои до promarketing.pw във всеки подпис. */
+export const PETEVAI_URL = "https://petevai.com";
 export const YT = "https://www.youtube.com/@promarketingbg";
+/** Viber каналът „AI България · Пари с AI“ (20.10.2026) — кратък адрес, сочи към поканата. */
+export const VIBER_URL = "https://promarketing.pw/viber";
 export const PHONE = "+359 877 399 963";
 
 /**
@@ -66,16 +70,18 @@ export interface BuildCtx {
 }
 
 /**
- * Личен линк към демото.
+ * Личен линк към демото (или към браншово демо, ако е подаден `slug`).
  *
  * Демото е публична страница и стои в менюто на сайта — ключът не го крие,
- * а прави линка НЕГОВ: в аналитиката се вижда кой лийд е влизал, така че
- * следващият разговор започва от конкретното, а не отначало. Затова и в
- * текста не се обещава, че никой друг няма достъп.
+ * а прави линка НЕГОВ: от 20.10.2026 маякът в `app/demo/layout.tsx` вписва
+ * всяко влизане по него в картона („👀 Отвори демото“, `lib/crm/demo-views.ts`),
+ * така че следващият разговор започва от конкретното, а не отначало. Затова
+ * и в текста не се обещава, че никой друг няма достъп.
  */
-export function demoLink(ctx?: BuildCtx): string {
+export function demoLink(ctx?: BuildCtx, slug?: string): string {
   const k = (ctx?.contactId ?? "").split("-")[0];
-  return k ? `${SITE}/demo?k=${k}` : `${SITE}/demo`;
+  const base = slug ? `${SITE}/demo/${slug}` : `${SITE}/demo`;
+  return k ? `${base}?k=${k}` : base;
 }
 
 /**
@@ -93,10 +99,12 @@ export function signature(ctx?: BuildCtx): string {
 <p style="margin:0 0 6px;color:#31413a">Или <a href="${VOICE_URL}" style="color:#0b6b4a;font-weight:600">говори с гласовия ни агент</a> — вдига веднага, по всяко време, и ти записва час в календара ми, докато сте на линията.</p>
 <p style="margin:10px 0 0;color:#4a5651;font-size:14px">
 <a href="${SITE}" style="color:#0b6b4a">promarketing.pw</a> ·
-<a href="${SITE}/demo" style="color:#0b6b4a">живото демо</a> ·
+<a href="${PETEVAI_URL}" style="color:#0b6b4a">petevai.com</a> ·
+<a href="${demoLink(ctx)}" style="color:#0b6b4a">живото демо</a> ·
 <a href="${SITE}/booking" style="color:#0b6b4a">запази 45 минути</a> ·
 <a href="${SITE}/automation-audit" style="color:#0b6b4a">безплатен AI одит</a> ·
-<a href="${YT}" style="color:#0b6b4a">YouTube</a>
+<a href="${YT}" style="color:#0b6b4a">YouTube</a> ·
+<a href="${VIBER_URL}" style="color:#0b6b4a">Viber канал</a>
 </p>${
     ctx?.unsubscribeUrl
       ? `
@@ -115,7 +123,8 @@ export function signatureText(ctx?: BuildCtx): string {
 Или говори с гласовия ни агент — вдига веднага и ти записва час в календара ми: ${VOICE_URL}
 
 Сайт: ${SITE}
-Живо демо: ${SITE}/demo
+Petev.ai — сайт + CRM в едно: ${PETEVAI_URL}
+Живо демо: ${demoLink(ctx)}
 Запази 45 минути: ${SITE}/booking
 Безплатен AI одит: ${SITE}/automation-audit
 YouTube: ${YT}${ctx?.unsubscribeUrl ? `\n\nНе искаш повече писма? Спри ги оттук: ${ctx.unsubscribeUrl}` : ""}`;
@@ -144,6 +153,12 @@ export function callout(html: string): string {
 export interface SequenceStep {
   /** Стабилен ключ — по него се пази идемпотентността. */
   key: string;
+  /**
+   * Друг текст в СЪЩИЯ слот на поредицата (същият `key`). Пише се в
+   * `metadata.seq_variant`, за да се вижда в картона кое писмо е тръгнало,
+   * а ключът остава общ — иначе кронът праща и обикновеното писмо на същото място.
+   */
+  variant?: string;
   /** Дни след началната точка на поредицата. 0 = веднага. */
   afterDays: number;
   subject: string;

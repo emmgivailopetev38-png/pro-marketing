@@ -120,7 +120,7 @@ export default async function EkipPage({
                 Няма такъв човек. Пробвай само последните 6 цифри от номера или част от името.
               </p>
             ) : (
-              found.map((l) => <LeadCard key={`s-${l.id}`} lead={l} mode="search" />)
+              found.map((l) => <LeadCard key={`s-${l.id}`} lead={l} mode="search" setterName={callerName} />)
             )}
           </section>
         )}
@@ -138,7 +138,7 @@ export default async function EkipPage({
                   Няма нови. Всеки нов лийд от рекламата идва тук сам — и на имейла ти.
                 </p>
               ) : (
-                queue.fresh.map((l) => <LeadCard key={l.id} lead={l} mode="fresh" />)
+                queue.fresh.map((l) => <LeadCard key={l.id} lead={l} mode="fresh" setterName={callerName} />)
               )}
             </section>
           </>
@@ -241,7 +241,7 @@ export default async function EkipPage({
                   когато вече не ти трябва; за повторно излиза сама, когато ѝ дойде часът.
                 </p>
                 {queue.waiting.map((l) => (
-                  <LeadCard key={l.id} lead={l} mode="waiting" />
+                  <LeadCard key={l.id} lead={l} mode="waiting" setterName={callerName} />
                 ))}
               </section>
             )}

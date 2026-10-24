@@ -28,8 +28,18 @@ export interface AttemptRow {
 /** Маркерът „този картон е на екипа“ — не е опит за контакт. */
 export const ASSIGN_TYPE = "team_assigned";
 
-/** Защо картонът е при екипа: Ивайло го е дал, човекът е отказал срещата, или не се е явил на нея. */
-export type GivenKind = "given" | "cancelled" | "noshow";
+/**
+ * Защо картонът е при екипа: Ивайло го е дал, човекът е отказал срещата, не се
+ * е явил на нея, или е оставил данни отново на рекламата („relead“, виж relead-rules.ts).
+ */
+export type GivenKind = "given" | "cancelled" | "noshow" | "relead";
+
+const GIVEN_KINDS: ReadonlySet<string> = new Set<GivenKind>(["given", "cancelled", "noshow", "relead"]);
+
+/** Видът на маркера от metadata; непознат или липсващ = „given“ (старите маркери на Ивайло). */
+export function givenKindOf(kind: unknown): GivenKind {
+  return typeof kind === "string" && GIVEN_KINDS.has(kind) ? (kind as GivenKind) : "given";
+}
 
 /** Активността „върнат на Ивайло след 7 дни без резултат“ — не е опит за контакт. */
 export const ESCALATED_TYPE = "escalated";
@@ -129,7 +139,7 @@ export function summarizeAttempts(rows: AttemptRow[]): Map<string, AttemptSummar
           by: a.created_by,
           to: strOf(a.metadata?.to_name),
           to_id: strOf(a.metadata?.to_member_id),
-          kind: a.metadata?.kind === "cancelled" ? "cancelled" : a.metadata?.kind === "noshow" ? "noshow" : "given",
+          kind: givenKindOf(a.metadata?.kind),
           reason: reasonOf(a),
           missed_at: strOf(a.metadata?.missed_at),
           missed_url: strOf(a.metadata?.missed_url),

@@ -13,6 +13,7 @@ import {
   type PostCallEvent,
 } from "@/lib/voice/postcall";
 import { closeVoiceSession } from "@/lib/voice/quota";
+import { closeTreningSession } from "@/lib/trening/postcall";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +63,19 @@ export async function POST(request: Request) {
   const ev = parsePostCall(payload);
   // Аудио, неуспешно набиране и всичко друго — приемаме и не правим нищо.
   if (!ev) return NextResponse.json({ ok: true, ignored: true });
+
+  // Тренировките остават само в техния дневник, преди всякаква CRM логика.
+  const trainerAgentId = process.env.ELEVENLABS_TRAINER_AGENT_ID;
+  if (trainerAgentId && ev.agentId === trainerAgentId) {
+    try {
+      const result = await closeTreningSession(ev, payload);
+      if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+      return NextResponse.json({ ok: true, trening: true });
+    } catch (error) {
+      console.error("[webhooks/elevenlabs] тренировка", error);
+      return NextResponse.json({ error: "Неуспешен запис на тренировката." }, { status: 500 });
+    }
+  }
 
   const email = contactEmail(ev);
   const phone = contactPhone(ev);

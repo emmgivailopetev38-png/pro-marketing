@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { costPer, countFunnel, groupFunnel, isHuman, perPerson, traceLeads, weekKey, type KActivity, type KLead } from "./konversii";
+import {
+  byCampaign,
+  costPer,
+  countFunnel,
+  groupFunnel,
+  isHuman,
+  perPerson,
+  traceLeads,
+  weekKey,
+  type KActivity,
+  type KLead,
+  type LeadCampaign,
+} from "./konversii";
 
 const NOW = new Date("2026-09-22T07:00:00Z");
 
@@ -72,5 +84,58 @@ describe("konversii", () => {
       won: 150,
     });
     expect(costPer(0, { leads: 10, touched: 0, talked: 0, meetings: 0, held: 0, offers: 0, won: 0, lost: 0 }).lead).toBeNull();
+  });
+});
+
+describe("по кампания: цена на лийд, среща и клиент", () => {
+  const NAR = "120248709769130574";
+  const ODIT = "120248628488260574";
+  const L: KLead[] = [
+    { id: "n1", source: "meta_lead", created_at: "2026-10-07T12:17:00Z", stage: "discovery", owner_id: null },
+    { id: "n2", source: "meta_lead", created_at: "2026-10-07T12:20:00Z", stage: "lead", owner_id: null },
+    { id: "o1", source: "meta_lead", created_at: "2026-10-05T10:00:00Z", stage: "won", owner_id: null },
+    { id: "w1", source: "website_form", created_at: "2026-10-05T10:00:00Z", stage: "lead", owner_id: null },
+  ];
+  const A: KActivity[] = [
+    // Димитър: n1 — не вдигна, после среща; n2 — не вдигна; o1 — говорили
+    { contact_id: "n1", activity_type: "call", occurred_at: "2026-10-07T13:00:00Z", created_by: "Димитър", metadata: { team: true, outcome: "no_answer" } },
+    { contact_id: "n1", activity_type: "call", occurred_at: "2026-10-07T15:00:00Z", created_by: "Димитър", metadata: { team: true, outcome: "meeting" } },
+    { contact_id: "n1", activity_type: "meeting", occurred_at: "2026-10-09T08:00:00Z", created_by: "Димитър", metadata: { team: true, outcome: "meeting" } },
+    { contact_id: "n2", activity_type: "call", occurred_at: "2026-10-07T13:05:00Z", created_by: "Димитър", metadata: { team: true, outcome: "no_answer" } },
+    { contact_id: "o1", activity_type: "call", occurred_at: "2026-10-05T11:00:00Z", created_by: "Ивайло", metadata: null },
+  ];
+  const traces = traceLeads(L, A, [], new Date("2026-10-08T07:00:00Z"));
+  const campaignOf = new Map<string, LeadCampaign>([
+    ["n1", { id: NAR, name: "ПМ · Лийд магнит · AI наръчник · 2026-10-07", offer: "📘 Наръчник" }],
+    ["n2", { id: NAR, name: "ПМ · Лийд магнит · AI наръчник · 2026-10-07", offer: "📘 Наръчник" }],
+    ["o1", { id: ODIT, name: "ProMarketing · AI одит", offer: "🔎 Безплатен AI одит" }],
+  ]);
+  const spend = [
+    { campaign_id: NAR, name: "ПМ · Лийд магнит · AI наръчник · 2026-10-07", purpose: "leads", eur: 10, metaLeads: 3 },
+    { campaign_id: ODIT, name: "ProMarketing · AI одит", purpose: "leads", eur: 62.05, metaLeads: 12 },
+    { campaign_id: "client", name: "Белцов къща", purpose: "client", eur: 20, metaLeads: 0 },
+  ];
+
+  it("лийдовете, обажданията на екипа, срещите и клиентите — на кампанията на картона", () => {
+    const rows = byCampaign({ traces, campaignOf, spend, activities: A });
+    const nar = rows.find((r) => r.campaign_id === NAR)!;
+    expect(nar).toMatchObject({ offer: "📘 Наръчник", eur: 10, metaLeads: 3, leads: 2, touched: 2, teamCalls: 3, talked: 1, meetings: 1, won: 0 });
+    expect(nar.cost).toEqual({ lead: 5, meeting: 10, won: null });
+    const odit = rows.find((r) => r.campaign_id === ODIT)!;
+    expect(odit).toMatchObject({ leads: 1, teamCalls: 0, won: 1 });
+    expect(odit.cost.won).toBe(62.05);
+  });
+
+  it("кампанията на клиент не е ред; картонът от сайта не е на кампания", () => {
+    const rows = byCampaign({ traces, campaignOf, spend, activities: A });
+    expect(rows.map((r) => r.campaign_id)).toEqual([ODIT, NAR]);
+    expect(rows.reduce((s, r) => s + r.leads, 0)).toBe(3);
+  });
+
+  it("кампания с лийдове, но още без разход (синхронът не е минал) — излиза, цената е „—“", () => {
+    const rows = byCampaign({ traces, campaignOf, spend: [], activities: A });
+    const nar = rows.find((r) => r.campaign_id === NAR)!;
+    expect(nar).toMatchObject({ eur: 0, leads: 2, name: "ПМ · Лийд магнит · AI наръчник · 2026-10-07" });
+    expect(nar.cost).toEqual({ lead: null, meeting: null, won: null });
   });
 });

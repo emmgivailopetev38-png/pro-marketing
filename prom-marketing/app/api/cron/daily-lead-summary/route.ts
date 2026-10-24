@@ -7,6 +7,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { syncAllSources } from "@/lib/leads/import";
 import { sendEmail } from "@/lib/email/resend";
 import { buildDailyCrmReport } from "@/lib/email/daily-crm-report";
+import { engagementSummary, loadEngagement } from "@/lib/crm/email-replies";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -121,12 +122,21 @@ export async function GET(request: Request) {
   const recipient = process.env.EMAIL_REPLY_TO || "emmgivailopetev38@gmail.com";
   const auto = automationSummary(sequence, warm);
   const tidySummary = consistencySummary(tidy);
+  // Кой отговори на писмата и кой отвори демото по личния линк — последните 24 ч.
+  // Отговорът на Стефан Христов (16.10) стоя 4 дни непрочетен; оттук нататък
+  // всеки отговор стои в този отчет, освен в Telegram.
+  let engaged = { html: "", text: "" };
+  try {
+    engaged = engagementSummary(await loadEngagement(new Date(Date.now() - 24 * 3_600_000).toISOString()));
+  } catch {
+    // отчетът е по-важен от този блок
+  }
 
   const emailResult = await sendEmail({
     to: recipient,
     subject: report.subject,
-    html: report.html + auto.html + tidySummary.html,
-    text: report.text + auto.text + tidySummary.text,
+    html: report.html + auto.html + engaged.html + tidySummary.html,
+    text: report.text + auto.text + engaged.text + tidySummary.text,
   });
 
   return NextResponse.json({

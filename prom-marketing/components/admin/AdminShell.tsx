@@ -26,6 +26,7 @@ import {
   FolderOpen,
   SearchCheck,
   GraduationCap,
+  Headphones,
   Bot,
   MessageCircle,
   Share2,
@@ -62,7 +63,9 @@ const LINK_GROUPS: LinkGroup[] = [
   {
     label: "Тренировка",
     items: [
+      { href: "/admin/suvetnik", label: "Съветник на живо", icon: Headphones },
       { href: "/admin/skript", label: "Разговорът", icon: Route },
+      { href: "/admin/trenirovka", label: "Тренировка МВП", icon: GraduationCap },
       { href: "/admin/igra", label: "Кандидати · Играта", icon: Gamepad2 },
     ],
   },
@@ -124,10 +127,27 @@ const LINK_GROUPS: LinkGroup[] = [
 
 const ALL_LINKS = LINK_GROUPS.flatMap((g) => g.items);
 
-function NavList({ path, onNav }: { path: string; onNav?: () => void }) {
+// Демо достъпът на екипа (lib/admin/demo-paths.ts): само страниците за показване
+// пред клиент + връщане в /ekip. Списъкът тук и там трябва да съвпадат.
+const DEMO_GROUPS: LinkGroup[] = [
+  {
+    label: "Демо за клиента",
+    items: [
+      { href: "/admin/jarvis", label: "JARVIS", icon: Bot },
+      { href: "/admin/deck", label: "Командна палуба", icon: Orbit },
+      { href: "/admin/demo-glas", label: "Гласово демо", icon: Presentation },
+    ],
+  },
+  {
+    label: "Моята зона",
+    items: [{ href: "/ekip/prodazhbi", label: "Към моите хора", icon: Users }],
+  },
+];
+
+function NavList({ path, onNav, groups = LINK_GROUPS }: { path: string; onNav?: () => void; groups?: LinkGroup[] }) {
   return (
     <nav className="mt-6 flex flex-col gap-4 overflow-y-auto pr-1">
-      {LINK_GROUPS.map((g) => (
+      {groups.map((g) => (
         <div key={g.label}>
           <p className="mb-1.5 px-3 font-mono text-[9px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]">
             {g.label}
@@ -142,6 +162,7 @@ function NavList({ path, onNav }: { path: string; onNav?: () => void }) {
                 onClick={onNav}
                 className={cn(
                   "group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
+                  l.href === "/admin/trenirovka" && "min-h-16 text-base",
                   active
                     ? "bg-[var(--color-accent-cyan)]/10 text-[var(--color-accent-cyan)]"
                     : "text-[var(--color-text-secondary)] hover:bg-white/5 hover:text-[var(--color-text-primary)]"
@@ -169,10 +190,11 @@ function NavList({ path, onNav }: { path: string; onNav?: () => void }) {
   );
 }
 
-export function AdminShell({ children, email }: { children: React.ReactNode; email: string }) {
+export function AdminShell({ children, email, demo = false }: { children: React.ReactNode; email: string; demo?: boolean }) {
   const path = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const groups = demo ? DEMO_GROUPS : LINK_GROUPS;
   const sectionLabel =
     [...ALL_LINKS]
       .sort((a, b) => b.href.length - a.href.length)
@@ -180,7 +202,7 @@ export function AdminShell({ children, email }: { children: React.ReactNode; ema
 
   const signOut = async () => {
     await fetch("/api/admin/auth", { method: "DELETE" });
-    router.push("/admin/login");
+    router.push(demo ? "/ekip/login" : "/admin/login");
     router.refresh();
   };
 
@@ -245,7 +267,7 @@ export function AdminShell({ children, email }: { children: React.ReactNode; ema
             <X className="h-5 w-5" />
           </button>
         </div>
-        <NavList path={path} onNav={() => setOpen(false)} />
+        <NavList path={path} onNav={() => setOpen(false)} groups={groups} />
         <div className="mt-auto">
           <p className="mb-2 text-xs text-[var(--color-text-tertiary)]">{email}</p>
           <Button variant="ghost" onClick={signOut} className="w-full justify-start gap-2">
@@ -259,7 +281,7 @@ export function AdminShell({ children, email }: { children: React.ReactNode; ema
         <Link href="/admin">
           <Logo markId="pm-admin-c" />
         </Link>
-        <NavList path={path} />
+        <NavList path={path} groups={groups} />
         <div className="mt-auto">
           <p className="mb-2 text-xs text-[var(--color-text-tertiary)]">{email}</p>
           <Button variant="ghost" onClick={signOut} className="w-full justify-start gap-2">
@@ -275,9 +297,9 @@ export function AdminShell({ children, email }: { children: React.ReactNode; ema
           {children}
         </div>
       </main>
-      <QuickAddContact />
+      {!demo && <QuickAddContact />}
       <CopilotWidget />
-      <CommandPalette />
+      {!demo && <CommandPalette />}
     </div>
   );
 }

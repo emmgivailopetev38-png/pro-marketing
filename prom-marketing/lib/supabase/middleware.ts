@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { ADMIN_COOKIE, readSession } from "@/lib/admin/session";
+import { isDemoAdminPath } from "@/lib/admin/demo-paths";
 
 /**
  * Две затворени зони с една бисквитка:
@@ -33,6 +34,12 @@ export async function updateSession(request: NextRequest) {
   }
 
   const session = readSession(token);
+  // Човек от екипа с модул „Демо“ отваря само трите демо страници; дали има
+  // модула го проверява layout-ът (getAdminViewer). Всичко друго под /admin
+  // го връща в неговата зона — без страница за вход, той вече е влязъл.
+  if (session?.kind === "member" && isDemoAdminPath(path)) {
+    return NextResponse.next({ request });
+  }
   if (session?.kind === "member") {
     url.pathname = "/ekip";
     url.search = "";

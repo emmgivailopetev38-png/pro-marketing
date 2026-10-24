@@ -33,6 +33,7 @@ import {
   Users, Wallet, CalendarCheck, Gauge, type LucideIcon,
 } from "lucide-react";
 import { track } from "@/lib/analytics/track";
+import { ga4Event, gadsConversion } from "@/lib/google/gtag-client";
 
 /* ----------------------------------------------------------------------
    1 · COUNT-UP — eases a number to its target once `run` flips true.
@@ -360,6 +361,8 @@ function DemoCta() {
       if (res.ok && json.ok) {
         setStatus("done");
         track("product_demo_lead", {});
+        gadsConversion("lead");
+        ga4Event("generate_lead", { form: "ProductShowcaseV2" });
       } else setStatus("error");
     } catch {
       setStatus("error");

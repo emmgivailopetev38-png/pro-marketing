@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  REMINDER_EVENT_STATUS,
   dueReminders,
   levelForAge,
   reminderKey,
@@ -69,5 +70,12 @@ describe("кои напомняния са дължими", () => {
   it("най-дълго чакащият е най-отгоре", () => {
     const due = dueReminders([lead("a", 60, now), lead("b", 300, now), lead("c", 120, now)], new Set(), now);
     expect(due.map((d) => d.contact.id)).toEqual(["b", "c", "a"]);
+  });
+});
+
+describe("дневникът на напомнянията", () => {
+  it("статусът е от позволените в automation_events — иначе редът не се записва и напомнянето се повтаря", () => {
+    // CHECK в базата: status IN (success, failed, skipped)
+    expect(["success", "failed", "skipped"]).toContain(REMINDER_EVENT_STATUS);
   });
 });

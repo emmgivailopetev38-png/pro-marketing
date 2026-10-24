@@ -35,6 +35,9 @@ const RULES: Array<{ purpose: AdPurpose; test: RegExp }> = [
   { purpose: "shop", test: /хидра|hidra|водостру|green\s*elexir|greenelexir|elexir|proofout|sleep\b/i },
   { purpose: "hiring", test: /клоузър|klouz|мастър\s*клас|master\s*klas|търси се|набиране/i },
   { purpose: "leads", test: /promarketing|pro\s*marketing|про\s*маркетинг/i },
+  // Лийд магнитите (07.10.2026): „ПМ · Лийд магнит · AI наръчник · …“ — без „ProMarketing“
+  // в името падаха в „неразпределено“, а лийдовете им се броят срещу нашия разход.
+  { purpose: "leads", test: /^\s*пм\s*·|лийд\s*магнит|наръчник|безплатен\s+(?:ai\s+)?курс/i },
   // ⚠️ `\b` не лови кирилица (\w е само латиница) — затова границата е изрична.
   { purpose: "leads", test: /(^|\s)ай(\s|$)|(^|\s)crm\s*ai|автоматизации|сайт лийдове|уебинар|ai одит|услуги по мярка|инсталация за 1 ден|следи камерите|ремаркетинг|trading\s*bot|trading\s*agent/i },
 ];

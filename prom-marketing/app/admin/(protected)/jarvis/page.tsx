@@ -1,6 +1,8 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import type { ContactRow } from "@/lib/contacts/types";
 import { JarvisDeck, type JarvisBriefing } from "@/components/admin/JarvisDeck";
+import { isDemoViewer } from "@/lib/admin/demo-access";
+import { demoBriefing } from "@/lib/admin/demo-data";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +10,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const REVENUE_EXCLUDED_STATUSES = new Set(["draft", "cancelled", "excluded"]);
 
 export default async function AdminJarvisPage() {
+  // Демо достъпът (клоузърът пред клиент) вижда измислена фирма, не нашите числа.
+  if (await isDemoViewer()) return <JarvisDeck briefing={demoBriefing()} />;
+
   const supabase = createServiceClient();
   const now = new Date();
   const nowIso = now.toISOString();

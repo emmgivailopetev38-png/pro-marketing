@@ -53,3 +53,27 @@ describe("escalation-rules", () => {
     expect(v.escalate).toBe(false);
   });
 });
+
+describe("пак остави данни (relead) — седемте дни тръгват отначало", () => {
+  it("стари опити отпреди новата заявка не го връщат на Ивайло на сутринта", () => {
+    const rows = [
+      row(1, "no_answer"),
+      row(2, null, { activity_type: "team_assigned", metadata: { kind: "relead", to_team: true }, created_by: "meta_webhook" }),
+      row(20, "no_answer"),
+      row(25, "talked"),
+    ];
+    const v = escalationVerdict(rows, now);
+    expect(v.teamAttempts).toBe(1);
+    expect(v.escalate).toBe(false);
+  });
+
+  it("седмица без резултат СЛЕД новата заявка — пак се връща", () => {
+    const rows = [
+      row(1, "no_answer"),
+      row(8, "no_answer"),
+      row(9, null, { activity_type: "team_assigned", metadata: { kind: "relead", to_team: true }, created_by: "meta_webhook" }),
+      row(30, "no_answer"),
+    ];
+    expect(escalationVerdict(rows, now).escalate).toBe(true);
+  });
+});

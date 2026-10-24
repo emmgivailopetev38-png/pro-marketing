@@ -1,6 +1,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 import { minStageFromActivities } from "./consistency-rules";
+import { allRows } from "@/lib/supabase/all-rows";
 import type { PromiseRow } from "@/lib/contacts/dnevnik";
 import {
   deltaPct,
@@ -63,18 +64,35 @@ export async function loadEfektivnost(days = 30, now: Date = new Date()): Promis
   const from = new Date(now.getTime() - days * 86_400_000);
   const prevFrom = new Date(from.getTime() - days * 86_400_000);
 
-  const [{ data: teamRows }, { data: contactRows }, { data: actRows }, { data: promiseRows }] = await Promise.all([
+  // Всички редове, не първите 1000: PostgREST реже ТИХО на 1000 реда на заявка
+  // (lib/supabase/all-rows.ts). Активностите за двата периода са над 3000 —
+  // до 07.10.2026 страницата виждаше само най-старите (до 08.09).
+  const [{ data: teamRows }, contactPage, actPage, { data: promiseRows }] = await Promise.all([
     sb.from("team_members").select("full_name"),
-    sb.from("contacts").select("id, full_name, stage, created_at, updated_at, deal_value_eur, mood, next_followup_at, last_heard_from_at"),
-    sb
-      .from("contact_activities")
-      .select("contact_id, activity_type, occurred_at, created_by, metadata")
-      .gte("occurred_at", prevFrom.toISOString())
-      .lte("occurred_at", now.toISOString())
-      .order("occurred_at", { ascending: true })
-      .limit(20000),
+    allRows((a, b) =>
+      sb
+        .from("contacts")
+        .select("id, full_name, stage, created_at, updated_at, deal_value_eur, mood, next_followup_at, last_heard_from_at")
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(a, b)
+    ),
+    allRows((a, b) =>
+      sb
+        .from("contact_activities")
+        .select("contact_id, activity_type, occurred_at, created_by, metadata")
+        .gte("occurred_at", prevFrom.toISOString())
+        .lte("occurred_at", now.toISOString())
+        .order("occurred_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(a, b)
+    ),
     sb.from("contact_promises").select("*").eq("who", "us").limit(2000),
   ]);
+  if (contactPage.error) console.error("[efektivnost] картоните:", contactPage.error);
+  if (actPage.error) console.error("[efektivnost] активностите:", actPage.error);
+  const contactRows = contactPage.rows;
+  const actRows = actPage.rows;
 
   const teamNames = ((teamRows ?? []) as Array<{ full_name: string }>).map((t) => t.full_name);
   const contacts = (contactRows ?? []) as Array<ContactLite & { full_name: string | null }>;
