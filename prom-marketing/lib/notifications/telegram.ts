@@ -94,6 +94,14 @@ export const tgNotify = {
     sendTelegram(`👀 <b>${escapeHtml(name)}</b> отвори ${escapeHtml(page)} от писмото В МОМЕНТА`, {
       buttons: [{ text: "👤 Профил", url: `${SITE}/admin/clients/${contactId}` }],
     }),
+  /** Филмът-уебинар: пусна го (0) или стигна три четвърти — там вече е сериозен. */
+  uebinarProgress: (name: string, pct: number, contactId: string) =>
+    sendTelegram(
+      pct >= 75
+        ? `🔥 <b>${escapeHtml(name)}</b> изгледа ${pct} % от уебинара „ВЪЛНАТА“ — сериозен е, звънни`
+        : `🎬 <b>${escapeHtml(name)}</b> пусна уебинара „ВЪЛНАТА“ В МОМЕНТА`,
+      { buttons: [{ text: "👤 Профил", url: `${SITE}/admin/clients/${contactId}` }] }
+    ),
 };
 
 function escapeHtml(s: string): string {

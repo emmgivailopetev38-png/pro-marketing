@@ -32,6 +32,7 @@ import {
   signatureText,
   type SequenceStep,
 } from "./sequence-layout";
+import { uebinarStep } from "./uebinar-step";
 
 function greeting(name: string | null): { hi: string; hiT: string } {
   return {
@@ -40,11 +41,22 @@ function greeting(name: string | null): { hi: string; hiT: string } {
   };
 }
 
-/** Първото писмо към лийд от реклама или от формата на сайта. */
+/**
+ * Първото писмо към лийд от реклама или от формата на сайта — филмът-уебинар
+ * „ВЪЛНАТА“ като подарък (Ивайло, 22.10.2026: „пусни го направо като първи
+ * имейл“). Ключът е общ с топлия кръг — виж `uebinar-step.ts`.
+ */
+const S0_UEBINAR: SequenceStep = uebinarStep({ afterDays: 0, kind: "ПЪРВО", firstTouch: true });
+
+/**
+ * Демотата — до 22.10.2026 първото писмо, оттогава второто (ден 2).
+ * Ключът остава `s1_lichno`: по него магнитите (наръчник, курс) пазят първия
+ * слот и не получават демотата отгоре.
+ */
 const S1_LICHNO: SequenceStep = {
   key: "s1_lichno",
-  afterDays: 0,
-  kind: "ПЪРВО",
+  afterDays: 2,
+  kind: "ДЕМО",
   subject: "Ето ти демотата — включително за твоя бранш",
   build: (name, ctx) => {
     const { hi, hiT } = greeting(name);
@@ -162,7 +174,7 @@ const S2_SMETKATA: SequenceStep = {
   // Ключът е нов нарочно: писмото сменя РАБОТАТА си (гласов агент → въпросите),
   // затова хората, спрели на стария s2_glas, трябва да получат и това.
   key: "s2_smetkata",
-  afterDays: 2,
+  afterDays: 4,
   kind: "СТОЙНОСТ",
   subject: "Трите въпроса — и сметката насреща",
   build: (name, ctx) => {
@@ -210,7 +222,7 @@ const S3_DEMOTA: SequenceStep = {
   // Ключът се ЗАПАЗВА: работата на писмото е същата (демо върху техния бизнес),
   // сменя се само подходът — влиза се с находка, която им върши работа сама по себе си.
   key: "s3_demota",
-  afterDays: 5,
+  afterDays: 7,
   kind: "ДЕМО",
   subject: "Един тест, който отнема ден и обикновено изненадва",
   build: (name, ctx) => {
@@ -250,7 +262,7 @@ ${signatureText(ctx)}`,
 
 const S4_POSLEDNO: SequenceStep = {
   key: "s4_posledno",
-  afterDays: 9,
+  afterDays: 11,
   kind: "ИЗХОД",
   subject: "Оставям ти вратата отворена",
   build: (name, ctx) => {
@@ -398,14 +410,20 @@ ${signatureText(ctx)}`,
 export function firstStepForForm(formId: string | null | undefined): SequenceStep {
   if (formId && NARACHNIK_FORM_IDS.has(formId)) return S1_NARACHNIK;
   if (formId && KURS_FORM_IDS.has(formId)) return S1_KURS;
-  return S1_LICHNO;
+  return S0_UEBINAR;
 }
 
 /** Лийд от Meta или от формата на сайта. */
-export const LEAD_SEQUENCE: SequenceStep[] = [S1_LICHNO, S2_SMETKATA, S3_DEMOTA, S4_POSLEDNO];
+export const LEAD_SEQUENCE: SequenceStep[] = [S0_UEBINAR, S1_LICHNO, S2_SMETKATA, S3_DEMOTA, S4_POSLEDNO];
 
 /** Лийд от рекламата за гласовия агент — вече е чул продукта. */
-export const VOICE_LEAD_SEQUENCE: SequenceStep[] = [S1_GLAS, S2_SMETKATA, S3_DEMOTA, S4_POSLEDNO];
+export const VOICE_LEAD_SEQUENCE: SequenceStep[] = [
+  S1_GLAS,
+  uebinarStep({ afterDays: 1, kind: "ПОДАРЪК", firstTouch: false }),
+  S2_SMETKATA,
+  S3_DEMOTA,
+  S4_POSLEDNO,
+];
 
 /** Източниците, за които студената поредица изобщо тръгва. */
 export const LEAD_SOURCES = ["meta_lead", "website_form", "voice_web"] as const;
