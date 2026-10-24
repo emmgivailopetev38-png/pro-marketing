@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/resend";
 import { escapeHtml } from "@/lib/email/escape";
+import { confirmationAllowed, isOwnOrigin, safeForMail } from "@/lib/security/form-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,10 @@ const schema = z.object({
 const SITE = "https://promarketing.pw";
 
 export async function POST(request: Request) {
+  // Само от нашия сайт — голата заявка от бот не минава (виж lib/security/form-guard.ts).
+  if (!isOwnOrigin(request)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   let body: unknown;
   try {
     body = await request.json();
@@ -97,19 +102,23 @@ export async function POST(request: Request) {
   });
 
   // Потвърждение към клиента.
-  sendEmail({
+  // Към непознат адрес: веднъж на денонощие, с таван на час и без връзки от заявката.
+  const greetName = safeForMail(full_name, 60, "приятелю");
+  const mailService = safeForMail(service, 120, "избраната услуга");
+  const mayConfirm = await confirmationAllowed(supabase, "store_order", email);
+  if (mayConfirm) sendEmail({
     to: email,
-    subject: `✅ Поръчката ти е приета: ${service}`,
+    subject: `✅ Поръчката ти е приета: ${mailService}`,
     html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.65;color:#0d1221;max-width:560px;">
-<p>Здравей, ${escapeHtml(full_name)},</p>
-<p>Приехме поръчката ти за <strong>„${escapeHtml(service)}”</strong>. 🎉</p>
+<p>Здравей, ${escapeHtml(greetName)},</p>
+<p>Приехме поръчката ти за <strong>„${escapeHtml(mailService)}”</strong>. 🎉</p>
 <p><strong>Какво следва:</strong> ще ти позвъним/пишем в следващите часове (най-късно до 24ч), за да уточним детайлите и стартираме. Без предварително плащане — първо се разбираме, после плащаш.</p>
 <p>Ако бързаш, запази си час директно: <a href="${SITE}/booking">${SITE}/booking</a></p>
 <p>Поздрави,<br/><strong>Ивайло Петев</strong><br/>ProMarketing</p>
 </div>`,
-    text: `Здравей, ${full_name},
+    text: `Здравей, ${greetName},
 
-Приехме поръчката ти за „${service}”. Ще се свържем в следващите часове (до 24ч), за да уточним детайлите. Без предварително плащане.
+Приехме поръчката ти за „${mailService}”. Ще се свържем в следващите часове (до 24ч), за да уточним детайлите. Без предварително плащане.
 
 Ако бързаш: ${SITE}/booking
 

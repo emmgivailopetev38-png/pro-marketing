@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/resend";
 import { escapeHtml } from "@/lib/email/escape";
+import { confirmationAllowed, isOwnOrigin, safeForMail } from "@/lib/security/form-guard";
 import { TRADING, TRADING_DISCLAIMER } from "@/lib/trading/config";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,10 @@ const schema = z.object({
 const SITE = "https://promarketing.pw";
 
 export async function POST(request: Request) {
+  // Само от нашия сайт — голата заявка от бот не минава (виж lib/security/form-guard.ts).
+  if (!isOwnOrigin(request)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   let body: unknown;
   try {
     body = await request.json();
@@ -91,11 +96,14 @@ export async function POST(request: Request) {
   });
 
   // Книгата към лийда.
-  sendEmail({
+  // Към непознат адрес: веднъж на денонощие, с таван на час и без връзки от заявката.
+  const greetName = safeForMail(full_name, 60, "приятелю");
+  const mayConfirm = await confirmationAllowed(supabase, "trading_book_download", email);
+  if (mayConfirm) sendEmail({
     to: email,
     subject: "📕 Книгата ти: „Трейдинг Агентът — наръчникът” (+ какво следва)",
     html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.65;color:#0d1221;max-width:560px;">
-<p>Здравей, ${escapeHtml(full_name)},</p>
+<p>Здравей, ${escapeHtml(greetName)},</p>
 <p>Ето я книгата — пълната карта как се изгражда автоматизирана търговска система:</p>
 <p><a href="${SITE}${TRADING.book.pdfPath}" style="display:inline-block;background:#7c3aed;color:#fff;font-weight:bold;padding:12px 24px;border-radius:999px;text-decoration:none;">Свали книгата (PDF) →</a></p>
 <p><strong>Какво следва:</strong> в следващите 24 часа ще ти пишем/позвъним за безплатен 45-минутен разговор — къде си с трейдинга и има ли смисъл да работим заедно по твоя агент. Без ангажимент, без натиск.</p>
@@ -103,7 +111,7 @@ export async function POST(request: Request) {
 <p>${escapeHtml(TRADING.host.name)}<br/><span style="color:#667;">${escapeHtml(TRADING.host.role)}</span></p>
 <p style="margin-top:18px;font-size:11px;color:#8a8f9c;">${escapeHtml(TRADING_DISCLAIMER)}</p>
 </div>`,
-    text: `Здравей, ${full_name},
+    text: `Здравей, ${greetName},
 
 Книгата „Трейдинг Агентът — наръчникът”: ${SITE}${TRADING.book.pdfPath}
 
