@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/service";
+import { defaultDueDate } from "./invoice-reminders-rules";
 import { phoneVariants } from "@/lib/contacts/repository";
 import { alignStage, alignStatus, dayKey, nextWorkingDayAt } from "@/lib/contacts/followup";
 import type { ContactStage, FollowupStatus } from "@/lib/contacts/types";
@@ -308,7 +309,9 @@ export async function upsertInvoice(
     invoice_number: input.invoice_number ?? null,
     invoice_type: input.invoice_type,
     issue_date: input.issue_date ?? null,
-    due_date: input.due_date ?? null,
+    // Без падеж никой не напомня (одит 24.10.2026: 8 от 11 неплатени бяха без) —
+    // по подразбиране издаване + 7 дни.
+    due_date: input.due_date ?? defaultDueDate(input.issue_date),
     amount_net: convertWith(input.amount_net, fx.fx_rate),
     amount_gross: fx.amount_eur,
     vat_amount: convertWith(input.vat_amount, fx.fx_rate),
