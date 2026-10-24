@@ -24,6 +24,8 @@ const bodySchema = z.object({
   attachments: z.array(attachmentSchema).max(10).optional(),
   /** Required for token (Hermes) sends to non-owner recipients — explicit human approval. */
   approved: z.boolean().optional(),
+  /** Keep the existing CRM sales stage while still logging the sent email. */
+  preserveStage: z.boolean().optional(),
 });
 
 /**
@@ -60,16 +62,19 @@ async function requireAdmin() {
 }
 
 function checkBearer(request: Request): { email: string } | null {
-  const expected = process.env.INTERNAL_SEND_TOKEN;
-  if (!expected) return null;
+  const expectedTokens = [process.env.INTERNAL_SEND_TOKEN, process.env.HERMES_API_TOKEN].filter(
+    (token): token is string => Boolean(token)
+  );
+  if (expectedTokens.length === 0) return null;
   const header = request.headers.get("authorization") ?? "";
   const prefix = "Bearer ";
   if (!header.startsWith(prefix)) return null;
-  const provided = header.slice(prefix.length);
-  const a = Buffer.from(provided);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length) return null;
-  if (!timingSafeEqual(a, b)) return null;
+  const provided = Buffer.from(header.slice(prefix.length));
+  const valid = expectedTokens.some((expected) => {
+    const candidate = Buffer.from(expected);
+    return provided.length === candidate.length && timingSafeEqual(provided, candidate);
+  });
+  if (!valid) return null;
   const adminEmail = (process.env.ALLOWED_ADMIN_EMAILS ?? "")
     .split(",")
     .map((s) => s.trim())
@@ -140,7 +145,7 @@ export async function POST(request: Request) {
           email: to,
           source: "email",
           source_ref: result.id,
-          bump_stage_to: "contacted",
+          ...(parsed.data.preserveStage ? {} : { bump_stage_to: "contacted" as const }),
           activity: {
             type: "email_sent",
             title: `Изпратен имейл: ${parsed.data.subject}`,
