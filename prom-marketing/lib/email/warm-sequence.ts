@@ -6,6 +6,7 @@ import { unsubscribeUrl } from "./unsubscribe-token";
 import { loadClientMap } from "./klienti";
 import type { ClientWhy } from "./klienti-rules";
 import type { createServiceClient } from "@/lib/supabase/service";
+import { AUTOMATION_EXCLUDED_STAGES, automationSkipReason } from "./sequence-guard";
 
 type Sb = ReturnType<typeof createServiceClient>;
 
@@ -58,8 +59,8 @@ const MAX_SILENCE_DAYS = 45;
 /** Таван за едно пускане — крон-ът е дневен, така пикът се разстила. */
 const MAX_PER_RUN = 25;
 
-/** Етапи, при които автоматиката мълчи. */
-const EXCLUDED_STAGES = ["won"];
+/** Етапи, при които автоматиката мълчи — won и lost (sequence-guard.ts, 25.10.2026). */
+const EXCLUDED_STAGES = AUTOMATION_EXCLUDED_STAGES;
 
 /** Активности, които броим за „докоснахме се" — meta_lead/website_form не са. */
 const TOUCH_TYPES = ["call", "meeting", "email_sent"];
@@ -90,8 +91,9 @@ interface Touches {
 const DAY = 86_400_000;
 
 /**
- * Загубените и незаинтересованите получават същото съдържание, но на половин
- * темпо. „Не сега" почти никога не значи „никога" — значи „по-рядко". Спира се
+ * Незаинтересованите (followup_status) получават същото съдържание, но на
+ * половин темпо. Загубените (stage=lost) от 25.10.2026 не получават нищо —
+ * sequence-guard.ts ги спира преди да стигнат дотук. „Не сега" почти никога не значи „никога" — значи „по-рядко". Спира се
  * само с отписване, което е решение на човека отсреща, не наша преценка.
  */
 function paceFor(c: Pick<WarmContact, "stage" | "followup_status">): number {
@@ -127,7 +129,9 @@ export function nextWarmStep(
   t: Touches,
   now: number
 ): { step: SequenceStep; track: WarmTrack } | { skip: string } {
-  if (EXCLUDED_STAGES.includes(c.stage)) return { skip: "stage_excluded" };
+  // Дубликати и won/lost — никога, дори ако са минали през заявката (25.10.2026).
+  const guard = automationSkipReason(c);
+  if (guard) return { skip: guard };
   if (t.optedOut) return { skip: "opted_out" };
   if (!c.email) return { skip: "no_email" };
 
