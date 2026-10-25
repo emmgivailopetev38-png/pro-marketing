@@ -53,6 +53,8 @@ export type CalBookingInput = {
   phone?: string | null;
   notes?: string | null;
   timeZone?: string;
+  /** Още хора в поканата (клоузърът) — получават събитието с Meet линка в своя календар. */
+  guests?: string[];
 };
 
 export type CalBookingResult = {
@@ -101,6 +103,9 @@ export function buildCalPayload(input: CalBookingInput): Record<string, unknown>
   };
 
   if (input.durationMinutes) body.lengthInMinutes = input.durationMinutes;
+
+  const guests = (input.guests ?? []).map((g) => g.trim().toLowerCase()).filter((g) => g && g !== input.email.trim().toLowerCase());
+  if (guests.length) body.guests = Array.from(new Set(guests));
 
   /**
    * ⚠️ Телефонът е ЗАДЪЛЖИТЕЛЕН за този тип събитие — полето
