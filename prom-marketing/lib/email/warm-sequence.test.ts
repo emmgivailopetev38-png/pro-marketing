@@ -162,11 +162,15 @@ describe("темпо и предпазители", () => {
     expect(nextWarmStep(contact({ followup_status: "not_interested" }), t, NOW)).toEqual({ skip: "too_soon" });
   });
 
-  it("загубеният върви на половин темпо, не спира", () => {
-    const t = touches({ lastEmail: NOW - 9 * DAY, lastTouch: NOW - 9 * DAY });
-    expect(nextWarmStep(contact({ stage: "lost" }), t, NOW)).toEqual({ skip: "too_soon" });
+  it("загубеният не получава нищо — казал е „не“ (25.10.2026)", () => {
     const t2 = touches({ lastEmail: NOW - 15 * DAY, lastTouch: NOW - 15 * DAY });
-    expect(nextWarmStep(contact({ stage: "lost" }), t2, NOW)).toEqual({ step: WARM_SEQUENCE[0], track: "obshta" });
+    expect(nextWarmStep(contact({ stage: "lost" }), t2, NOW)).toEqual({ skip: "stage_excluded" });
+  });
+
+  it("картон „ДУБЛИКАТ …“ не получава нищо, какъвто и да е етапът (25.10.2026)", () => {
+    const t2 = touches({ lastEmail: NOW - 15 * DAY, lastTouch: NOW - 15 * DAY });
+    expect(nextWarmStep(contact({ full_name: "ДУБЛИКАТ Иван Петров" }), t2, NOW)).toEqual({ skip: "duplicate" });
+    expect(nextWarmStep(contact({ full_name: "дубликат — Иван" }), t2, NOW)).toEqual({ skip: "duplicate" });
   });
 
   it("архивът мълчи — контакт без докосване от два месеца не се буди", () => {

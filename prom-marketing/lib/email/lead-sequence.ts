@@ -4,6 +4,7 @@ import { LEAD_SEQUENCE, LEAD_SOURCES } from "./lead-steps";
 import { dueSequenceStep, optedOutIds } from "./lead-sequence-rules";
 import { firstName, type BuildCtx, type SequenceStep } from "./sequence-layout";
 import { unsubscribeUrl } from "./unsubscribe-token";
+import { automationSkipReason } from "./sequence-guard";
 import { loadClientMap } from "./klienti";
 import { magnetStepFor } from "@/lib/leads/meta-lead-rules";
 import type { createServiceClient } from "@/lib/supabase/service";
@@ -203,7 +204,8 @@ export async function runLeadSequence(supabase: Sb): Promise<{
     if (out.sent >= MAX_PER_RUN) break;
     out.checked++;
 
-    if (c.last_heard_from_at || talked.has(c.id) || clients.has(c.id) || optedOut.has(c.id) || !c.email) {
+    // Картон „ДУБЛИКАТ …“ или won/lost — никога (sequence-guard.ts, 25.10.2026).
+    if (automationSkipReason(c) || c.last_heard_from_at || talked.has(c.id) || clients.has(c.id) || optedOut.has(c.id) || !c.email) {
       out.skipped++;
       continue;
     }
