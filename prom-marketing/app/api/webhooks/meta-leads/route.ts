@@ -4,7 +4,9 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/resend";
 import { sendMagnetToExisting, sendSequenceStep } from "@/lib/email/lead-sequence";
 import { firstStepForForm } from "@/lib/email/lead-steps";
-import { getPageAccessToken } from "@/lib/meta/page-token";
+import { getPageAccessToken, META_PAGE_ID } from "@/lib/meta/page-token";
+import { forwardLead, pageTokenFor, partnerForPage, type PartnerForward } from "@/lib/meta/partner-pages";
+import { recordAutomationEvent } from "@/lib/crm/repository";
 import { sendCapiEvent, isCapiConfigured } from "@/lib/meta/conversions-api";
 import { escapeHtml } from "@/lib/email/escape";
 import { notifyTeamNewLead } from "@/lib/team/notify";
@@ -331,6 +333,87 @@ ${offer ? `<tr><td style="padding:4px 12px 4px 0;color:#777;">Поиска:</td>
   return { ok: true, contact_id: contactId, leadgen_id: leadgenId };
 }
 
+// --- Лийд от ПАРТНЬОРСКА страница: право в системата на клиента, без картон при нас ---
+// Страницата на клиент (напр. „Финансови решения с Ивайло“ · CCGroup) е абонирана
+// за същия webhook; лийдовете ѝ не са наши. Взима се page токенът на ТАЗИ
+// страница, лийдът се чете от Graph и се POST-ва в партньорския /api/leads.
+// Следа остава само в automation_events (event_type `meta_partner_forward`);
+// ключът `meta_partner_forward:<leadgen_id>` пази от двойно препращане, ако
+// Meta прати същото събитие пак.
+type LeadResult = {
+  ok: boolean;
+  error?: string;
+  contact_id?: string;
+  leadgen_id?: string;
+  partner?: string;
+  duplicate?: boolean;
+  skipped?: string;
+};
+
+async function processPartnerLead(leadgenId: string, partner: PartnerForward): Promise<LeadResult> {
+  const key = `meta_partner_forward:${leadgenId}`;
+  const supabase = createServiceClient();
+  const { data: seen } = await supabase
+    .from("automation_events")
+    .select("id")
+    .eq("idempotency_key", key)
+    .maybeSingle();
+  if (seen) {
+    console.log(`[meta-partner] ${partner.label} · лийд ${leadgenId} вече е препратен — пропускам`);
+    return { ok: true, leadgen_id: leadgenId, partner: partner.label, skipped: "already_forwarded" };
+  }
+
+  const fail = async (error: string, detail: Record<string, unknown> = {}): Promise<LeadResult> => {
+    console.error(`[meta-partner] ${partner.label} · лийд ${leadgenId}: ${error}`);
+    await recordAutomationEvent({
+      event_type: "meta_partner_forward",
+      status: "failed",
+      summary: `${partner.label} · лийд ${leadgenId} · ${error}`,
+      detail: { leadgen_id: leadgenId, page_id: partner.page_id, url: partner.url, error, ...detail },
+    }).catch(() => {});
+    return { ok: false, error, leadgen_id: leadgenId, partner: partner.label };
+  };
+
+  const tok = await pageTokenFor(partner.page_id);
+  if (!tok.ok) return fail(`page token: ${tok.error}`);
+
+  const detail = await fetchLeadDetail(leadgenId, tok.token);
+  if (!detail) return fail("fetch_failed");
+
+  const r = await forwardLead(partner, detail);
+  if (!r.ok) {
+    return fail(r.error ?? "forward_failed", { status: r.status, full_name: r.body.full_name || null });
+  }
+  await recordAutomationEvent({
+    event_type: "meta_partner_forward",
+    status: "success",
+    summary:
+      `${partner.label} · ${r.body.full_name || "без име"} · ${r.body.phone || "без телефон"} → ${partner.url}` +
+      (r.duplicate ? " · дубликат при партньора" : ""),
+    detail: {
+      leadgen_id: leadgenId,
+      page_id: partner.page_id,
+      form_id: detail.form_id ?? null,
+      ad_name: detail.ad_name ?? null,
+      campaign_name: detail.campaign_name ?? null,
+      full_name: r.body.full_name || null,
+      received_at: r.body.received_at ?? null,
+      partner_contact_id: r.contact_id ?? null,
+      partner_deal_id: r.deal_id ?? null,
+      qualified: r.qualified ?? null,
+      duplicate: r.duplicate === true,
+    },
+    idempotency_key: key,
+  }).catch(() => {});
+  return {
+    ok: true,
+    leadgen_id: leadgenId,
+    partner: partner.label,
+    contact_id: r.contact_id ?? undefined,
+    duplicate: r.duplicate === true,
+  };
+}
+
 // --- POST handler ---
 interface MetaWebhookEntry {
   id?: string;
@@ -350,6 +433,14 @@ interface MetaWebhookEntry {
 interface MetaWebhookBody {
   object?: string;
   entry?: MetaWebhookEntry[];
+}
+
+/** Ако entry.id липсва, страницата е и в change.value.page_id. */
+function changePageId(entry: MetaWebhookEntry): string | null {
+  for (const c of entry.changes ?? []) {
+    if (c.value?.page_id) return c.value.page_id;
+  }
+  return null;
 }
 
 export async function POST(request: Request) {
@@ -373,8 +464,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, ignored: body.object });
   }
 
-  const results: Array<{ ok: boolean; error?: string; contact_id?: string; leadgen_id?: string }> = [];
+  const results: LeadResult[] = [];
   for (const entry of body.entry ?? []) {
+    // entry.id е страницата. Наша → както досега. Партньорска (в META_PARTNER_FORWARD)
+    // → в системата на клиента. Непозната → по стария път (нищо не се променя).
+    const pageId = entry.id ?? changePageId(entry);
+    const partner = pageId && pageId !== META_PAGE_ID ? partnerForPage(pageId) : null;
     for (const change of entry.changes ?? []) {
       if (change.field !== "leadgen") continue;
       const leadgenId = change.value?.leadgen_id;
@@ -383,7 +478,7 @@ export async function POST(request: Request) {
         results.push({ ok: false, error: "no_leadgen_id" });
         continue;
       }
-      const result = await processLead(leadgenId, formId);
+      const result = partner ? await processPartnerLead(leadgenId, partner) : await processLead(leadgenId, formId);
       results.push(result);
     }
   }

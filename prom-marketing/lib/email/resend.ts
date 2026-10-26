@@ -30,6 +30,58 @@ export interface SendArgs {
   attachments?: SendAttachment[];
 }
 
+// ── Релей за чужда система (ccgroup-crm на Иво няма свой Resend ключ) ───────
+export interface RelayArgs {
+  /** пълният подател „Име <адрес>“ — адресът трябва да е на потвърдения ни домейн */
+  from: string;
+  to: string | string[];
+  subject: string;
+  html: string;
+  text?: string;
+  replyTo?: string;
+  headers?: Record<string, string>;
+  tags?: Array<{ name: string; value: string }>;
+  /** Idempotency-Key към Resend — повторен опит със същия ключ не праща второ писмо */
+  idempotencyKey?: string;
+}
+
+export interface RelayResult {
+  id: string | null;
+  error: string | null;
+  /** HTTP статусът от Resend при грешка (429 = лимит, 5xx = техен проблем) */
+  statusCode: number | null;
+}
+
+/**
+ * Праща писмо от името на друга система през НАШИЯ Resend акаунт, без да
+ * сменя подателя по подразбиране на sendEmail. Грешката носи и статуса, за да
+ * може викащият да реши дали да опита пак.
+ */
+export async function sendRelayEmail(args: RelayArgs): Promise<RelayResult> {
+  try {
+    const client = getClient();
+    const { data, error } = await client.emails.send(
+      {
+        from: args.from,
+        to: args.to,
+        subject: args.subject,
+        html: args.html,
+        ...(args.text ? { text: args.text } : {}),
+        ...(args.replyTo ? { replyTo: args.replyTo } : {}),
+        ...(args.headers && Object.keys(args.headers).length > 0 ? { headers: args.headers } : {}),
+        ...(args.tags && args.tags.length > 0 ? { tags: args.tags } : {}),
+      },
+      args.idempotencyKey ? { idempotencyKey: args.idempotencyKey } : undefined
+    );
+    if (error) {
+      return { id: null, error: `${error.name}: ${error.message}`, statusCode: error.statusCode ?? null };
+    }
+    return { id: data?.id ?? null, error: null, statusCode: null };
+  } catch (e) {
+    return { id: null, error: e instanceof Error ? e.message : String(e), statusCode: null };
+  }
+}
+
 export async function sendEmail(args: SendArgs): Promise<{ id: string | null; error: string | null }> {
   // Use || (not ??) so an empty-string env var also falls back to a valid sender.
   const from = process.env.EMAIL_FROM || "ProMarketing <onboarding@resend.dev>";
