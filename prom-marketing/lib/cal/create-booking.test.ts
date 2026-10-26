@@ -134,3 +134,14 @@ describe("toE164", () => {
     expect(toE164(null)).toBeNull();
   });
 });
+
+describe("гости в резервацията", () => {
+  it("клоузърът влиза като guest, без дубликати и без самия участник", () => {
+    const body = buildCalPayload({ name: "Иван", email: "ivan@x.bg", startISO: "2026-11-03T10:00:00Z", guests: ["George@Gmail.com", "george@gmail.com", "ivan@x.bg", " "] });
+    expect(body.guests).toEqual(["george@gmail.com"]);
+  });
+  it("без гости няма поле", () => {
+    const body = buildCalPayload({ name: "Иван", email: "ivan@x.bg", startISO: "2026-11-03T10:00:00Z" });
+    expect(body.guests).toBeUndefined();
+  });
+});

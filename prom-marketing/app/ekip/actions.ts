@@ -9,6 +9,7 @@ import { canGiveUp, isNoAnswer, type AttemptRow } from "@/lib/team/queue-rules";
 import { upsertBooking } from "@/lib/crm/repository";
 import { MEETING_MINUTES } from "@/lib/cal/types";
 import { createCalBooking, isCalWriteConfigured } from "@/lib/cal/create-booking";
+import { activeCloser } from "@/lib/team/closer";
 import {
   FREE_STATUSES,
   LOOKAHEAD_MINUTES,
@@ -215,11 +216,15 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         let meetingUrl: string | null = null;
         let calUid: string | null = null;
         if (wantInvite && email && isCalWriteConfigured()) {
+          // Клоузърът получава поканата с Meet линка в своя календар — освен ако сам записва.
+          const closer = await activeCloser().catch(() => null);
+          const guests = closer && closer.email && closer.id !== actor.member?.id ? [closer.email] : [];
           const cal = await createCalBooking({
             name,
             email,
             startISO: meetingIso,
             phone: c.phone,
+            guests,
             notes: [business ? `Дейност: ${business}` : null, note || null, `Записа: ${actor.name}`].filter(Boolean).join(" · "),
           });
           if (cal.ok) {

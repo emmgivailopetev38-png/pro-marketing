@@ -1700,6 +1700,17 @@ export async function upsertBooking(input: {
     }).catch(() => {});
   }
 
+  // Ð¡ÑÐµÑÐ°ÑÐ° Ðµ Ð½Ð° ÐºÐ»Ð¾ÑÐ·ÑÑÐ°: ÐºÐ°ÑÑÐ¾Ð½ÑÑ Ð¾ÑÐ¸Ð²Ð° Ð² Ð½ÐµÐ³Ð¾Ð²Ð¸ÑÐµ âÐÑÐ¾Ð´Ð°Ð¶Ð±Ð¸ Â· Ð¼Ð¾Ð¸ÑÐµ ÑÐ¾ÑÐ°â
+  // (lib/team/closer.ts). ÐÐ°Ð¶Ð¸ Ð·Ð° Ð²ÑÐ¸ÑÐºÐ¸ Ð²ÑÐ¾Ð´Ð¾Ð²Ðµ â Cal.com ÑÐ¸Ð½ÑÑÐ¾Ð½, ÐµÐºÐ¸Ð¿Ð°, Ð³Ð»Ð°ÑÐ¾Ð²Ð¸Ñ Ð°Ð³ÐµÐ½Ñ.
+  if (contact) {
+    const { assignMeetingToCloser } = await import("@/lib/team/closer");
+    await assignMeetingToCloser({
+      contactId: contact.id,
+      reason: `Ð¡ÑÐµÑÐ° Ð½Ð° ${when.toISOString().slice(0, 16).replace("T", " ")} UTC (${input.source ?? "hermes"})`,
+      createdBy: "ÑÐ¸ÑÑÐµÐ¼Ð°",
+    }).catch(() => null);
+  }
+
   await recordAutomationEvent({
     event_type: "booking_created",
     related_contact_id: (contact?.id as string | undefined) ?? null,
