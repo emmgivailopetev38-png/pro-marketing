@@ -148,6 +148,8 @@ export default async function PregledPage({ params }: { params: Promise<{ key: s
   await touchView(review.id, review.view_count);
 
   const govoreshti = review.items.filter((i) => i.line).length;
+  // Кутията за шоколада и линкът към сайта на Биляна са само за нейния пакет (другите клиенти ги виждаха по грешка).
+  const shokolad = review.key.startsWith("shokolad-");
   const intro =
     review.intro ??
     "Пуснете всеки клип със звук, най-добре на телефон. Ако Ви харесва, натиснете „Одобрявам“. Ако нещо не Ви е по вкуса, натиснете „Не този“ и напишете с две думи какво да променим.";
@@ -195,7 +197,7 @@ export default async function PregledPage({ params }: { params: Promise<{ key: s
               <b>{review.items.length}</b> клипа
             </span>
             <span>
-              Формат <b>9:16</b>, по 5–10 секунди
+              Формат <b>9:16</b>{shokolad ? ", по 5–10 секунди" : ""}
             </span>
             <span>
               <b>{govoreshti}</b> с български глас
@@ -211,6 +213,7 @@ export default async function PregledPage({ params }: { params: Promise<{ key: s
           initialGeneral={review.general_comment}
         />
 
+        {shokolad && (
         <section className="pg-kutia">
           <h3>Едно правило, което спазваме дословно</h3>
           <p>
@@ -223,17 +226,20 @@ export default async function PregledPage({ params }: { params: Promise<{ key: s
             гледат един по един, и ако кутията не е Вашата, клипът се изхвърля и се прави наново.
           </p>
         </section>
+        )}
 
         <footer className="pg-kraj">
           <span>Pro Marketing · Ивайло Петев</span>
           <span>
             <a href="mailto:ivailo@promarketing.pw">ivailo@promarketing.pw</a>
           </span>
+          {shokolad && (
           <span>
             <a href="https://1meterchocolate.com" target="_blank" rel="noopener noreferrer">
               1meterchocolate.com
             </a>
           </span>
+          )}
         </footer>
       </div>
     </>
