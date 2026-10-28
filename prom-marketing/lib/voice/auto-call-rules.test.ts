@@ -46,17 +46,23 @@ const lead = (at = "2026-10-28T07:30:00Z") =>
   act("meta_lead", at, { title: "Meta lead · ProMarketing · AI одит", body: "Поиска: 🔎 Безплатен AI одит", metadata: { offer: "ai_odit" } });
 
 describe("часовете", () => {
-  it("пон–чт 10:00–17:45 по София", () => {
-    expect(inCallWindow(new Date("2026-10-28T08:00:00Z"))).toBe(true); // ср 10:00
-    expect(inCallWindow(new Date("2026-10-28T07:59:00Z"))).toBe(false); // ср 09:59
-    expect(inCallWindow(new Date("2026-10-28T15:44:00Z"))).toBe(true); // ср 17:44
-    expect(inCallWindow(new Date("2026-10-28T15:45:00Z"))).toBe(false); // ср 17:45
-    expect(inCallWindow(new Date("2026-10-30T09:00:00Z"))).toBe(false); // петък
+  it("пон–пт 09:00–17:50 по София", () => {
+    expect(inCallWindow(new Date("2026-10-28T07:00:00Z"))).toBe(true); // ср 09:00
+    expect(inCallWindow(new Date("2026-10-28T06:59:00Z"))).toBe(false); // ср 08:59
+    expect(inCallWindow(new Date("2026-10-28T15:49:00Z"))).toBe(true); // ср 17:49
+    expect(inCallWindow(new Date("2026-10-28T15:50:00Z"))).toBe(false); // ср 17:50
+    expect(inCallWindow(new Date("2026-10-30T09:00:00Z"))).toBe(true); // петък 11:00
     expect(inCallWindow(new Date("2026-10-31T09:00:00Z"))).toBe(false); // събота
+    expect(inCallWindow(new Date("2026-11-01T09:00:00Z"))).toBe(false); // неделя
   });
   it("лятното време се смята правилно (UTC+3)", () => {
-    expect(inCallWindow(new Date("2026-10-22T07:00:00Z"))).toBe(true); // чт 10:00 EEST
-    expect(inCallWindow(new Date("2026-10-22T06:59:00Z"))).toBe(false);
+    expect(inCallWindow(new Date("2026-10-22T06:00:00Z"))).toBe(true); // чт 09:00 EEST
+    expect(inCallWindow(new Date("2026-10-22T05:59:00Z"))).toBe(false);
+  });
+  it("друг прозорец (напр. без петък)", () => {
+    const win = { days: ["Mon", "Tue", "Wed", "Thu"], startMin: 600, endMin: 1065 };
+    expect(inCallWindow(new Date("2026-10-30T09:00:00Z"), win)).toBe(false);
+    expect(inCallWindow(new Date("2026-10-28T07:30:00Z"), win)).toBe(false); // 09:30
   });
 });
 
@@ -95,8 +101,8 @@ describe("нов лийд", () => {
     }
   });
 
-  it("чака първите минути след заявката", () => {
-    const d = decide(contact(), [lead("2026-10-28T08:58:00Z")], false, NOW, opts);
+  it("чака първите две минути след заявката", () => {
+    const d = decide(contact(), [lead("2026-10-28T08:59:00Z")], false, NOW, opts);
     expect(d).toEqual({ skip: "лийдът е от преди минути — след малко" });
   });
 
@@ -123,6 +129,10 @@ describe("нов лийд", () => {
     expect(decide(contact(), [lead(), act("payment_received", "2026-09-01T08:00:00Z")], false, NOW, opts)).toEqual({ skip: "клиент" });
     expect(decide(contact(), [lead()], true, NOW, opts)).toEqual({ skip: "има записан час" });
     expect(decide(contact({ followup_status: "not_interested" }), [lead()], false, NOW, opts)).toEqual({ skip: "не се интересува" });
+  });
+
+  it("Академията и трейдингът не са за Ели", () => {
+    expect(decide(contact({ source: "akademia" }), [lead()], false, NOW, opts)).toEqual({ skip: "източник akademia" });
   });
 
   it("списъкът „не звъни“", () => {

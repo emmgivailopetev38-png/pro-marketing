@@ -9,8 +9,13 @@
  * Кой НЕ влиза: говорил с Ивайло (разговор, среща, оферта), писал ни сам
  * (Viber/WhatsApp/имейл — там вече тече разговор), отказал, с бъдеща среща,
  * клиент, вдигнал на Ели (тогава поема Ивайло по резюмето). Най-много два
- * опита на човек, в различни дни. Само пон–чт 10:00–17:45 (петък Ивайло
- * почива, а Ели записва в неговия календар).
+ * опита на човек, в различни дни.
+ *
+ * Часовете (Ивайло, 28.10.2026 следобед): „след като влезе нов лийд, да му
+ * звъни веднага за записване на срещата, докато са максимално топли… от девет
+ * до към шест следобед“ → пон–пт 09:00–17:50, ~2 мин след заявката; лийд
+ * извън часовете — в 09:00 на следващия работен ден. Петък се звъни (Ели
+ * записва час за следващата седмица — свободните часове идват от календара).
  */
 
 export const TZ = "Europe/Sofia";
@@ -21,6 +26,8 @@ export const AUTO_LOG_TYPE = "voice_outbound";
 
 export interface AcContact {
   id: string;
+  /** Източникът на картона — Академията и трейдинга не са за Ели. */
+  source?: string | null;
   full_name: string | null;
   phone: string | null;
   email: string | null;
@@ -54,7 +61,7 @@ export interface AcOptions {
 }
 
 export const DEFAULT_OPTIONS: Omit<AcOptions, "eliAgentId" | "skipPhones"> = {
-  newDelayMin: 5,
+  newDelayMin: 2,
   newMaxAgeDays: 5,
   noshowMaxAgeDays: 7,
   maxAttempts: 2,
@@ -72,6 +79,8 @@ export interface AcCall {
 export type AcDecision = { call: AcCall } | { skip: string };
 
 const LEAD_TYPES = new Set(["meta_lead", "website_form"]);
+/** Картони, на които Ели не звъни: курсистите от Академията и трейдинг фунията. */
+const SKIP_SOURCES = new Set(["akademia", "trading_funnel"]);
 const REPLY_TYPES = new Set(["viber_received", "whatsapp_received", "email_received", "email_reply"]);
 const TALK_TYPES = new Set(["meeting", "meeting_outcome", "offer_sent", "presentation_sent"]);
 const CLIENT_TYPES = new Set(["payment_received", "invoice", "project_created"]);
@@ -121,12 +130,25 @@ export function sofiaDay(at: Date | string): string {
   return sofiaParts(typeof at === "string" ? new Date(at) : at).day;
 }
 
-/** Пон–чт, 10:00 ≤ час < 17:45 по София. Петък — почивката на Ивайло. */
-export function inCallWindow(now: Date): boolean {
+export interface CallWindow {
+  days: string[];
+  /** Минути от полунощ по София: първото и последното (без) начало на обаждане. */
+  startMin: number;
+  endMin: number;
+}
+
+/** Пон–пт, 09:00 ≤ час < 17:50 по София — разговорът свършва „към шест“. */
+export const DEFAULT_WINDOW: CallWindow = {
+  days: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+  startMin: 9 * 60,
+  endMin: 17 * 60 + 50,
+};
+
+export function inCallWindow(now: Date, win: CallWindow = DEFAULT_WINDOW): boolean {
   const p = sofiaParts(now);
-  if (!["Mon", "Tue", "Wed", "Thu"].includes(p.weekday)) return false;
+  if (!win.days.includes(p.weekday)) return false;
   const min = p.hour * 60 + p.minute;
-  return min >= 10 * 60 && min < 17 * 60 + 45;
+  return min >= win.startMin && min < win.endMin;
 }
 
 function meta(a: AcAct): Record<string, unknown> {
@@ -219,6 +241,7 @@ export function decide(
   const toNumber = bgMobileE164(c.phone);
   if (!toNumber) return { skip: "няма български мобилен" };
   if (opts.skipPhones.has(phoneKey(toNumber))) return { skip: "в списъка „не звъни“" };
+  if (c.source && SKIP_SOURCES.has(c.source)) return { skip: `източник ${c.source}` };
   if (c.stage === "won" || c.stage === "lost") return { skip: `етап ${c.stage}` };
   if (c.followup_status === "not_interested") return { skip: "не се интересува" };
   if (hasFutureBooking) return { skip: "има записан час" };

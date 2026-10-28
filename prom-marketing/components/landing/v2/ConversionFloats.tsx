@@ -194,11 +194,12 @@ export function ConversionFloats() {
                   className="text-xl font-bold text-[var(--v2-ink)]"
                   style={{ fontFamily: "var(--v2-font-display)" }}
                 >
-                  Прието — обаждаме се днес.
+                  Прието — Ели ти звъни до минути.
                 </h3>
                 <p id="pm-exit-desc" className="mt-2 text-sm text-[var(--v2-muted)]">
-                  Благодарим! Звъним ти в рамките на работния ден, за да видим как AI
-                  да свали рутината от твоя бизнес.
+                  Ели, AI асистентката ни, ще ти се обади до няколко минути (делник 9–18 ч.),
+                  за да ти запише кратка безплатна среща с Ивайло. Извън часовете — на
+                  следващата работна сутрин.
                 </p>
               </div>
             ) : (
@@ -210,11 +211,11 @@ export function ConversionFloats() {
                   style={{ fontFamily: "var(--v2-font-display)", letterSpacing: "-0.02em" }}
                 >
                   Тръгваш? Остави телефон —{" "}
-                  <span className="v2-grad">обаждаме се днес.</span>
+                  <span className="v2-grad">запазваме ти среща.</span>
                 </h3>
                 <p id="pm-exit-desc" className="mt-2.5 text-sm leading-relaxed text-[var(--v2-muted)]">
-                  60 секунди разговор, безплатно и без ангажимент. Показваме ти точно
-                  какво AI може да автоматизира при теб.
+                  Ели, нашата AI асистентка, ти звъни до няколко минути и ти записва кратка
+                  безплатна среща с Ивайло — показва ти точно какво AI може да автоматизира при теб.
                 </p>
 
                 <form onSubmit={submit} className="mt-5">
@@ -250,6 +251,12 @@ export function ConversionFloats() {
                       </>
                     )}
                   </button>
+
+                  {/* Съгласието за AI обаждането (EU AI Act чл. 50 / ЗЕС) — видимо, до бутона. */}
+                  <p className="mt-2.5 text-center text-[11px] leading-snug text-[var(--v2-faint)]">
+                    🤖 С „Обадете ми се“ се съгласяваш AI асистентка да ти звънне на този номер за
+                    записване на среща; разговорът се записва. Делник 9–18 ч.
+                  </p>
 
                   {status === "error" && (
                     <p className="mt-2.5 text-[12px] text-[#fca5a5]">
