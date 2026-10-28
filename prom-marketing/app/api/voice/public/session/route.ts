@@ -5,6 +5,7 @@ import { escapeHtml } from "@/lib/email/escape";
 import { sendEmail } from "@/lib/email/resend";
 import { isCapiConfigured, sendCapiEvent } from "@/lib/meta/conversions-api";
 import { sendTelegram } from "@/lib/notifications/telegram";
+import { checkAgentCredits, CREDITS_SPOKEN } from "@/lib/voice/credits";
 import { checkVoiceBudget, isPublicVoiceEnabled, VOICE_WEB_ACTIVITY } from "@/lib/voice/public-auth";
 import { isOutboundConfigured } from "@/lib/voice/outbound";
 import { clientIp, openVoiceSession } from "@/lib/voice/quota";
@@ -191,6 +192,26 @@ export async function POST(request: Request) {
    * изговорил десетте си минути, се казва друго изречение — благодарност и
    * покана към Ивайло, не „демото е заето". Общият таван идва след него.
    */
+  /**
+   * Без кредити в ElevenLabs агентът мълчи — човекът се праща към календара,
+   * а Ивайло научава веднага (27.10.2026 разбрахме чак на сутринта). Лийдът
+   * вече е записан и известен по-горе. Проверката е преди мястото в тефтера,
+   * за да не яде от личните му опити.
+   */
+  const agentForCheck = process.env.ELEVENLABS_PUBLIC_AGENT_ID ?? DEFAULT_AGENT_ID;
+  const credits = await checkAgentCredits(agentForCheck);
+  if (credits.state === "out") {
+    if (credits.freshOutage) {
+      const alert = sendTelegram(
+        "⚠️ <b>Гласовият агент мълчи</b> — свършиха кредитите в ElevenLabs. Хората от сайта отиват към календара, докато не добавиш кредити.\n<a href=\"https://elevenlabs.io/app/subscription\">ElevenLabs → Subscription</a>"
+      ).catch((e) => console.error("[voice/public/session] credits alert", e));
+      after(async () => {
+        await alert;
+      });
+    }
+    return NextResponse.json({ error: "credits", spoken: CREDITS_SPOKEN }, { status: 429 });
+  }
+
   const seat = await openVoiceSession({
     email: d.email,
     phone: d.phone,
