@@ -155,6 +155,60 @@ async function dialsToday(now: Date): Promise<number> {
   return (data ?? []).filter((r) => r.status === "success" && sofiaDay(String(r.created_at)) === today).length;
 }
 
+/**
+ * Обажданията от партидите в ElevenLabs (Batch calling) по номер. Невдигнатото
+ * обаждане не праща post-call webhook — в CRM-а не остава следа, и без това
+ * Ели би звъннала втори път същия ден (28.10: 11 от 26 от партидата „Novi
+ * liidove“ стояха „initiated“). Грешка → празно (журнал), не спира звъненето.
+ */
+let batchCache: { at: number; map: Map<string, string[]> } | null = null;
+
+export async function batchAttempts(sinceMs: number): Promise<Map<string, string[]>> {
+  const key = outboundApiKey();
+  const map = new Map<string, string[]>();
+  if (!key) return map;
+  if (batchCache && Date.now() - batchCache.at < 5 * 60_000) return batchCache.map;
+  try {
+    const headers = { "xi-api-key": key };
+    const res = await fetch("https://api.elevenlabs.io/v1/convai/batch-calling/workspace?limit=30", {
+      headers,
+      signal: AbortSignal.timeout(4000),
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      console.error("[voice/auto-call] партидите върнаха", res.status);
+      return map;
+    }
+    const list = (await res.json()) as { batch_calls?: { id: string; agent_id?: string; created_at_unix?: number }[] };
+    const batches = (list.batch_calls ?? [])
+      .filter((b) => b.agent_id === ELI_AGENT_ID && (b.created_at_unix ?? 0) * 1000 >= sinceMs)
+      .slice(0, 10);
+    for (const b of batches) {
+      const det = await fetch(`https://api.elevenlabs.io/v1/convai/batch-calling/${encodeURIComponent(b.id)}`, {
+        headers,
+        signal: AbortSignal.timeout(4000),
+        cache: "no-store",
+      });
+      if (!det.ok) continue;
+      const body = (await det.json()) as {
+        recipients?: { phone_number?: string; status?: string; created_at_unix?: number; updated_at_unix?: number }[];
+      };
+      for (const r of body.recipients ?? []) {
+        const k = phoneKey(r.phone_number ?? null);
+        const at = r.updated_at_unix ?? r.created_at_unix ?? b.created_at_unix;
+        // Само набраните — чакащите в партидата още не са опит.
+        if (!k || !at || !["initiated", "in_progress", "completed", "failed"].includes(r.status ?? "")) continue;
+        if (!map.has(k)) map.set(k, []);
+        map.get(k)!.push(new Date(at * 1000).toISOString());
+      }
+    }
+    batchCache = { at: Date.now(), map };
+  } catch (e) {
+    console.error("[voice/auto-call] партидите", e);
+  }
+  return map;
+}
+
 /** Кандидатите: нови лийдове (5 дни) и неявилите се (7 дни) — после правилата. */
 export async function findCandidates(now: Date, opts: AcOptions): Promise<{ calls: AcCall[]; skipped: { id: string; name: string | null; why: string }[] }> {
   const sb = createServiceClient();
@@ -202,9 +256,16 @@ export async function findCandidates(now: Date, opts: AcOptions): Promise<{ call
     byContact.get(k)!.push(a as unknown as AcAct);
   }
 
+  const batches = await batchAttempts(now.getTime() - opts.noshowMaxAgeDays * 86_400_000);
+
   const calls: AcCall[] = [];
   const skipped: { id: string; name: string | null; why: string }[] = [];
   for (const c of (contacts ?? []) as AcContact[]) {
+    // Набиранията от партидите се броят като опит (виж batchAttempts).
+    for (const at of batches.get(phoneKey(c.phone)) ?? []) {
+      if (!byContact.has(c.id)) byContact.set(c.id, []);
+      byContact.get(c.id)!.push({ activity_type: AUTO_LOG_TYPE, title: "партида в ElevenLabs", occurred_at: at, created_by: "eli_batch", metadata: null });
+    }
     const email = (c.email ?? "").toLowerCase();
     const future = (email && futureEmails.has(email)) || (phoneKey(c.phone) && futurePhones.has(phoneKey(c.phone)));
     const d = decide(c, byContact.get(c.id) ?? [], Boolean(future), now, opts);
