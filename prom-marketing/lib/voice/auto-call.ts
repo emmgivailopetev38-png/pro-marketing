@@ -1,5 +1,6 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
+import { allRows } from "@/lib/supabase/all-rows";
 import { sendTelegram } from "@/lib/notifications/telegram";
 import { checkAgentCredits } from "./credits";
 import { outboundApiKey, placeOutboundCall } from "./outbound";
@@ -40,6 +41,27 @@ import {
 export const ELI_AGENT_ID = process.env.ELI_AGENT_ID?.trim() || "agent_9201m6101a2efy6btw7qgnbr1dve";
 /** +359 876 447 159 — Verified Caller ID в Twilio, внесен в ElevenLabs. */
 export const ELI_PHONE_NUMBER_ID = process.env.ELI_PHONE_NUMBER_ID?.trim() || "phnum_9101m60zjnvhenh81a15gwqd892s";
+
+/** Само активностите, от които зависи решението — без хилядите писма от поредиците. */
+const DECISION_TYPES = [
+  "meta_lead",
+  "website_form",
+  "note",
+  "call",
+  "meeting",
+  "meeting_outcome",
+  "offer_sent",
+  "presentation_sent",
+  "payment_received",
+  "invoice",
+  "project_created",
+  "viber_received",
+  "whatsapp_received",
+  "email_received",
+  "email_reply",
+  "voice_call",
+  AUTO_LOG_TYPE,
+];
 
 const SWITCH_EVENT = "voice_auto_switch";
 const DIAL_EVENT = "voice_auto_dial";
@@ -144,17 +166,22 @@ export async function findCandidates(now: Date, opts: AcOptions): Promise<{ call
   const ids = Array.from(new Set([...(leads ?? []), ...(noshows ?? [])].map((r) => String(r.contact_id))));
   if (ids.length === 0) return { calls: [], skipped: [] };
 
-  const [{ data: contacts }, { data: acts }, { data: bookings }] = await Promise.all([
+  // PostgREST реже на 1000 реда тихо — затова страници (allRows) и само нужните типове.
+  const [{ data: contacts }, { rows: acts, error: actsErr }, { data: bookings }] = await Promise.all([
     sb
       .from("contacts")
       .select("id, full_name, phone, email, stage, followup_status, business, company, last_heard_from_at")
       .in("id", ids),
-    sb
-      .from("contact_activities")
-      .select("contact_id, activity_type, title, body, occurred_at, created_by, metadata")
-      .in("contact_id", ids)
-      .order("occurred_at", { ascending: false })
-      .limit(5000),
+    allRows<Record<string, unknown>>((from, to) =>
+      sb
+        .from("contact_activities")
+        .select("id, contact_id, activity_type, title, body, occurred_at, created_by, metadata")
+        .in("contact_id", ids)
+        .in("activity_type", DECISION_TYPES)
+        .order("occurred_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, to)
+    ),
     sb
       .from("bookings")
       .select("attendee_email, attendee_phone, scheduled_at, status")
@@ -162,10 +189,12 @@ export async function findCandidates(now: Date, opts: AcOptions): Promise<{ call
       .in("status", ["accepted", "pending"]),
   ]);
 
+  // Непълна история е по-лоша от никаква: можем да звъннем на човек, с когото Ивайло е говорил.
+  if (actsErr) throw new Error(`активностите: ${actsErr}`);
   const futureEmails = new Set((bookings ?? []).map((b) => String(b.attendee_email ?? "").toLowerCase()).filter(Boolean));
   const futurePhones = new Set((bookings ?? []).map((b) => phoneKey(b.attendee_phone as string | null)).filter(Boolean));
   const byContact = new Map<string, AcAct[]>();
-  for (const a of acts ?? []) {
+  for (const a of acts) {
     const k = String(a.contact_id);
     if (!byContact.has(k)) byContact.set(k, []);
     byContact.get(k)!.push(a as unknown as AcAct);
