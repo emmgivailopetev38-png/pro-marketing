@@ -13,7 +13,7 @@ export const maxDuration = 60;
  *   POST {action:"run"}       → една обиколка сега (в работните часове)
  *   POST {action:"call", contact_id} → само този човек, ако правилата го пускат;
  *                               `force:true` пренебрегва часовете (проба)
- *   POST {action:"pause"|"resume"} → ключът без деплой
+ *   POST {action:"pause"|"resume", until?} → ключът без деплой (`until` — пауза до час)
  *
  * Bearer: HERMES_API_TOKEN или INTERNAL_SEND_TOKEN (checkHermesAuth).
  * Правилата кой да се набере НЕ се заобикалят оттук — само часовете с `force`.
@@ -26,6 +26,7 @@ export async function GET(request: Request) {
     on: sw.on,
     switched_at: sw.at,
     switched_by: sw.by,
+    paused_until: sw.until ?? null,
     cap: dailyMax(),
     today: preview.today,
     credits,
@@ -46,6 +47,8 @@ const schema = z.object({
   contact_id: z.string().uuid().optional(),
   force: z.boolean().optional(),
   by: z.string().trim().max(60).optional(),
+  /** Пауза до този час (ISO) — после Ели продължава сама. */
+  until: z.string().datetime({ offset: true }).optional(),
 });
 
 export async function POST(request: Request) {
@@ -54,11 +57,11 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid", detail: parsed.error.issues.map((i) => i.message).join(", ") }, { status: 400 });
   }
-  const { action, contact_id, force, by } = parsed.data;
+  const { action, contact_id, force, by, until } = parsed.data;
 
   if (action === "pause" || action === "resume") {
-    await writeSwitch(action === "resume", by ?? "api");
-    return NextResponse.json({ ok: true, on: action === "resume" });
+    await writeSwitch(action === "resume", by ?? "api", action === "pause" ? until : null);
+    return NextResponse.json({ ok: true, on: action === "resume", until: action === "pause" ? until ?? null : null });
   }
   if (action === "call" && !contact_id) return NextResponse.json({ error: "contact_id" }, { status: 400 });
 

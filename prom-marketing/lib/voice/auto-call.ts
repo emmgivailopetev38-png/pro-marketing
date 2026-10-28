@@ -96,8 +96,8 @@ export function autoOptions(): AcOptions {
   };
 }
 
-/** Последното превключване печели; няма ли — включено. */
-export async function readSwitch(): Promise<{ on: boolean; at: string | null; by: string | null }> {
+/** Последното превключване печели; няма ли — включено. Пауза с `until` се вдига сама след този час. */
+export async function readSwitch(): Promise<{ on: boolean; at: string | null; by: string | null; until?: string | null }> {
   if ((process.env.VOICE_AUTO_CALLS ?? "on").toLowerCase() === "off") return { on: false, at: null, by: "VOICE_AUTO_CALLS=off" };
   const sb = createServiceClient();
   const { data } = await sb
@@ -108,17 +108,19 @@ export async function readSwitch(): Promise<{ on: boolean; at: string | null; by
     .limit(1)
     .maybeSingle();
   if (!data) return { on: true, at: null, by: null };
-  const d = (data.detail ?? {}) as { on?: boolean; by?: string };
-  return { on: d.on !== false, at: String(data.created_at), by: d.by ?? null };
+  const d = (data.detail ?? {}) as { on?: boolean; by?: string; until?: string };
+  const until = d.until && Number.isFinite(Date.parse(d.until)) ? d.until : null;
+  const paused = d.on === false && (!until || Date.now() < Date.parse(until));
+  return { on: !paused, at: String(data.created_at), by: d.by ?? null, until };
 }
 
-export async function writeSwitch(on: boolean, by: string): Promise<void> {
+export async function writeSwitch(on: boolean, by: string, until?: string | null): Promise<void> {
   const sb = createServiceClient();
   await sb.from("automation_events").insert({
     event_type: SWITCH_EVENT,
     status: "success",
-    summary: on ? "▶️ Ели звъни сама — включено" : "⏸ Ели звъни сама — спряно",
-    detail: { on, by },
+    summary: on ? "▶️ Ели звъни сама — включено" : `⏸ Ели звъни сама — спряно${until ? ` до ${until}` : ""}`,
+    detail: { on, by, ...(until && !on ? { until } : {}) },
   });
 }
 
