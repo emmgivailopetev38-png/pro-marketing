@@ -78,6 +78,8 @@ export function VoiceCallForm({ location }: { location: string }) {
   const [step, setStep] = useState<Step>("form");
   const [error, setError] = useState<string | null>(null);
   const [closedText, setClosedText] = useState("");
+  /** Без кредити и телефонът на агента мълчи — бутонът „звънни“ не се показва. */
+  const [agentDown, setAgentDown] = useState(false);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -190,6 +192,7 @@ export function VoiceCallForm({ location }: { location: string }) {
         pixelTrack("Lead", { eventID: eventId, params: { content_name: "glas_reklama" } });
         gadsConversion("lead", { transactionId: eventId });
         ga4Event("generate_lead", { form: "VoiceCallForm" });
+        setAgentDown(data.error === "credits");
         setClosedText(data.spoken ?? "Гласовото демо е заето в момента.");
         setStep("closed");
         return;
@@ -255,7 +258,7 @@ export function VoiceCallForm({ location }: { location: string }) {
             <p>
               Отворил си страницата във вградения браузър на Facebook или Instagram — там микрофонът
               обикновено не тръгва. Най-сигурно е да си запазиш час направо от календара на Ивайло:
-              двайсет минути, безплатно.
+              до 45 минути, безплатно.
             </p>
             <a
               href="/booking"
@@ -334,12 +337,14 @@ export function VoiceCallForm({ location }: { location: string }) {
           >
             Запази час от календара →
           </a>
-          <a
-            href="tel:+14754269084"
-            className="rounded-full border border-white/20 px-6 py-3 font-semibold text-slate-200"
-          >
-            Или звънни на агента
-          </a>
+          {!agentDown && (
+            <a
+              href="tel:+14754269084"
+              className="rounded-full border border-white/20 px-6 py-3 font-semibold text-slate-200"
+            >
+              Или звънни на агента
+            </a>
+          )}
         </div>
       </div>
     );

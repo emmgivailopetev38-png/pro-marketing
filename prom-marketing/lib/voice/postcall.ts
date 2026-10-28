@@ -191,7 +191,9 @@ export function describeCall(ev: PostCallEvent): { title: string; body: string; 
   if (ev.transcript.length) {
     const lines = ev.transcript.map((l) => `${ROLE_LABEL[l.role] ?? l.role}: ${l.message}`);
     let text = lines.join("\n");
-    if (text.length > 6000) text = text.slice(0, 6000) + "\n…";
+    // 6 000 знака режеха 8–11-минутните разговори наполовина (видяно 28.10.2026);
+    // 15 минути говор са ~15–20 хил. знака, затова таванът е с резерв.
+    if (text.length > 30000) text = text.slice(0, 30000) + "\n…";
     parts.push(`— Транскрипт —\n${text}`);
   }
 
