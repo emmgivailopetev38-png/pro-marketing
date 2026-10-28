@@ -27,6 +27,8 @@ const REFUSAL = /(Не се интересува|Не е заинтересов�
 const NO_ANSWER = /(Не вдигна|не вдига|Заето|изключен|без отговор|Не отговаря)/i;
 /** Автоматичните пишещи — те не са „ние сме писали“ и не са история за четене. */
 const AUTO_AUTHORS = new Set(["warm_sequence", "lead_sequence", "meta_webhook", "website", "meta_csv_import", "система"]);
+/** Служебни бележки (местене на дати, корекции на полета) — не казват нищо за човека. */
+const SHUM = /^(Корекция|Чуването преместено|📅 В календара)/;
 
 const FUNNEL: ContactStage[] = ["discovery", "presentation_sent", "offer_sent", "negotiating"];
 const HOT_STATUS = new Set(["interested", "called_waiting_feedback", "ready_to_close", "sent_offer", "sent_presentation", "sent_proforma"]);
@@ -202,7 +204,7 @@ export function classify(c: ZvContact, acts: ZvAct[], now: Date): ZvRow | null {
       (a) =>
         !AUTO_AUTHORS.has(a.created_by ?? "") &&
         !LEAD_TYPES.includes(a.activity_type) &&
-        !(a.title ?? "").startsWith("Корекция")
+        !SHUM.test(a.title ?? "")
     )
     .slice(0, 2)
     .map((a) => {
