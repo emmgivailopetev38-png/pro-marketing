@@ -177,13 +177,16 @@ export async function POST(request: Request) {
     let calError: string | null = null;
     let calUid: string | null = null;
 
-    // И трите са задължителни за Cal.com: типът събитие иска телефон, а без
-    // имейл няма къде да отиде потвърждението. Липсва ли едно от тях, часът
-    // остава в CRM-а и Ивайло го потвърждава ръчно.
-    if (email && telefon?.trim() && isCalWriteConfigured()) {
+    // И трите са задължителни за Cal.com: типът събитие иска телефон и имейл.
+    // От 28.10.2026 Ели НЕ пита за имейл (хората затварят, докато диктуват) —
+    // потвърждението отива във Viber. За да влезе часът все пак в календара на
+    // Ивайло с линк за Meet, Cal.com получава неговия адрес с +glas (копието
+    // на потвърждението идва при него). В CRM-а имейлът остава празен.
+    const calEmail = email ?? (telefon?.trim() ? noEmailAlias(telefon) : null);
+    if (calEmail && telefon?.trim() && isCalWriteConfigured()) {
       const res = await createCalBooking({
         name: d.ime,
-        email,
+        email: calEmail,
         startISO: start.toISOString(),
         phone: telefon,
         notes,
@@ -235,7 +238,7 @@ export async function POST(request: Request) {
       }).catch((e) => console.error("[voice/public/book] contact", e));
     }
 
-    await notify(d, start, inCalendar ? null : calError ?? (email ? "Cal.com отказа" : "няма имейл"));
+    await notify(d, start, inCalendar ? null : calError ?? (email ? "Cal.com отказа" : telefon ? "Cal.com отказа" : "няма телефон"));
 
     const when = `${speakDay(start)} в ${speakTime(start)}`;
     const moved = shifted ? `Най-близкото свободно е ${when} — записах теб там. ` : "";
@@ -246,7 +249,9 @@ export async function POST(request: Request) {
         id: booking.id,
         in_calendar: true,
         when: start.toISOString(),
-        spoken: `${moved}Готово — ${when}. Потвърждението вече е на ${email}, там е и линкът за срещата.`,
+        spoken: email
+          ? `${moved}Готово — ${when}. Потвърждението вече е на ${email}, там е и линкът за срещата.`
+          : `${moved}Готово — ${when}, с Ивайло. Потвърждението с линка ще ви дойде във Viber, на този номер.`,
       });
     }
 
@@ -257,7 +262,7 @@ export async function POST(request: Request) {
       when: start.toISOString(),
       spoken: email
         ? `${moved}Записах те за ${when}. Потвърждението ще ти дойде на ${email} до няколко минути.`
-        : `${moved}Записах те за ${when}. Ивайло ще ти потвърди на телефона, който ми даде.`,
+        : `${moved}Записах ви за ${when}. Потвърждението ще ви дойде във Viber, на този номер.`,
     });
   } catch (err) {
     console.error("[voice/public/book]", err);
@@ -292,6 +297,14 @@ async function notify(
 
 function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/** `ime+glas-359888123456@gmail.com` — часът без имейл пак влиза в календара. */
+function noEmailAlias(phone: string): string {
+  const base = (process.env.EMAIL_REPLY_TO || "emmgivailopetev38@gmail.com").trim().toLowerCase();
+  const [user, domain] = base.split("@");
+  const digits = phone.replace(/\D/g, "").slice(-12);
+  return `${user.split("+")[0]}+glas-${digits}@${domain}`;
 }
 
 function slug(s: string): string {

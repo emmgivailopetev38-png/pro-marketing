@@ -72,6 +72,8 @@ export interface PostCallEvent {
   booked: boolean;
   /** „telefon" при истинско обаждане, „sait" при бутона. */
   channel: "telefon" | "sait";
+  /** Полетата от „Data collection“ на агента (входящият на 0876: ime, povod, obadi_se…). */
+  collected: Record<string, string>;
 }
 
 type Json = Record<string, unknown>;
@@ -121,6 +123,15 @@ export function parsePostCall(payload: unknown): PostCallEvent | null {
     if ((calledBooking && !failedBooking) || okBooking) booked = true;
   }
 
+  const collected: Record<string, string> = {};
+  for (const [k, v] of Object.entries(obj(analysis.data_collection_results))) {
+    const val = obj(v).value;
+    if (typeof val === "string" || typeof val === "number" || typeof val === "boolean") {
+      const t = String(val).trim();
+      if (t) collected[k] = t;
+    }
+  }
+
   const phoneCall = obj(metadata.phone_call);
   const callerNumber =
     str(phoneCall.external_number) ??
@@ -141,6 +152,44 @@ export function parsePostCall(payload: unknown): PostCallEvent | null {
     callerNumber,
     booked,
     channel: callerNumber ? "telefon" : "sait",
+    collected,
+  };
+}
+
+/**
+ * Номерата на Ивайло. Пренасочен от Yettel разговор може да пристигне с
+ * неговия номер вместо с номера на човека — тогава номерът не е на човека
+ * и не бива да прави картон „Ивайло Петев“ от всеки звъннал.
+ */
+const OWN_KEYS = new Set(["876447159", "877399963"]);
+
+export function isOwnNumber(n: string | null | undefined): boolean {
+  const d = (n ?? "").replace(/\D/g, "");
+  return d.length >= 9 && OWN_KEYS.has(d.slice(-9));
+}
+
+export interface InboundInfo {
+  phone: string | null;
+  name: string | null;
+  povod: string | null;
+  kategoria: string | null;
+  obadiSe: boolean;
+  koga: string | null;
+}
+
+/** Входящ разговор на 0876 (агентът „Ели — входящ“): кой, за какво, да се обади ли Ивайло. */
+export function inboundInfo(ev: PostCallEvent): InboundInfo {
+  const c = ev.collected;
+  const caller = ev.callerNumber && !isOwnNumber(ev.callerNumber) && /\d{6}/.test(ev.callerNumber) ? ev.callerNumber : null;
+  const saidDigits = (c.telefon_za_vrazka ?? "").replace(/\D/g, "");
+  const said = saidDigits.length >= 9 && !isOwnNumber(saidDigits) ? (saidDigits.startsWith("359") ? `+${saidDigits}` : `+359${saidDigits.slice(-9)}`) : null;
+  return {
+    phone: caller ?? said,
+    name: c.ime ?? null,
+    povod: c.povod ?? null,
+    kategoria: c.kategoria ?? null,
+    obadiSe: /^(true|1|да|yes)$/i.test(c.obadi_se ?? ""),
+    koga: c.koga_udobno ?? null,
   };
 }
 
@@ -173,14 +222,27 @@ const ROLE_LABEL: Record<string, string> = { agent: "Агент", user: "Кли�
  * дума по дума, защото „какво са си говорили" е точно въпросът, на който
  * трябва да може да се отговори от картона, без да се влиза в ElevenLabs.
  */
-export function describeCall(ev: PostCallEvent): { title: string; body: string; minutes: number } {
+export function describeCall(ev: PostCallEvent, inbound: InboundInfo | null = null): { title: string; body: string; minutes: number } {
   const minutes = Math.max(1, Math.round(ev.durationSecs / 60));
   const where = ev.channel === "telefon" ? "по телефона" : "от сайта";
-  const title = `🎙️ Разговор с гласовия агент ${where} · ${minutes} мин${ev.booked ? " · записа си час" : ""}`;
+  const title = inbound
+    ? `📲 Входящо на 0876 · ${inbound.povod ? inbound.povod.slice(0, 90) : "без повод"} · ${minutes} мин${
+        ev.booked ? " · записа си час" : inbound.obadiSe ? " · 📞 да му се обади Ивайло" : ""
+      }`
+    : `🎙️ Разговор с гласовия агент ${where} · ${minutes} мин${ev.booked ? " · записа си час" : ""}`;
 
   const parts: string[] = [];
   if (ev.summary) parts.push(ev.summary);
   else parts.push("(ElevenLabs не върна резюме)");
+  if (inbound) {
+    const f: string[] = [];
+    if (inbound.name) f.push(`Име: ${inbound.name}`);
+    if (inbound.povod) f.push(`Повод: ${inbound.povod}`);
+    if (inbound.kategoria) f.push(`Вид: ${inbound.kategoria}`);
+    if (inbound.koga) f.push(`Удобно: ${inbound.koga}`);
+    if (!inbound.phone) f.push("⚠️ Номерът не дойде (скрит или пренасочен с номера на Ивайло)");
+    if (f.length) parts.push(f.join(" · "));
+  }
 
   const facts: string[] = [];
   if (ev.callerNumber) facts.push(`Номер: ${ev.callerNumber}`);

@@ -3,19 +3,30 @@ import { upsertContactAndLog } from "@/lib/contacts/repository";
 import { sendEmail } from "@/lib/email/resend";
 import { escapeHtml } from "@/lib/email/escape";
 import { sendTelegram } from "@/lib/notifications/telegram";
+import { createServiceClient } from "@/lib/supabase/service";
 import {
   contactEmail,
   contactName,
   contactPhone,
   describeCall,
+  inboundInfo,
   parsePostCall,
   verifyElevenLabsSignature,
+  type InboundInfo,
   type PostCallEvent,
 } from "@/lib/voice/postcall";
 import { closeVoiceSession } from "@/lib/voice/quota";
 import { closeTreningSession } from "@/lib/trening/postcall";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * „Ели — входящ 0876“ (28.10.2026): вдига, когато Ивайло не може, на
+ * пренасочените от Yettel обаждания към 0876 447 159. Повод и име идват от
+ * „Data collection“ на агента; номерът на звъннал може да пристигне като
+ * номера на Ивайло — тогава взимаме казания на глас (виж inboundInfo).
+ */
+const INBOUND_AGENT_ID = process.env.ELEVENLABS_INBOUND_AGENT_ID?.trim() || "agent_2801m616xhyeeqfa28asd3sg8v0x";
 
 /**
  * POST /api/webhooks/elevenlabs — ElevenLabs ни казва какво е било казано.
@@ -77,16 +88,24 @@ export async function POST(request: Request) {
     }
   }
 
-  const email = contactEmail(ev);
-  const phone = contactPhone(ev);
+  const inbound: InboundInfo | null = ev.agentId === INBOUND_AGENT_ID ? inboundInfo(ev) : null;
+  const email = inbound ? null : contactEmail(ev);
+  const phone = inbound ? inbound.phone : contactPhone(ev);
+  const { title, body, minutes } = describeCall(ev, inbound);
+  const name = inbound ? (inbound.name ?? contactName(ev)) : contactName(ev);
   if (!email && !phone) {
-    // Скрит номер и без форма — няма към кого да го вържем. Остава в лога.
+    // Скрит номер и без форма — няма към кого да го вържем. Остава в лога;
+    // входящото на 0876 все пак стига до Ивайло — може да е важно.
     console.warn("[webhooks/elevenlabs] разговор без имейл и телефон", ev.conversationId);
+    if (inbound) {
+      after(async () => {
+        await notifyOwner(ev, { name, email: null, phone: null, contactId: null, title, minutes }, inbound).catch((e) =>
+          console.error("[webhooks/elevenlabs] notify", e)
+        );
+      });
+    }
     return NextResponse.json({ ok: true, skipped: "no_identity" });
   }
-
-  const { title, body, minutes } = describeCall(ev);
-  const name = contactName(ev);
 
   let contactId: string | null = null;
   try {
@@ -96,7 +115,7 @@ export async function POST(request: Request) {
       phone,
       company: ev.dynamic.deynost || null,
       source: ev.channel === "telefon" ? "voice_phone" : "voice_web",
-      source_ref: ev.channel === "telefon" ? "telefon" : null,
+      source_ref: inbound ? "0876" : ev.channel === "telefon" ? "telefon" : null,
       initial_stage: "lead",
       activity: {
         type: "voice_call",
@@ -115,6 +134,9 @@ export async function POST(request: Request) {
           channel: ev.channel,
           caller_number: ev.callerNumber,
           summary: ev.summary,
+          ...(inbound
+            ? { inbound_0876: true, povod: inbound.povod, kategoria: inbound.kategoria, obadi_se: inbound.obadiSe, koga: inbound.koga }
+            : {}),
         },
       },
     });
@@ -126,6 +148,18 @@ export async function POST(request: Request) {
     }
   } catch (err) {
     console.error("[webhooks/elevenlabs] crm хвърли", err);
+  }
+
+  // Обещано „Ивайло ще ви се обади“ → в списъка му за звънене още днес.
+  if (inbound && contactId && !ev.booked && inbound.obadiSe) {
+    try {
+      await createServiceClient()
+        .from("contacts")
+        .update({ followup_status: "needs_call", next_followup_at: new Date().toISOString() })
+        .eq("id", contactId);
+    } catch (e) {
+      console.error("[webhooks/elevenlabs] чуване за входящото", e);
+    }
   }
 
   /**
@@ -149,7 +183,7 @@ export async function POST(request: Request) {
 
   // Известието към Ивайло тръгва СЛЕД отговора — ElevenLabs чака 200, не Resend.
   after(async () => {
-    await notifyOwner(ev, { name, email, phone, contactId, title, minutes }).catch((e) =>
+    await notifyOwner(ev, { name, email, phone, contactId, title, minutes }, inbound).catch((e) =>
       console.error("[webhooks/elevenlabs] notify", e)
     );
   });
@@ -181,7 +215,8 @@ async function isDuplicateDelivery(activityId: string, ev: PostCallEvent): Promi
 
 async function notifyOwner(
   ev: PostCallEvent,
-  c: { name: string | null; email: string | null; phone: string | null; contactId: string | null; title: string; minutes: number }
+  c: { name: string | null; email: string | null; phone: string | null; contactId: string | null; title: string; minutes: number },
+  inbound: InboundInfo | null = null
 ): Promise<void> {
   const to = process.env.EMAIL_REPLY_TO || "emmgivailopetev38@gmail.com";
   const who = c.name ?? c.phone ?? c.email ?? "непознат";
@@ -195,7 +230,9 @@ async function notifyOwner(
     )
     .join("");
 
-  const subject = `🎙️ ${ev.booked ? "Записа си час · " : ""}Разговор с агента ${where} · ${who} · ${c.minutes} мин`;
+  const subject = inbound
+    ? `📲 ${ev.booked ? "Записа си час · " : inbound.obadiSe ? "Обади се · " : ""}Входящо на 0876 · ${who}${inbound.povod ? ` · ${inbound.povod.slice(0, 60)}` : ""}`
+    : `🎙️ ${ev.booked ? "Записа си час · " : ""}Разговор с агента ${where} · ${who} · ${c.minutes} мин`;
   const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1d2320;max-width:620px">
 <p style="margin:0 0 12px"><strong>${escapeHtml(c.title)}</strong></p>
 <table style="border-collapse:collapse;margin:0 0 14px">
@@ -226,7 +263,11 @@ ${excerpt.map((l) => `${l.role === "agent" ? "Агент" : "Клиент"}: ${l
   const [mail] = await Promise.all([
     sendEmail({ to, subject, html, text }),
     sendTelegram(
-      `🎙️ <b>${esc(who)}</b> говори с агента ${where} · ${c.minutes} мин${ev.booked ? " · ✅ записа си час" : ""}\n${esc(ev.summary ?? "без резюме")}\n<a href="${crm}">Картонът</a>`
+      inbound
+        ? `📲 <b>${esc(who)}</b> звъня на 0876 · ${c.minutes} мин${ev.booked ? " · ✅ записа си час" : inbound.obadiSe ? " · 📞 <b>обади му се</b>" : ""}${
+            inbound.povod ? `\n📝 ${esc(inbound.povod)}` : ""
+          }${inbound.koga ? `\n🕐 ${esc(inbound.koga)}` : ""}\n☎️ ${esc(c.phone ?? "номерът не дойде")}\n<a href="${crm}">Картонът</a>`
+        : `🎙️ <b>${esc(who)}</b> говори с агента ${where} · ${c.minutes} мин${ev.booked ? " · ✅ записа си час" : ""}\n${esc(ev.summary ?? "без резюме")}\n<a href="${crm}">Картонът</a>`
     ),
   ]);
   if (mail.error) {

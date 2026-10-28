@@ -3,6 +3,8 @@ import {
   contactEmail,
   contactPhone,
   describeCall,
+  inboundInfo,
+  isOwnNumber,
   parsePostCall,
   signElevenLabs,
   verifyElevenLabsSignature,
@@ -112,5 +114,41 @@ describe("разборът на разговора", () => {
     expect(body.indexOf("климатици")).toBeLessThan(body.indexOf("— Транскрипт —"));
     expect(body).toContain("Клиент: Имам сервиз за климатици");
     expect(body).toContain("Агент: Записах те");
+  });
+});
+
+describe("входящото на 0876", () => {
+  const inbound = (phone: string, collected: Record<string, unknown>) =>
+    parsePostCall(
+      sample({
+        agent_id: "agent_vhodyasht",
+        transcript: [{ role: "agent", message: "Здравейте, Ели съм.", time_in_call_secs: 0 }],
+        metadata: { phone_call: { external_number: phone } },
+        analysis: {
+          transcript_summary: "Пита за къщата.",
+          call_successful: "success",
+          data_collection_results: Object.fromEntries(Object.entries(collected).map(([k, v]) => [k, { data_collection_id: k, value: v }])),
+        },
+        conversation_initiation_client_data: { dynamic_variables: {} },
+      })
+    )!;
+
+  it("номерът на звъннал, повод и „обади се“ от Data collection", () => {
+    const ev = inbound("+359888111222", { ime: "Петър", povod: "за къщата в Белцов", obadi_se: true, koga_udobno: "след пет" });
+    const info = inboundInfo(ev);
+    expect(info).toMatchObject({ phone: "+359888111222", name: "Петър", povod: "за къщата в Белцов", obadiSe: true, koga: "след пет" });
+    const d = describeCall(ev, info);
+    expect(d.title).toContain("📲 Входящо на 0876 · за къщата в Белцов");
+    expect(d.title).toContain("📞 да му се обади Ивайло");
+  });
+
+  it("пренасочено с номера на Ивайло → взима казания на глас, не прави картон на Ивайло", () => {
+    expect(isOwnNumber("+359876447159")).toBe(true);
+    expect(isOwnNumber("0877 399 963")).toBe(true);
+    expect(isOwnNumber("+359888111222")).toBe(false);
+    const ev = inbound("+359876447159", { povod: "клиент", telefon_za_vrazka: "0899 123 456", obadi_se: "true" });
+    expect(inboundInfo(ev).phone).toBe("+359899123456");
+    const hidden = inbound("+359876447159", { povod: "лично" });
+    expect(inboundInfo(hidden).phone).toBeNull();
   });
 });
