@@ -129,13 +129,16 @@ export async function placeOutboundCall(args: {
   toNumber: string;
   variables: OutboundVariables;
   agentId?: string;
+  /** Друг номер от ElevenLabs (напр. 0876 447 159 на Ели) — без търсене по списъка. */
+  phoneNumberId?: string;
 }): Promise<OutboundResult> {
   const apiKey = outboundApiKey();
-  if (!apiKey || !isOutboundConfigured()) return { ok: false, reason: "not_configured" };
+  // `PUBLIC_VOICE_CALLBACK` е ключът на бутона в сайта; Ели (с изричен номер) има свои спирачки.
+  if (!apiKey || (!args.phoneNumberId && !isOutboundConfigured())) return { ok: false, reason: "not_configured" };
   const agentId = args.agentId ?? process.env.ELEVENLABS_PUBLIC_AGENT_ID ?? DEFAULT_PUBLIC_AGENT_ID;
 
   try {
-    const phoneNumberId = await resolvePhoneNumberId(apiKey, outboundNumber());
+    const phoneNumberId = args.phoneNumberId ?? (await resolvePhoneNumberId(apiKey, outboundNumber()));
     if (!phoneNumberId) return { ok: false, reason: "no_number_id" };
 
     const res = await fetch(`${API}/v1/convai/twilio/outbound-call`, {
