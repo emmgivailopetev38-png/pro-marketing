@@ -79,6 +79,20 @@ describe("кого да звънна", () => {
     expect(r?.nevdigna).toBe(1);
   });
 
+  it("служебните бележки не влизат в „последно“", () => {
+    const r = classify(
+      contact(),
+      [
+        act("note", "2026-10-26T08:00:00Z", "Чуването преместено за ср 28.10", "claude"),
+        act("note", "2026-10-26T07:00:00Z", "Корекция: notes", "hermes"),
+        act("call", "2026-10-22T10:00:00Z", "Не вдигна"),
+      ],
+      NOW
+    );
+    expect(r?.posledno).toHaveLength(1);
+    expect(r?.posledno[0]).toContain("Не вдигна");
+  });
+
   it("за днес е най-горе в купчината", () => {
     const a = classify(contact({ id: "a", created_at: "2026-10-27T10:00:00Z" }), [], NOW)!;
     const b = classify(contact({ id: "b", created_at: "2026-10-20T10:00:00Z", next_followup_at: "2026-10-28T07:45:00Z" }), [], NOW)!;
