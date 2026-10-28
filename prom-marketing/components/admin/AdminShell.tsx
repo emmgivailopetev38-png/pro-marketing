@@ -74,6 +74,7 @@ const LINK_GROUPS: LinkGroup[] = [
     items: [
       { href: "/admin/clients", label: "Клиенти", icon: Users },
       { href: "/admin/follow-up", label: "Follow-up", icon: Target },
+      { href: "/admin/zvanene", label: "Звънене", icon: PhoneCall },
       { href: "/admin/efektivnost", label: "Моята ефективност", icon: Gauge },
       { href: "/admin/napredak", label: "Напредък на екипа", icon: Activity },
       { href: "/admin/bookings", label: "Срещи", icon: Calendar },
