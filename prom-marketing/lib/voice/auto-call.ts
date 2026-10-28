@@ -7,6 +7,7 @@ import { outboundApiKey, placeOutboundCall } from "./outbound";
 import {
   AUTO_LOG_TYPE,
   DEFAULT_OPTIONS,
+  DEFAULT_WINDOW,
   decide,
   inCallWindow,
   orderCalls,
@@ -16,12 +17,13 @@ import {
   type AcCall,
   type AcContact,
   type AcOptions,
+  type CallWindow,
 } from "./auto-call-rules";
 
 /**
  * Ели звъни сама — новите лийдове и неявилите се (правилата: auto-call-rules.ts).
  *
- * Пуска се от Vercel Cron на всеки 15 минути (`/api/cron/voice-auto`) и на
+ * Пуска се от Vercel Cron на всеки 2 минути (`/api/cron/voice-auto`) и на
  * ръка през `/api/voice/outbound`. Всяко набиране:
  *   1. първо се „заключва“ в `automation_events` с ключ човек+повод+опит —
  *      две паралелни пускания не могат да наберат един човек два пъти;
@@ -94,6 +96,19 @@ export function autoOptions(): AcOptions {
     maxAttempts: intEnv("VOICE_AUTO_MAX_ATTEMPTS", DEFAULT_OPTIONS.maxAttempts),
     skipPhones: skipPhones(),
   };
+}
+
+/** `VOICE_AUTO_HOURS=09:00-17:50`, `VOICE_AUTO_DAYS=Mon,Tue,Wed,Thu,Fri` — смяна без промяна на кода (env + redeploy). */
+export function callWindow(): CallWindow {
+  const win = { ...DEFAULT_WINDOW };
+  const h = /^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$/.exec((process.env.VOICE_AUTO_HOURS ?? "").trim());
+  if (h) {
+    win.startMin = Number(h[1]) * 60 + Number(h[2]);
+    win.endMin = Number(h[3]) * 60 + Number(h[4]);
+  }
+  const days = (process.env.VOICE_AUTO_DAYS ?? "").split(/[,\s]+/).filter((d) => /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)$/.test(d));
+  if (days.length) win.days = days;
+  return win;
 }
 
 /** Последното превключване печели; няма ли — включено. Пауза с `until` се вдига сама след този час. */
@@ -226,7 +241,7 @@ export async function findCandidates(now: Date, opts: AcOptions): Promise<{ call
   const [{ data: contacts }, { rows: acts, error: actsErr }, { data: bookings }] = await Promise.all([
     sb
       .from("contacts")
-      .select("id, full_name, phone, email, stage, followup_status, business, company, last_heard_from_at")
+      .select("id, full_name, phone, email, source, stage, followup_status, business, company, last_heard_from_at")
       .in("id", ids),
     allRows<Record<string, unknown>>((from, to) =>
       sb
@@ -294,12 +309,14 @@ export async function runAutoCalls(args: { now?: Date; dryRun?: boolean; force?:
 
   const sw = await readSwitch();
   if (!sw.on && !args.dryRun) return { ok: true, state: "off", detail: sw.by ?? undefined, ...base };
-  if (!args.force && !inCallWindow(now) && !args.dryRun) return { ok: true, state: "outside_hours", ...base };
+  if (!args.force && !inCallWindow(now, callWindow()) && !args.dryRun) return { ok: true, state: "outside_hours", ...base };
   if (!outboundApiKey()) return { ok: false, state: "no_key", detail: "ELEVENLABS_API_KEY липсва във Vercel", ...base };
 
   const opts = autoOptions();
   const { calls, skipped } = await findCandidates(now, opts);
   const picked = args.onlyContactId ? calls.filter((c) => c.contactId === args.onlyContactId) : calls;
+  // Кронът е на 2 мин — без кандидати не питаме ElevenLabs за кредити.
+  if (!args.dryRun && picked.length === 0) return { ok: true, state: "ran", ...base, skipped: undefined };
   const today = await dialsToday(now);
   const credits = await creditsLeft();
   const res = { ...base, candidates: picked.length, today, credits };

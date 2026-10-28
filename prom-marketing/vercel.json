@@ -29,7 +29,7 @@
     },
     {
       "path": "/api/cron/voice-auto",
-      "schedule": "*/15 7-15 * * 1-4"
+      "schedule": "*/2 6-16 * * 1-5"
     }
   ],
   "headers": [
