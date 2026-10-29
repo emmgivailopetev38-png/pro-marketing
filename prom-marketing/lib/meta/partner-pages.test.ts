@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   parseAmount,
+  parseFormQuestions,
   parsePartnerForward,
   partnerForPage,
   partnerLeadBody,
+  resolveFieldData,
   slotForQuestion,
   sofiaReceivedAt,
   type PartnerForward,
@@ -143,5 +145,82 @@ describe("картата META_PARTNER_FORWARD", () => {
       expect(partnerForPage("106080979260944")).toBeNull();
       expect(partnerForPage("")).toBeNull();
     });
+  });
+});
+
+/** Формата v4 на Иво (28.10.2026): Graph дава ключовете o1…o8, дефиницията — текста. */
+const ivoFormV4 = {
+  questions: [
+    { key: "kade_e_imotat", type: "CUSTOM", label: "Къде се намира имотът?", options: [
+      { key: "o1", value: "София" }, { key: "o5", value: "Русе" }, { key: "o8", value: "Друго място" } ] },
+    { key: "vid_imot", type: "CUSTOM", label: "Какъв е имотът?", options: [
+      { key: "o1", value: "Апартамент" }, { key: "o2", value: "Къща" }, { key: "o6", value: "Нямам имот" } ] },
+    { key: "suma", type: "CUSTOM", label: "Каква сума Ви е необходима?", options: [
+      { key: "o1", value: "Под 20 000 €" }, { key: "o2", value: "20 000 – 50 000 €" }, { key: "o4", value: "Над 100 000 €" } ] },
+    { key: "koga", type: "CUSTOM", label: "Кога Ви трябват средствата?", options: [
+      { key: "o1", value: "До 2 седмици" }, { key: "o3", value: "Само проучвам" } ] },
+    { key: "full_name", type: "FULL_NAME", label: "Full name" },
+    { key: "phone_number", type: "PHONE", label: "Phone number" },
+    { key: "email", type: "EMAIL", label: "Email" },
+  ],
+};
+
+describe("формата v4: ключовете на въпросите и отговорите се превеждат по дефиницията", () => {
+  it("o-кодовете стават текст, label-ът става въпрос, стандартните полета пазят ключа си", () => {
+    const form = parseFormQuestions(ivoFormV4);
+    expect(Object.keys(form)).toHaveLength(7);
+    expect(form.suma.options.o2).toBe("20 000 – 50 000 €");
+    const resolved = resolveFieldData(
+      [
+        { name: "suma", values: ["o2"] },
+        { name: "kade_e_imotat", values: ["o5"] },
+        { name: "vid_imot", values: ["o2"] },
+        { name: "koga", values: ["o1"] },
+        { name: "full_name", values: ["Борислав Гълъбов"] },
+        { name: "phone_number", values: ["+359897378578"] },
+        { name: "email", values: ["b@example.bg"] },
+        { name: "nepoznat_vapros", values: ["x"] },
+      ],
+      form
+    );
+    expect(resolved).toEqual([
+      { name: "Каква сума Ви е необходима?", values: ["20 000 – 50 000 €"] },
+      { name: "Къде се намира имотът?", values: ["Русе"] },
+      { name: "Какъв е имотът?", values: ["Къща"] },
+      { name: "Кога Ви трябват средствата?", values: ["До 2 седмици"] },
+      { name: "full_name", values: ["Борислав Гълъбов"] },
+      { name: "phone_number", values: ["+359897378578"] },
+      { name: "email", values: ["b@example.bg"] },
+      { name: "nepoznat_vapros", values: ["x"] },
+    ]);
+    const b = partnerLeadBody({ id: "1", created_time: "2026-10-29T14:50:40+0000", form_id: "1407165992484488", field_data: resolved }, CCGROUP);
+    expect(b.full_name).toBe("Борислав Гълъбов");
+    expect(b.city).toBe("Русе");
+    expect(b.property).toBe("Къща");
+    expect(b.amount).toBe(20000);
+    expect(b.urgency).toBe("До 2 седмици");
+    expect(b.received_at).toBe("29.10 16:50");
+    expect(b.answers[0]).toEqual({ question: "Каква сума Ви е необходима?", answer: "20 000 – 50 000 €" });
+  });
+
+  it("„Под 20 000 €“ няма точна сума, „Над 100 000 €“ е 100 000; „Нямам имот“ минава като имот-текст", () => {
+    const form = parseFormQuestions(ivoFormV4);
+    const b = partnerLeadBody(
+      { id: "2", field_data: resolveFieldData([
+        { name: "suma", values: ["o1"] }, { name: "vid_imot", values: ["o6"] }, { name: "kade_e_imotat", values: ["o8"] },
+        { name: "full_name", values: ["Тест"] }, { name: "phone_number", values: ["+359888000000"] } ], form) },
+      CCGROUP
+    );
+    expect(b.amount).toBeUndefined();
+    expect(b.property).toBe("Нямам имот");
+    expect(b.city).toBe("Друго място");
+    expect(parseAmount("Над 100 000 €")).toBe(100000);
+    expect(parseAmount("до 15 000")).toBeUndefined();
+  });
+
+  it("без дефиниция (Graph не отговори) всичко остава както е", () => {
+    const raw = [{ name: "suma", values: ["o2"] }];
+    expect(resolveFieldData(raw, null)).toBe(raw);
+    expect(parseFormQuestions({ error: { message: "x" } })).toEqual({});
   });
 });
