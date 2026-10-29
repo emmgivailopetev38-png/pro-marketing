@@ -79,6 +79,8 @@ describe("синхронът Ели ↔ Viber/WhatsApp", () => {
   it("старо обаждане (> 2 дни) не е повод; отказал и клиент никога", () => {
     expect("skip" in decideMessage(c, [lead, dial("2026-10-26T09:02:00Z")], [], false, NOW)).toBe(true);
     const refuse: SnAct = { activity_type: "note", title: "Не се интересува", occurred_at: "2026-10-29T09:30:00Z", created_by: "ivailo", metadata: null };
+    const ourNote: SnAct = { activity_type: "note", title: "📞 Ели говори 2:35", body: "Ели не звъни втори път — поема Ивайло.", occurred_at: "2026-10-29T09:17:00Z", created_by: "claude", metadata: null };
+    expect("item" in decideMessage(c, [lead, dial("2026-10-29T09:02:00Z"), ourNote], [], false, NOW)).toBe(true);
     expect("skip" in decideMessage(c, [lead, dial("2026-10-29T09:02:00Z"), refuse], [], false, NOW) && "отказал").toBe("отказал");
     const paid: SnAct = { activity_type: "payment_received", title: "плащане", occurred_at: "2026-10-01T09:00:00Z", created_by: "x", metadata: null };
     expect("skip" in decideMessage(c, [lead, dial("2026-10-29T09:02:00Z"), paid], [], false, NOW) && "клиент").toBe("клиент");
