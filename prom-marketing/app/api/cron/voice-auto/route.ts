@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { runAutoCalls } from "@/lib/voice/auto-call";
+import { runFollowupQueue } from "@/lib/voice/followup";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -7,10 +8,10 @@ export const maxDuration = 60;
 /**
  * Vercel Cron: GET /api/cron/voice-auto — на 2 минути, пон–пт през деня (UTC).
  *
- * Ели набира новите лийдове и неявилите се (lib/voice/auto-call.ts). Часовете
- * в София (09:00–17:50) се проверяват вътре — кронът е по-широк заради
- * лятното/зимното време. Извън тях, при спрян ключ, таван или без кредити
- * минава тихо.
+ * Ели набира новите лийдове и неявилите се (lib/voice/auto-call.ts), а после
+ * изчерпва опашката за персонален фолоуъп (lib/voice/followup.ts) — същите
+ * спирачки: часове в София (09:00–17:50), ключът „пауза“, кредитите, тавани.
+ * Извън тях минава тихо.
  *
  * Auth: Vercel праща `Authorization: Bearer ${CRON_SECRET}`; за ръчна проба
  * става и INTERNAL_SEND_TOKEN.
@@ -26,7 +27,9 @@ export async function GET(request: Request) {
   }
   try {
     const result = await runAutoCalls();
-    return NextResponse.json(result, { status: result.ok ? 200 : 500 });
+    // Фолоуъпът не бива да падне заради новите лийдове и обратно — всяка грешка остава своя.
+    const followup = await runFollowupQueue().catch((e) => ({ ok: false, state: "error" as const, detail: e instanceof Error ? e.message : String(e) }));
+    return NextResponse.json({ ...result, followup }, { status: result.ok ? 200 : 500 });
   } catch (e) {
     console.error("[cron/voice-auto]", e);
     return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : "unknown" }, { status: 500 });

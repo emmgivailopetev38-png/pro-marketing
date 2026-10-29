@@ -19,6 +19,15 @@ export const dynamic = "force-dynamic";
  * най-лошият възможен изход, защото звучи убедително.
  */
 
+const WEEKDAY_RE = /(понеделник|вторник|сряда|четвъртък|петък|събота|неделя)/;
+const NEXT_WEEK_RE = /(друг|следващ|идва)\S*\s+седмиц/;
+
+/** „другата седмица“, „следващата седмица“ — без конкретен ден в нея. */
+export function wholeWeek(koga: string): boolean {
+  const t = koga.trim().toLowerCase();
+  return NEXT_WEEK_RE.test(t) && !WEEKDAY_RE.test(t);
+}
+
 const schema = z.object({
   /** „другата седмица", „четвъртък", „следобед" — както го е казал човекът. */
   koga: z.string().trim().max(80).optional(),
@@ -61,6 +70,18 @@ export async function POST(request: Request) {
   // Поискал ли е конкретен ден — показваме само него, иначе първите свободни.
   if (koga) {
     const wanted = parseWhen(koga, { defaultHour: 10 });
+    // „Другата седмица“ без ден (29.10.2026, Ивайло: „часове за следващата
+    // седмица, не за утре“) — цялата седмица от понеделника нататък, а не
+    // само понеделникът, който parseWhen връща като ден.
+    if (wanted && wholeWeek(koga)) {
+      const fromDay = wanted.date.toISOString().slice(0, 10);
+      const week = res.slots.filter((s) => s.day >= fromDay);
+      return NextResponse.json({
+        ok: true,
+        slots: week.slice(0, 8),
+        spoken: week.length ? speakSlots(week, { days: 3 }) : `Другата седмица нямам свободен час. ${speakSlots(res.slots)}`,
+      });
+    }
     if (wanted) {
       const day = wanted.date.toISOString().slice(0, 10);
       const sameDay = res.slots.filter((s) => s.day === day);
