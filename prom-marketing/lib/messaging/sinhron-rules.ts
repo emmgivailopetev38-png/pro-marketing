@@ -244,7 +244,9 @@ export function decideMessage(c: SnContact, acts: SnAct[], futureBookings: SnBoo
 
   const past = acts.filter((a) => ms(a.occurred_at) <= nowMs).sort((x, y) => ms(y.occurred_at) - ms(x.occurred_at));
   if (past.some((a) => CLIENT_TYPES.has(a.activity_type))) return { skip: "клиент" };
-  if (past.some((a) => (a.activity_type === "call" || a.activity_type === "note") && REFUSAL.test(`${a.title ?? ""} ${a.body ?? ""}`))) return { skip: "отказал" };
+  // Само заглавието: в тялото на бележките пише и „Ели не звъни втори път“ (29.10 —
+  // Георги Асенов излезе „отказал“ заради собствената ни бележка).
+  if (past.some((a) => (a.activity_type === "call" || a.activity_type === "note") && REFUSAL.test(a.title ?? ""))) return { skip: "отказал" };
 
   const ev = lastCallEvent(past, opts);
   if (!ev) return { skip: "няма обаждане" };
