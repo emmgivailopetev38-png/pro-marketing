@@ -39,7 +39,7 @@ export interface FollowupItem {
 export interface QueuedRow {
   id: string;
   related_contact_id: string | null;
-  detail: FollowupItem & { attempt?: number };
+  detail: FollowupItem & { state?: "pending" | "dialing" | "done" | "skipped"; attempt?: number };
   created_at: string;
 }
 
@@ -90,15 +90,23 @@ export async function enqueueFollowups(items: FollowupItem[], by: string): Promi
       continue;
     }
     const item: FollowupItem = { ...raw, to_number: to, variables: { ...raw.variables, telefon: to } };
+    const key = followupKey(item.contact_id, item.povod);
+    // Няма уникален индекс по ключа — проверката е преди записа.
+    const { data: dup } = await sb.from("automation_events").select("id").eq("event_type", FOLLOWUP_EVENT).eq("idempotency_key", key).limit(1).maybeSingle();
+    if (dup) {
+      skipped.push({ contact_id: item.contact_id, why: "вече е в опашката" });
+      continue;
+    }
+    // `status` е затворен списък (success/failed/skipped) — чакащият ред е "skipped" със state в detail.
     const { error } = await sb.from("automation_events").insert({
       event_type: FOLLOWUP_EVENT,
-      status: "pending",
+      status: "skipped",
       related_contact_id: item.contact_id,
-      idempotency_key: followupKey(item.contact_id, item.povod),
+      idempotency_key: key,
       summary: `📞 Ели · фолоуъп · ${item.variables.ime || item.contact_id} · чака`,
-      detail: { ...item, by },
+      detail: { ...item, by, state: "pending" },
     });
-    if (error) skipped.push({ contact_id: item.contact_id, why: /duplicate|unique/i.test(error.message) ? "вече е в опашката" : error.message });
+    if (error) skipped.push({ contact_id: item.contact_id, why: error.message });
     else queued += 1;
   }
   return { queued, skipped };
@@ -110,7 +118,8 @@ export async function pendingFollowups(limit = 200): Promise<QueuedRow[]> {
     .from("automation_events")
     .select("id, related_contact_id, detail, created_at")
     .eq("event_type", FOLLOWUP_EVENT)
-    .eq("status", "pending")
+    .eq("status", "skipped")
+    .eq("detail->>state", "pending")
     .order("created_at", { ascending: true })
     .limit(limit);
   return (data ?? []) as unknown as QueuedRow[];
@@ -186,20 +195,20 @@ export async function runFollowupQueue(args: { now?: Date; force?: boolean; max?
     // Заключването: само този, който смени pending → dialing, набира.
     const { data: claim } = await sb
       .from("automation_events")
-      .update({ status: "dialing", summary: `📞 Ели · фолоуъп · ${item.variables?.ime || item.contact_id} · набира` })
+      .update({ detail: { ...item, state: "dialing" }, summary: `📞 Ели · фолоуъп · ${item.variables?.ime || item.contact_id} · набира` })
       .eq("id", row.id)
-      .eq("status", "pending")
+      .eq("detail->>state", "pending")
       .select("id")
       .maybeSingle();
     if (!claim) continue;
 
     if (await hasFutureBooking(item.to_number, now)) {
-      await sb.from("automation_events").update({ status: "skipped", summary: `⏭ Ели · фолоуъп · ${item.variables?.ime || ""} · вече има час`, detail: { ...item, skipped: "future_booking" } }).eq("id", row.id);
+      await sb.from("automation_events").update({ status: "skipped", summary: `⏭ Ели · фолоуъп · ${item.variables?.ime || ""} · вече има час`, detail: { ...item, state: "skipped", skipped: "future_booking" } }).eq("id", row.id);
       continue;
     }
     const health = await checkAgentCredits(agentId);
     if (health.state === "out") {
-      await sb.from("automation_events").update({ status: "pending" }).eq("id", row.id);
+      await sb.from("automation_events").update({ detail: { ...item, state: "pending" } }).eq("id", row.id);
       return { ok: true, state: "credits", detail: "последният разговор падна от квота", ...base, today, dialed };
     }
 
@@ -215,7 +224,7 @@ export async function runFollowupQueue(args: { now?: Date; force?: boolean; max?
       .update({
         status: r.ok ? "success" : "failed",
         summary: `${r.ok ? "📞" : "⚠️"} Ели · фолоуъп · ${item.variables?.ime || item.contact_id} · ${r.ok ? "набрана" : "грешка"}`,
-        detail: { ...item, dialed_at: new Date().toISOString(), conversation_id: r.ok ? r.conversationId : null, error: err ?? null },
+        detail: { ...item, state: "done", dialed_at: new Date().toISOString(), conversation_id: r.ok ? r.conversationId : null, error: err ?? null },
       })
       .eq("id", row.id);
 
