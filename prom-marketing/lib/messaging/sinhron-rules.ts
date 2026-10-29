@@ -148,6 +148,20 @@ export function spokenMeeting(iso: string): string {
   return `${WEEKDAYS_V[m.weekday]}, ${m.dm}, от ${hh}:${mm}`;
 }
 
+/** Думи, които firstName взима за име, а са фирма/обект — без обръщение. */
+const NOT_A_NAME = new Set(["студио", "фирма", "еоод", "оод", "ателие", "салон", "клиника", "магазин", "агенция", "център", "хотел", "ресторант", "кабинет", "школа", "сервиз", "team", "studio"]);
+
+/**
+ * Името в обръщението: само кирилица и само истинско име. Латиница („Adryan“,
+ * „Vania“) и фирми („Студио Христови“) → без име; машината на Мака слага
+ * галеното име на кирилица, като прочете чата (SKILL.md т. 3д).
+ */
+export function greetingName(full: string | null | undefined): string {
+  const ime = firstName(full);
+  if (!ime || !/^[А-Яа-яЁё]+$/.test(ime) || NOT_A_NAME.has(ime.toLowerCase())) return "";
+  return ime;
+}
+
 function greeting(ime: string): string {
   return ime ? `Здравейте, ${ime}!` : "Здравейте!";
 }
@@ -256,7 +270,7 @@ export function decideMessage(c: SnContact, acts: SnAct[], futureBookings: SnBoo
   if (kind === "eli_booked" && future.length === 0) return { skip: ev.booked ? "записал час при Ели, но няма активен час — провери" : "няма записан час" };
   if (kind !== "eli_booked" && future.length > 0) return { skip: "има записан час" };
 
-  const ime = firstName(c.full_name);
+  const ime = greetingName(c.full_name);
   const lead = past.find((a) => a.activity_type === "meta_lead" || a.activity_type === "website_form");
   const zayavka = zayavkaFrom(lead);
   const when = spokenAgo(ev.at, now);
@@ -264,7 +278,7 @@ export function decideMessage(c: SnContact, acts: SnAct[], futureBookings: SnBoo
   const meetingUrl = future[0]?.meeting_url ?? null;
   const channel: SnChannel = kind === "eli_booked" ? "viber" : hasWhatsAppThread ? "whatsapp" : "viber";
   const stamp = kind === "eli_booked" && meetingAt ? sofia(meetingAt).mmdd : sofia(ev.at).mmdd;
-  const key = `${KEY_PREFIX[kind]}-${slug(ime || c.full_name || "chovek")}-${stamp}`;
+  const key = `${KEY_PREFIX[kind]}-${slug(firstName(c.full_name) || c.full_name || "chovek")}-${stamp}`;
   const text = messageText(kind, { ime, when, zayavka, meetingAt, meetingUrl });
 
   return {
