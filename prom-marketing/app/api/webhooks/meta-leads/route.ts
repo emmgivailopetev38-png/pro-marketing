@@ -380,7 +380,7 @@ async function processPartnerLead(leadgenId: string, partner: PartnerForward): P
   const detail = await fetchLeadDetail(leadgenId, tok.token);
   if (!detail) return fail("fetch_failed");
 
-  const r = await forwardLead(partner, detail);
+  const r = await forwardLead(partner, detail, { pageToken: tok.token });
   if (!r.ok) {
     return fail(r.error ?? "forward_failed", { status: r.status, full_name: r.body.full_name || null });
   }

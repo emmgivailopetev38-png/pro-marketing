@@ -167,6 +167,8 @@ export function questionText(name: string): string {
  */
 export function parseAmount(text: string | null | undefined): number | undefined {
   const t = (text ?? "").toLowerCase();
+  // „Под 20 000 €“ / „до 20 000“ = по-малко от числото → няма точна сума; текстът остава в answers.
+  if (/^\s*(под|до)(\s|$)/.test(t)) return undefined;
   const m = /(\d[\d\s.,]*)\s*(хил|k|к)?/.exec(t);
   if (!m) return undefined;
   const digits = m[1].replace(/[\s.]/g, "").replace(/,\d{1,2}$/, "").replace(/,/g, "");
@@ -202,6 +204,95 @@ const STANDARD: Record<string, "email" | "phone" | "full_name" | "first_name" | 
 
 function first(values: string[] | undefined): string {
   return (values ?? []).map((v) => (typeof v === "string" ? v.trim() : "")).find(Boolean) ?? "";
+}
+
+// ── Дефиницията на формата: ключове → текст ─────────────────────────────────
+// Graph връща в field_data КЛЮЧОВЕТЕ на въпросите и на готовите отговори, не
+// текста им: формата v4 на Иво (28.10.2026) дава „suma = o2“, „vid_imot = o6“.
+// Без превод партньорът получава „o2“ вместо „20 000 – 50 000 €“ и нито имот,
+// нито сума. GET /{form_id}?fields=questions дава label на всеки въпрос и
+// value на всяка опция; кешира се по форма за час.
+export interface FormQuestion {
+  key: string;
+  label: string;
+  /** ключ на опцията → текстът ѝ (само при въпроси с готови отговори) */
+  options: Record<string, string>;
+}
+/** по ключ на въпроса */
+export type FormDefinition = Record<string, FormQuestion>;
+
+const formCache = new Map<string, { form: FormDefinition; at: number }>();
+const FORM_TTL_MS = 60 * 60 * 1000;
+
+export function parseFormQuestions(raw: unknown): FormDefinition {
+  const out: FormDefinition = {};
+  const list = (raw as { questions?: unknown } | null)?.questions;
+  if (!Array.isArray(list)) return out;
+  for (const q of list) {
+    if (!q || typeof q !== "object") continue;
+    const o = q as { key?: unknown; label?: unknown; options?: unknown };
+    const key = typeof o.key === "string" ? o.key.trim() : "";
+    if (!key) continue;
+    const options: Record<string, string> = {};
+    if (Array.isArray(o.options)) {
+      for (const opt of o.options) {
+        const p = (opt ?? {}) as { key?: unknown; value?: unknown };
+        if (typeof p.key === "string" && p.key && typeof p.value === "string" && p.value.trim()) {
+          options[p.key] = p.value.trim();
+        }
+      }
+    }
+    out[key] = { key, label: typeof o.label === "string" ? o.label.trim() : "", options };
+  }
+  return out;
+}
+
+export async function fetchFormDefinition(
+  formId: string | null | undefined,
+  pageToken: string
+): Promise<FormDefinition | null> {
+  const id = (formId ?? "").trim();
+  if (!/^\d{5,25}$/.test(id) || !pageToken) return null;
+  const hit = formCache.get(id);
+  if (hit && Date.now() - hit.at < FORM_TTL_MS) return hit.form;
+  try {
+    const res = await fetch(`${GRAPH}/${id}?fields=questions&access_token=${encodeURIComponent(pageToken)}`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(8000),
+    });
+    const body = (await res.json().catch(() => null)) as unknown;
+    if (!res.ok || !body) {
+      console.error(`[meta-partner] формата ${id}: Graph ${res.status} без questions`);
+      return null;
+    }
+    const form = parseFormQuestions(body);
+    formCache.set(id, { form, at: Date.now() });
+    return form;
+  } catch (e) {
+    console.error(`[meta-partner] формата ${id}: ${e instanceof Error ? e.message : String(e)}`);
+    return null;
+  }
+}
+
+/**
+ * field_data с преведени ключове: името на въпроса → неговият label, отговорът →
+ * текстът на опцията. Стандартните полета (full_name, email, phone_number) пазят
+ * ключа си, за да ги познае STANDARD. Непознато (без дефиниция) остава както е.
+ */
+export function resolveFieldData(
+  fieldData: PartnerLeadField[] | undefined,
+  form: FormDefinition | null | undefined
+): PartnerLeadField[] {
+  const list = fieldData ?? [];
+  if (!form) return list;
+  return list.map((f) => {
+    const key = (f?.name ?? "").trim();
+    const q = form[key];
+    if (!q) return f;
+    const name = STANDARD[key.toLowerCase()] || !q.label ? key : q.label;
+    const values = (f.values ?? []).map((v) => (typeof v === "string" && q.options[v]) || v);
+    return { name, values };
+  });
 }
 
 /**
@@ -277,9 +368,18 @@ export interface ForwardResult {
   body: PartnerLeadBody;
 }
 
-/** POST към партньорската система с Bearer от `process.env[partner.token_env]`. */
-export async function forwardLead(partner: PartnerForward, detail: PartnerLeadDetail): Promise<ForwardResult> {
-  const body = partnerLeadBody(detail, partner);
+/**
+ * POST към партньорската система с Bearer от `process.env[partner.token_env]`.
+ * С `pageToken` първо превежда ключовете на формата към текст (виж resolveFieldData).
+ */
+export async function forwardLead(
+  partner: PartnerForward,
+  detail: PartnerLeadDetail,
+  opts: { pageToken?: string } = {}
+): Promise<ForwardResult> {
+  const form = opts.pageToken ? await fetchFormDefinition(detail.form_id, opts.pageToken) : null;
+  const resolved = form ? { ...detail, field_data: resolveFieldData(detail.field_data, form) } : detail;
+  const body = partnerLeadBody(resolved, partner);
   const token = process.env[partner.token_env];
   const tag = `[meta-partner] ${partner.label} · лийд ${detail.id}`;
   if (!token) {
