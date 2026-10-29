@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decideMessage, messageText, orderItems, slug, spokenMeeting, type SnAct, type SnContact } from "./sinhron-rules";
+import { decideMessage, greetingName, messageText, orderItems, slug, spokenMeeting, type SnAct, type SnContact } from "./sinhron-rules";
 
 const NOW = new Date("2026-10-29T10:00:00Z"); // 12:00 София
 const c: SnContact = { id: "11111111-2222-3333-4444-555555555555", full_name: "Теодора Балева", phone: "+359887803336", stage: "lead" };
@@ -82,6 +82,15 @@ describe("синхронът Ели ↔ Viber/WhatsApp", () => {
     expect("skip" in decideMessage(c, [lead, dial("2026-10-29T09:02:00Z"), refuse], [], false, NOW) && "отказал").toBe("отказал");
     const paid: SnAct = { activity_type: "payment_received", title: "плащане", occurred_at: "2026-10-01T09:00:00Z", created_by: "x", metadata: null };
     expect("skip" in decideMessage(c, [lead, dial("2026-10-29T09:02:00Z"), paid], [], false, NOW) && "клиент").toBe("клиент");
+  });
+
+  it("латиница или фирма вместо име → „Здравейте!“, ключът остава по името", () => {
+    const d = decideMessage({ ...c, full_name: "Adryan Stoykov" }, [lead, dial("2026-10-29T09:02:00Z")], [], false, NOW);
+    expect("item" in d && d.item.text.startsWith("Здравейте! Ивайло Петев е")).toBe(true);
+    expect("item" in d && d.item.key).toBe("en-adryan-1029");
+    expect(greetingName("Студио Христови")).toBe("");
+    expect(greetingName("петя")).toBe("Петя");
+    expect(greetingName("Vania Georgieva")).toBe("");
   });
 
   it("чужд номер → не", () => {
