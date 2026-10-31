@@ -137,7 +137,7 @@ export interface CallWindow {
   endMin: number;
 }
 
-/** Пон–пт, 09:00 ≤ час < 17:50 по София — разговорът свършва „към шест“. */
+/** По подразбиране пон–пт 09:00–17:50 по София; живата стойност идва от VOICE_AUTO_HOURS (от 30.10.2026: 07:00-21:00). */
 export const DEFAULT_WINDOW: CallWindow = {
   days: ["Mon", "Tue", "Wed", "Thu", "Fri"],
   startMin: 9 * 60,
