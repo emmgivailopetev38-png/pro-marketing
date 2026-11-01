@@ -17,6 +17,7 @@ import {
 } from "@/lib/voice/postcall";
 import { closeVoiceSession } from "@/lib/voice/quota";
 import { closeTreningSession } from "@/lib/trening/postcall";
+import { escapeHtml as esc } from "@/lib/text/escape";
 
 export const dynamic = "force-dynamic";
 
@@ -277,6 +278,3 @@ ${excerpt.map((l) => `${l.role === "agent" ? "Агент" : "Клиент"}: ${l
   }
 }
 
-function esc(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}

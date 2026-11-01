@@ -10,6 +10,7 @@ import { MEETING_MINUTES } from "@/lib/cal/types";
 import { sendTelegram } from "@/lib/notifications/telegram";
 import { identityForSessionKey, phoneKey } from "@/lib/voice/quota";
 import { checkBookingAllowed } from "@/lib/voice/booking-guard";
+import { escapeHtml as esc } from "@/lib/text/escape";
 
 export const dynamic = "force-dynamic";
 
@@ -293,10 +294,6 @@ async function notify(
     d.tema ? `💬 ${esc(d.tema)}` : null,
   ].filter(Boolean);
   await sendTelegram(lines.join("\n")).catch(() => {});
-}
-
-function esc(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 /** `ime+glas-359888123456@gmail.com` — часът без имейл пак влиза в календара. */

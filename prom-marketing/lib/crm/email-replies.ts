@@ -1,6 +1,8 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { recordActivity } from "./repository";
 import { tgNotify } from "@/lib/notifications/telegram";
+import { escapeHtml as esc } from "@/lib/text/escape";
+import { chunks } from "@/lib/array";
 
 /**
  * ОТГОВОРИТЕ НА АВТОМАТИЧНИТЕ ПИСМА → CRM-ът.
@@ -103,17 +105,11 @@ async function pages<T>(build: (from: number, to: number) => PromiseLike<{ data:
   }
 }
 
-function chunks<T>(xs: T[], n = IN_CHUNK): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < xs.length; i += n) out.push(xs.slice(i, i + n));
-  return out;
-}
-
 /** Контактите, получили автоматично писмо в последните `days` дни. */
 async function autoMailedContactIds(sb: Sb, days: number, onlyIds?: string[]): Promise<Set<string>> {
   const since = new Date(Date.now() - days * 86_400_000).toISOString();
   const ids = new Set<string>();
-  const batches = onlyIds ? chunks(onlyIds) : [null];
+  const batches = onlyIds ? chunks(onlyIds, IN_CHUNK) : [null];
   for (const batch of batches) {
     const rows = await pages<{ contact_id: string }>((a, b) => {
       let q = sb
@@ -138,7 +134,7 @@ export async function watchlistEmails(days = WATCH_DAYS): Promise<string[]> {
   const sb = createServiceClient();
   const ids = [...(await autoMailedContactIds(sb, days))];
   const emails = new Set<string>();
-  for (const batch of chunks(ids)) {
+  for (const batch of chunks(ids, IN_CHUNK)) {
     const { data } = await sb.from("contacts").select("id, email").in("id", batch);
     for (const c of (data ?? []) as Array<{ email: string | null }>) {
       const e = c.email?.trim().toLowerCase();
@@ -177,7 +173,7 @@ export async function recordInboundReplies(messages: InboundMessage[]): Promise<
   // Картоните с тези адреси (един човек може да има няколко).
   const emails = [...new Set(withEmail.map((x) => x.email))];
   const byEmail = new Map<string, Array<{ id: string; full_name: string | null }>>();
-  for (const batch of chunks(emails)) {
+  for (const batch of chunks(emails, IN_CHUNK)) {
     const { data } = await sb.from("contacts").select("id, full_name, email").in("email", batch);
     for (const c of (data ?? []) as Array<{ id: string; full_name: string | null; email: string | null }>) {
       const e = c.email?.toLowerCase();
@@ -190,7 +186,7 @@ export async function recordInboundReplies(messages: InboundMessage[]): Promise<
 
   // Вече вписаните входящи имейли на тези хора — за идемпотентността.
   const logged = new Map<string, Array<{ at: number; gmail_id: string | null }>>();
-  for (const batch of chunks(contactIds)) {
+  for (const batch of chunks(contactIds, IN_CHUNK)) {
     const { data } = await sb
       .from("contact_activities")
       .select("contact_id, occurred_at, metadata")
@@ -281,7 +277,7 @@ export async function loadEngagement(sinceIso: string): Promise<Engagement> {
   }>;
   const ids = [...new Set(rows.map((r) => r.contact_id))];
   const names = new Map<string, string>();
-  for (const batch of chunks(ids)) {
+  for (const batch of chunks(ids, IN_CHUNK)) {
     const { data: cs } = await sb.from("contacts").select("id, full_name, company, email").in("id", batch);
     for (const c of (cs ?? []) as Array<{ id: string; full_name: string | null; company: string | null; email: string | null }>) {
       names.set(c.id, c.full_name || c.company || c.email || "Без име");
@@ -316,10 +312,6 @@ export async function loadEngagement(sinceIso: string): Promise<Engagement> {
 }
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://promarketing.pw";
-
-function esc(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
 
 /** Блокът „📩 отговориха · 👀 отвориха демото“ под автоматичните писма. */
 export function engagementSummary(e: Engagement): { html: string; text: string } {

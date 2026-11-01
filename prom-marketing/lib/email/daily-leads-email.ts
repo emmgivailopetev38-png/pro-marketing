@@ -1,22 +1,13 @@
 import { format } from "date-fns";
 import { bg } from "date-fns/locale";
 import type { NormalizedLead } from "@/lib/leads/import";
+import { escapeHtml } from "@/lib/text/escape";
 
 interface Args {
   leads: NormalizedLead[];
   totalLast24h: number;
   totalLast7d: number;
   syncErrors: string[];
-}
-
-function escapeHtml(s: string | null | undefined): string {
-  if (!s) return "";
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
 }
 
 export function renderDailyLeadsEmail(args: Args): { subject: string; html: string; text: string } {

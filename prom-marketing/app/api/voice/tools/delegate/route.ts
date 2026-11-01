@@ -3,6 +3,7 @@ import { z } from "zod";
 import { guardVoice } from "@/lib/voice/guard";
 import { queueAgentTask } from "@/lib/crm/agent-tasks";
 import { sendTelegram } from "@/lib/notifications/telegram";
+import { escapeHtml } from "@/lib/text/escape";
 
 export const dynamic = "force-dynamic";
 
@@ -82,6 +83,3 @@ export async function POST(request: Request) {
   }
 }
 
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}

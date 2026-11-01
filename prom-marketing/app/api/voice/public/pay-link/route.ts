@@ -17,6 +17,7 @@ import {
   payLinkUrl,
   speakEur,
 } from "@/lib/stripe/pay-link";
+import { escapeHtml as esc } from "@/lib/text/escape";
 
 export const dynamic = "force-dynamic";
 
@@ -396,6 +397,3 @@ ${a.url ? `<tr><td style="padding:3px 12px 3px 0;color:#6b7772">Линкът:</t
   ]);
 }
 
-function esc(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}

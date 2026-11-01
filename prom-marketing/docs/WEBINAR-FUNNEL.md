@@ -34,7 +34,7 @@
 | Какво | Къде |
 |---|---|
 | **Единна конфигурация** (дата, Zoom линк, цени, теми, бонуси) | `lib/webinar/config.ts` |
-| Лендинг на уебинара | `app/webinar/page.tsx` + `components/webinar/WebinarLanding.tsx` |
+| Лендинг на уебинара | `app/webinar/page.tsx` |
 | Записване (API) | `app/api/webinar/register/route.ts` |
 | Подарък PDF (lead magnet) | `lib/pdf/webinar-gift-document.tsx` + `app/api/webinar/podarak/route.tsx` |
 | Thank-you страница | `app/webinar/registriran/page.tsx` |
