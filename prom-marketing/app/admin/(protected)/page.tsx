@@ -6,6 +6,7 @@ import {
   AlertTriangle, CheckCircle2, Star, Phone, Clock, ExternalLink, Orbit, type LucideIcon,
 } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/service";
+import { allRows } from "@/lib/supabase/all-rows";
 import {
   CONTACT_STAGES,
   STAGE_COLOR,
@@ -129,19 +130,34 @@ export default async function AdminDashboard() {
     // Беше select("*") — теглеше и `notes` (свободен текст, може да е дълъг),
     // `phone` и `source_ref` за ВСЕКИ контакт, при положение че таблото не
     // пипа нито едно от тях. Списъкът долу са точно колоните, които се ползват.
-    supabase
-      .from("contacts")
-      .select(
-        "id, full_name, email, company, stage, source, deal_value_eur, next_followup_at, followup_status, last_heard_from_at, created_at, updated_at"
-      )
-      .order("updated_at", { ascending: false }),
-    supabase
-      .from("contact_activities")
-      .select("activity_type, occurred_at, contact_id")
-      .gte("occurred_at", sixtyAgo)
-      .order("occurred_at", { ascending: false }),
+    // PostgREST реже тихо на 1000 реда — контактите и активностите отдавна са
+    // повече (60 дни активности ≈ 5600), затова се четат на страници с allRows.
+    allRows((from, to) =>
+      supabase
+        .from("contacts")
+        .select(
+          "id, full_name, email, company, stage, source, deal_value_eur, next_followup_at, followup_status, last_heard_from_at, created_at, updated_at"
+        )
+        .order("updated_at", { ascending: false })
+        .range(from, to)
+    ),
+    allRows<{ activity_type: string; occurred_at: string; contact_id: string }>((from, to) =>
+      supabase
+        .from("contact_activities")
+        .select("activity_type, occurred_at, contact_id")
+        .gte("occurred_at", sixtyAgo)
+        .order("occurred_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, to)
+    ),
     bookingsPromise,
-    supabase.from("meta_leads").select("id, processed, created_at"),
+    allRows<{ id: string; processed: boolean | null; created_at: string }>((from, to) =>
+      supabase
+        .from("meta_leads")
+        .select("id, processed, created_at")
+        .order("created_at", { ascending: false })
+        .range(from, to)
+    ),
     supabase.from("invoices").select("id, status, amount_gross, due_date, issue_date, contact_id, invoice_type, service_type, currency"),
     supabase.from("manual_review_items").select("id").in("status", ["open", "needs_user", "blocked"]),
     supabase.from("payments").select("invoice_id, amount, paid_at, created_at, match_status"),
@@ -168,9 +184,9 @@ export default async function AdminDashboard() {
   const activeProjectsSum = activeProjects.reduce((s, p) => s + (Number(p.amount_gross) || 0), 0);
   const lateProjects = activeProjects.filter((p) => p.due_date && new Date(p.due_date) < new Date()).length;
 
-  const allContacts = (contactsRes.data ?? []) as ContactRow[];
+  const allContacts = contactsRes.rows as ContactRow[];
   const active = allContacts.filter((c) => c.stage !== "lost");
-  const allActivities = (activitiesRes.data ?? []) as Array<{ activity_type: string; occurred_at: string; contact_id: string }>;
+  const allActivities = activitiesRes.rows;
   const allBookings = (bookingsRes.data ?? []) as Array<{
     id: string;
     status: string;
@@ -180,7 +196,7 @@ export default async function AdminDashboard() {
     business: string | null;
     meeting_url: string | null;
   }>;
-  const metaLeads = (metaLeadsRes.data ?? []) as Array<{ id: string; processed: boolean | null; created_at: string }>;
+  const metaLeads = metaLeadsRes.rows;
   const invoices = (invoicesRes.data ?? []) as Array<{
     id: string;
     status: string;

@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   const internalToken = process.env.INTERNAL_SEND_TOKEN;
   const isVercelCron = cronSecret && authHeader === `Bearer ${cronSecret}`;
   const isManual = internalToken && authHeader === `Bearer ${internalToken}`;
-  if (cronSecret && !isVercelCron && !isManual) {
+  if (!isVercelCron && !isManual) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
