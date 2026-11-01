@@ -1,6 +1,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 import { ASSIGN_TYPE } from "./queue-rules";
+import { isFirstMeeting } from "./closer-rules";
 import { listMembers } from "./repository";
 import type { TeamMember } from "./types";
 
@@ -33,9 +34,17 @@ export async function assignMeetingToCloser(args: {
   const closer = await activeCloser();
   if (!closer) return null;
   const sb = createServiceClient();
-  const { data: c } = await sb.from("contacts").select("owner_id").eq("id", args.contactId).maybeSingle();
+  const { data: c } = await sb.from("contacts").select("owner_id, stage").eq("id", args.contactId).maybeSingle();
   if (!c) return null;
   if (c.owner_id) return c.owner_id === closer.id ? closer : null;
+  // Само първата среща е за клоузъра (Ивайло, 01.11.2026): фолоуъп → остава при Ивайло.
+  const { data: prior } = await sb
+    .from("contact_activities")
+    .select("activity_type, occurred_at")
+    .eq("contact_id", args.contactId)
+    .in("activity_type", ["meeting", "offer", "offer_sent", "invoice", "payment"])
+    .limit(50);
+  if (!isFirstMeeting({ stage: (c as { stage?: string | null }).stage ?? null, activities: (prior ?? []) as { activity_type: string; occurred_at: string }[] })) return null;
   const { error } = await sb.from("contacts").update({ owner_id: closer.id }).eq("id", args.contactId);
   if (error) return null;
   await sb.from("contact_activities").insert({
