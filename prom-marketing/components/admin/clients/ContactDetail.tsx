@@ -97,6 +97,7 @@ export function ContactDetail({
   }, [contact.id]);
 
   const onStageChange = (s: ContactStage) => {
+    const wasWon = stage === "won";
     setStage(s);
     const fd = new FormData();
     fd.set("contact_id", contact.id);
@@ -104,6 +105,20 @@ export function ContactDetail({
     startTransition(() => {
       void updateStageAction(fd);
     });
+    // 🎉 Спечелена сделка — конфети (както при успешно записана среща).
+    if (s === "won" && !wasWon && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      void import("canvas-confetti").then(({ default: confetti }) => {
+        const opts = {
+          spread: 80,
+          ticks: 200,
+          gravity: 0.7,
+          scalar: 0.9,
+          colors: ["#06b6d4", "#7c3aed", "#ec4899", "#f5f7ff"],
+        };
+        confetti({ ...opts, origin: { x: 0.25, y: 0.4 }, particleCount: 80, angle: 60 });
+        confetti({ ...opts, origin: { x: 0.75, y: 0.4 }, particleCount: 80, angle: 120 });
+      });
+    }
   };
 
   // Available filter types from current activities
