@@ -20,6 +20,7 @@ import { classifyCampaign, isFresh, summarize, type SpendRow, type SpendSummary 
 import { allRows } from "@/lib/supabase/all-rows";
 import { offerFor, offerLabel } from "@/lib/leads/lead-offers";
 import { magnetVariantFor } from "@/lib/leads/meta-lead-rules";
+import { chunks } from "@/lib/array";
 
 export interface KonversiiData {
   days: number;
@@ -49,12 +50,6 @@ export interface KonversiiData {
 
 /** id-та на заявка — дългият списък в адреса се реже на парчета. */
 const ID_CHUNK = 100;
-
-function chunks<T>(list: T[], size = ID_CHUNK): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
-  return out;
-}
 
 /**
  * Всички редове, не първите 1000: PostgREST реже ТИХО на 1000 реда на заявка
@@ -89,7 +84,7 @@ export async function loadKonversii(days = 30, now: Date = new Date()): Promise<
   const ids = leads.map((l) => l.id);
   const [actParts, bookRows, { data: expRows }, spendRows, metaRows, { data: taskRows }, { data: msgRows }, { data: commRows }] = await Promise.all([
     Promise.all(
-      chunks(ids).map((part) =>
+      chunks(ids, ID_CHUNK).map((part) =>
         all<KActivity>("активностите", (a, b) =>
           sb
             .from("contact_activities")
@@ -140,7 +135,7 @@ export async function loadKonversii(days = 30, now: Date = new Date()): Promise<
 
   // Срещите се връзват към картона по имейл/телефон.
   const contactKeys = (
-    await Promise.all(chunks(ids).map((part) => sb.from("contacts").select("id, email, phone").in("id", part)))
+    await Promise.all(chunks(ids, ID_CHUNK).map((part) => sb.from("contacts").select("id, email, phone").in("id", part)))
   ).flatMap((r) => r.data ?? []);
   const byEmail = new Map<string, string>();
   const byPhone = new Map<string, string>();

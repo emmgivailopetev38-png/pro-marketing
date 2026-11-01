@@ -84,3 +84,17 @@ export function todayEndIso(now: Date = new Date(), tz: string = TZ): string {
   const end = sofiaLocalToIso(`${day}T23:59`, tz);
   return end ? new Date(new Date(end).getTime() + 59_999).toISOString() : now.toISOString();
 }
+
+/**
+ * „преди 5 мин / 3 ч / 2 дни“. С `dateAfterWeek` след 7 дни връща кратка дата
+ * (София) вместо „преди N дни“.
+ */
+export function ago(iso: string, dateAfterWeek = false): string {
+  const diff = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
+  if (diff < 3600) return `преди ${Math.max(1, Math.round(diff / 60))} мин`;
+  if (diff < 86400) return `преди ${Math.round(diff / 3600)} ч`;
+  if (dateAfterWeek && diff >= 7 * 86400) {
+    return new Date(iso).toLocaleDateString("bg-BG", { day: "2-digit", month: "short", timeZone: "Europe/Sofia" });
+  }
+  return `преди ${Math.round(diff / 86400)} дни`;
+}

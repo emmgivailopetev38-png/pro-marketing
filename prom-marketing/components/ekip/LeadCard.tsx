@@ -10,16 +10,9 @@ import { RETRY_PRESETS, RETRY_PRESET_LABEL, TALKED_AFTER_DAYS, TALKED_DEFAULT_DA
 import { meetingMessage } from "@/lib/team/sreshta-saobshtenia";
 import { canGiveUp } from "@/lib/team/queue-rules";
 import { MessageBox } from "./MessageBox";
+import { ago } from "@/lib/team/time";
 
 const CAL_URL = "https://cal.com/promarketing/consultation";
-
-function ago(iso: string): string {
-  const diff = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
-  if (diff < 3600) return `преди ${Math.max(1, Math.round(diff / 60))} мин`;
-  if (diff < 86400) return `преди ${Math.round(diff / 3600)} ч`;
-  if (diff < 7 * 86400) return `преди ${Math.round(diff / 86400)} дни`;
-  return new Date(iso).toLocaleDateString("bg-BG", { day: "2-digit", month: "short", timeZone: "Europe/Sofia" });
-}
 
 function when(iso: string): string {
   return new Date(iso).toLocaleString("bg-BG", {
@@ -204,7 +197,7 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
           )}
           <p className="mt-0.5 text-[11px] text-[var(--color-text-tertiary)]">
             {SOURCE_LABEL[lead.source] ?? lead.source}
-            {lead.ad_name ? ` · ${lead.ad_name}` : ""} · {ago(lead.relead_at ?? lead.created_at)}
+            {lead.ad_name ? ` · ${lead.ad_name}` : ""} · {ago(lead.relead_at ?? lead.created_at, true)}
           </p>
         </div>
         {mode === "retry" && lead.next_followup_at && (

@@ -28,7 +28,7 @@ import { Toaster } from "@/components/ui/sonner";
    „на живо" (LiveDashboardsV2, ProductShowcaseV2, TrustStripV2), трейдингът и
    лабораторията (LiveLabsV2, QuickAccessV2), повторенията (PainPointsV2,
    IndustriesV2, FinalCTAV2) и изскачащият прозорец след 7 секунди
-   (WelcomeLeadPopup). Компонентите остават в components/landing/v2 за връщане. */
+   (WelcomeLeadPopup). Файловете са изтрити (01.11.2026 чистка); за връщане — от git историята. */
 const VideoGalleryV2 = dynamic(() => import("@/components/landing/v2/VideoGalleryV2").then((m) => ({ default: m.VideoGalleryV2 })));
 const ServicesV2 = dynamic(() => import("@/components/landing/v2/ServicesV2").then((m) => ({ default: m.ServicesV2 })));
 const CRMShowcaseV2 = dynamic(() => import("@/components/landing/v2/CRMShowcaseV2").then((m) => ({ default: m.CRMShowcaseV2 })));

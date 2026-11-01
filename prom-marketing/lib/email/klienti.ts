@@ -2,16 +2,11 @@ import "server-only";
 import { loadAkademiaIds } from "@/lib/team/ivailo";
 import type { createServiceClient } from "@/lib/supabase/service";
 import { NO_AUTO_EMAIL_KEY, clientMap, normEmail, type ClientCard, type ClientWhy } from "./klienti-rules";
+import { chunks } from "@/lib/array";
 
 type Sb = ReturnType<typeof createServiceClient>;
 
 const CHUNK = 100;
-
-function chunks<T>(list: T[]): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < list.length; i += CHUNK) out.push(list.slice(i, i + CHUNK));
-  return out;
-}
 
 /**
  * Кои от тези картони са клиенти (виж klienti-rules.ts). Гледа и другите
@@ -29,7 +24,7 @@ export async function loadClientMap(targets: ClientCard[], sb: Sb): Promise<Map<
   }
 
   const twins: ClientCard[] = [];
-  for (const part of chunks([...emails])) {
+  for (const part of chunks([...emails], CHUNK)) {
     const { data, error } = await sb.from("contacts").select("id, email, stage, followup_status").in("email", part);
     if (error) throw new Error(`klienti/twins: ${error.message}`);
     for (const c of (data ?? []) as ClientCard[]) twins.push(c);
@@ -38,7 +33,7 @@ export async function loadClientMap(targets: ClientCard[], sb: Sb): Promise<Map<
   const allIds = [...new Set([...targets.map((t) => t.id), ...twins.map((t) => t.id)])];
   const paid = new Set<string>();
   const flagged = new Set<string>();
-  for (const part of chunks(allIds)) {
+  for (const part of chunks(allIds, CHUNK)) {
     const [payments, invoices, recurring, flags] = await Promise.all([
       sb.from("payments").select("contact_id").in("contact_id", part),
       sb.from("invoices").select("contact_id").in("contact_id", part),

@@ -5,6 +5,7 @@ import { addTaskAction, noteAction, setTaskStatusAction } from "@/app/ekip/proek
 import { PROJECT_STATUS_COLOR, PROJECT_STATUS_LABEL, formatMoney } from "@/lib/crm/labels";
 import type { BoardProject } from "@/lib/team/projects";
 import type { EkipActionResult } from "@/lib/team/types";
+import { ago } from "@/lib/team/time";
 
 /**
  * Един проект — както се вижда на телефон. Отгоре кой е клиентът и докъде е
@@ -18,13 +19,6 @@ const PANEL = "rounded-2xl border border-white/10 bg-white/[0.03] p-4";
 function dateBg(iso: string | null): string {
   if (!iso) return "";
   return new Date(iso).toLocaleDateString("bg-BG", { day: "2-digit", month: "short", timeZone: "Europe/Sofia" });
-}
-
-function ago(iso: string): string {
-  const diff = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
-  if (diff < 3600) return `преди ${Math.max(1, Math.round(diff / 60))} мин`;
-  if (diff < 86400) return `преди ${Math.round(diff / 3600)} ч`;
-  return `преди ${Math.round(diff / 86400)} дни`;
 }
 
 function Submit({ children, tone = "plain" }: { children: React.ReactNode; tone?: "plain" | "go" | "done" }) {

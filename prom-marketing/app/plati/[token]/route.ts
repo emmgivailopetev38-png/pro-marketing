@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { CHECKOUT_PRODUCTS, paymentLinkFor } from "@/lib/stripe/products";
 import { siteOrigin, verifyPayToken } from "@/lib/stripe/pay-link";
 import { markPayLinkOpened } from "@/lib/stripe/pay-link-offer";
+import { escapeHtml as esc } from "@/lib/text/escape";
 
 export const dynamic = "force-dynamic";
 
@@ -106,6 +107,3 @@ function page(title: string, text: string, status: number): Response {
   return new Response(html, { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
 }
 
-function esc(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}

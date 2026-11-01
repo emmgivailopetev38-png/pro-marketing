@@ -3,6 +3,7 @@ import { z } from "zod";
 import { guardVoice } from "@/lib/voice/guard";
 import { createManualReviewItem } from "@/lib/crm/repository";
 import { sendTelegram } from "@/lib/notifications/telegram";
+import { escapeHtml } from "@/lib/text/escape";
 
 export const dynamic = "force-dynamic";
 
@@ -43,11 +44,6 @@ const SEVERITY: Record<(typeof ACTIONS)[number], "low" | "medium" | "high"> = {
 };
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.promarketing.pw";
-
-/** Telegram чете HTML — име на клиент с < или & би счупило съобщението. */
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
 
 const LABEL: Record<(typeof ACTIONS)[number], string> = {
   send_email: "имейл",

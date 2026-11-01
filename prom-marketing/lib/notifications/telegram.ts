@@ -1,3 +1,4 @@
+import { escapeHtml } from "@/lib/text/escape";
 // ─────────────────────────────────────────────────────────────────────────
 // Telegram мост: CRM-ът се обажда САМ на собственика при важни събития.
 //
@@ -96,6 +97,3 @@ export const tgNotify = {
     }),
 };
 
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
