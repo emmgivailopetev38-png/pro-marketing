@@ -22,15 +22,17 @@ export const STAGE_LABEL: Record<ContactStage, string> = {
   lost: "Загубен",
 };
 
+// v2 палитра (01.11.2026): „злато върху графит" — зрели, ненаситени тонове
+// в едно семейство с admin.css; редът на фунията върви студено → златно → зелено.
 export const STAGE_COLOR: Record<ContactStage, string> = {
-  lead: "#7da8cc",
-  contacted: "#a78bfa",
-  discovery: "#00d4ff",
-  presentation_sent: "#ec4899",
-  offer_sent: "#facc15",
-  negotiating: "#fb923c",
-  won: "#22c55e",
-  lost: "#64748b",
+  lead: "#879cba",
+  contacted: "#9b8ec9",
+  discovery: "#4fb8c9",
+  presentation_sent: "#c98e5a",
+  offer_sent: "#e5c069",
+  negotiating: "#e08a3c",
+  won: "#35c08c",
+  lost: "#5c6470",
 };
 
 // Sales follow-up status — the "where are we on the last touch" state, distinct

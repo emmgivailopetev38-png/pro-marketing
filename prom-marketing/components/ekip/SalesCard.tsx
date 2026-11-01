@@ -59,7 +59,7 @@ type Panel = "none" | "dnevnik" | "offer" | "won" | "lost" | "remind" | "handoff
 export function SalesCard({ row, mode, isOwner = false }: { row: SalesRow; mode: "today" | "overdue" | "handed" | "pipeline" | "won" | "lost"; isOwner?: boolean }) {
   const [panel, setPanel] = useState<Panel>("none");
   const [res, act] = useActionState(salesAction, null);
-  const color = STAGE_COLOR[row.stage as ContactStage] ?? "#7da8cc";
+  const color = STAGE_COLOR[row.stage as ContactStage] ?? "#879cba";
   const mood = moodOf(row.mood);
   const closed = row.stage === "won" || row.stage === "lost";
   const toggle = (p: Panel) => setPanel((cur) => (cur === p ? "none" : p));

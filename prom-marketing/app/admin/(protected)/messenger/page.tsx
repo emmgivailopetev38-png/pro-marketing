@@ -55,9 +55,9 @@ export default async function MessengerPage() {
       }
       stats={[
         { label: "Свързани страници", value: connected.length, color: "#1877F2" },
-        { label: "Активни разговори", value: conversations.filter((c) => c.status === "open").length, color: "#06b6d4" },
-        { label: "Квалифицирани", value: qualified, color: "#22c55e" },
-        { label: "Общо разговори", value: totalConv, color: "#a78bfa" },
+        { label: "Активни разговори", value: conversations.filter((c) => c.status === "open").length, color: "#d9a74a" },
+        { label: "Квалифицирани", value: qualified, color: "#35c08c" },
+        { label: "Общо разговори", value: totalConv, color: "#9b8ec9" },
       ]}
       primaryAction={{ label: "Виж разговорите", href: "/admin/chatbots?channel=facebook_messenger" }}
       secondaryAction={{ label: "Свържи нова страница", href: "/admin/messenger#connect" }}

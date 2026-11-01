@@ -42,10 +42,10 @@ export default async function WhatsAppPage() {
           : { label: "очаква верификация на бизнес номер", tone: "pending" }
       }
       stats={[
-        { label: "Свързани номера", value: accounts.filter((a) => a.status === "connected").length, color: "#22c55e" },
-        { label: "Активни разговори", value: conversations.filter((c) => c.status === "open").length, color: "#06b6d4" },
-        { label: "Непрочетени", value: totalUnread, color: totalUnread > 0 ? "#ef4444" : "#a78bfa" },
-        { label: "Архивирани", value: conversations.filter((c) => c.status === "closed").length, color: "#facc15" },
+        { label: "Свързани номера", value: accounts.filter((a) => a.status === "connected").length, color: "#35c08c" },
+        { label: "Активни разговори", value: conversations.filter((c) => c.status === "open").length, color: "#d9a74a" },
+        { label: "Непрочетени", value: totalUnread, color: totalUnread > 0 ? "#e2574e" : "#9b8ec9" },
+        { label: "Архивирани", value: conversations.filter((c) => c.status === "closed").length, color: "#e5c069" },
       ]}
       primaryAction={{ label: "Свържи WhatsApp номер", href: "/admin/whatsapp#connect" }}
       features={[

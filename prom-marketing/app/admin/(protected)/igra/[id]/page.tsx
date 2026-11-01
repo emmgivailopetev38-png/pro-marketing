@@ -77,9 +77,9 @@ const SKILLS: Array<{ key: string; label: string }> = [
 ];
 
 const OUTCOME_META: Record<string, { label: string; color: string }> = {
-  won: { label: "спечелена", color: "#22c55e" },
-  lost: { label: "загубена", color: "#ef4444" },
-  stalled: { label: "застой", color: "#facc15" },
+  won: { label: "спечелена", color: "#35c08c" },
+  lost: { label: "загубена", color: "#e2574e" },
+  stalled: { label: "застой", color: "#e5c069" },
 };
 
 function formatDateTime(iso: string | null): string {

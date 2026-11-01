@@ -210,7 +210,7 @@ export function ClientsTable({ initialRows }: { initialRows: ContactRow[] }) {
             label="Всички"
             count={stageCounts.all}
             active={stageFilter === "all"}
-            color="#7da8cc"
+            color="#879cba"
             onClick={() => setStageFilter("all")}
           />
           {STAGE_ORDER.map((s) => (

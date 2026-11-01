@@ -36,11 +36,11 @@ const SKIN: Record<Tone, { panel: string; panelStyle?: React.CSSProperties; titl
 
 const C = {
   cyan: "var(--color-accent-cyan)",
-  green: "#22c55e",
-  amber: "#facc15",
+  green: "#35c08c",
+  amber: "#e5c069",
   rose: "#f87171",
-  violet: "#a78bfa",
-  orange: "#fb923c",
+  violet: "#9b8ec9",
+  orange: "#e08a3c",
   muted: "rgba(255,255,255,0.28)",
 } as const;
 

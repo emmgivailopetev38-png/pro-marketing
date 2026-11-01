@@ -108,17 +108,17 @@ function PersonCard({ p, days, active }: { p: PersonNapredak; days: number; acti
         {callsFirst ? (
           <>
             <Num value={String(v.calls)} label="обаждания" color="var(--color-accent-cyan)" />
-            <Num value={String(v.talked)} label="говорихме" color="#22c55e" />
-            <Num value={String(m.booked)} label="срещи" color="#a78bfa" />
-            <Num value={m.showRate === null ? "—" : `${m.showRate}%`} label="явяемост" color={m.showRate === null ? undefined : m.showRate >= 70 ? "#22c55e" : "#facc15"} />
+            <Num value={String(v.talked)} label="говорихме" color="#35c08c" />
+            <Num value={String(m.booked)} label="срещи" color="#9b8ec9" />
+            <Num value={m.showRate === null ? "—" : `${m.showRate}%`} label="явяемост" color={m.showRate === null ? undefined : m.showRate >= 70 ? "#35c08c" : "#e5c069"} />
             <Num value={humanMinutes(p.cur.speed.medianMinutes)} label="до лийда" />
             <Num value={`${p.cur.tasksDone} / ${p.tasks.overdue}`} label="задачи ✓ / ⏰" color={p.tasks.overdue > 0 ? "#f87171" : undefined} />
           </>
         ) : (
           <>
-            <Num value={String(p.cur.tasksDone)} label="готови задачи" color="#22c55e" />
-            <Num value={String(p.tasks.overdue)} label="просрочени" color={p.tasks.overdue > 0 ? "#f87171" : "#22c55e"} />
-            <Num value={String(p.tasks.today)} label="за днес" color="#facc15" />
+            <Num value={String(p.cur.tasksDone)} label="готови задачи" color="#35c08c" />
+            <Num value={String(p.tasks.overdue)} label="просрочени" color={p.tasks.overdue > 0 ? "#f87171" : "#35c08c"} />
+            <Num value={String(p.tasks.today)} label="за днес" color="#e5c069" />
             <Num value={String(v.projectUpdates)} label="обновления" color="var(--color-accent-cyan)" />
             <Num value={String(p.tasks.open)} label="отворени" />
             <Num value={String(v.calls)} label="обаждания" />

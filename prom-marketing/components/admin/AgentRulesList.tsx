@@ -14,13 +14,13 @@ const SCOPE_LABEL: Record<AgentRuleScope, string> = {
   voice: "Глас",
 };
 const SCOPE_COLOR: Record<string, string> = {
-  postalion: "#22d3ee",
-  accountant: "#facc15",
-  sales: "#a78bfa",
-  ads: "#fb923c",
-  auditor: "#34d399",
+  postalion: "#f0c87a",
+  accountant: "#e5c069",
+  sales: "#9b8ec9",
+  ads: "#e08a3c",
+  auditor: "#35c08c",
   voice: "#f472b6",
-  all: "#7da8cc",
+  all: "#879cba",
 };
 const inputCls =
   "w-full rounded-md border border-white/10 bg-black/30 px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent-cyan)]/60";

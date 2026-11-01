@@ -51,8 +51,8 @@ function Spark({ points }: { points: number[] }) {
     <svg viewBox={`0 0 ${w} ${h}`} className="h-auto w-full">
       <defs>
         <linearGradient id="sp-fill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.35" />
-          <stop offset="100%" stopColor="#06b6d4" stopOpacity="0" />
+          <stop offset="0%" stopColor="#d9a74a" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="#d9a74a" stopOpacity="0" />
         </linearGradient>
       </defs>
       {[2, 4, 6, 8, 10].map((g) => (
@@ -64,9 +64,9 @@ function Spark({ points }: { points: number[] }) {
         </g>
       ))}
       <path d={area} fill="url(#sp-fill)" />
-      <path d={d} fill="none" stroke="#06b6d4" strokeWidth="2" />
+      <path d={d} fill="none" stroke="#d9a74a" strokeWidth="2" />
       {points.map((p, i) => (
-        <circle key={i} cx={pad + i * step} cy={y(p)} r="3" fill="#06b6d4" />
+        <circle key={i} cx={pad + i * step} cy={y(p)} r="3" fill="#d9a74a" />
       ))}
     </svg>
   );
@@ -156,7 +156,7 @@ export function Progress({ reviews }: { reviews: CallReview[] }) {
           label="Успеваемост"
           value={`${fmt(stats.winRate, 0)}%`}
           sub={`${stats.wonCount} спечелени · топ е 20–30%`}
-          tint={stats.winRate >= 20 ? "#22c55e" : "#f59e0b"}
+          tint={stats.winRate >= 20 ? "#35c08c" : "#f59e0b"}
         />
         <Kpi icon={Coins} label="Оборот" value={`${fmt(stats.revenue)} €`} tint="#a855f7" />
         <Kpi
@@ -164,13 +164,13 @@ export function Progress({ reviews }: { reviews: CallReview[] }) {
           label="На разговор"
           value={`${fmt(stats.perCall)} €`}
           sub="включително изгубените"
-          tint="#22d3ee"
+          tint="#f0c87a"
         />
         <Kpi
           icon={TrendingUp}
           label="Средна оценка"
           value={stats.avg ? stats.avg.toFixed(1) : "—"}
-          tint="#06b6d4"
+          tint="#d9a74a"
         />
       </div>
 
@@ -207,7 +207,7 @@ export function Progress({ reviews }: { reviews: CallReview[] }) {
                           ? "#e11d48"
                           : (s.avg as number) <= 7
                             ? "#f59e0b"
-                            : "#22d3ee",
+                            : "#f0c87a",
                     }}
                   />
                 </div>

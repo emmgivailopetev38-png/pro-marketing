@@ -34,10 +34,10 @@ export default async function DemoPage() {
           : { label: "очаква първа demo сесия", tone: "pending" }
       }
       stats={[
-        { label: "Активни линкове", value: activeCount, color: "#22c55e" },
-        { label: "Прегледи (общо)", value: totalViews, color: "#06b6d4" },
-        { label: "Изтекли", value: sessions.filter((s) => !s.enabled).length, color: "#facc15" },
-        { label: "Под парола", value: 0, color: "#a78bfa", hint: "сигурни демо сесии" },
+        { label: "Активни линкове", value: activeCount, color: "#35c08c" },
+        { label: "Прегледи (общо)", value: totalViews, color: "#d9a74a" },
+        { label: "Изтекли", value: sessions.filter((s) => !s.enabled).length, color: "#e5c069" },
+        { label: "Под парола", value: 0, color: "#9b8ec9", hint: "сигурни демо сесии" },
       ]}
       primaryAction={{ label: "+ Нова demo сесия", href: "/admin/demo#new" }}
       features={[

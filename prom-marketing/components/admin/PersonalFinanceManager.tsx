@@ -35,10 +35,10 @@ export function PersonalFinanceManager({ data }: { data: FinanceOverview }) {
   return (
     <div className="space-y-6">
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Kpi label="Лични приходи · този месец" value={eur(current.income)} color="#22c55e" />
-        <Kpi label="Лични разходи · този месец" value={eur(current.expense)} color="#fb923c" />
-        <Kpi label="Остават ми" value={eur(current.net)} color={current.net >= 0 ? "#22c55e" : "#ef4444"} />
-        <Kpi label="Фирмата · получени − разходи" value={eur(company.net)} color={company.net >= 0 ? "#06b6d4" : "#ef4444"} hint={`лични през фирмата: ${eur(company.personalViaCompany)}`} />
+        <Kpi label="Лични приходи · този месец" value={eur(current.income)} color="#35c08c" />
+        <Kpi label="Лични разходи · този месец" value={eur(current.expense)} color="#e08a3c" />
+        <Kpi label="Остават ми" value={eur(current.net)} color={current.net >= 0 ? "#35c08c" : "#e2574e"} />
+        <Kpi label="Фирмата · получени − разходи" value={eur(company.net)} color={company.net >= 0 ? "#d9a74a" : "#e2574e"} hint={`лични през фирмата: ${eur(company.personalViaCompany)}`} />
       </section>
 
       <section className="cc-panel p-5">

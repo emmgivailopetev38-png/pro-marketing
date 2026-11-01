@@ -47,7 +47,7 @@ export default async function KomisioniPage() {
           ) : (
             <ul className="divide-y divide-white/5 rounded-2xl border border-white/10">
               {rows.map((r) => {
-                const color = COMMISSION_STATUS_COLOR[r.status] ?? "#7da8cc";
+                const color = COMMISSION_STATUS_COLOR[r.status] ?? "#879cba";
                 return (
                   <li key={r.id} className="flex flex-wrap items-baseline justify-between gap-x-3 px-4 py-2 text-sm">
                     <span className="min-w-0 flex-1">

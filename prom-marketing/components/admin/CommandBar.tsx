@@ -46,14 +46,14 @@ export function CommandBar({ section }: { section: string }) {
         <span className="hud-tag text-emerald-300">SYSTEM ONLINE</span>
       </span>
       <span className="cc-bar-sep" />
-      <span className="hud-tag" style={{ color: "#7dd3fc" }}>
+      <span className="hud-tag" style={{ color: "#f0c87a" }}>
         {"// "}
         {section}
       </span>
       <span className="ml-auto hidden items-center gap-4 lg:inline-flex">
-        <Seg label="Sync" value={`${sync.toFixed(1)}%`} tone="#22d3ee" />
-        <Seg label="Lat" value={`${Math.round(lat)}ms`} tone="#facc15" />
-        <Seg label="Uplink" value="STABLE" tone="#22c55e" />
+        <Seg label="Sync" value={`${sync.toFixed(1)}%`} tone="#f0c87a" />
+        <Seg label="Lat" value={`${Math.round(lat)}ms`} tone="#e5c069" />
+        <Seg label="Uplink" value="STABLE" tone="#35c08c" />
       </span>
       <span className="cc-num ml-4 text-[11px] text-[var(--color-text-secondary)]">{clock}</span>
     </div>

@@ -40,17 +40,17 @@ export function TelemetryRail({ nodes }: { nodes: number }) {
 
   return (
     <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[var(--color-accent-cyan)]/15 pt-3.5">
-      <Seg label="Uplink" value="STABLE" tone="#22c55e" dot />
+      <Seg label="Uplink" value="STABLE" tone="#35c08c" dot />
       <span className="hud-tag opacity-30">/</span>
-      <Seg label="Sync" value={`${sync.toFixed(1)}%`} tone="#22d3ee" />
+      <Seg label="Sync" value={`${sync.toFixed(1)}%`} tone="#f0c87a" />
       <span className="hud-tag opacity-30">/</span>
-      <Seg label="Nodes" value={String(nodes)} tone="#7dd3fc" />
+      <Seg label="Nodes" value={String(nodes)} tone="#f0c87a" />
       <span className="hud-tag opacity-30">/</span>
-      <Seg label="I/O" value={`${io.toFixed(1)} MB/s`} tone="#a78bfa" />
+      <Seg label="I/O" value={`${io.toFixed(1)} MB/s`} tone="#9b8ec9" />
       <span className="hud-tag opacity-30">/</span>
-      <Seg label="Lat" value={`${Math.round(lat)}ms`} tone="#facc15" />
+      <Seg label="Lat" value={`${Math.round(lat)}ms`} tone="#e5c069" />
       <span className="hud-tag opacity-30">/</span>
-      <Seg label="Core" value="NOMINAL" tone="#22c55e" />
+      <Seg label="Core" value="NOMINAL" tone="#35c08c" />
     </div>
   );
 }

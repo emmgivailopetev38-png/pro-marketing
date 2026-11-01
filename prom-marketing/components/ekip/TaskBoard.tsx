@@ -54,7 +54,7 @@ function TaskLine({ t, isOwner, assignees, showAssignee, threadHref }: { t: Task
   const [res, act] = useActionState(taskAction, null);
   const [edit, setEdit] = useState(false);
   const done = t.status === "done";
-  const color = TASK_PRIORITY_COLOR[t.priority as keyof typeof TASK_PRIORITY_COLOR] ?? "#7da8cc";
+  const color = TASK_PRIORITY_COLOR[t.priority as keyof typeof TASK_PRIORITY_COLOR] ?? "#879cba";
   const tone = dueTone(t);
   const toneColor = DUE_TONE_COLOR[tone];
   const today = dayPlus(new Date(), 0);

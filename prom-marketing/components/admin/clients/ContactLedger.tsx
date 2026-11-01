@@ -285,8 +285,8 @@ function RecurringList({ rows }: { rows: RecurringServiceRow[] }) {
             <span
               className="rounded-full px-2 py-0.5 text-[10px] font-medium"
               style={{
-                background: r.active ? "#22c55e22" : "#9ca3af22",
-                color: r.active ? "#22c55e" : "#9ca3af",
+                background: r.active ? "#35c08c22" : "#9ca3af22",
+                color: r.active ? "#35c08c" : "#9ca3af",
               }}
             >
               {r.active ? "Активен" : "Спрян"}

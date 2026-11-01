@@ -113,7 +113,7 @@ export function ContactDetail({
           ticks: 200,
           gravity: 0.7,
           scalar: 0.9,
-          colors: ["#06b6d4", "#7c3aed", "#ec4899", "#f5f7ff"],
+          colors: ["#d9a74a", "#8ea3c4", "#c98e5a", "#f5f7ff"],
         };
         confetti({ ...opts, origin: { x: 0.25, y: 0.4 }, particleCount: 80, angle: 60 });
         confetti({ ...opts, origin: { x: 0.75, y: 0.4 }, particleCount: 80, angle: 120 });
@@ -375,8 +375,8 @@ function Stat({
     cyan: "var(--color-accent-cyan)",
     violet: "var(--color-accent-violet)",
     gold: "#FFB800",
-    green: "#22c55e",
-    red: "#ef4444",
+    green: "#35c08c",
+    red: "#e2574e",
   };
   return (
     <div

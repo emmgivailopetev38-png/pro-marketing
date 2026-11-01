@@ -32,7 +32,7 @@ const STATUS: Record<string, { label: string; tone: string }> = {
   zadacha: { label: "2 · предал задачата — слушай", tone: "var(--color-accent-amber, #fbbf24)" },
   kandidat: { label: "1 · кандидатствал, задачата чака", tone: "var(--color-text-tertiary)" },
   grupa: { label: "3 · поканен на груповото", tone: "var(--color-accent-cyan)" },
-  nayet: { label: "✓ нает", tone: "var(--color-accent-green, #34d399)" },
+  nayet: { label: "✓ нает", tone: "var(--color-accent-green, #35c08c)" },
   otkaz: { label: "✕ отказ", tone: "var(--color-accent-red, #f43f5e)" },
 };
 const ORDER = ["zadacha", "kandidat", "grupa", "nayet", "otkaz"];

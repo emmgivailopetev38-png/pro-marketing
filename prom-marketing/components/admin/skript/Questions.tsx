@@ -138,7 +138,7 @@ export function Questions() {
             className="h-full rounded-full transition-all duration-500"
             style={{
               width: `${pct}%`,
-              background: pct >= 80 ? "#22c55e" : pct >= 40 ? "#22d3ee" : "#f59e0b",
+              background: pct >= 80 ? "#35c08c" : pct >= 40 ? "#f0c87a" : "#f59e0b",
             }}
           />
         </div>
@@ -336,8 +336,8 @@ function SpisakView({
                       <span
                         className="mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-[5px] border text-[10px] font-bold"
                         style={{
-                          borderColor: on ? "#22c55e" : "rgba(120,160,220,0.3)",
-                          background: on ? "#22c55e" : "transparent",
+                          borderColor: on ? "#35c08c" : "rgba(120,160,220,0.3)",
+                          background: on ? "#35c08c" : "transparent",
                           color: "#04040c",
                         }}
                       >

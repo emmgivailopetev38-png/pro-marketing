@@ -133,7 +133,7 @@ export function CommissionsManager({
           </thead>
           <tbody>
             {rows.map((r) => {
-              const color = COMMISSION_STATUS_COLOR[r.status] ?? "#7da8cc";
+              const color = COMMISSION_STATUS_COLOR[r.status] ?? "#879cba";
               return (
                 <tr key={r.id} className="border-t border-white/5">
                   <td className="py-2">{r.member_name}</td>
