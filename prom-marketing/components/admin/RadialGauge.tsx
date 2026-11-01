@@ -10,7 +10,7 @@ export function RadialGauge({
   pct,
   label,
   display,
-  color = "#22d3ee",
+  color = "#f0c87a",
   size = 138,
 }: {
   pct: number;

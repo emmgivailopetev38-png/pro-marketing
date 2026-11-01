@@ -55,7 +55,7 @@ export async function NapredakStrip({ actor, days = 7 }: { actor: TeamActor; day
               {it.value}
             </p>
             <p className="text-[10px] uppercase leading-tight tracking-[0.1em] text-[var(--color-text-tertiary)]">{it.label}</p>
-            {it.delta !== null && <p className="text-[10px]" style={{ color: it.delta > 0 ? "#22c55e" : it.delta < 0 ? "#ef4444" : "var(--color-text-tertiary)" }}>{it.delta > 0 ? `▲ ${it.delta}%` : it.delta < 0 ? `▼ ${Math.abs(it.delta)}%` : "="}</p>}
+            {it.delta !== null && <p className="text-[10px]" style={{ color: it.delta > 0 ? "#35c08c" : it.delta < 0 ? "#e2574e" : "var(--color-text-tertiary)" }}>{it.delta > 0 ? `▲ ${it.delta}%` : it.delta < 0 ? `▼ ${Math.abs(it.delta)}%` : "="}</p>}
           </div>
         ))}
       </div>

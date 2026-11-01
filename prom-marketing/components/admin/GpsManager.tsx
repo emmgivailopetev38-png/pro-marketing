@@ -47,9 +47,9 @@ export function GpsManager({
   return (
     <div>
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Устройства" value={String(stats.total)} color="#06b6d4" />
-        <Stat label="Активни" value={String(stats.active)} color="#22c55e" />
-        <Stat label="Месечен оборот" value={formatMoney(stats.monthly)} color="#facc15" />
+        <Stat label="Устройства" value={String(stats.total)} color="#d9a74a" />
+        <Stat label="Активни" value={String(stats.active)} color="#35c08c" />
+        <Stat label="Месечен оборот" value={formatMoney(stats.monthly)} color="#e5c069" />
         <Stat label="Демонтирани" value={String(stats.removed)} color="#64748b" />
       </div>
 

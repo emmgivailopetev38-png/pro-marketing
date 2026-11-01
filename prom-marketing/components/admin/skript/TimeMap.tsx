@@ -6,7 +6,7 @@ const ZONE_COLOR: Record<TimeZone, string> = {
   past: "#f59e0b",
   now: "#94a3b8",
   badFuture: "#f43f5e",
-  goodFuture: "#06b6d4",
+  goodFuture: "#d9a74a",
   decision: "#a855f7",
 };
 
@@ -45,8 +45,8 @@ export function TimeMap({
           <stop offset="100%" stopColor="#78350f" stopOpacity="0.1" />
         </linearGradient>
         <linearGradient id="tm-good" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.08" />
-          <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.34" />
+          <stop offset="0%" stopColor="#d9a74a" stopOpacity="0.08" />
+          <stop offset="100%" stopColor="#d9a74a" stopOpacity="0.34" />
         </linearGradient>
         <linearGradient id="tm-bad" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="#e11d48" stopOpacity="0.08" />
@@ -56,7 +56,7 @@ export function TimeMap({
           <path d="M0,0 L9,4.5 L0,9 z" fill="#a855f7" />
         </marker>
         <marker id="tm-arrow-c" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
-          <path d="M0,0 L9,4.5 L0,9 z" fill="#06b6d4" />
+          <path d="M0,0 L9,4.5 L0,9 z" fill="#d9a74a" />
         </marker>
         <marker id="tm-arrow-a" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
           <path d="M0,0 L9,4.5 L0,9 z" fill="#b45309" />
@@ -70,7 +70,7 @@ export function TimeMap({
 
       {/* хубаво бъдеще */}
       <rect x="596" y="30" width="368" height="126" rx="13" fill="url(#tm-good)" />
-      <rect x="596" y="30" width="368" height="126" rx="13" fill="none" stroke="#06b6d4" strokeOpacity="0.5" />
+      <rect x="596" y="30" width="368" height="126" rx="13" fill="none" stroke="#d9a74a" strokeOpacity="0.5" />
       <text x="612" y="54" fill="#67e8f9" fontSize="13" fontWeight="700" letterSpacing="1.6">
         ХУБАВО БЪДЕЩЕ
       </text>
@@ -112,7 +112,7 @@ export function TimeMap({
 
       <path d="M352 244 L408 244" stroke="#94a3b8" strokeWidth="2.5" fill="none" markerEnd="url(#tm-arrow)" opacity="0.85" />
       <path d="M424 260 C 396 320, 300 342, 214 326" stroke="#b45309" strokeWidth="2.5" fill="none" strokeDasharray="6 4" markerEnd="url(#tm-arrow-a)" />
-      <path d="M106 306 C 190 150, 420 56, 656 108" stroke="#06b6d4" strokeWidth="2.5" fill="none" markerEnd="url(#tm-arrow-c)" />
+      <path d="M106 306 C 190 150, 420 56, 656 108" stroke="#d9a74a" strokeWidth="2.5" fill="none" markerEnd="url(#tm-arrow-c)" />
 
       {/* ОТНЕМАНЕТО */}
       <path d="M676 138 L676 322" stroke="#f43f5e" strokeWidth="4" fill="none" markerEnd="url(#tm-cut)" />
@@ -124,7 +124,7 @@ export function TimeMap({
       </g>
 
       <path d="M652 340 C 570 330, 528 282, 524 234" stroke="#a855f7" strokeWidth="2.5" fill="none" markerEnd="url(#tm-arrow)" />
-      <path d="M540 202 C 610 150, 740 104, 836 112" stroke="#06b6d4" strokeWidth="2.5" fill="none" markerEnd="url(#tm-arrow-c)" />
+      <path d="M540 202 C 610 150, 740 104, 836 112" stroke="#d9a74a" strokeWidth="2.5" fill="none" markerEnd="url(#tm-arrow-c)" />
       <path d="M872 132 C 916 164, 928 196, 926 224" stroke="#a855f7" strokeWidth="2.5" fill="none" markerEnd="url(#tm-arrow)" />
 
       {/* ============ СПИРКИТЕ ============ */}

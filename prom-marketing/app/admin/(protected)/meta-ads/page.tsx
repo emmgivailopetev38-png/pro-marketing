@@ -48,9 +48,9 @@ export default async function MetaAdsPage() {
           {latestDate ? `Днес · ${formatDate(latestDate)}` : "Днес"}
         </h2>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <KpiCard label="Разход" value={spendHint} hint={`${today.length} отделни акаунта`} color="#facc15" />
-          <KpiCard label="Лийдове" value={leads} hint="общо, без смесване на валути" color="#06b6d4" />
-          <KpiCard label="Акаунти" value={today.length} hint="IVO / клиентски" color="#a78bfa" />
+          <KpiCard label="Разход" value={spendHint} hint={`${today.length} отделни акаунта`} color="#e5c069" />
+          <KpiCard label="Лийдове" value={leads} hint="общо, без смесване на валути" color="#d9a74a" />
+          <KpiCard label="Акаунти" value={today.length} hint="IVO / клиентски" color="#9b8ec9" />
           <KpiCard label="Архивирани дубликати" value={archivedRows} hint="скрити от KPI" color="#64748b" />
         </div>
       </section>

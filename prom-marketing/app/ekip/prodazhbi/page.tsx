@@ -46,7 +46,7 @@ export default async function ProdazhbiPage() {
           <div className="mt-2 space-y-1.5">
             {board.steps.map((st) => {
               const max = Math.max(1, ...board.steps.map((x) => x.count));
-              const color = STAGE_COLOR[st.stage as ContactStage] ?? "#7da8cc";
+              const color = STAGE_COLOR[st.stage as ContactStage] ?? "#879cba";
               return (
                 <div key={st.stage} className="flex items-center gap-2 text-xs">
                   <span className="w-28 shrink-0 text-[var(--color-text-secondary)]">{STAGE_LABEL[st.stage as ContactStage]}</span>

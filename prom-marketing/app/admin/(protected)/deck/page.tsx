@@ -40,16 +40,16 @@ export default async function CommandDeckPage() {
   const s = (v: number | null, label: string) => (v != null ? { value: String(v), label } : null);
 
   const liveBoards: DeckBoard[] = [
-    { key: "clients", href: "/admin/clients", label: "Клиенти", desc: "Всички контакти и профили", icon: "Users", color: "#22d3ee", code: "CRM.01", stat: s(contacts, "активни") },
+    { key: "clients", href: "/admin/clients", label: "Клиенти", desc: "Всички контакти и профили", icon: "Users", color: "#f0c87a", code: "CRM.01", stat: s(contacts, "активни") },
     { key: "followup", href: "/admin/follow-up", label: "Follow-up", desc: "Кого да чуеш и кога", icon: "Target", color: "#f59e0b", code: "CRM.02", stat: null },
-    { key: "bookings", href: "/admin/bookings", label: "Срещи", desc: "Календар и предстоящи", icon: "Calendar", color: "#a78bfa", code: "CRM.03", stat: s(upcoming, "предстоящи") },
-    { key: "offers", href: "/admin/offers", label: "Оферти", desc: "Изпратени и приети", icon: "FileSignature", color: "#ec4899", code: "SALES.01", stat: s(openOffers, "отворени") },
-    { key: "projects", href: "/admin/projects", label: "Проекти", desc: "Изпълнение на сделките", icon: "Briefcase", color: "#14b8a6", code: "SALES.02", stat: s(activeProjects, "активни") },
-    { key: "invoices", href: "/admin/invoices", label: "Фактури", desc: "Издадени и чакащи плащане", icon: "Receipt", color: "#22c55e", code: "FIN.01", stat: s(unpaid, "неплатени") },
-    { key: "accounting", href: "/admin/accounting", label: "Счетоводство", desc: "Приходи, разходи, печалба", icon: "BarChart3", color: "#facc15", code: "FIN.02", stat: null },
+    { key: "bookings", href: "/admin/bookings", label: "Срещи", desc: "Календар и предстоящи", icon: "Calendar", color: "#9b8ec9", code: "CRM.03", stat: s(upcoming, "предстоящи") },
+    { key: "offers", href: "/admin/offers", label: "Оферти", desc: "Изпратени и приети", icon: "FileSignature", color: "#c98e5a", code: "SALES.01", stat: s(openOffers, "отворени") },
+    { key: "projects", href: "/admin/projects", label: "Проекти", desc: "Изпълнение на сделките", icon: "Briefcase", color: "#35c08c", code: "SALES.02", stat: s(activeProjects, "активни") },
+    { key: "invoices", href: "/admin/invoices", label: "Фактури", desc: "Издадени и чакащи плащане", icon: "Receipt", color: "#35c08c", code: "FIN.01", stat: s(unpaid, "неплатени") },
+    { key: "accounting", href: "/admin/accounting", label: "Счетоводство", desc: "Приходи, разходи, печалба", icon: "BarChart3", color: "#e5c069", code: "FIN.02", stat: null },
     { key: "recurring", href: "/admin/recurring", label: "Абонаменти", desc: "Повтарящ се месечен приход", icon: "Repeat", color: "#38bdf8", code: "FIN.03", stat: null },
     { key: "leads", href: "/admin/leads", label: "Meta лидове", desc: "Реклами → входящи лидове", icon: "Inbox", color: "#1877F2", code: "GROWTH.01", stat: s(unprocessed, "необработени") },
-    { key: "meta-ads", href: "/admin/meta-ads", label: "Meta анализ", desc: "Разход, лидове, CPL", icon: "LineChart", color: "#fb923c", code: "GROWTH.02", stat: null },
+    { key: "meta-ads", href: "/admin/meta-ads", label: "Meta анализ", desc: "Разход, лидове, CPL", icon: "LineChart", color: "#e08a3c", code: "GROWTH.02", stat: null },
     { key: "chatbots", href: "/admin/chatbots", label: "Чатботове", desc: "База знания и сесии", icon: "Bot", color: "#9b7bff", code: "AI.01", stat: null },
     { key: "demo", href: "/admin/demo", label: "Demo", desc: "Публични мостри за клиенти", icon: "Clapperboard", color: "#2dd4bf", code: "AI.02", stat: null },
   ];

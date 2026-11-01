@@ -36,7 +36,7 @@ export function ModulePlaceholder({
   children,
 }: PlaceholderProps) {
   const tone =
-    status.tone === "ready" ? "#22c55e" : status.tone === "wip" ? "#facc15" : "#94a3b8";
+    status.tone === "ready" ? "#35c08c" : status.tone === "wip" ? "#e5c069" : "#94a3b8";
 
   return (
     <div className="space-y-6 p-5 md:p-10">
@@ -74,7 +74,7 @@ export function ModulePlaceholder({
       {stats && stats.length > 0 && (
         <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {stats.map((s) => (
-            <div key={s.label} className="cc-kpi p-4" style={{ "--kpi": s.color ?? "#06b6d4" } as CSSProperties}>
+            <div key={s.label} className="cc-kpi p-4" style={{ "--kpi": s.color ?? "#d9a74a" } as CSSProperties}>
               <p className="hud">{s.label}</p>
               <p className="mt-2 font-mono text-2xl font-bold" style={{ color: s.color ?? "var(--color-text-primary)" }}>
                 {s.value}

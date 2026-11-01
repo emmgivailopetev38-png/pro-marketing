@@ -83,7 +83,7 @@ const SCENES: Record<string, Scene> = {
     caption: "Докато причината е навън, продукт не му трябва — трябва му друг пазар.",
   },
   "05": {
-    zoneTint: "#22d3ee", zoneSoft: "rgba(34,211,238,0.16)",
+    zoneTint: "#f0c87a", zoneSoft: "rgba(34,211,238,0.16)",
     tension: 34, tensionLabel: "видя изход",
     clientPose: "lifted", clientX: 580, clientY: 288,
     move: "Нагоре — в бъдещето, което сам описва.",
@@ -110,7 +110,7 @@ const SCENES: Record<string, Scene> = {
     caption: "Връщаш му собствените думи. Перифразата е спорна, цитатът — не.",
   },
   "08": {
-    zoneTint: "#22d3ee", zoneSoft: "rgba(34,211,238,0.16)",
+    zoneTint: "#f0c87a", zoneSoft: "rgba(34,211,238,0.16)",
     tension: 30, tensionLabel: "вече слуша с интерес",
     clientPose: "lifted", clientX: 572, clientY: 292,
     move: "Показваш моста до неговата картина.",
@@ -360,8 +360,8 @@ function Prop({ kind, tint }: { kind: Scene["prop"]; tint: string }) {
         <g>
           {/* отрязаното хубаво бъдеще */}
           <g opacity="0.34">
-            <circle cx="424" cy="182" r="22" fill="#22d3ee" fillOpacity="0.18" stroke="#22d3ee" strokeWidth="1.6" />
-            <path d="M340 236 L470 236" stroke="#22d3ee" strokeWidth="2" strokeDasharray="5 5" />
+            <circle cx="424" cy="182" r="22" fill="#f0c87a" fillOpacity="0.18" stroke="#f0c87a" strokeWidth="1.6" />
+            <path d="M340 236 L470 236" stroke="#f0c87a" strokeWidth="2" strokeDasharray="5 5" />
           </g>
           <path d="M470 148 L470 260" stroke="#f43f5e" strokeWidth="3" strokeDasharray="7 5" />
           <text x="482" y="160" fontSize="12" fill="#f43f5e" fontWeight="700">
@@ -411,7 +411,7 @@ function Prop({ kind, tint }: { kind: Scene["prop"]; tint: string }) {
     case "bridge":
       return (
         <g>
-          <circle cx="500" cy="184" r="24" fill="#22d3ee" fillOpacity="0.18" stroke="#22d3ee" strokeWidth="1.8" />
+          <circle cx="500" cy="184" r="24" fill="#f0c87a" fillOpacity="0.18" stroke="#f0c87a" strokeWidth="1.8" />
           <path d="M320 272 Q430 208 500 210" fill="none" stroke={tint} strokeWidth="3" />
           {[0, 1, 2, 3, 4].map((i) => (
             <line
@@ -525,7 +525,7 @@ export function StageScene({ stageNum }: { stageNum: string }) {
         <Prop kind={sc.prop} tint={sc.zoneTint} />
 
         {/* Ивайло — винаги спокоен, вляво */}
-        <Figure x={150} y={300} pose="calm" color="#22d3ee" label="ТИ" />
+        <Figure x={150} y={300} pose="calm" color="#f0c87a" label="ТИ" />
 
         {/* клиентът */}
         <Figure
@@ -634,7 +634,7 @@ export function StageScene({ stageNum }: { stageNum: string }) {
             width={(260 * sc.tension) / 100}
             height="9"
             rx="4.5"
-            fill={sc.tension > 80 ? "#f43f5e" : sc.tension > 55 ? "#f59e0b" : "#22d3ee"}
+            fill={sc.tension > 80 ? "#f43f5e" : sc.tension > 55 ? "#f59e0b" : "#f0c87a"}
           />
         </g>
       </svg>

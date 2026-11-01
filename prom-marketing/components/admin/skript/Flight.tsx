@@ -11,7 +11,7 @@ import { STAGES, type TimeZone } from "./data";
 const ZONE: Record<TimeZone, { color: string; glow: string; x: number; y: number; label: string }> = {
   now: { color: "#94a3b8", glow: "rgba(148,163,184,0.55)", x: 0, y: 0, label: "ГАДНО СЕГА" },
   past: { color: "#f59e0b", glow: "rgba(245,158,11,0.55)", x: -230, y: 70, label: "ГАДНО МИНАЛО" },
-  goodFuture: { color: "#22d3ee", glow: "rgba(34,211,238,0.55)", x: 210, y: -130, label: "ХУБАВО БЪДЕЩЕ" },
+  goodFuture: { color: "#f0c87a", glow: "rgba(34,211,238,0.55)", x: 210, y: -130, label: "ХУБАВО БЪДЕЩЕ" },
   badFuture: { color: "#f43f5e", glow: "rgba(244,63,94,0.55)", x: 210, y: 140, label: "ГАДНО БЪДЕЩЕ" },
   decision: { color: "#a855f7", glow: "rgba(168,85,247,0.55)", x: 0, y: -10, label: "РЕШЕНИЕТО" },
 };

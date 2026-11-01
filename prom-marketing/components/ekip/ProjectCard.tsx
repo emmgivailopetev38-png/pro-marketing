@@ -56,7 +56,7 @@ export function ProjectCard({ project, mode }: { project: BoardProject; mode: "m
   const today = new Date().toISOString().slice(0, 10);
   const late = project.due_date != null && project.due_date < today && project.status !== "done";
   const open = project.tasks.filter((t) => t.status !== "done");
-  const color = PROJECT_STATUS_COLOR[project.status] ?? "#7da8cc";
+  const color = PROJECT_STATUS_COLOR[project.status] ?? "#879cba";
 
   return (
     <article className={PANEL} style={{ borderColor: mode === "mine" ? `${color}44` : undefined }}>

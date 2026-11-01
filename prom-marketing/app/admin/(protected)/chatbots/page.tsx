@@ -102,10 +102,10 @@ export default async function ChatbotsPage({
 
       {/* Stats */}
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Активни разговори" value={open} color="#06b6d4" />
-        <Stat label="Квалифицирани" value={qualified} color="#22c55e" />
-        <Stat label="Превърнати в клиенти" value={converted} color="#facc15" hint={`${conversionRate}% conversion`} />
-        <Stat label="Общо съобщения" value={totalMessages} color="#a78bfa" />
+        <Stat label="Активни разговори" value={open} color="#d9a74a" />
+        <Stat label="Квалифицирани" value={qualified} color="#35c08c" />
+        <Stat label="Превърнати в клиенти" value={converted} color="#e5c069" hint={`${conversionRate}% conversion`} />
+        <Stat label="Общо съобщения" value={totalMessages} color="#9b8ec9" />
       </section>
 
       {/* Channel filter chips */}
@@ -114,7 +114,7 @@ export default async function ChatbotsPage({
           Филтър по канал
         </p>
         <div className="flex flex-wrap gap-2">
-          <FilterChip href="/admin/chatbots" active={channelFilter === "all"} label="Всички" count={all.length} color="#06b6d4" icon="📊" />
+          <FilterChip href="/admin/chatbots" active={channelFilter === "all"} label="Всички" count={all.length} color="#d9a74a" icon="📊" />
           {CHAT_CHANNELS.map((ch) => (
             <FilterChip
               key={ch}
@@ -190,8 +190,8 @@ export default async function ChatbotsPage({
                       <span
                         className="rounded-full px-1.5 py-0.5 text-[9px] font-mono"
                         style={{
-                          background: c.qualification_score >= 60 ? "#22c55e20" : "#facc1520",
-                          color: c.qualification_score >= 60 ? "#22c55e" : "#facc15",
+                          background: c.qualification_score >= 60 ? "#35c08c20" : "#e5c06920",
+                          color: c.qualification_score >= 60 ? "#35c08c" : "#e5c069",
                         }}
                       >
                         {c.qualification_score}/100

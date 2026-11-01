@@ -26,7 +26,7 @@ function Delta({ value }: { value: number | null }) {
   if (value === 0) return <span className="text-[var(--color-text-tertiary)]">без промяна</span>;
   const up = value > 0;
   return (
-    <span style={{ color: up ? "#22c55e" : "#ef4444" }}>
+    <span style={{ color: up ? "#35c08c" : "#e2574e" }}>
       {up ? "▲" : "▼"} {Math.abs(value)}% спрямо предходния период
     </span>
   );
@@ -83,8 +83,8 @@ function DayBars({ days }: { days: Array<{ day: string; n: number }> }) {
 export function EfektivnostBoard({ data }: { data: EfektivnostData }) {
   const d = data;
   const perWorkday = d.workdays > 0 ? ((d.mine.calls + d.mine.meetings) / d.workdays).toFixed(1) : "—";
-  const speedColor = d.speed.medianMinutes === null ? undefined : d.speed.medianMinutes <= 60 ? "#22c55e" : d.speed.medianMinutes <= 1440 ? "#facc15" : "#ef4444";
-  const promiseColor = d.promises.onTimePct === null ? undefined : d.promises.onTimePct >= 80 ? "#22c55e" : d.promises.onTimePct >= 50 ? "#facc15" : "#ef4444";
+  const speedColor = d.speed.medianMinutes === null ? undefined : d.speed.medianMinutes <= 60 ? "#35c08c" : d.speed.medianMinutes <= 1440 ? "#e5c069" : "#e2574e";
+  const promiseColor = d.promises.onTimePct === null ? undefined : d.promises.onTimePct >= 80 ? "#35c08c" : d.promises.onTimePct >= 50 ? "#e5c069" : "#e2574e";
 
   return (
     <div className="space-y-6">
@@ -92,9 +92,9 @@ export function EfektivnostBoard({ data }: { data: EfektivnostData }) {
         <Panel title="Моята работа" hint={`${d.days} дни · ${d.workdays} работни`}>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <Big value={String(d.mine.calls)} label="разговора" color="var(--color-accent-cyan)" sub={<Delta value={d.deltas.calls} />} />
-            <Big value={String(d.mine.meetings)} label="срещи" color="#22c55e" sub={<Delta value={d.deltas.meetings} />} />
-            <Big value={String(d.mine.people)} label="различни хора" color="#a78bfa" sub={<Delta value={d.deltas.people} />} />
-            <Big value={perWorkday} label="чувания на работен ден" color="#facc15" sub={<span className="text-[var(--color-text-tertiary)]">разговори + срещи</span>} />
+            <Big value={String(d.mine.meetings)} label="срещи" color="#35c08c" sub={<Delta value={d.deltas.meetings} />} />
+            <Big value={String(d.mine.people)} label="различни хора" color="#9b8ec9" sub={<Delta value={d.deltas.people} />} />
+            <Big value={perWorkday} label="чувания на работен ден" color="#e5c069" sub={<span className="text-[var(--color-text-tertiary)]">разговори + срещи</span>} />
           </div>
           <div className="mt-4">
             <DayBars days={d.perDay} />
@@ -112,12 +112,12 @@ export function EfektivnostBoard({ data }: { data: EfektivnostData }) {
         <Panel title="Колко бързо стигам до новия човек" hint={`по ${d.speed.leads} нови лийда за периода`}>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <Big value={human(d.speed.medianMinutes)} label="типично време до първо чуване" color={speedColor} />
-            <Big value={pct(d.speed.within1h, d.speed.leads)} label="до един час" color="#22c55e" sub={<span className="text-[var(--color-text-tertiary)]">{d.speed.within1h} души</span>} />
-            <Big value={pct(d.speed.within24h, d.speed.leads)} label="до денонощие" color="#facc15" sub={<span className="text-[var(--color-text-tertiary)]">{d.speed.within24h} души</span>} />
+            <Big value={pct(d.speed.within1h, d.speed.leads)} label="до един час" color="#35c08c" sub={<span className="text-[var(--color-text-tertiary)]">{d.speed.within1h} души</span>} />
+            <Big value={pct(d.speed.within24h, d.speed.leads)} label="до денонощие" color="#e5c069" sub={<span className="text-[var(--color-text-tertiary)]">{d.speed.within24h} души</span>} />
             <Big
               value={String(d.speed.untouched)}
               label="още недокоснати"
-              color={d.speed.untouched > 0 ? "#ef4444" : "#22c55e"}
+              color={d.speed.untouched > 0 ? "#e2574e" : "#35c08c"}
               sub={<Link href="/ekip" className="underline-offset-2 hover:underline">опашката за звънене</Link>}
             />
           </div>
@@ -134,9 +134,9 @@ export function EfektivnostBoard({ data }: { data: EfektivnostData }) {
         <Panel title="Държа ли на думата си" hint="обещанията, които АЗ съм дал на клиенти, от дневника">
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <Big value={d.promises.onTimePct === null ? "—" : `${d.promises.onTimePct}%`} label="изпълнени навреме" color={promiseColor} />
-            <Big value={String(d.promises.open)} label="отворени" color="#facc15" />
-            <Big value={String(d.promises.overdue)} label="просрочени обещания" color={d.promises.overdue > 0 ? "#ef4444" : "#22c55e"} />
-            <Big value={String(d.promises.late)} label="изпълнени със закъснение" color="#fb923c" />
+            <Big value={String(d.promises.open)} label="отворени" color="#e5c069" />
+            <Big value={String(d.promises.overdue)} label="просрочени обещания" color={d.promises.overdue > 0 ? "#e2574e" : "#35c08c"} />
+            <Big value={String(d.promises.late)} label="изпълнени със закъснение" color="#e08a3c" />
           </div>
           {d.promises.total === 0 && (
             <p className="mt-3 text-[11px] text-[var(--color-text-tertiary)]">
@@ -147,9 +147,9 @@ export function EfektivnostBoard({ data }: { data: EfektivnostData }) {
             <p className="text-[11px] uppercase tracking-wider text-[var(--color-text-tertiary)]">Напомняния в момента</p>
             <p className="mt-1 text-sm">
               <Link href="/admin/follow-up" className="underline-offset-2 hover:underline">
-                <span style={{ color: d.followups.overdue > 0 ? "#ef4444" : "#22c55e" }}>{d.followups.overdue} просрочени</span>
+                <span style={{ color: d.followups.overdue > 0 ? "#e2574e" : "#35c08c" }}>{d.followups.overdue} просрочени</span>
                 {" · "}
-                <span style={{ color: "#facc15" }}>{d.followups.dueToday} за днес</span>
+                <span style={{ color: "#e5c069" }}>{d.followups.dueToday} за днес</span>
                 {" · "}
                 <span className="text-[var(--color-text-tertiary)]">{d.followups.future} напред</span>
               </Link>
@@ -159,9 +159,9 @@ export function EfektivnostBoard({ data }: { data: EfektivnostData }) {
 
         <Panel title="Какво излиза от това" hint={`спечелени за последните ${d.days} дни`}>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <Big value={String(d.won.count)} label="спечелени" color="#22c55e" />
-            <Big value={`${d.won.sumEur.toLocaleString("bg-BG")} €`} label="стойност" color="#facc15" />
-            <Big value={d.won.avgEur === null ? "—" : `${d.won.avgEur.toLocaleString("bg-BG")} €`} label="средна сделка" color="#a78bfa" />
+            <Big value={String(d.won.count)} label="спечелени" color="#35c08c" />
+            <Big value={`${d.won.sumEur.toLocaleString("bg-BG")} €`} label="стойност" color="#e5c069" />
+            <Big value={d.won.avgEur === null ? "—" : `${d.won.avgEur.toLocaleString("bg-BG")} €`} label="средна сделка" color="#9b8ec9" />
             <Big value={d.won.medianDays === null ? "—" : `${d.won.medianDays} дни`} label="от лийд до клиент" color="var(--color-accent-cyan)" />
           </div>
           {d.won.estimated > 0 && (
@@ -193,7 +193,7 @@ export function EfektivnostBoard({ data }: { data: EfektivnostData }) {
         <div className="space-y-2">
           {d.funnel.map((s) => {
             const width = d.funnel[0].reached === 0 ? 0 : Math.round((s.reached / d.funnel[0].reached) * 100);
-            const color = STAGE_COLOR[s.stage as ContactStage] ?? "#7da8cc";
+            const color = STAGE_COLOR[s.stage as ContactStage] ?? "#879cba";
             return (
               <div key={s.stage} className="flex items-center gap-3">
                 <span className="w-40 shrink-0 text-xs text-[var(--color-text-secondary)]">

@@ -116,7 +116,7 @@ function QuickAction({ href, icon: Icon, label, value, tone }: {
       >
         <Icon
           className="h-4.5 w-4.5"
-          style={{ color: tone === "alert" ? "#f87171" : "#06b6d4", width: 18, height: 18 }}
+          style={{ color: tone === "alert" ? "#f87171" : "#d9a74a", width: 18, height: 18 }}
         />
       </span>
       <span className="min-w-0 flex-1">
@@ -128,7 +128,7 @@ function QuickAction({ href, icon: Icon, label, value, tone }: {
           {value}
         </span>
       </span>
-      <ArrowRight className="h-4 w-4 shrink-0 text-[#4a5070] transition-transform group-hover:translate-x-0.5 group-hover:text-[#06b6d4]" />
+      <ArrowRight className="h-4 w-4 shrink-0 text-[#4a5070] transition-transform group-hover:translate-x-0.5 group-hover:text-[#d9a74a]" />
     </Link>
   );
 }
@@ -237,7 +237,7 @@ export function JarvisDeck({ briefing }: { briefing: JarvisBriefing }) {
         <div className="flex items-center gap-3">
           <span className="cc-livedot" aria-hidden />
           <span className="hud">онлайн</span>
-          <span className="font-mono text-lg tabular-nums text-[#06b6d4]" aria-label="часовник">
+          <span className="font-mono text-lg tabular-nums text-[#d9a74a]" aria-label="часовник">
             {clock}
           </span>
         </div>
@@ -265,7 +265,7 @@ export function JarvisDeck({ briefing }: { briefing: JarvisBriefing }) {
             </div>
             <div className="rounded-lg border border-[rgba(6,182,212,0.2)] p-2">
               <p className="hud">Получено YTD</p>
-              <p className="font-mono text-sm font-bold text-[#34d399]">
+              <p className="font-mono text-sm font-bold text-[#35c08c]">
                 {formatMoney(briefing.receivedYtd, "EUR")}
               </p>
             </div>
@@ -275,19 +275,19 @@ export function JarvisDeck({ briefing }: { briefing: JarvisBriefing }) {
         {/* Briefing */}
         <div className="cc-panel !p-6">
           <p className="hud mb-3 flex items-center gap-2">
-            <Sparkles className="h-3.5 w-3.5 text-[#06b6d4]" />
+            <Sparkles className="h-3.5 w-3.5 text-[#d9a74a]" />
             Дневен брифинг · на живо от CRM данните
           </p>
           <div className="space-y-2.5 font-mono text-[13.5px] leading-relaxed text-[#c7d0e8]">
             {spoken.map((l, i) => (
               <p key={i}>
-                <span className="mr-2 text-[#06b6d4]">▸</span>
+                <span className="mr-2 text-[#d9a74a]">▸</span>
                 {l}
               </p>
             ))}
             {lineIdx < lines.length && (
               <p aria-live="polite">
-                <span className="mr-2 text-[#06b6d4]">▸</span>
+                <span className="mr-2 text-[#d9a74a]">▸</span>
                 {typed}
                 <span className="jdx-caret" aria-hidden>▊</span>
               </p>
@@ -357,10 +357,10 @@ export function JarvisDeck({ briefing }: { briefing: JarvisBriefing }) {
       <div className="cc-panel !p-0">
         <div className="flex items-center justify-between border-b border-[rgba(6,182,212,0.18)] px-5 py-3">
           <p className="hud flex items-center gap-2">
-            <Bot className="h-3.5 w-3.5 text-[#06b6d4]" />
+            <Bot className="h-3.5 w-3.5 text-[#d9a74a]" />
             Команден вход · JARVIS изпълнява
           </p>
-          <span className="hud text-[#34d399]">Hermes свързан</span>
+          <span className="hud text-[#35c08c]">Hermes свързан</span>
         </div>
 
         <div ref={logRef} className="max-h-72 min-h-[96px] space-y-3 overflow-y-auto px-5 py-4">
@@ -438,13 +438,13 @@ export function JarvisDeck({ briefing }: { briefing: JarvisBriefing }) {
 
       <style>{`
         .jdx-core { position: relative; width: 150px; height: 150px; display: grid; place-items: center; }
-        .jdx-bot { width: 40px; height: 40px; color: #06b6d4; filter: drop-shadow(0 0 14px rgba(6,182,212,0.7)); }
+        .jdx-bot { width: 40px; height: 40px; color: #d9a74a; filter: drop-shadow(0 0 14px rgba(6,182,212,0.7)); }
         .jdx-ring { position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(6,182,212,0.35); }
-        .jdx-r1 { animation: jdx-spin 9s linear infinite; border-top-color: #06b6d4; }
-        .jdx-r2 { inset: 14px; animation: jdx-spin 6s linear infinite reverse; border-right-color: #7c3aed; border-color: rgba(124,58,237,0.3); }
-        .jdx-r3 { inset: 28px; animation: jdx-spin 12s linear infinite; border-bottom-color: #ec4899; border-color: rgba(236,72,153,0.22); }
+        .jdx-r1 { animation: jdx-spin 9s linear infinite; border-top-color: #d9a74a; }
+        .jdx-r2 { inset: 14px; animation: jdx-spin 6s linear infinite reverse; border-right-color: #8ea3c4; border-color: rgba(124,58,237,0.3); }
+        .jdx-r3 { inset: 28px; animation: jdx-spin 12s linear infinite; border-bottom-color: #c98e5a; border-color: rgba(236,72,153,0.22); }
         @keyframes jdx-spin { to { transform: rotate(360deg); } }
-        .jdx-caret { animation: jdx-blink 0.9s steps(1) infinite; color: #06b6d4; }
+        .jdx-caret { animation: jdx-blink 0.9s steps(1) infinite; color: #d9a74a; }
         @keyframes jdx-blink { 50% { opacity: 0; } }
         @media (prefers-reduced-motion: reduce) {
           .jdx-r1, .jdx-r2, .jdx-r3, .jdx-caret { animation: none; }

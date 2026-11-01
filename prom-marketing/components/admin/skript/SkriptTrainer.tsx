@@ -318,8 +318,8 @@ function Prep() {
                   <span
                     className="mt-0.5 grid size-[19px] shrink-0 place-items-center rounded-[5px] border text-[11px] font-bold transition"
                     style={{
-                      borderColor: on ? "#22d3ee" : "rgba(120,160,220,0.3)",
-                      background: on ? "#22d3ee" : "transparent",
+                      borderColor: on ? "#f0c87a" : "rgba(120,160,220,0.3)",
+                      background: on ? "#f0c87a" : "transparent",
                       color: "#04040c",
                     }}
                   >
@@ -431,7 +431,7 @@ export function SkriptTrainer({
                   color: on ? "#fff" : "var(--color-text-secondary)",
                 }}
               >
-                <Icon className="size-4" style={{ color: on ? "#22d3ee" : undefined }} />
+                <Icon className="size-4" style={{ color: on ? "#f0c87a" : undefined }} />
                 {t.label}
               </button>
             );

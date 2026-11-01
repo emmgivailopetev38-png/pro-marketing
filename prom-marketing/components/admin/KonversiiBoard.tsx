@@ -4,13 +4,13 @@ import type { FunnelCounts } from "@/lib/crm/konversii";
 import { pct } from "@/lib/crm/konversii";
 
 const STEPS: Array<{ key: keyof FunnelCounts; label: string; color: string }> = [
-  { key: "leads", label: "Лийдове", color: "#7da8cc" },
-  { key: "touched", label: "Докоснати (човек звънна)", color: "#a78bfa" },
-  { key: "talked", label: "Говорихме", color: "#00d4ff" },
-  { key: "meetings", label: "Записана среща", color: "#facc15" },
-  { key: "held", label: "Проведена среща", color: "#fb923c" },
-  { key: "offers", label: "Оферта", color: "#ec4899" },
-  { key: "won", label: "Клиенти", color: "#22c55e" },
+  { key: "leads", label: "Лийдове", color: "#879cba" },
+  { key: "touched", label: "Докоснати (човек звънна)", color: "#9b8ec9" },
+  { key: "talked", label: "Говорихме", color: "#4fb8c9" },
+  { key: "meetings", label: "Записана среща", color: "#e5c069" },
+  { key: "held", label: "Проведена среща", color: "#e08a3c" },
+  { key: "offers", label: "Оферта", color: "#c98e5a" },
+  { key: "won", label: "Клиенти", color: "#35c08c" },
 ];
 
 function Panel({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
@@ -197,9 +197,9 @@ export function KonversiiBoard({ d }: { d: KonversiiData }) {
                     <td className="py-2 text-right font-mono">{c.talked}</td>
                     <td className="py-2 text-right font-mono">{c.meetings}</td>
                     <td className="py-2 text-right font-mono text-emerald-300">{c.won}</td>
-                    <td className="py-2 text-right font-[family-name:var(--font-mono)] text-[#facc15]">{euro(c.cost.lead)}</td>
-                    <td className="py-2 text-right font-[family-name:var(--font-mono)] text-[#facc15]">{euro(c.cost.meeting)}</td>
-                    <td className="py-2 text-right font-[family-name:var(--font-mono)] text-[#facc15]">{euro(c.cost.won)}</td>
+                    <td className="py-2 text-right font-[family-name:var(--font-mono)] text-[#e5c069]">{euro(c.cost.lead)}</td>
+                    <td className="py-2 text-right font-[family-name:var(--font-mono)] text-[#e5c069]">{euro(c.cost.meeting)}</td>
+                    <td className="py-2 text-right font-[family-name:var(--font-mono)] text-[#e5c069]">{euro(c.cost.won)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -366,7 +366,7 @@ function SyncNote({ fresh, lastDay }: { fresh: boolean; lastDay: string | null }
 function Big({ value, label }: { value: number | null; label: string }) {
   return (
     <div>
-      <p className="text-2xl font-bold" style={{ color: value === null ? "var(--color-text-tertiary)" : "#facc15" }}>
+      <p className="text-2xl font-bold" style={{ color: value === null ? "var(--color-text-tertiary)" : "#e5c069" }}>
         {value === null ? "—" : `${value.toLocaleString("bg-BG")} €`}
       </p>
       <p className="text-[11px] uppercase tracking-wider text-[var(--color-text-tertiary)]">{label}</p>

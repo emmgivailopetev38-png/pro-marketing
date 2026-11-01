@@ -14,12 +14,12 @@ const PLATFORM_COLOR: Record<string, string> = {
   facebook: "#1877F2",
   instagram: "#E1306C",
   linkedin: "#0A66C2",
-  x: "#7dd3fc",
-  tiktok: "#22d3ee",
+  x: "#f0c87a",
+  tiktok: "#f0c87a",
   youtube: "#FF0000",
   pinterest: "#E60023",
   bluesky: "#0a7aff",
-  threads: "#a78bfa",
+  threads: "#9b8ec9",
 };
 
 export function SocialComposer({ accounts }: { accounts: Account[] }) {
@@ -102,7 +102,7 @@ export function SocialComposer({ accounts }: { accounts: Account[] }) {
         <div className="grid max-h-64 grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
           {accounts.map((a) => {
             const on = selected.includes(a.id);
-            const col = PLATFORM_COLOR[a.platform] ?? "#06b6d4";
+            const col = PLATFORM_COLOR[a.platform] ?? "#d9a74a";
             return (
               <button
                 key={a.id}

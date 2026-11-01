@@ -76,12 +76,12 @@ export default async function GpsPage() {
           {`GPS от 01.01.${now.getFullYear()} до днес`}
         </h2>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6">
-          <KpiCard label="GPS фактури YTD" value={activeGpsInvoices.length} hint={formatMoney(gpsRevenueYtd)} color="#06b6d4" href="/admin/invoices" />
-          <KpiCard label="Чакат плащане" value={openGpsInvoices.length} hint={formatMoney(gpsOpenTotal)} color={openGpsInvoices.length > 0 ? "#facc15" : "#22c55e"} href="/admin/invoices" />
-          <KpiCard label="GPS устройства" value={devices.length} hint={`${activeDevices.length} активни`} color="#14b8a6" />
-          <KpiCard label="GPS MRR" value={formatMoney(gpsMrrFromDevices + gpsMrrFromSubscriptions)} hint={`устройства ${formatMoney(gpsMrrFromDevices)} · абонаменти ${formatMoney(gpsMrrFromSubscriptions)}`} color="#22c55e" href="/admin/recurring" />
-          <KpiCard label="Чернови" value={gpsDrafts} hint="не влизат в приход" color={gpsDrafts > 0 ? "#64748b" : "#22c55e"} href="/admin/invoices" />
-          <KpiCard label="Събития" value={events.length} hint="монтаж/демонтаж/преместване" color="#a78bfa" />
+          <KpiCard label="GPS фактури YTD" value={activeGpsInvoices.length} hint={formatMoney(gpsRevenueYtd)} color="#d9a74a" href="/admin/invoices" />
+          <KpiCard label="Чакат плащане" value={openGpsInvoices.length} hint={formatMoney(gpsOpenTotal)} color={openGpsInvoices.length > 0 ? "#e5c069" : "#35c08c"} href="/admin/invoices" />
+          <KpiCard label="GPS устройства" value={devices.length} hint={`${activeDevices.length} активни`} color="#35c08c" />
+          <KpiCard label="GPS MRR" value={formatMoney(gpsMrrFromDevices + gpsMrrFromSubscriptions)} hint={`устройства ${formatMoney(gpsMrrFromDevices)} · абонаменти ${formatMoney(gpsMrrFromSubscriptions)}`} color="#35c08c" href="/admin/recurring" />
+          <KpiCard label="Чернови" value={gpsDrafts} hint="не влизат в приход" color={gpsDrafts > 0 ? "#64748b" : "#35c08c"} href="/admin/invoices" />
+          <KpiCard label="Събития" value={events.length} hint="монтаж/демонтаж/преместване" color="#9b8ec9" />
         </div>
       </section>
 

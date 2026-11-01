@@ -19,7 +19,7 @@ export interface KpiCardProps {
 }
 
 export function KpiCard({ label, value, hint, delta, color, trend, trendColor, href }: KpiCardProps) {
-  const kpiColor = color ?? "#06b6d4";
+  const kpiColor = color ?? "#d9a74a";
   const deltaTone =
     delta == null
       ? null

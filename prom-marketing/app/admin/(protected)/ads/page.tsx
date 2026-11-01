@@ -87,30 +87,30 @@ export default async function MetaAdsPage() {
 
       {/* Top stats */}
       <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-5">
-        <StatCard label="Активни кампании" value={`${active.length}`} hint={`+ ${paused.length} паузирани`} color="#22c55e" />
+        <StatCard label="Активни кампании" value={`${active.length}`} hint={`+ ${paused.length} паузирани`} color="#35c08c" />
         <StatCard
           label="Общо лидове"
           value={totals.leads.toLocaleString("bg-BG")}
           hint={`${totals.clicks.toLocaleString("bg-BG")} кликове`}
-          color="#facc15"
+          color="#e5c069"
         />
         <StatCard
           label="Похарчени"
           value={`$${(totals.spent / 100).toFixed(2)}`}
           hint={`${totals.impressions.toLocaleString("bg-BG")} импресии`}
-          color="#06b6d4"
+          color="#d9a74a"
         />
         <StatCard
           label="Среден CPL"
           value={`$${avgCPL.toFixed(2)}`}
           hint="на лид"
-          color={avgCPL < 5 ? "#22c55e" : avgCPL < 10 ? "#facc15" : "#ef4444"}
+          color={avgCPL < 5 ? "#35c08c" : avgCPL < 10 ? "#e5c069" : "#e2574e"}
         />
         <StatCard
           label="Среден CTR"
           value={`${avgCTR.toFixed(2)}%`}
           hint={`reach ${totals.reach.toLocaleString("bg-BG")}`}
-          color="#a78bfa"
+          color="#9b8ec9"
         />
       </div>
 
@@ -228,7 +228,7 @@ function CampaignTable({ campaigns }: { campaigns: CampaignSnapshot[] }) {
                     className="rounded-full px-2 py-1 font-mono text-xs font-bold"
                     style={{
                       background: c.leads > 0 ? "rgba(250,204,21,0.15)" : "transparent",
-                      color: c.leads > 0 ? "#facc15" : "var(--color-text-tertiary)",
+                      color: c.leads > 0 ? "#e5c069" : "var(--color-text-tertiary)",
                     }}
                   >
                     {c.leads ?? 0}
@@ -246,7 +246,7 @@ function CampaignTable({ campaigns }: { campaigns: CampaignSnapshot[] }) {
                       className="rounded-full px-2 py-1 font-mono text-xs font-bold"
                       style={{
                         background: cplGood ? "rgba(34,197,94,0.15)" : cplOk ? "rgba(250,204,21,0.15)" : "rgba(239,68,68,0.15)",
-                        color: cplGood ? "#22c55e" : cplOk ? "#facc15" : "#ef4444",
+                        color: cplGood ? "#35c08c" : cplOk ? "#e5c069" : "#e2574e",
                       }}
                     >
                       ${c.cpl_usd.toFixed(2)}

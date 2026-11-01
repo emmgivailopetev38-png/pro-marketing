@@ -59,26 +59,26 @@ export default async function NewLeadsPage() {
     <div className="p-6 md:p-10">
       <header className="mb-8 cc-panel cc-panel-accent overflow-hidden flex flex-wrap items-center justify-between gap-4 p-6">
         <div>
-          <p className="hud text-[#facc15]">Нови контакти · последните 7 дни</p>
+          <p className="hud text-[#e5c069]">Нови контакти · последните 7 дни</p>
           <h1 className="cc-title mt-2 font-display text-3xl font-bold md:text-4xl">Нови лидове</h1>
           <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
             Прясно влезли контакти, които още не са обработени или са в начален stage
           </p>
         </div>
-        <div className="rounded-lg border border-[#facc15]/30 bg-[#facc15]/5 px-4 py-3 text-center">
-          <p className="text-[10px] uppercase tracking-wider text-[#facc15]">Общо за 7 дни</p>
-          <p className="text-2xl font-bold text-[#facc15]">{enriched.length}</p>
+        <div className="rounded-lg border border-[#e5c069]/30 bg-[#e5c069]/5 px-4 py-3 text-center">
+          <p className="text-[10px] uppercase tracking-wider text-[#e5c069]">Общо за 7 дни</p>
+          <p className="text-2xl font-bold text-[#e5c069]">{enriched.length}</p>
         </div>
       </header>
 
       {today.length > 0 && (
-        <Section title="🔥 Днес" count={today.length} color="#facc15" leads={today} />
+        <Section title="🔥 Днес" count={today.length} color="#e5c069" leads={today} />
       )}
       {last3days.length > 0 && (
-        <Section title="📅 Последни 3 дни" count={last3days.length} color="#a78bfa" leads={last3days} />
+        <Section title="📅 Последни 3 дни" count={last3days.length} color="#9b8ec9" leads={last3days} />
       )}
       {last7days.length > 0 && (
-        <Section title="📆 Тази седмица" count={last7days.length} color="#7da8cc" leads={last7days} />
+        <Section title="📆 Тази седмица" count={last7days.length} color="#879cba" leads={last7days} />
       )}
       {enriched.length === 0 && (
         <p className="rounded-lg border border-dashed border-[var(--color-border-default)] p-12 text-center text-sm text-[var(--color-text-tertiary)]">
@@ -164,7 +164,7 @@ function Section({
                 {sourceLabel(c.source)} · 📊 {c.total_activities ?? 0}
               </span>
               {c.next_followup_at && (
-                <span className="font-mono text-[#22c55e]">
+                <span className="font-mono text-[#35c08c]">
                   ⏰ {formatFollowup(c.next_followup_at)}
                 </span>
               )}

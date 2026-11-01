@@ -312,7 +312,7 @@ export function CallReviewForm({ onSaved }: { onSaved?: () => void }) {
                 <div className="flex gap-[3px]">
                   {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => {
                     const on = val >= n;
-                    const hue = n <= 4 ? "#e11d48" : n <= 7 ? "#f59e0b" : "#22d3ee";
+                    const hue = n <= 4 ? "#e11d48" : n <= 7 ? "#f59e0b" : "#f0c87a";
                     return (
                       <button
                         key={n}

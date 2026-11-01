@@ -181,51 +181,51 @@ export default async function AccountingPage({
             label="Приход (начислен)"
             value={formatMoney(m.revenue_accrued)}
             hint={`без ДДС ${formatMoney(m.revenue_net)} · ${m.counts.invoices} фактури`}
-            color="#facc15"
+            color="#e5c069"
           />
           <KpiCard
             label="Получени плащания"
             value={formatMoney(m.payments_received)}
             hint={`${m.counts.payments} плащания · касова база`}
-            color="#22c55e"
+            color="#35c08c"
             href="/admin/payments"
           />
           <KpiCard
             label="Бизнес разходи"
             value={formatMoney(m.business_expenses_gross)}
             hint={`без ДДС ${formatMoney(m.business_expenses_net)} · ${m.counts.expenses} бр.`}
-            color="#fb923c"
+            color="#e08a3c"
             href="/admin/expenses"
           />
           <KpiCard
             label="ДДС за внасяне"
             value={formatMoney(m.vat_due)}
             hint={vatHint}
-            color={m.vat_due > 0 ? "#ef4444" : "#22c55e"}
+            color={m.vat_due > 0 ? "#e2574e" : "#35c08c"}
           />
           <KpiCard
             label="Печалба (касова) / марж"
             value={formatMoney(m.profit_cash)}
             hint={`${m.margin_cash_pct.toFixed(0)}% марж · плащания − бизнес разходи`}
-            color={m.profit_cash >= 0 ? "#22c55e" : "#ef4444"}
+            color={m.profit_cash >= 0 ? "#35c08c" : "#e2574e"}
           />
           <KpiCard
             label="Печалба (начислена)"
             value={formatMoney(m.profit_accrued)}
             hint="начислен приход − бизнес разходи"
-            color={m.profit_accrued >= 0 ? "#34d399" : "#ef4444"}
+            color={m.profit_accrued >= 0 ? "#35c08c" : "#e2574e"}
           />
           <KpiCard
             label="Печалба без ДДС"
             value={formatMoney(m.profit_net)}
             hint="нето база (без ДДС)"
-            color={m.profit_net >= 0 ? "#2dd4bf" : "#ef4444"}
+            color={m.profit_net >= 0 ? "#2dd4bf" : "#e2574e"}
           />
           <KpiCard
             label="Лични покупки"
             value={formatMoney(m.personal_expenses)}
             hint={`${m.counts.personal_count} тегления · извън печалбата`}
-            color="#a78bfa"
+            color="#9b8ec9"
             href="/admin/expenses?view=personal"
           />
         </div>
@@ -237,20 +237,20 @@ export default async function AccountingPage({
           Оперативно · сега / YTD
         </h2>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-          <KpiCard label="Неплатени" value={formatMoney(m.unpaid.gross_total)} hint={`${m.unpaid.count} фактури`} color="#fb923c" href="/admin/invoices" />
-          <KpiCard label="Просрочени" value={m.unpaid.overdue_count} hint="минал падеж" color={m.unpaid.overdue_count > 0 ? "#ef4444" : "#22c55e"} href="/admin/invoices" />
-          <KpiCard label="Чакат потвърждение" value={awaitingConfirmation} hint="незасечени плащания" color="#7da8cc" href="/admin/payments" />
-          <KpiCard label="Неясни плащания" value={ambiguous} hint="за ръчна проверка" color={ambiguous > 0 ? "#fb923c" : "#22c55e"} href="/admin/manual-review" />
-          <KpiCard label="GPS фактури YTD" value={gpsSent} hint={formatMoney(gpsRevenueYtd)} color="#06b6d4" href="/admin/gps" />
-          <KpiCard label="GPS неизпратени" value={gpsNotSent} hint="активни абонаменти този месец" color={gpsNotSent > 0 ? "#facc15" : "#22c55e"} href="/admin/recurring" />
-          <KpiCard label="Док. от счетоводител" value={accountantDocs} hint="получени YTD" color="#a78bfa" />
-          <KpiCard label="Банкови извлечения" value={bankStatements} hint="обработени YTD" color="#a78bfa" />
-          <KpiCard label="Ръчна проверка" value={manualOpen} hint="отворени" color={manualOpen > 0 ? "#ef4444" : "#22c55e"} href="/admin/manual-review" />
+          <KpiCard label="Неплатени" value={formatMoney(m.unpaid.gross_total)} hint={`${m.unpaid.count} фактури`} color="#e08a3c" href="/admin/invoices" />
+          <KpiCard label="Просрочени" value={m.unpaid.overdue_count} hint="минал падеж" color={m.unpaid.overdue_count > 0 ? "#e2574e" : "#35c08c"} href="/admin/invoices" />
+          <KpiCard label="Чакат потвърждение" value={awaitingConfirmation} hint="незасечени плащания" color="#879cba" href="/admin/payments" />
+          <KpiCard label="Неясни плащания" value={ambiguous} hint="за ръчна проверка" color={ambiguous > 0 ? "#e08a3c" : "#35c08c"} href="/admin/manual-review" />
+          <KpiCard label="GPS фактури YTD" value={gpsSent} hint={formatMoney(gpsRevenueYtd)} color="#d9a74a" href="/admin/gps" />
+          <KpiCard label="GPS неизпратени" value={gpsNotSent} hint="активни абонаменти този месец" color={gpsNotSent > 0 ? "#e5c069" : "#35c08c"} href="/admin/recurring" />
+          <KpiCard label="Док. от счетоводител" value={accountantDocs} hint="получени YTD" color="#9b8ec9" />
+          <KpiCard label="Банкови извлечения" value={bankStatements} hint="обработени YTD" color="#9b8ec9" />
+          <KpiCard label="Ръчна проверка" value={manualOpen} hint="отворени" color={manualOpen > 0 ? "#e2574e" : "#35c08c"} href="/admin/manual-review" />
         </div>
       </section>
 
       {/* Лични покупки — изрично отделени от бизнеса */}
-      <section className="cc-panel p-5" style={{ ["--cc" as string]: "#a78bfa" }}>
+      <section className="cc-panel p-5" style={{ ["--cc" as string]: "#9b8ec9" }}>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="font-display text-base font-semibold">💼 Лични покупки (тегления на собственика)</h3>
           <Link href="/admin/expenses?view=personal" className="text-xs text-[var(--color-accent-cyan)] hover:underline">
@@ -264,7 +264,7 @@ export default async function AccountingPage({
         <div className="grid gap-4 md:grid-cols-[260px_1fr] md:items-center">
           <div className="rounded-lg border border-violet-500/25 bg-violet-500/[0.07] p-4">
             <p className="hud text-violet-300/80">Лични тегления · {m.period.label}</p>
-            <p className="cc-kpi-value mt-2 font-mono text-3xl font-bold tabular-nums" style={{ ["--kpi" as string]: "#a78bfa" }}>
+            <p className="cc-kpi-value mt-2 font-mono text-3xl font-bold tabular-nums" style={{ ["--kpi" as string]: "#9b8ec9" }}>
               {formatMoney(m.personal_expenses)}
             </p>
             <p className="mt-1 text-[11px] text-[var(--color-text-tertiary)]">{m.counts.personal_count} покупки</p>

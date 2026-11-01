@@ -40,21 +40,21 @@ export default async function SocialPage() {
       ) : (
         <>
           <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <div className="cc-kpi p-4" style={{ "--kpi": "#06b6d4" } as CSSProperties}>
+            <div className="cc-kpi p-4" style={{ "--kpi": "#d9a74a" } as CSSProperties}>
               <p className="hud">Свързани канала</p>
               <p className="cc-kpi-value mt-2 font-mono text-2xl font-bold">{accounts.length}</p>
             </div>
-            <div className="cc-kpi p-4" style={{ "--kpi": "#a78bfa" } as CSSProperties}>
+            <div className="cc-kpi p-4" style={{ "--kpi": "#9b8ec9" } as CSSProperties}>
               <p className="hud">Постове (последни)</p>
               <p className="cc-kpi-value mt-2 font-mono text-2xl font-bold">{posts.length}</p>
             </div>
-            <div className="cc-kpi p-4" style={{ "--kpi": "#34d399" } as CSSProperties}>
+            <div className="cc-kpi p-4" style={{ "--kpi": "#35c08c" } as CSSProperties}>
               <p className="hud">Публикувани</p>
               <p className="cc-kpi-value mt-2 font-mono text-2xl font-bold">
                 {posts.filter((p) => p.status === "published").length}
               </p>
             </div>
-            <div className="cc-kpi p-4" style={{ "--kpi": "#facc15" } as CSSProperties}>
+            <div className="cc-kpi p-4" style={{ "--kpi": "#e5c069" } as CSSProperties}>
               <p className="hud">Насрочени</p>
               <p className="cc-kpi-value mt-2 font-mono text-2xl font-bold">
                 {posts.filter((p) => p.status === "scheduled").length}

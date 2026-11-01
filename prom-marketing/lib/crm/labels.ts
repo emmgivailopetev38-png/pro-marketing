@@ -25,13 +25,13 @@ export const INVOICE_STATUS_LABEL: Record<string, string> = {
 
 export const INVOICE_STATUS_COLOR: Record<string, string> = {
   draft: "#64748b",
-  sent: "#7da8cc",
-  awaiting_payment: "#facc15",
-  partially_paid: "#fb923c",
-  paid: "#22c55e",
-  overdue: "#ef4444",
+  sent: "#879cba",
+  awaiting_payment: "#e5c069",
+  partially_paid: "#e08a3c",
+  paid: "#35c08c",
+  overdue: "#e2574e",
   cancelled: "#64748b",
-  disputed: "#ef4444",
+  disputed: "#e2574e",
   excluded: "#64748b",
 };
 
@@ -43,9 +43,9 @@ export const PAYMENT_MATCH_STATUS_LABEL: Record<string, string> = {
 };
 
 export const PAYMENT_MATCH_STATUS_COLOR: Record<string, string> = {
-  matched: "#22c55e",
-  unmatched: "#facc15",
-  ambiguous: "#fb923c",
+  matched: "#35c08c",
+  unmatched: "#e5c069",
+  ambiguous: "#e08a3c",
   ignored: "#64748b",
 };
 
@@ -62,9 +62,9 @@ export const MANUAL_REVIEW_TYPE_LABEL: Record<string, string> = {
 };
 
 export const SEVERITY_COLOR: Record<string, string> = {
-  low: "#7da8cc",
-  medium: "#facc15",
-  high: "#ef4444",
+  low: "#879cba",
+  medium: "#e5c069",
+  high: "#e2574e",
 };
 
 export const MANUAL_REVIEW_STATUS_LABEL: Record<string, string> = {
@@ -76,10 +76,10 @@ export const MANUAL_REVIEW_STATUS_LABEL: Record<string, string> = {
 };
 
 export const MANUAL_REVIEW_STATUS_COLOR: Record<string, string> = {
-  open: "#facc15",
-  needs_user: "#06b6d4",
-  blocked: "#ef4444",
-  resolved: "#22c55e",
+  open: "#e5c069",
+  needs_user: "#d9a74a",
+  blocked: "#e2574e",
+  resolved: "#35c08c",
   ignored: "#64748b",
 };
 
@@ -115,9 +115,9 @@ export const EXPENSE_STATUS_LABEL: Record<string, string> = {
 };
 
 export const EXPENSE_STATUS_COLOR: Record<string, string> = {
-  unpaid: "#facc15",
-  paid: "#22c55e",
-  partially_paid: "#fb923c",
+  unpaid: "#e5c069",
+  paid: "#35c08c",
+  partially_paid: "#e08a3c",
   cancelled: "#64748b",
 };
 
@@ -129,10 +129,10 @@ export const GPS_STATUS_LABEL: Record<string, string> = {
 };
 
 export const GPS_STATUS_COLOR: Record<string, string> = {
-  active: "#22c55e",
-  paused: "#facc15",
+  active: "#35c08c",
+  paused: "#e5c069",
   removed: "#64748b",
-  moved: "#06b6d4",
+  moved: "#d9a74a",
 };
 
 export const GPS_EVENT_LABEL: Record<string, string> = {
@@ -166,11 +166,11 @@ export const OFFER_STATUS_LABEL: Record<string, string> = {
 };
 
 export const OFFER_STATUS_COLOR: Record<string, string> = {
-  draft: "#7da8cc",
-  sent: "#facc15",
-  viewed: "#06b6d4",
-  accepted: "#22c55e",
-  rejected: "#ef4444",
+  draft: "#879cba",
+  sent: "#e5c069",
+  viewed: "#d9a74a",
+  accepted: "#35c08c",
+  rejected: "#e2574e",
   expired: "#9ca3af",
 };
 
@@ -183,10 +183,10 @@ export const PROJECT_STATUS_LABEL: Record<string, string> = {
 };
 
 export const PROJECT_STATUS_COLOR: Record<string, string> = {
-  planned: "#7da8cc",
-  in_progress: "#facc15",
-  waiting_client: "#fb923c",
-  done: "#22c55e",
+  planned: "#879cba",
+  in_progress: "#e5c069",
+  waiting_client: "#e08a3c",
+  done: "#35c08c",
   cancelled: "#9ca3af",
 };
 
@@ -215,9 +215,9 @@ export const INSIGHT_STATUS_LABEL: Record<string, string> = {
 };
 
 export const INSIGHT_STATUS_COLOR: Record<string, string> = {
-  new: "#facc15",
-  in_progress: "#06b6d4",
-  done: "#22c55e",
+  new: "#e5c069",
+  in_progress: "#d9a74a",
+  done: "#35c08c",
   dismissed: "#9ca3af",
 };
 

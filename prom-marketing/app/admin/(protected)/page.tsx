@@ -3,8 +3,9 @@ import {
   LayoutDashboard, Users, Sparkles, Calendar, Inbox, Mail, Megaphone, Target,
   BarChart3, Receipt, SearchCheck, Calculator, Repeat, Satellite, FolderOpen,
   LineChart, Share2, Bot, MessageCircle, Clapperboard, PieChart, Activity, Bell,
-  AlertTriangle, CheckCircle2, Star, Phone, Clock, ExternalLink, Orbit, type LucideIcon,
+  AlertTriangle, CheckCircle2, Star, Phone, PhoneCall, Clock, ExternalLink, Orbit, type LucideIcon,
 } from "lucide-react";
+import type { CSSProperties } from "react";
 import { createServiceClient } from "@/lib/supabase/service";
 import { allRows } from "@/lib/supabase/all-rows";
 import {
@@ -35,13 +36,13 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 const SOURCE_PALETTE: Record<string, { label: string; color: string }> = {
   meta_lead: { label: "Meta реклама", color: "#1877F2" },
-  website_form: { label: "Сайт", color: "#06b6d4" },
+  website_form: { label: "Сайт", color: "#d9a74a" },
   akademia: { label: "Академия", color: "#f59e0b" },
-  cal_booking: { label: "Cal.com", color: "#22c55e" },
-  email: { label: "Имейл", color: "#a78bfa" },
-  manual: { label: "Ръчно", color: "#facc15" },
-  oferta: { label: "Оферта линк", color: "#ec4899" },
-  presentation: { label: "Презентация", color: "#fb923c" },
+  cal_booking: { label: "Cal.com", color: "#35c08c" },
+  email: { label: "Имейл", color: "#8ea3c4" },
+  manual: { label: "Ръчно", color: "#e5c069" },
+  oferta: { label: "Оферта линк", color: "#c98e5a" },
+  presentation: { label: "Презентация", color: "#e08a3c" },
 };
 
 function sourceMeta(source: string) {
@@ -393,6 +394,37 @@ export default async function AdminDashboard() {
   // ── Raw Meta leads waiting ─────────────────────────────────────────────
   const unprocessedMetaLeads = metaLeads.filter((l) => !l.processed).length;
 
+  // ── Фуния · кохортата от последните 30 дни ─────────────────────────────
+  // Смята се от вече заредените контакти и активности — нула нови заявки.
+  const cohort = allContacts.filter((c) => c.created_at >= thirtyAgo);
+  const cohortIds = new Set(cohort.map((c) => c.id));
+  const talkedTypes = new Set(["call", "voice_call", "meeting"]);
+  const talkedIds = new Set(
+    allActivities.filter((a) => talkedTypes.has(a.activity_type) && cohortIds.has(a.contact_id)).map((a) => a.contact_id)
+  );
+  const meetingIds = new Set(
+    allActivities.filter((a) => a.activity_type === "meeting" && cohortIds.has(a.contact_id)).map((a) => a.contact_id)
+  );
+  const offerStages = new Set<ContactStage>(["offer_sent", "negotiating", "won"]);
+  const offers30 = cohort.filter((c) => offerStages.has(c.stage) || c.followup_status === "sent_offer").length;
+  const won30 = cohort.filter((c) => c.stage === "won").length;
+  const funnelSteps = [
+    { label: "Лийдове", value: cohort.length, color: "#879cba" },
+    { label: "Говорихме", value: talkedIds.size, color: "#d9a74a" },
+    { label: "Срещи", value: meetingIds.size, color: "#c98e5a" },
+    { label: "Оферти", value: offers30, color: "#e5c069" },
+    { label: "Клиенти", value: won30, color: "#35c08c" },
+  ];
+  const funnelMax = Math.max(1, cohort.length);
+
+  // ── Ели днес (гласовите активности от полунощ) ─────────────────────────
+  const midnight = new Date();
+  midnight.setHours(0, 0, 0, 0);
+  const midnightIso = midnight.toISOString();
+  const eliDials = allActivities.filter((a) => a.activity_type === "voice_outbound" && a.occurred_at >= midnightIso).length;
+  const eliTalks = allActivities.filter((a) => a.activity_type === "voice_call" && a.occurred_at >= midnightIso).length;
+  const eliPickupPct = eliDials > 0 ? Math.round((eliTalks / eliDials) * 100) : null;
+
   // ── Date label ─────────────────────────────────────────────────────────
   const todayLabel = new Date().toLocaleDateString("bg-BG", {
     weekday: "long",
@@ -422,7 +454,7 @@ export default async function AdminDashboard() {
               <p className="hud text-[var(--color-accent-cyan)]">ProMarketing · Команден център</p>
               <h1 className="cc-title mt-2 font-display text-4xl font-bold md:text-5xl">Преглед на CRM</h1>
               <div className="mt-3 flex flex-wrap items-center gap-2.5">
-                <span className="hud-tag" style={{ color: "#7dd3fc" }}>{"// MISSION CONTROL"}</span>
+                <span className="hud-tag" style={{ color: "#f0c87a" }}>{"// MISSION CONTROL"}</span>
                 <span className="hud text-[var(--color-text-tertiary)]">·</span>
                 <span className="font-mono text-[11px] capitalize text-[var(--color-text-secondary)]">{todayLabel}</span>
               </div>
@@ -434,30 +466,93 @@ export default async function AdminDashboard() {
             </div>
           </div>
           <div className="mt-5 flex flex-wrap gap-2">
-            <span className="cc-chip"><span style={{ color: "#06b6d4" }}>●</span> Активни <b>{active.length}</b></span>
-            <span className="cc-chip"><span style={{ color: "#facc15" }}>●</span> Pipeline <b>€{pipelineEur.toLocaleString("bg-BG")}</b></span>
-            <span className="cc-chip"><span style={{ color: needToHearToday > 0 ? "#ef4444" : "#22c55e" }}>●</span> За чуване днес <b>{needToHearToday}</b></span>
-            <span className="cc-chip"><span style={{ color: overdueFollowups.length > 0 ? "#ef4444" : "#22c55e" }}>●</span> Просрочени <b>{overdueFollowups.length}</b></span>
-            <span className="cc-chip"><span style={{ color: "#22c55e" }}>●</span> Получени YTD <b>{formatMoney(receivedYtd)}</b></span>
+            <span className="cc-chip"><span style={{ color: "#d9a74a" }}>●</span> Активни <b>{active.length}</b></span>
+            <span className="cc-chip"><span style={{ color: "#e5c069" }}>●</span> Pipeline <b>€{pipelineEur.toLocaleString("bg-BG")}</b></span>
+            <span className="cc-chip"><span style={{ color: needToHearToday > 0 ? "#e2574e" : "#35c08c" }}>●</span> За чуване днес <b>{needToHearToday}</b></span>
+            <span className="cc-chip"><span style={{ color: overdueFollowups.length > 0 ? "#e2574e" : "#35c08c" }}>●</span> Просрочени <b>{overdueFollowups.length}</b></span>
+            <span className="cc-chip"><span style={{ color: "#35c08c" }}>●</span> Получени YTD <b>{formatMoney(receivedYtd)}</b></span>
           </div>
           </div>
         </header>
 
         {/* ─── Instrument cluster (radial gauges) ──────────────────────── */}
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <RadialGauge pct={conversionPct} display={`${conversionPct}%`} label="Конверсия" color="#34d399" />
-          <RadialGauge pct={marginPct} display={`${marginPct}%`} label="YTD Марж" color="#22d3ee" />
-          <RadialGauge pct={pipelineShare} display={`€${pipelineEur.toLocaleString("bg-BG")}`} label="Pipeline активен" color="#facc15" />
+          <RadialGauge pct={conversionPct} display={`${conversionPct}%`} label="Конверсия" color="#35c08c" />
+          <RadialGauge pct={marginPct} display={`${marginPct}%`} label="YTD Марж" color="#f0c87a" />
+          <RadialGauge pct={pipelineShare} display={`€${pipelineEur.toLocaleString("bg-BG")}`} label="Pipeline активен" color="#e5c069" />
+        </section>
+
+        {/* ─── Фуния 30 дни + Ели на живо ──────────────────────────────── */}
+        <section className="grid gap-4 lg:grid-cols-3">
+          <div className="cc-panel p-5 lg:col-span-2">
+            <p className="hud-tag mb-2.5">{"// FUNNEL.30D"}</p>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="flex items-center gap-2 font-display text-base font-semibold">
+                <Target className="h-4 w-4 text-[var(--color-accent-cyan)]" strokeWidth={1.75} /> Фунията · последните 30 дни
+              </h3>
+              <Link href="/admin/konversii" className="hud hover:text-[var(--color-accent-cyan)]">пълният анализ →</Link>
+            </div>
+            <div className="cc-funnel">
+              {funnelSteps.map((s, i) => (
+                <div key={s.label} className="cc-funnel-row">
+                  <span className="cc-funnel-label">{s.label}</span>
+                  <div className="cc-funnel-track">
+                    <div
+                      className="cc-funnel-bar"
+                      style={{ width: `${Math.max(2, Math.round((s.value / funnelMax) * 100))}%`, "--fb": s.color, animationDelay: `${i * 0.08}s` } as CSSProperties}
+                    />
+                  </div>
+                  <span className="cc-funnel-num">
+                    {s.value}{" "}
+                    <small>{i === 0 ? "100%" : `${Math.round((s.value / funnelMax) * 100)}%`}</small>
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-[11px] text-[var(--color-text-tertiary)]">
+              Нови контакти от {new Date(nowMs - 30 * DAY_MS).toLocaleDateString("bg-BG", { day: "2-digit", month: "short" })} насам и докъде са стигнали.
+            </p>
+          </div>
+
+          <div className="cc-panel p-5">
+            <p className="hud-tag mb-2.5">{"// ELI.LIVE"}</p>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="flex items-center gap-2 font-display text-base font-semibold">
+                <Phone className="h-4 w-4 text-[var(--color-accent-cyan)]" strokeWidth={1.75} /> Ели днес
+              </h3>
+              <span className="inline-flex items-center gap-2"><span className="cc-livedot" /><span className="hud">на живо</span></span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div>
+                <p className="cc-kpi-value font-mono text-2xl font-bold" style={{ "--kpi": "#d9a74a" } as CSSProperties}>{eliDials}</p>
+                <p className="hud mt-1">Набирания</p>
+              </div>
+              <div>
+                <p className="cc-kpi-value font-mono text-2xl font-bold" style={{ "--kpi": "#35c08c" } as CSSProperties}>{eliTalks}</p>
+                <p className="hud mt-1">Разговори</p>
+              </div>
+              <div>
+                <p className="cc-kpi-value font-mono text-2xl font-bold" style={{ "--kpi": "#e5c069" } as CSSProperties}>{eliPickupPct == null ? "—" : `${eliPickupPct}%`}</p>
+                <p className="hud mt-1">Вдигат</p>
+              </div>
+            </div>
+            <p className="mt-4 text-[11px] text-[var(--color-text-tertiary)]">
+              Автоматичните набирания и истинските разговори от полунощ насам.
+            </p>
+            <Link href="/admin/zvanene" className="cc-btn mt-4 w-full justify-center text-[13px]">
+              <PhoneCall className="h-4 w-4" strokeWidth={1.75} /> Към звъненето
+            </Link>
+          </div>
         </section>
 
         {/* ─── Daily focus ─────────────────────────────────────────────── */}
         <section>
           <h2 className="hud mb-3">Днес</h2>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KpiCard label="Днес ги чуй" value={needToHearToday} hint="просрочени + днешни, още не чути" color={needToHearToday > 0 ? "#ef4444" : "#22c55e"} href="/admin/follow-up" />
-            <KpiCard label="Оферта изпратена" value={offerSentCount} hint="чакат решение" color="#facc15" href="/admin/follow-up" />
-            <KpiCard label="Презентация изпратена" value={presentationSentCount} hint="чакат фийдбек" color="#ec4899" href="/admin/follow-up" />
-            <KpiCard label="Чакаме плащане" value={awaitingPaymentCount} hint="неплатени фактури" color="#06b6d4" href="/admin/invoices" />
+            <KpiCard label="Днес ги чуй" value={needToHearToday} hint="просрочени + днешни, още не чути" color={needToHearToday > 0 ? "#e2574e" : "#35c08c"} href="/admin/follow-up" />
+            <KpiCard label="Оферта изпратена" value={offerSentCount} hint="чакат решение" color="#e5c069" href="/admin/follow-up" />
+            <KpiCard label="Презентация изпратена" value={presentationSentCount} hint="чакат фийдбек" color="#c98e5a" href="/admin/follow-up" />
+            <KpiCard label="Чакаме плащане" value={awaitingPaymentCount} hint="неплатени фактури" color="#d9a74a" href="/admin/invoices" />
           </div>
         </section>
 
@@ -465,10 +560,10 @@ export default async function AdminDashboard() {
         <section>
           <h2 className="hud mb-3">Доставка</h2>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KpiCard label="Отворени оферти" value={openOffers.length} hint={formatMoney(openOffersSum)} color="#facc15" href="/admin/offers" />
-            <KpiCard label="Активни проекти" value={activeProjects.length} hint={formatMoney(activeProjectsSum)} color="#06b6d4" href="/admin/projects" />
-            <KpiCard label="Закъсняващи проекти" value={lateProjects} hint="минал краен срок" color={lateProjects > 0 ? "#ef4444" : "#22c55e"} href="/admin/projects" />
-            <KpiCard label="Приети оферти" value={offersAll.filter((o) => o.status === "accepted").length} hint="станали проекти" color="#22c55e" href="/admin/offers" />
+            <KpiCard label="Отворени оферти" value={openOffers.length} hint={formatMoney(openOffersSum)} color="#e5c069" href="/admin/offers" />
+            <KpiCard label="Активни проекти" value={activeProjects.length} hint={formatMoney(activeProjectsSum)} color="#d9a74a" href="/admin/projects" />
+            <KpiCard label="Закъсняващи проекти" value={lateProjects} hint="минал краен срок" color={lateProjects > 0 ? "#e2574e" : "#35c08c"} href="/admin/projects" />
+            <KpiCard label="Приети оферти" value={offersAll.filter((o) => o.status === "accepted").length} hint="станали проекти" color="#35c08c" href="/admin/offers" />
           </div>
         </section>
 
@@ -476,13 +571,13 @@ export default async function AdminDashboard() {
         <section>
           <h2 className="hud mb-3">Счетоводство · от началото на годината</h2>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <KpiCard label="Приход" value={formatMoney(revenueYtd)} hint={`от ${startOfYearDate}`} color="#facc15" href="/admin/accounting" />
-            <KpiCard label="Получени" value={formatMoney(receivedYtd)} hint="YTD плащания" color="#22c55e" href="/admin/payments" />
-            <KpiCard label="Повтарящ се / мес" value={formatMoney(totalMrr)} hint={`GPS ${formatMoney(gpsMrr)} · абонаменти ${formatMoney(subsMrr)}`} color="#14b8a6" href="/admin/recurring" />
-            <KpiCard label="Разходи" value={formatMoney(expensesYtd)} hint="YTD разходи" color="#fb923c" href="/admin/expenses" />
-            <KpiCard label="Печалба" value={formatMoney(profitYtd)} hint="YTD получени − разходи" color={profitYtd >= 0 ? "#22c55e" : "#ef4444"} href="/admin/accounting" />
-            <KpiCard label="Неплатени" value={formatMoney(unpaidInvoicesTotal)} hint="чакащи фактури" color="#fb923c" href="/admin/invoices" />
-            <KpiCard label="GPS YTD" value={formatMoney(gpsRevenueYtd)} hint={`${gpsInvoicesYtd.length} фактури · ${gpsOpenYtd} чакат`} color="#06b6d4" href="/admin/gps" />
+            <KpiCard label="Приход" value={formatMoney(revenueYtd)} hint={`от ${startOfYearDate}`} color="#e5c069" href="/admin/accounting" />
+            <KpiCard label="Получени" value={formatMoney(receivedYtd)} hint="YTD плащания" color="#35c08c" href="/admin/payments" />
+            <KpiCard label="Повтарящ се / мес" value={formatMoney(totalMrr)} hint={`GPS ${formatMoney(gpsMrr)} · абонаменти ${formatMoney(subsMrr)}`} color="#35c08c" href="/admin/recurring" />
+            <KpiCard label="Разходи" value={formatMoney(expensesYtd)} hint="YTD разходи" color="#e08a3c" href="/admin/expenses" />
+            <KpiCard label="Печалба" value={formatMoney(profitYtd)} hint="YTD получени − разходи" color={profitYtd >= 0 ? "#35c08c" : "#e2574e"} href="/admin/accounting" />
+            <KpiCard label="Неплатени" value={formatMoney(unpaidInvoicesTotal)} hint="чакащи фактури" color="#e08a3c" href="/admin/invoices" />
+            <KpiCard label="GPS YTD" value={formatMoney(gpsRevenueYtd)} hint={`${gpsInvoicesYtd.length} фактури · ${gpsOpenYtd} чакат`} color="#d9a74a" href="/admin/gps" />
             <KpiCard label="Meta лидове YTD" value={metaLeadsYtd || "—"} hint={`Разход: ${metaSpendHint} · отделни валути`} color="#1877F2" href="/admin/meta-ads" />
           </div>
         </section>
@@ -491,12 +586,12 @@ export default async function AdminDashboard() {
         <section>
           <h2 className="hud mb-3">Ключови метрики</h2>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-            <KpiCard label="Активни клиенти" value={active.length} hint={`нови 7д · общо ${allContacts.length}`} delta={activeDelta} color="#06b6d4" href="/admin/clients" />
-            <KpiCard label="Превърнати в сделка" value={`${conversionPct}%`} hint={`${wonCount} спечелени от ${reachedContacted}`} color="#22c55e" />
-            <KpiCard label="Pipeline стойност" value={`€${pipelineEur.toLocaleString("bg-BG")}`} hint={`оферти + преговори · спечелени €${wonEur.toLocaleString("bg-BG")}`} color="#facc15" />
-            <KpiCard label="Срещи този месец" value={completedThisMonth} hint={`предстоящи ${upcomingBookings.length}`} delta={bookingsDelta} color="#a78bfa" href="/admin/bookings" />
-            <KpiCard label="Имейли 7 дни" value={emailsLast7} hint="пратени към клиенти" delta={emailsDelta} color="#ec4899" href="/admin/email" />
-            <KpiCard label="Просрочени" value={overdueFollowups.length} hint={overdueFollowups.length > 0 ? "нужно действие" : "всичко чисто"} color={overdueFollowups.length > 0 ? "#ef4444" : "#22c55e"} />
+            <KpiCard label="Активни клиенти" value={active.length} hint={`нови 7д · общо ${allContacts.length}`} delta={activeDelta} color="#d9a74a" href="/admin/clients" />
+            <KpiCard label="Превърнати в сделка" value={`${conversionPct}%`} hint={`${wonCount} спечелени от ${reachedContacted}`} color="#35c08c" />
+            <KpiCard label="Pipeline стойност" value={`€${pipelineEur.toLocaleString("bg-BG")}`} hint={`оферти + преговори · спечелени €${wonEur.toLocaleString("bg-BG")}`} color="#e5c069" />
+            <KpiCard label="Срещи този месец" value={completedThisMonth} hint={`предстоящи ${upcomingBookings.length}`} delta={bookingsDelta} color="#8ea3c4" href="/admin/bookings" />
+            <KpiCard label="Имейли 7 дни" value={emailsLast7} hint="пратени към клиенти" delta={emailsDelta} color="#c98e5a" href="/admin/email" />
+            <KpiCard label="Просрочени" value={overdueFollowups.length} hint={overdueFollowups.length > 0 ? "нужно действие" : "всичко чисто"} color={overdueFollowups.length > 0 ? "#e2574e" : "#35c08c"} />
           </div>
         </section>
 
@@ -533,7 +628,7 @@ export default async function AdminDashboard() {
             <p className="mb-3 text-[11px] text-[var(--color-text-tertiary)]">
               Имейли, разговори, бележки, срещи — всичко по дни
             </p>
-            <Sparkline points={activitySparkline} color="#06b6d4" height={80} showAxis />
+            <Sparkline points={activitySparkline} color="#d9a74a" height={80} showAxis />
             <div className="mt-3 flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-[var(--color-text-tertiary)]">
               <span>{new Date(nowMs - 30 * DAY_MS).toLocaleDateString("bg-BG", { day: "2-digit", month: "short" })}</span>
               <span>днес</span>

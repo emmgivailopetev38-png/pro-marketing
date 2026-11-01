@@ -217,7 +217,7 @@ export function AdminShell({ children, email, demo = false }: { children: React.
   }, [open]);
 
   return (
-    <div className="min-h-screen">
+    <div className="admin-v2 min-h-screen">
       <div className="cc-boot" aria-hidden />
       {/* Mobile top bar */}
       <div className="md:hidden sticky top-0 z-30 flex items-center justify-between border-b border-[var(--color-border-default)] bg-[var(--color-bg-deep)]/80 px-4 py-3 backdrop-blur">
@@ -301,6 +301,33 @@ export function AdminShell({ children, email, demo = false }: { children: React.
       {!demo && <QuickAddContact />}
       <CopilotWidget />
       {!demo && <CommandPalette />}
+
+      {/* Мобилен долен бар — петте най-важни места; „Меню" отваря цялото чекмедже */}
+      {!demo && (
+        <nav className="cc-tabbar md:hidden" aria-label="Бърза навигация">
+          {(
+            [
+              { href: "/admin", label: "Преглед", icon: LayoutDashboard },
+              { href: "/admin/clients", label: "Клиенти", icon: Users },
+              { href: "/admin/zvanene", label: "Звънене", icon: PhoneCall },
+              { href: "/admin/bookings", label: "Срещи", icon: Calendar },
+            ] as LinkItem[]
+          ).map((t) => {
+            const activeTab = t.href === "/admin" ? path === "/admin" : path === t.href || path.startsWith(t.href + "/");
+            const Icon = t.icon;
+            return (
+              <Link key={t.href} href={t.href} className={cn("cc-tab", activeTab && "is-active")} onClick={() => setOpen(false)}>
+                <Icon className="h-5 w-5" strokeWidth={1.75} />
+                <span>{t.label}</span>
+              </Link>
+            );
+          })}
+          <button type="button" className="cc-tab" onClick={() => setOpen(true)} aria-label="Отвори цялото меню">
+            <Menu className="h-5 w-5" strokeWidth={1.75} />
+            <span>Меню</span>
+          </button>
+        </nav>
+      )}
     </div>
   );
 }
