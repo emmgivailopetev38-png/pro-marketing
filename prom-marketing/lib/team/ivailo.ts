@@ -16,6 +16,8 @@ import {
   type IvailoClaim,
   type SignalRow,
 } from "./ivailo-rules";
+import { chunks } from "@/lib/array";
+import { allRows } from "@/lib/supabase/all-rows";
 
 /**
  * Базата за ivailo-rules.ts: чий е човекът — на екипа или вече на Ивайло
@@ -31,16 +33,12 @@ const COLS = "contact_id, activity_type, title, body, occurred_at, created_at, c
  * най-много 1000 реда на заявка — 60 картона × до 13 реда остават под тавана.
  */
 const CHUNK = 60;
-
-function chunks<T>(list: T[], size = CHUNK): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
-  return out;
-}
+/** За loadAkademiaIds — редовете се четат на страници по 1000, затова тавана не го е грижа. */
+const AKADEMIA_CHUNK = 100;
 
 async function loadSignalRows(sb: Sb, ids: string[]): Promise<SignalRow[]> {
   const parts = await Promise.all(
-    chunks(ids).map((part) =>
+    chunks(ids, CHUNK).map((part) =>
       Promise.all([
         sb.from("contact_activities").select(COLS).in("contact_id", part).in("activity_type", [...CLAIM_ACTIVITY_TYPES]).limit(1000),
         sb.from("contact_activities").select(COLS).in("contact_id", part).eq("created_by", "akademia").limit(1000),
@@ -63,20 +61,32 @@ async function loadSignalRows(sb: Sb, ids: string[]): Promise<SignalRow[]> {
  */
 export async function loadAkademiaIds(ids: string[], sb: Sb = createServiceClient()): Promise<Set<string>> {
   const out = new Set<string>();
-  for (const part of chunks(ids)) {
-    const [bySource, forms, fromAkademia, notes] = await Promise.all([
-      sb.from("contacts").select("id").in("id", part).eq("source", AKADEMIA_SOURCE),
-      sb.from("contact_activities").select(COLS).in("contact_id", part).eq("activity_type", "website_form").limit(1000),
-      sb.from("contact_activities").select(COLS).in("contact_id", part).eq("created_by", "akademia").limit(1000),
-      sb.from("contact_activities").select(COLS).in("contact_id", part).eq("activity_type", "note").ilike("title", "%Академи%").limit(1000),
-    ]);
-    if (bySource.error) throw new Error(`akademia: ${bySource.error.message}`);
-    for (const c of bySource.data ?? []) out.add(String(c.id));
-    for (const res of [forms, fromAkademia, notes]) {
-      if (res.error) throw new Error(`akademia: ${res.error.message}`);
-      for (const r of (res.data ?? []) as SignalRow[]) if (isAkademiaSignal(r)) out.add(r.contact_id);
-    }
-  }
+  // Две заявки на парче (вместо четири), всички парчета наведнъж (вместо едно
+  // след друго). Трите сигнала за активностите — уеб форма, създадено от
+  // „akademia“, бележка „Академи…“ — са едно `.or`; после всеки ред пак минава
+  // през isAkademiaSignal, точно както преди.
+  await Promise.all(
+    chunks(ids, AKADEMIA_CHUNK).map(async (part) => {
+      const [bySource, signals] = await Promise.all([
+        allRows<{ id: string }>((from, to) =>
+          sb.from("contacts").select("id").in("id", part).eq("source", AKADEMIA_SOURCE).order("id").range(from, to)
+        ),
+        allRows<SignalRow>((from, to) =>
+          sb
+            .from("contact_activities")
+            .select(COLS)
+            .in("contact_id", part)
+            .or("activity_type.eq.website_form,created_by.eq.akademia,and(activity_type.eq.note,title.ilike.%Академи%)")
+            .order("id")
+            .range(from, to)
+        ),
+      ]);
+      if (bySource.error) throw new Error(`akademia: ${bySource.error}`);
+      if (signals.error) throw new Error(`akademia: ${signals.error}`);
+      for (const c of bySource.rows) out.add(String(c.id));
+      for (const r of signals.rows) if (isAkademiaSignal(r)) out.add(r.contact_id);
+    })
+  );
   return out;
 }
 

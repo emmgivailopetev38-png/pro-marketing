@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/service";
 import { fetchSheetCsv, parseCsv, type CsvRow } from "./google-sheets";
 import { sendWelcomeEmail } from "@/lib/email/welcome";
+import { chunks } from "@/lib/array";
 
 export interface LeadSource {
   id: string;
@@ -215,44 +216,152 @@ export interface SyncResult {
   error: string | null;
 }
 
+type Sb = ReturnType<typeof createServiceClient>;
+type ContactRef = { id: string; full_name: string | null; phone: string | null };
+type ContactRow = ContactRef & { email: string | null };
+
+const LOOKUP_CHUNK = 50;
+
+/** Имейл, който може безопасно да влезе в `.or("email.ilike.\"…\"")` (без запетая, скоби, кавички, наклонена). */
+function safeForOrFilter(email: string): boolean {
+  return !/[",()\\]/.test(email);
+}
+
+/**
+ * Предварително зарежда съществуващите контакти по имейл (без значение от
+ * регистъра) и по телефон — по една заявка на парче вместо по две на лийд.
+ * Първият срещнат по `created_at` е „оригиналът“ (най-старият). Имейл, който не
+ * може да влезе в филтъра, и парче със заявка с грешка просто не се зареждат —
+ * за тях `mirrorLeadsToContacts` пита поотделно, както преди.
+ */
+async function preloadContacts(
+  supabase: Sb,
+  emails: string[],
+  phones: string[],
+): Promise<{ byEmail: Map<string, ContactRef>; byPhone: Map<string, ContactRef>; loadedEmails: Set<string>; loadedPhones: Set<string> }> {
+  const byEmail = new Map<string, ContactRef>();
+  const byPhone = new Map<string, ContactRef>();
+  const loadedEmails = new Set<string>();
+  const loadedPhones = new Set<string>();
+
+  for (const part of chunks(emails.filter(safeForOrFilter), LOOKUP_CHUNK)) {
+    const { data, error } = await supabase
+      .from("contacts")
+      .select("id, full_name, phone, email")
+      .or(part.map((e) => `email.ilike."${e}"`).join(","))
+      .order("created_at", { ascending: true });
+    if (error) continue;
+    for (const row of (data ?? []) as ContactRow[]) {
+      const key = row.email?.toLowerCase();
+      // ilike третира „_“ и „%“ като заместители — приемаме само точно съвпадение.
+      if (key && part.includes(key) && !byEmail.has(key)) byEmail.set(key, { id: row.id, full_name: row.full_name, phone: row.phone });
+    }
+    for (const e of part) loadedEmails.add(e);
+  }
+
+  for (const part of chunks(phones, LOOKUP_CHUNK)) {
+    const { data, error } = await supabase
+      .from("contacts")
+      .select("id, full_name, phone")
+      .in("phone", part)
+      .order("created_at", { ascending: true });
+    if (error) continue;
+    for (const row of (data ?? []) as ContactRef[]) {
+      if (row.phone && !byPhone.has(row.phone)) byPhone.set(row.phone, row);
+    }
+    for (const p of part) loadedPhones.add(p);
+  }
+
+  return { byEmail, byPhone, loadedEmails, loadedPhones };
+}
+
+/** Кои (контакт, meta_lead_id) двойки вече имат запис „meta_lead“ в хронологията. */
+async function preloadMetaLeadActivities(supabase: Sb, contactIds: string[]): Promise<Set<string> | null> {
+  const seen = new Set<string>();
+  for (const part of chunks(contactIds, LOOKUP_CHUNK)) {
+    const { data, error } = await supabase
+      .from("contact_activities")
+      .select("contact_id, metadata")
+      .eq("activity_type", "meta_lead")
+      .in("contact_id", part);
+    if (error) return null;
+    for (const row of (data ?? []) as { contact_id: string; metadata: { meta_lead_id?: string } | null }[]) {
+      const id = row.metadata?.meta_lead_id;
+      if (id) seen.add(`${row.contact_id}|${id}`);
+    }
+  }
+  return seen;
+}
+
 /**
  * Mirror freshly synced Meta leads into the new contacts + activities tables
  * so they appear in /admin/clients automatically (not just /admin/leads).
  * Dedup by email first, then phone. Updates missing fields on existing rows.
+ *
+ * Заявките са на пакети: контактите по имейл/телефон и съществуващите записи в
+ * хронологията се зареждат предварително (по няколко заявки общо, не по 3–5 на
+ * лийд); вътре в партидата картите се обновяват в паметта, така че два лийда с
+ * един и същ имейл пак водят до един контакт.
  */
-async function mirrorLeadsToContacts(leads: NormalizedLead[]): Promise<number> {
+export async function mirrorLeadsToContacts(leads: NormalizedLead[]): Promise<number> {
   if (leads.length === 0) return 0;
   const supabase = createServiceClient();
   let count = 0;
+
+  const emails = [...new Set(leads.map((l) => l.email?.toLowerCase()).filter((e): e is string => !!e))];
+  const phones = [...new Set(leads.map((l) => l.phone).filter((p): p is string => !!p))];
+  const { byEmail, byPhone, loadedEmails, loadedPhones } = await preloadContacts(supabase, emails, phones);
+
+  type NewActivity = {
+    contact_id: string;
+    activity_type: "meta_lead";
+    title: string;
+    body: string | null;
+    occurred_at: string;
+    metadata: Record<string, unknown>;
+    created_by: string;
+  };
+  const activities: NewActivity[] = [];
+  const queued = new Set<string>(); // `${contactId}|${meta_lead_id}` — вече сложени в тази партида
+  const existingContactIds = new Set<string>();
+
+  const resolved: { lead: NormalizedLead; contactId: string; isNew: boolean }[] = [];
+
   for (const lead of leads) {
     const email = lead.email?.toLowerCase() ?? null;
     const phone = lead.phone ?? null;
     if (!email && !phone) continue;
 
     // Lookup existing — case-insensitive email, then phone; take the OLDEST match
-    // (the canonical survivor) and tolerate pre-existing duplicates (limit 1, no
-    // maybeSingle throw).
-    let existing: { id: string; full_name: string | null; phone: string | null } | null = null;
+    // (the canonical survivor) and tolerate pre-existing duplicates.
+    let existing: ContactRef | null = null;
     if (email) {
-      const { data } = await supabase
-        .from("contacts")
-        .select("id, full_name, phone")
-        .ilike("email", email)
-        .order("created_at", { ascending: true })
-        .limit(1);
-      existing = data?.[0] ?? null;
+      existing = byEmail.get(email) ?? null;
+      if (!existing && !loadedEmails.has(email)) {
+        const { data } = await supabase
+          .from("contacts")
+          .select("id, full_name, phone")
+          .ilike("email", email)
+          .order("created_at", { ascending: true })
+          .limit(1);
+        existing = data?.[0] ?? null;
+      }
     }
     if (!existing && phone) {
-      const { data } = await supabase
-        .from("contacts")
-        .select("id, full_name, phone")
-        .eq("phone", phone)
-        .order("created_at", { ascending: true })
-        .limit(1);
-      existing = data?.[0] ?? null;
+      existing = byPhone.get(phone) ?? null;
+      if (!existing && !loadedPhones.has(phone)) {
+        const { data } = await supabase
+          .from("contacts")
+          .select("id, full_name, phone")
+          .eq("phone", phone)
+          .order("created_at", { ascending: true })
+          .limit(1);
+        existing = data?.[0] ?? null;
+      }
     }
 
     let contactId: string;
+    let isNew = false;
     if (existing) {
       contactId = existing.id;
       const patch: { full_name?: string; phone?: string } = {};
@@ -260,6 +369,9 @@ async function mirrorLeadsToContacts(leads: NormalizedLead[]): Promise<number> {
       if (!existing.phone && phone) patch.phone = phone;
       if (Object.keys(patch).length > 0) {
         await supabase.from("contacts").update(patch).eq("id", contactId);
+        existing.full_name = patch.full_name ?? existing.full_name;
+        existing.phone = patch.phone ?? existing.phone;
+        if (patch.phone && !byPhone.has(patch.phone)) byPhone.set(patch.phone, existing);
       }
     } else {
       const { data: created } = await supabase
@@ -277,7 +389,12 @@ async function mirrorLeadsToContacts(leads: NormalizedLead[]): Promise<number> {
         .single();
       if (!created) continue;
       contactId = created.id;
+      isNew = true;
       count++;
+      // Следващ лийд със същия имейл/телефон в партидата намира този контакт.
+      const ref: ContactRef = { id: contactId, full_name: lead.full_name, phone };
+      if (email) byEmail.set(email, ref);
+      if (phone && !byPhone.has(phone)) byPhone.set(phone, ref);
 
       // Auto-welcome за нови лидове от таблицата (същият template като сайт/Meta
       // webhook; idempotent — никой не получава два пъти). Изключва се с
@@ -293,30 +410,55 @@ async function mirrorLeadsToContacts(leads: NormalizedLead[]): Promise<number> {
       }
     }
 
-    // Activity timeline (idempotent on meta_lead_id)
-    const { data: exists } = await supabase
-      .from("contact_activities")
-      .select("id")
-      .eq("contact_id", contactId)
-      .eq("activity_type", "meta_lead")
-      .contains("metadata", { meta_lead_id: lead.meta_lead_id })
-      .maybeSingle();
-    if (!exists) {
-      await supabase.from("contact_activities").insert({
-        contact_id: contactId,
-        activity_type: "meta_lead",
-        title: `Meta lead · ${lead.form_name ?? lead.campaign_name ?? "Lead Form"}`,
-        body: lead.ad_name ? `Реклама: ${lead.ad_name}` : null,
-        occurred_at: lead.created_time ?? new Date().toISOString(),
-        metadata: {
-          meta_lead_id: lead.meta_lead_id,
-          form_id: lead.form_id,
-          campaign_id: lead.campaign_id,
-          ad_id: lead.ad_id,
-          source: lead.source,
-        },
-        created_by: "cron_sync",
-      });
+    if (!isNew) existingContactIds.add(contactId);
+    resolved.push({ lead, contactId, isNew });
+  }
+
+  // Activity timeline (idempotent on meta_lead_id). Нов контакт няма как да има
+  // стар запис; за съществуващите — една заявка на парче. Ако не успее, пита
+  // се поотделно за всеки лийд, както преди.
+  const seen = await preloadMetaLeadActivities(supabase, [...existingContactIds]);
+
+  for (const { lead, contactId, isNew } of resolved) {
+    const key = `${contactId}|${lead.meta_lead_id}`;
+    if (queued.has(key)) continue;
+    if (!isNew) {
+      if (seen) {
+        if (seen.has(key)) continue;
+      } else {
+        const { data: exists } = await supabase
+          .from("contact_activities")
+          .select("id")
+          .eq("contact_id", contactId)
+          .eq("activity_type", "meta_lead")
+          .contains("metadata", { meta_lead_id: lead.meta_lead_id })
+          .maybeSingle();
+        if (exists) continue;
+      }
+    }
+    queued.add(key);
+    activities.push({
+      contact_id: contactId,
+      activity_type: "meta_lead",
+      title: `Meta lead · ${lead.form_name ?? lead.campaign_name ?? "Lead Form"}`,
+      body: lead.ad_name ? `Реклама: ${lead.ad_name}` : null,
+      occurred_at: lead.created_time ?? new Date().toISOString(),
+      metadata: {
+        meta_lead_id: lead.meta_lead_id,
+        form_id: lead.form_id,
+        campaign_id: lead.campaign_id,
+        ad_id: lead.ad_id,
+        source: lead.source,
+      },
+      created_by: "cron_sync",
+    });
+  }
+
+  // Записите — на пакети; ако пакет се провали, поотделно (един лош ред не губи останалите).
+  for (const part of chunks(activities, 100)) {
+    const { error } = await supabase.from("contact_activities").insert(part);
+    if (error) {
+      for (const row of part) await supabase.from("contact_activities").insert(row);
     }
   }
   return count;

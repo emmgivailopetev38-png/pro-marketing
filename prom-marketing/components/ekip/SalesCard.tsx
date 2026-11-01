@@ -8,6 +8,7 @@ import { moodOf, REMIND_PRESETS } from "@/lib/contacts/dnevnik";
 import { SERVICE_TYPES, SERVICE_TYPE_LABEL } from "@/lib/team/service-types";
 import type { SalesRow } from "@/lib/team/sales";
 import type { EkipActionResult } from "@/lib/team/types";
+import { ago } from "@/lib/team/time";
 
 /**
  * Един картон в таблото на продавача. Отгоре кой е и докъде е, после
@@ -23,13 +24,6 @@ const STAGES: ContactStage[] = ["contacted", "discovery", "presentation_sent", "
 
 function when(iso: string): string {
   return new Date(iso).toLocaleString("bg-BG", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Sofia" });
-}
-
-function ago(iso: string): string {
-  const diff = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
-  if (diff < 3600) return `преди ${Math.max(1, Math.round(diff / 60))} мин`;
-  if (diff < 86400) return `преди ${Math.round(diff / 3600)} ч`;
-  return `преди ${Math.round(diff / 86400)} дни`;
 }
 
 function Submit({ children, tone = "plain" }: { children: React.ReactNode; tone?: "plain" | "go" | "win" | "bad" }) {

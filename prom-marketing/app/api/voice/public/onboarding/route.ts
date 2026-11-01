@@ -6,6 +6,7 @@ import { upsertContactAndLog } from "@/lib/contacts/repository";
 import { sendEmail } from "@/lib/email/resend";
 import { escapeHtml } from "@/lib/email/escape";
 import { sendTelegram } from "@/lib/notifications/telegram";
+import { escapeHtml as esc } from "@/lib/text/escape";
 
 export const dynamic = "force-dynamic";
 
@@ -129,6 +130,3 @@ ${filled.map(([k, v]) => `<tr><td style="padding:3px 12px 3px 0;color:#6b7772;ve
   );
 }
 
-function esc(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
