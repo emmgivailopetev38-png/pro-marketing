@@ -171,6 +171,8 @@ export interface QueueLead {
   offer_label?: string | null;
   /** Пак е оставил данни на рекламата — кога (тогава картата е в „🆕 Нови“, макар картонът да е стар). */
   relead_at?: string | null;
+  /** Какво е правила Ели (гласовият агент) с лийда — редът и резюмето за картата (eli-rules.ts). */
+  eli?: { line: string; summary: string | null } | null;
 }
 
 export interface BookedRow {

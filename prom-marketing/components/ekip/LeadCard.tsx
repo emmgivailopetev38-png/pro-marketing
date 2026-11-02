@@ -342,6 +342,13 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
         </p>
       )}
 
+      {lead.eli && (
+        <div className="mt-2 rounded-md border border-violet-500/30 bg-violet-500/10 px-3 py-2 text-xs text-violet-200">
+          <p>{lead.eli.line}</p>
+          {lead.eli.summary && <p className="mt-1 text-violet-200/80">{lead.eli.summary}</p>}
+        </div>
+      )}
+
       {lead.last_attempt && (
         <p className="mt-2 text-xs text-[var(--color-text-tertiary)]">
           Последно: {lead.last_attempt.title} · {when(lead.last_attempt.at)}
