@@ -1,14 +1,13 @@
 /**
- * Оферта за Андрея (Full House, фулфилмънт център · +359 888 166 368) — 02.11.2026.
+ * Оферта за Анди (Андрея, Full House — фулфилмънт център · +359 888 166 368) — v2, 02.11.2026.
  *
- * Разговор с Ивайло 01.11.2026: иска AI call агенти за потвърждение на пратки за 2–3 държави и цени на едро,
- * които да препродава на своите клиенти (онлайн магазини). Решено от Ивайло: инсталация 500 € без ДДС на агент.
- * Останалите цени са по сметката „razhod-i-ceni-na-edro-2026-11-01.md“ (Продажби/Full House): 190 €/мес платформа
- * на държава · на потвърдено обаждане BG 0,45 € / RO 0,25 € / GR 0,30 € · −15 % над 5 000 · −25 % над 15 000 на месец ·
- * минимум 500 обаждания или 190 €. Всичко без ДДС. Обръщението е на „ти“.
- *
- * Втората половина е каталогът „какво още можем да добавим“ — допълнителни агенти и услуги за фулфилмънт и
- * неговите магазини, по същия модел на едро. Процент потвърдени не обещаваме — обещаваме пилот с числа.
+ * v1 (сутринта) беше с цени на едро на обаждане (0,45/0,25/0,30 €) + каталог — Андрея я намери за много скъпа.
+ * Решение на Ивайло (02.11 следобед): САМО агентът за потвърждение на пратки; **500 € инсталация** еднократно +
+ * **100 €/мес поддръжка за всички агенти**; платформите (ElevenLabs за гласа, Zadarma/Twilio за телефонията)
+ * са на името на Full House и той ги плаща директно по себестойност; ние поддържаме — проблем или бъг го оправяме.
+ * Ориентирът за разхода по платформи е от проучването от 02.11.2026 (reports/AI агент за потвърждение на пратки.md):
+ * ElevenLabs 0,08 $/мин + LLM ≈ 0,01 $ · Zadarma BG 0,06 €/мин, GR 0,034 €/мин (на секунда, с български номер) ·
+ * Twilio RO 0,027 €/мин → ≈ 0,10 / 0,09 / 0,08 € на 45-секундно обаждане. Всичко без ДДС. Обръщение „ти“, „Анди“.
  */
 
 const PDF = "/oferta/andreya/ProMarketing-za-Full-House.pdf";
@@ -36,7 +35,6 @@ html:has(.fh-doc),body:has(.fh-doc){background:#F3F6F7;color-scheme:light}
 .fh-doc a{color:var(--teal);text-underline-offset:3px}
 .fh-doc a:focus-visible{outline:2px solid var(--teal);outline-offset:3px;border-radius:2px}
 .fh-doc p{margin:0}
-.fh-doc .num,.fh-doc .mono{font-family:var(--fh-mono),monospace;font-variant-numeric:tabular-nums}
 
 /* ── шапка ── */
 .fh-doc .masthead{padding:58px 0 34px;border-bottom:1px solid var(--rule)}
@@ -85,23 +83,26 @@ html:has(.fh-doc),body:has(.fh-doc){background:#F3F6F7;color-scheme:light}
 .fh-doc .talk .res{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 .fh-doc .talk .res span{font-family:var(--fh-mono),monospace;font-size:12.5px;border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:5px 11px;color:#DCE7EA}
 
-/* цени */
-.fh-doc .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--surface);border:1px solid var(--rule);border-radius:14px;overflow:hidden;font-size:14.5px}
-.fh-doc .tbl th,.fh-doc .tbl td{padding:13px 16px;text-align:left;border-bottom:1px solid var(--rule-soft);vertical-align:top}
-.fh-doc .tbl thead th{background:var(--panel);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
-.fh-doc .tbl tbody th{font-weight:700;color:var(--ink);width:28%}
-.fh-doc .tbl tbody tr:last-child td,.fh-doc .tbl tbody tr:last-child th{border-bottom:none}
-.fh-doc .tbl td.price{font-family:var(--fh-mono),monospace;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--teal);font-weight:600;font-size:15.5px;width:22%}
-.fh-doc .tbl td.price small{display:block;font-family:var(--fh-ui),sans-serif;font-weight:500;font-size:12px;color:var(--ink-3);white-space:normal;margin-top:2px}
-.fh-doc .tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+/* цената — три карти */
+.fh-doc .price3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.fh-doc .pc{background:var(--surface);border:1px solid var(--rule);border-radius:16px;padding:24px 22px 20px;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.fh-doc .pc.hi{border:2px solid var(--teal)}
+.fh-doc .pc .tag{font-family:var(--fh-mono),monospace;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber-ink);margin:0 0 10px}
+.fh-doc .pc .big{font-family:var(--fh-display),sans-serif;font-weight:700;font-size:40px;line-height:1;color:var(--teal);margin:0 0 4px;font-variant-numeric:tabular-nums}
+.fh-doc .pc .big small{font-family:var(--fh-ui),sans-serif;font-size:14px;font-weight:600;color:var(--ink-3);margin-left:6px;white-space:nowrap}
+.fh-doc .pc h3{font-size:16.5px;margin:6px 0 10px}
+.fh-doc .list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.fh-doc .list li{display:grid;grid-template-columns:auto 1fr;gap:10px;font-size:14.5px;line-height:1.5;color:var(--ink-2)}
+.fh-doc .list li i{font-style:normal;color:var(--teal);font-weight:700}
 
-.fh-doc .countries{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0 0}
-.fh-doc .cty{background:var(--surface);border:1px solid var(--rule);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)}
-.fh-doc .cty .flag{font-size:26px;line-height:1;margin:0 0 8px;display:block}
-.fh-doc .cty h3{font-size:15px;margin:0 0 6px}
-.fh-doc .cty .p{font-family:var(--fh-display),sans-serif;font-weight:700;font-size:34px;line-height:1;color:var(--teal);font-variant-numeric:tabular-nums}
-.fh-doc .cty .p small{font-family:var(--fh-ui),sans-serif;font-size:13px;font-weight:600;color:var(--ink-3);margin-left:6px}
-.fh-doc .cty p.d{font-size:13.5px;color:var(--ink-2);margin-top:8px;line-height:1.5}
+/* разходът по платформи */
+.fh-doc .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--surface);border:1px solid var(--rule);border-radius:14px;overflow:hidden;font-size:14.5px}
+.fh-doc .tbl th,.fh-doc .tbl td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+.fh-doc .tbl thead th{background:var(--panel);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.fh-doc .tbl tbody th{font-weight:700;color:var(--ink);width:26%}
+.fh-doc .tbl tbody tr:last-child td,.fh-doc .tbl tbody tr:last-child th{border-bottom:none}
+.fh-doc .tbl td.num{font-family:var(--fh-mono),monospace;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--teal);font-weight:600}
+.fh-doc .tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 
 .fh-doc .deal{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;margin-top:18px}
 .fh-doc .calc{background:var(--teal);color:#EAF4F6;border-radius:16px;padding:24px 26px}
@@ -113,11 +114,12 @@ html:has(.fh-doc),body:has(.fh-doc){background:#F3F6F7;color-scheme:light}
 .fh-doc .calc p.d{font-size:13px;color:#BFD7DD;margin-top:12px;line-height:1.5}
 .fh-doc .terms{background:var(--panel);border-radius:16px;padding:24px 26px}
 .fh-doc .terms h3{font-size:17px;margin:0 0 12px}
-.fh-doc .list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px}
-.fh-doc .list li{display:grid;grid-template-columns:auto 1fr;gap:10px;font-size:15px;line-height:1.5;color:var(--ink-2)}
-.fh-doc .list li i{font-style:normal;color:var(--teal);font-weight:700}
 
-/* пилотът */
+/* инсталацията + планът */
+.fh-doc .cat{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.fh-doc .item{background:var(--surface);border:1px solid var(--rule);border-radius:14px;padding:18px 18px 16px;box-shadow:var(--shadow)}
+.fh-doc .item h3{font-size:15.5px;margin:0 0 6px}
+.fh-doc .item p{font-size:14px;line-height:1.5;color:var(--ink-2)}
 .fh-doc .days{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 .fh-doc .step{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:16px 18px}
 .fh-doc .step b{display:block;font-family:var(--fh-mono),monospace;font-weight:500;font-size:12.5px;letter-spacing:.08em;color:var(--amber-ink);margin:0 0 6px}
@@ -125,24 +127,11 @@ html:has(.fh-doc),body:has(.fh-doc){background:#F3F6F7;color-scheme:light}
 .fh-doc .step p{font-size:14px;line-height:1.5;color:var(--ink-2)}
 .fh-doc .step.go{border:2px solid var(--teal);background:var(--teal-soft)}
 
-/* каталогът */
-.fh-doc .cat{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-.fh-doc .cat.three{grid-template-columns:repeat(3,1fr)}
-.fh-doc .item{background:var(--surface);border:1px solid var(--rule);border-radius:14px;padding:20px 20px 18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px}
-.fh-doc .item .tag{font-family:var(--fh-mono),monospace;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber-ink)}
-.fh-doc .item h3{font-size:16.5px;margin:0}
-.fh-doc .item p{font-size:14.5px;line-height:1.55;color:var(--ink-2)}
-.fh-doc .item .pr{margin-top:auto;padding-top:10px;border-top:1px dashed var(--rule);font-size:13.5px;color:var(--ink-3)}
-.fh-doc .item .pr b{font-family:var(--fh-mono),monospace;font-weight:500;color:var(--teal)}
-.fh-doc .item.svc{background:var(--panel);border-color:transparent;box-shadow:none}
-
-/* правилата */
+/* правилата + от теб */
 .fh-doc .rules{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .fh-doc .rule{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:16px 18px}
 .fh-doc .rule h3{font-size:15px;margin:0 0 6px;color:var(--green)}
 .fh-doc .rule p{font-size:14px;line-height:1.5;color:var(--ink-2)}
-
-/* от теб */
 .fh-doc .need{counter-reset:n;display:grid;grid-template-columns:repeat(2,1fr);gap:10px 18px;margin:0;padding:0;list-style:none}
 .fh-doc .need li{counter-increment:n;display:grid;grid-template-columns:auto 1fr;gap:12px;font-size:15px;line-height:1.5;color:var(--ink-2);background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:12px 14px}
 .fh-doc .need li::before{content:counter(n);font-family:var(--fh-mono),monospace;font-size:13px;color:var(--amber-ink);padding-top:2px}
@@ -160,7 +149,7 @@ html:has(.fh-doc),body:has(.fh-doc){background:#F3F6F7;color-scheme:light}
 
 @media (max-width:960px){
   .fh-doc .flow{grid-template-columns:repeat(3,1fr)}
-  .fh-doc .cat.three,.fh-doc .rules{grid-template-columns:repeat(2,1fr)}
+  .fh-doc .cat,.fh-doc .rules,.fh-doc .price3{grid-template-columns:repeat(2,1fr)}
   .fh-doc .days{grid-template-columns:repeat(2,1fr)}
 }
 @media (max-width:860px){
@@ -172,7 +161,7 @@ html:has(.fh-doc),body:has(.fh-doc){background:#F3F6F7;color-scheme:light}
   .fh-doc h1{font-size:32px}
   .fh-doc .h2sub{font-size:26px}
   .fh-doc .deck{font-size:17.5px}
-  .fh-doc .flow,.fh-doc .cat,.fh-doc .cat.three,.fh-doc .rules,.fh-doc .days,.fh-doc .facts,.fh-doc .countries,.fh-doc .need{grid-template-columns:1fr}
+  .fh-doc .flow,.fh-doc .cat,.fh-doc .rules,.fh-doc .days,.fh-doc .facts,.fh-doc .price3,.fh-doc .need,.fh-doc .stats{grid-template-columns:1fr}
   .fh-doc .masthead{padding:36px 0 26px}
   .fh-doc .closing{padding:24px 20px}
   .fh-doc .pull p{font-size:18px}
@@ -192,7 +181,7 @@ html:has(.fh-doc),body:has(.fh-doc){background:#F3F6F7;color-scheme:light}
   .fh-doc .kick,.fh-doc .h2sub,.fh-doc .lead{break-after:avoid}
   .fh-doc .h2sub{font-size:20px;margin-bottom:8px}
   .fh-doc .lead{font-size:12.5px;margin-bottom:10px}
-  .fh-doc .stat,.fh-doc .fact,.fh-doc .fstep,.fh-doc .item,.fh-doc .pull,.fh-doc .step,.fh-doc .cty,.fh-doc .calc,.fh-doc .terms,.fh-doc .rule,.fh-doc .need li,.fh-doc .tbl tr,.fh-doc .talk{break-inside:avoid}
+  .fh-doc .stat,.fh-doc .fact,.fh-doc .fstep,.fh-doc .item,.fh-doc .pull,.fh-doc .step,.fh-doc .pc,.fh-doc .calc,.fh-doc .terms,.fh-doc .rule,.fh-doc .need li,.fh-doc .tbl tr,.fh-doc .talk{break-inside:avoid}
   .fh-doc .stats{grid-template-columns:repeat(4,1fr);gap:8px}
   .fh-doc .stat{padding:10px 12px}
   .fh-doc .stat b{font-size:20px}
@@ -213,16 +202,15 @@ html:has(.fh-doc),body:has(.fh-doc){background:#F3F6F7;color-scheme:light}
   .fh-doc .talk .line{font-size:11.5px;padding:3px 0}
   .fh-doc .talk .who{font-size:10px}
   .fh-doc .talk .res span{font-size:10.5px;padding:3px 8px}
+  .fh-doc .price3{grid-template-columns:repeat(3,1fr);gap:8px}
+  .fh-doc .pc{padding:12px 12px 10px;box-shadow:none}
+  .fh-doc .pc .big{font-size:21px}
+  .fh-doc .pc .big small{font-size:10.5px;margin-left:4px}
+  .fh-doc .pc h3{font-size:13px;margin:4px 0 6px}
+  .fh-doc .list{gap:4px}
+  .fh-doc .list li{font-size:11.5px}
   .fh-doc .tbl{font-size:11.5px}
   .fh-doc .tbl th,.fh-doc .tbl td{padding:6px 10px}
-  .fh-doc .tbl td.price{font-size:12.5px}
-  .fh-doc .tbl td.price small{font-size:10px}
-  .fh-doc .countries{grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
-  .fh-doc .cty{padding:10px 12px;box-shadow:none}
-  .fh-doc .cty .flag{font-size:18px;margin-bottom:4px}
-  .fh-doc .cty h3{font-size:12.5px}
-  .fh-doc .cty .p{font-size:24px}
-  .fh-doc .cty p.d{font-size:11px;margin-top:4px}
   .fh-doc .deal{grid-template-columns:1.1fr .9fr;gap:10px;margin-top:10px}
   .fh-doc .calc,.fh-doc .terms{padding:12px 14px}
   .fh-doc .calc h3,.fh-doc .terms h3{font-size:14px;margin-bottom:6px}
@@ -230,20 +218,14 @@ html:has(.fh-doc),body:has(.fh-doc){background:#F3F6F7;color-scheme:light}
   .fh-doc .calc .row.tot{font-size:13.5px;padding-top:7px}
   .fh-doc .calc .row.tot b{font-size:18px}
   .fh-doc .calc p.d{font-size:10.5px;margin-top:7px}
-  .fh-doc .list{gap:5px}
-  .fh-doc .list li{font-size:12px}
+  .fh-doc .cat{grid-template-columns:repeat(3,1fr);gap:8px}
+  .fh-doc .item{padding:10px 12px 9px;box-shadow:none}
+  .fh-doc .item h3{font-size:12.5px}
+  .fh-doc .item p{font-size:11px;line-height:1.46}
   .fh-doc .days{grid-template-columns:repeat(2,1fr);gap:8px}
   .fh-doc .step{padding:9px 12px}
   .fh-doc .step h3{font-size:12.5px}
   .fh-doc .step p{font-size:11px}
-  .fh-doc .cat,.fh-doc .cat.three{gap:8px}
-  .fh-doc .cat{grid-template-columns:repeat(2,1fr)}
-  .fh-doc .cat.three{grid-template-columns:repeat(3,1fr)}
-  .fh-doc .item{padding:10px 12px 9px;box-shadow:none;gap:4px}
-  .fh-doc .item .tag{font-size:9.5px}
-  .fh-doc .item h3{font-size:12.5px}
-  .fh-doc .item p{font-size:11px;line-height:1.46}
-  .fh-doc .item .pr{font-size:10.5px;padding-top:6px}
   .fh-doc .rules{grid-template-columns:repeat(3,1fr);gap:8px}
   .fh-doc .rule{padding:9px 12px}
   .fh-doc .rule h3{font-size:12.5px}
@@ -258,52 +240,44 @@ html:has(.fh-doc),body:has(.fh-doc){background:#F3F6F7;color-scheme:light}
   .fh-doc .closing h2{font-size:20px}
   .fh-doc .closing p{font-size:13.5px}
   .fh-doc .closing .ctas{display:none}
-  .fh-doc .fact,.fh-doc .closing,.fh-doc .step.go,.fh-doc .talk,.fh-doc .calc,.fh-doc .terms,.fh-doc .item.svc,.fh-doc .tbl th,.fh-doc .fstep .n{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .fh-doc .fact,.fh-doc .closing,.fh-doc .step.go,.fh-doc .talk,.fh-doc .calc,.fh-doc .terms,.fh-doc .tbl th,.fh-doc .fstep .n{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   nextjs-portal{display:none}
 }
 @page{size:A4;margin:14mm 13mm}
 `;
 
 const STATS = [
-  { b: "1–2 €", s: "струва на фулфилмънта едно потвърждение от човек — заплата, осигуровки, празни часове", bad: true },
-  { b: "~1 мин", s: "трае разговорът на агента: адрес, час, наложен платеж, записан отговор", bad: false },
-  { b: "3", s: "държави от първия ден — България, Румъния, Гърция, с местен номер и език", bad: false },
-  { b: "0 €", s: "за невдигнати опити — плащаш само свързан разговор", bad: false },
+  { b: "~0,10 €", s: "струва едно потвърдено обаждане в България на платформите — плащаш директно на тях", bad: false },
+  { b: "~1 мин", s: "трае разговорът: адрес, ден, наложен платеж, записан отговор", bad: false },
+  { b: "3", s: "държави — България, Румъния, Гърция, с местен език и номер", bad: false },
+  { b: "0 €", s: "за невдигнати опити — платформите таксуват само свързан разговор, на секунда", bad: false },
 ];
 
 const VIDYAH = [
   {
     h: "Непотвърдената пратка е най-скъпата пратка",
-    p: "Куриерът отива, клиентът го няма или се е отказал, наложеният платеж не влиза, стоката се връща и се блокира за седмица. Едно обаждане преди изпращане спестява точно този кръг — и твоите клиенти го знаят.",
+    p: "Куриерът отива, клиентът го няма или се е отказал, наложеният платеж не влиза, стоката се връща и се блокира за седмица. Едно обаждане преди изпращане спестява точно този кръг.",
   },
   {
     h: "Хората не стигат точно когато трябва",
-    p: "В пика — Черен петък, Коледа, кампания на магазина — пратките се удвояват, операторите не. Агентът води десетки разговори едновременно и свършва за час това, за което екип върши цял ден.",
+    p: "В пика — Черен петък, Коледа, кампания — пратките се удвояват, операторите не. Агентът води десетки разговори едновременно и свършва за час това, за което екип върши цял ден.",
   },
   {
-    h: "Три държави, един агент",
-    p: "Български, румънски и гръцки — един и същ процес, един и същ скрипт, местен номер за всяка държава. Клиентът в Букурещ чува глас на румънски от румънски номер.",
-  },
-  {
-    h: "Под твоята марка, на твоя цена",
-    p: "Агентът се представя от името на магазина или на Full House — не от наше. Ти определяш какво плащат твоите клиенти; ние сме доставчикът зад кулисите.",
+    h: "Всичко е на твое име",
+    p: "Акаунтите в платформите за гласа и телефонията са на Full House. Виждаш всяка сметка, няма посредник и надценка на минута — ние вземаме само за инсталацията и поддръжката.",
   },
   {
     h: "Отговорът влиза в твоята система",
-    p: "Потвърдена, нов адрес, друга дата, отказ, не вдига — всяко обаждане връща статус към твоя софтуер за пратки по webhook или API, плюс запис и кратко резюме. Нищо не се преписва на ръка.",
-  },
-  {
-    h: "Честно и по правилата",
-    p: "Агентът казва, че е AI асистент — както изисква европейският регламент. Обажданията са само за обслужване на вече направена поръчка, данните остават при теб, договор за обработка на данни от ден един.",
+    p: "Потвърдена, нов адрес, друга дата, отказ, не вдига — всяко обаждане връща статус към твоя софтуер за пратки по webhook или API, плюс запис и кратко резюме.",
   },
 ];
 
 const FLOW = [
   { h: "Пратката влиза", p: "Твоята система ни праща име, телефон, адрес, сума и куриер — по webhook, API или Excel. Ти избираш кога: при заявка, преди куриера или при неуспешна доставка." },
-  { h: "Агентът звъни", p: "В прозорец, който ти задаваш (например 10:00–19:00 местно време), от местен номер на държавата, на езика на клиента." },
-  { h: "Разговорът", p: "Представя се, потвърждава адреса, деня и наложения платеж. Сменя адрес или дата, ако трябва. Отговаря на 2–3 обичайни въпроса — кога идва, колко е доставката." },
-  { h: "Резултатът се връща", p: "Потвърдена · промяна · отказ · не вдига. Статусът е в системата ти секунди след затварянето, със запис и резюме. Невдигнал → нов опит след 2 часа, до 3 опита." },
-  { h: "Отчетът", p: "Табло: обаждания, % потвърдени, % промени, % откази — по магазин и по държава. За теб и за всеки твой клиент поотделно." },
+  { h: "Агентът звъни", p: "В прозорец, който ти задаваш (например 10:00–19:00 местно време), от европейски номер на твое име, на езика на клиента." },
+  { h: "Разговорът", p: "Представя се, потвърждава адреса, деня и наложения платеж. Сменя адрес или дата, ако трябва. Отговаря на 2–3 обичайни въпроса." },
+  { h: "Резултатът се връща", p: "Потвърдена · промяна · отказ · не вдига. Статусът е в системата ти секунди след затварянето. Невдигнал → нов опит след 2 часа, до 3 опита." },
+  { h: "Отчетът", p: "Табло: обаждания, % потвърдени, % промени, % откази — по магазин и по държава. За теб и за всеки твой клиент." },
 ];
 
 const TALK = [
@@ -314,69 +288,54 @@ const TALK = [
   { who: "Агент", k: false, t: "Записах: до адрес, ул. „Александровска“ 5, Русе, в сряда. Куриерът ще ви звънне преди да дойде. Хубав ден!" },
 ];
 
-const PRICES: [string, string, string, string][] = [
-  ["Инсталация на агент", "500 €", "еднократно · една държава = един агент", "Език и глас, местен номер, скрипт по твоя процес, интеграция със системата за пратки (webhook / API / Excel), тестове с реални пратки, кратко обучение на екипа ти."],
-  ["Платформа и поддръжка", "190 €", "на месец · на държава", "Хостинг, наблюдение 24/7, корекции по скрипта, месечен отчет, техническа поддръжка. Твоите клиенти не плащат нищо на нас."],
-  ["Потвърдено обаждане", "0,25–0,45 €", "на свързан разговор · по държава", "Виж цените по държави отдолу. Невдигнатите опити са безплатни. Разговор над 3 минути се брои като второ обаждане."],
-  ["Отстъпка за обем", "−15 % / −25 %", "над 5 000 / над 15 000 обаждания на месец", "Сумарно за всички държави и всички твои клиенти. Прилага се автоматично в месечната фактура."],
-  ["Минимум", "500 обаждания", "на месец на държава · или 190 € платформа", "Ако месецът е по-слаб, плащаш само платформата — няма скрити такси."],
+const INSTALL = [
+  "Акаунти на името на Full House: гласовата платформа и телефонията — ти си собственик",
+  "Европейски номера за трите държави, настроени така, че обажданията да минават на регулираната цена",
+  "Агентът на български, румънски и гръцки: глас, скрипт по твоя процес, тестове с реални пратки",
+  "Връзка с твоята система за пратки (webhook / API / Excel) — статусът се връща сам",
+  "Кратко обучение на екипа ти и демо номер, на който клиентите ти чуват агента",
 ];
 
-const COUNTRIES = [
-  { f: "🇧🇬", h: "България", p: "0,45 €", d: "на потвърдено обаждане · български номер, глас Елена или Коста" },
-  { f: "🇷🇴", h: "Румъния", p: "0,25 €", d: "на потвърдено обаждане · румънски номер, румънски глас" },
-  { f: "🇬🇷", h: "Гърция", p: "0,30 €", d: "на потвърдено обаждане · гръцки номер, гръцки глас" },
+const SUPPORT = [
+  "Наблюдение: ако нещо спре или греши — виждаме го и го оправяме",
+  "Технически проблем или бъг — наш, без допълнителна сметка",
+  "Дребни промени по скрипта и обновяване на агентите с новите версии на платформите",
+  "Отчет и консултация всеки месец: какво показват числата, какво да се подобри",
+  "Важи за всички агенти, които сме инсталирали — една такса, не на агент",
 ];
 
-const TERMS = [
-  "Всички цени са без ДДС и са за препродажба — ти определяш крайната цена към магазините",
-  "Фактура в началото на месеца: платформа + обажданията от предходния месец, по държава и по клиент",
-  "Без обвързване за година: договор месец за месец след пилота, 30 дни предизвестие",
-  "Още една държава = още една инсталация 500 € + 190 €/мес; цената на обаждане зависи от телефонията там",
-  "Ако предпочиташ на минута вместо на обаждане: BG 0,40 €/мин · RO и GR 0,25 €/мин",
-  "Цените са валидни до 30.11.2026",
+const PLATFORMS: [string, string, string][] = [
+  ["Глас (ElevenLabs Agents)", "0,08 $/мин + модел ≈ 0,01 $", "една цена за трите езика; план според обема (напр. Pro 99 $/мес с 1 238 мин и 20 едновременни линии)"],
+  ["Телефония · България", "≈ 0,06 €/мин", "Zadarma, на секунда, с български номер (≈ 4 €/мес) — това е ключът: Twilio взима 0,18 €/мин"],
+  ["Телефония · Румъния", "≈ 0,03 €/мин", "Twilio с румънски номер (≈ 3 €/мес)"],
+  ["Телефония · Гърция", "≈ 0,03 €/мин", "Zadarma, на секунда, с европейски номер"],
+];
+
+const PER_CALL = [
+  ["🇧🇬 България", "≈ 0,10 €"],
+  ["🇷🇴 Румъния", "≈ 0,09 €"],
+  ["🇬🇷 Гърция", "≈ 0,08 €"],
 ];
 
 const PILOT = [
-  { b: "ден 1–2", h: "Срещата", p: "45 минути онлайн: процесът ти, системата за пратки, какво точно потвърждаваме, кой е първият магазин. Даваш ни формата на данните — и тръгваме.", go: false },
-  { b: "ден 3–7", h: "Агентът е готов", p: "Глас, номер, скрипт на български, връзка със системата ти. Тест с 20–30 реални пратки; слушаме записите заедно и поправяме същия ден.", go: false },
-  { b: "ден 8–21", h: "Пилотът", p: "Една държава, 500 обаждания, две седмици. Всеки понеделник — числата: % потвърдени, % промени, % откази, колко върнати пратки са спестени.", go: true },
-  { b: "след пилота", h: "Трите държави", p: "Договор за BG · RO · GR. Агент № 2 и № 3 са готови за по 3–5 работни дни всеки — процесът вече го знаем.", go: false },
-];
-
-const CAT_AGENTS = [
-  { tag: "входящ · 24/7", h: "„Къде е пратката ми?“", p: "Вдига на номера на магазина или на Full House, казва статуса по номер на пратка и очаквана дата, при проблем прехвърля към човек с резюме. Най-честият въпрос към всеки магазин — без да чака оператор.", pr: "Същата платформа · на минута разговор: BG 0,40 € · RO/GR 0,25 €" },
-  { tag: "изходящ", h: "Неуспешна доставка", p: "Куриерът не е намерил клиента → агентът звъни същия ден, уговаря нов час или адрес, или насочва към офис на куриера. Връща резултата към системата. Най-прекият път към по-малко върнати пратки.", pr: "500 € инсталация · 190 €/мес · цената на обаждане по държава" },
-  { tag: "изходящ", h: "Пратката чака в офис", p: "Напомняне, че пратката стои в офис или автомат и до кога — първо със съобщение, обаждане само на тези, които не реагират. По-малко изтекли срокове, по-малко връщания.", pr: "Съобщение по тарифата на канала · обаждане по държава" },
-  { tag: "изходящ · със съгласие", h: "Недовършена поръчка", p: "Клиентът е оставил кошницата или не е довършил плащането → до час агентът звъни, довършва поръчката по телефона и я подава към системата. Само за клиенти, дали съгласие за контакт.", pr: "500 € инсталация · 190 €/мес · цената на обаждане по държава" },
-  { tag: "изходящ", h: "Повторна поръчка", p: "За магазини с консумативи и добавки: 30 или 60 дни след доставката агентът пита дали да изпратим пак — и приема поръчката. Продажба без реклама.", pr: "500 € инсталация · 190 €/мес · цената на обаждане по държава" },
-  { tag: "изходящ", h: "Обратна връзка след доставка", p: "Един въпрос: „Как мина?“ Доволен → покана за отзив. Проблем → рекламацията се записва веднага, магазинът научава преди лошия коментар.", pr: "500 € инсталация · 190 €/мес · цената на обаждане по държава" },
-  { tag: "входящ", h: "Рекламации и връщания", p: "Приема заявка за връщане или замяна, казва условията на магазина, създава заявката в системата и праща инструкции с SMS или Viber. Човекът се занимава само със спорните случаи.", pr: "Същата платформа · на минута разговор: BG 0,40 € · RO/GR 0,25 €" },
-  { tag: "входящ · B2B", h: "Рецепция за Full House", p: "Вдига на твоите клиенти-магазини: наличност в склада, приемане на заявка за пратки, въпроси за фактури и срокове. Прехвърля към човек с готово резюме. Твоят телефон спира да е тесното място.", pr: "Същата платформа · на минута разговор: BG 0,40 €" },
-];
-
-const CAT_SERVICES = [
-  { h: "Viber · WhatsApp · SMS потвърждение", p: "Първо съобщение с бутони „Потвърждавам / Смени адреса“; обаждането е само за тези, които не отговорят до 2 часа. Общата цена на потвърждение пада чувствително при висок обем.", pr: "На съобщение по тарифата на канала + платформа · точна цена след обема" },
-  { h: "Имейл и чат агент за поръчки", p: "Отговаря на „къде е поръчката ми“ по имейл, в чата на сайта, Messenger и Instagram на магазина — от живия статус на пратката. Същият мозък като на телефона.", pr: "190 €/мес на магазин · настройка 300 €" },
-  { h: "Табло за препродажба", p: "Твой панел с всички магазини: обаждания, резултати, записи, фактуриране по клиент. Агентът говори от името на всеки магазин поотделно. Готов отчет за твоите клиенти всеки месец.", pr: "Включено в платформата" },
-  { h: "Интеграции", p: "Еконт, Спиди, DHL, DPD, Sameday, ACS и останалите куриери по API; Shopify, WooCommerce, OpenCart, CloudCart и твоя WMS. Статуси и номера на пратки влизат сами.", pr: "Включено в инсталацията за стандартните · по мярка за твоя софтуер" },
-  { h: "Още държави и езици", p: "Унгария, Полша, Чехия, Германия, Италия, Испания — същият агент, друг език и местен номер. За повечето европейски държави цената на обаждане е на нивото на Румъния и Гърция.", pr: "500 € инсталация · 190 €/мес · обаждане по държава" },
-  { h: "Материали за твоите продажби", p: "Презентация и калкулатор „колко спестяваш на 1 000 пратки“ за твоите клиенти, под твоята марка, плюс демо номер, на който могат да звъннат и да чуят агента.", pr: "Включено при договор за трите държави" },
+  { b: "ден 1–2", h: "Срещата", p: "45 минути онлайн: процесът ти, системата за пратки, какво точно потвърждаваме, първият магазин. Откриваме акаунтите на твое име.", go: false },
+  { b: "ден 3–7", h: "Агентът е готов", p: "Номер, глас, скрипт на български, връзка със системата ти. Тест с 20–30 реални пратки; слушаме записите заедно и поправяме същия ден.", go: false },
+  { b: "ден 8–21", h: "Пилотът", p: "Един магазин, 500 обаждания, две седмици. Всеки понеделник — числата: % потвърдени, % промени, % откази, реалният разход на обаждане от сметките ти.", go: true },
+  { b: "след пилота", h: "Румъния и Гърция", p: "Същият агент на румънски и гръцки, с местни номера — за по 3–5 работни дни всеки. После продаваш услугата на магазините си на твоя цена.", go: false },
 ];
 
 const RULES = [
-  { h: "AI се обявява", p: "Агентът казва в първото изречение, че е AI асистент — по чл. 50 от европейския AI Act. Разговорът е по-кратък, а доверието — по-голямо." },
-  { h: "Данните са твои и остават в ЕС", p: "Телефон, адрес и сума се ползват само за обаждането и се изтриват по срок, който ти задаваш. Договор за обработка на данни (GDPR) между нас и Full House; ти имаш същия с магазините." },
+  { h: "AI се обявява", p: "Агентът казва в първото изречение, че е AI асистент — по чл. 50 от европейския AI Act, в сила от август 2026. Разговорът е по-кратък, а доверието — по-голямо." },
+  { h: "Данните са твои", p: "Акаунтите и записите са в твоите платформи; телефон, адрес и сума се ползват само за обаждането и се изтриват по срок, който ти задаваш. Договор за обработка на данни между нас и Full House." },
   { h: "Записите — по избор", p: "Записваме разговорите само ако ти искаш и само с уведомяване в началото. Без запис остава кратко текстово резюме на всяко обаждане." },
 ];
 
 const NEED = [
-  "Откъде идват пратките: система / API / Excel — и кога се пуска обаждането (при заявка, преди куриер, при неуспешна доставка)",
-  "Какво потвърждава агентът: адрес, ден, наложен платеж, пренасочване — и къде записва отговора в твоята система",
+  "Откъде идват пратките: система / API / Excel — и кога се пуска обаждането",
+  "Какво потвърждава агентът: адрес, ден, наложен платеж, пренасочване — и къде записва отговора",
   "Първият магазин за пилота и обемът му на месец",
-  "Обемите по държава на месец — от тях зависи с какъв телефонен канал тръгваме в България",
-  "Езиците и номерата: български имаме; за Румъния и Гърция вземаме местни номера или ползваме твои",
-  "Едно „да“ за пилота — и срещата за процеса е в календара още тази седмица",
+  "Карта за акаунтите в платформите (на името на Full House) — сметките идват при теб",
+  "Едно „да“ — и срещата за процеса е в календара още тази седмица",
 ];
 
 export default function AndreyaOferta() {
@@ -386,20 +345,21 @@ export default function AndreyaOferta() {
 
       <header className="masthead">
         <p className="eyebrow">
-          За Андрея · Full House · фулфилмънт център · 02.11.2026
+          За Анди · Full House · фулфилмънт център · 02.11.2026 · v2
         </p>
         <h1>
-          Всяка пратка потвърдена —{" "}
+          Агентът за потвърждение на пратки —{" "}
           <em>
-            от AI агент, който звъни в три държави под твоята марка, на цени на
-            едро.
+            на твое име, на цената на платформите, с нашата инсталация и
+            поддръжка.
           </em>
         </h1>
         <p className="deck">
-          Благодаря за разговора, Анди. Ето офертата за call агентите, за
-          които говорихме — потвърждение на пратки за България, Румъния и Гърция
-          с цени, които ти препродаваш на магазините. Отдолу е и каталогът: какво
-          още можем да добавим за твоите клиенти, когато първият агент тръгне.
+          Благодаря за разговора, Анди. Ето офертата, сведена до това, което
+          ти трябва: един AI агент, който потвърждава пратките по телефона в
+          България, Румъния и Гърция. Платформите са на твое име и ги плащаш
+          директно, по себестойност — без надценка на минута. Ние правим
+          инсталацията и го поддържаме да работи.
         </p>
         <p className="byline">
           <span>От Ивайло Петев, Pro Marketing</span>
@@ -434,9 +394,10 @@ export default function AndreyaOferta() {
         </div>
         <div className="pull">
           <p>
-            Човек потвърждава пратка за минута и половина и струва на
-            фулфилмънта 1–2 € на обаждане. Агентът го прави за минута, за
-            стотинки, в три държави едновременно — и не си взима почивка в пика.
+            Човек потвърждава пратка за минута и половина и струва над
+            половин евро на обаждане. Агентът го прави за минута, за около
+            десет цента, в три държави едновременно — и не си взима почивка в
+            пика.
           </p>
         </div>
       </section>
@@ -486,9 +447,9 @@ export default function AndreyaOferta() {
               <span>→ към човек</span>
             </div>
             <p style={{ fontSize: 13, lineHeight: 1.5, color: "#9FBAC2", marginTop: 14 }}>
-              Гласът и името на агента са по твой избор — може да е „Елена от
-              Full House“ или името, което магазинът ползва. Скриптът е твой;
-              ние го правим да звучи като човек, който знае пратката.
+              Гласът и името на агента са по твой избор — „Елена от Full House“
+              или името, което магазинът ползва. Скриптът е твой; ние го правим
+              да звучи като човек, който знае пратката.
             </p>
           </div>
         </div>
@@ -496,109 +457,147 @@ export default function AndreyaOferta() {
 
       <section>
         <div className="sechead">
-          <p className="kick">Цените на едро</p>
-          <h2 className="h2sub">Прост модел: инсталация, платформа, обаждане</h2>
+          <p className="kick">Цената</p>
+          <h2 className="h2sub">Две числа от нас. Платформите — директно на тях.</h2>
           <p className="lead">
-            Три числа, които лесно обясняваш на магазините и върху които лесно
-            слагаш своята цена. Без скрити такси, без обвързване за година.
+            Без цена на обаждане към нас и без надценка на минута. Плащаш ни
+            веднъж за инсталацията и месечно за поддръжката; разходът за глас
+            и телефония върви по твоите акаунти, по актуалните тарифи на
+            платформите.
           </p>
         </div>
-        <div className="tblwrap">
+        <div className="price3">
+          <article className="pc">
+            <p className="tag">еднократно</p>
+            <p className="big">
+              500 €<small>без ДДС</small>
+            </p>
+            <h3>Инсталация</h3>
+            <ul className="list">
+              {INSTALL.map((a) => (
+                <li key={a}>
+                  <i>✓</i>
+                  <span>{a}</span>
+                </li>
+              ))}
+            </ul>
+          </article>
+          <article className="pc hi">
+            <p className="tag">всеки месец</p>
+            <p className="big">
+              100 €<small>без ДДС · на месец</small>
+            </p>
+            <h3>Поддръжка на всички агенти</h3>
+            <ul className="list">
+              {SUPPORT.map((a) => (
+                <li key={a}>
+                  <i>✓</i>
+                  <span>{a}</span>
+                </li>
+              ))}
+            </ul>
+          </article>
+          <article className="pc">
+            <p className="tag">на твое име · по себестойност</p>
+            <p className="big">
+              ≈ 0,10 €<small>на обаждане</small>
+            </p>
+            <h3>Платформите — плащаш директно на тях</h3>
+            <ul className="list">
+              {PER_CALL.map(([k, v]) => (
+                <li key={k}>
+                  <i>→</i>
+                  <span>
+                    {k}: <b>{v}</b> за 45-секундно потвърдено обаждане
+                  </span>
+                </li>
+              ))}
+              <li>
+                <i>→</i>
+                <span>
+                  Невдигнатите опити са безплатни; таксува се на секунда, само
+                  свързан разговор
+                </span>
+              </li>
+            </ul>
+          </article>
+        </div>
+
+        <div className="tblwrap" style={{ marginTop: 18 }}>
           <table className="tbl">
             <thead>
               <tr>
-                <th>Позиция</th>
-                <th>Цена на едро</th>
-                <th>Какво включва</th>
+                <th>Платформа</th>
+                <th>Тарифа (ориентир, 02.11.2026)</th>
+                <th>Бележка</th>
               </tr>
             </thead>
             <tbody>
-              {PRICES.map(([k, p, u, v]) => (
+              {PLATFORMS.map(([k, p, v]) => (
                 <tr key={k}>
                   <th>{k}</th>
-                  <td className="price">
-                    {p}
-                    <small>{u}</small>
-                  </td>
+                  <td className="num">{p}</td>
                   <td>{v}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <div className="countries">
-          {COUNTRIES.map((c) => (
-            <article className="cty" key={c.h}>
-              <span className="flag" aria-hidden="true">{c.f}</span>
-              <h3>{c.h}</h3>
-              <p className="p">
-                {c.p}
-                <small>без ДДС</small>
-              </p>
-              <p className="d">{c.d}</p>
-            </article>
-          ))}
-        </div>
+        <p className="note">
+          Тарифите са публичните цени на платформите към 02.11.2026 и се
+          плащат директно на тях от твоите акаунти — ние не ги препродаваме и
+          не печелим от тях. Промени ли платформа цената, промяната е 1:1 при
+          теб.
+        </p>
+
         <div className="deal">
           <article className="calc">
             <h3>Твоята сметка · пример: един магазин, 3 000 пратки на месец в България</h3>
             <div className="row">
-              <span>3 000 потвърдени обаждания × 0,45 €</span>
-              <b>1 350 €</b>
+              <span>3 000 потвърдени обаждания × ≈ 0,10 €</span>
+              <b>≈ 300 €</b>
             </div>
             <div className="row">
-              <span>Платформа за България</span>
-              <b>190 €</b>
+              <span>План и номера в платформите</span>
+              <b>≈ 90 €</b>
             </div>
             <div className="row">
-              <span>Плащаш на нас</span>
-              <b>1 540 €</b>
+              <span>Поддръжка от нас</span>
+              <b>100 €</b>
             </div>
             <div className="row">
-              <span>Продаваш на магазина по 0,75 € на пратка</span>
-              <b>2 250 €</b>
+              <span>Общо на месец ≈ 490 € → на потвърждение</span>
+              <b>≈ 0,16 €</b>
             </div>
             <div className="row tot">
-              <span>Остава при теб всеки месец</span>
-              <b>≈ 710 €</b>
+              <span>Продаваш на магазина по 0,30 € на пратка</span>
+              <b>900 €</b>
             </div>
             <p className="d">
-              Без нито един човек на телефона. Магазинът плаща 0,75 € вместо
-              1–2 € за човек — печели и той. В Румъния и Гърция нашата цена е
-              по-ниска, така че маржът ти там е още по-голям.
+              Около 410 € остават при теб всеки месец от един магазин — без
+              нито един човек на телефона. Магазинът плаща 0,30 € вместо
+              над половин евро за човек. Всеки следващ магазин ползва същия
+              агент и същата поддръжка — добавя само собствените си обаждания.
             </p>
           </article>
           <article className="terms">
             <h3>Условията</h3>
             <ul className="list">
-              {TERMS.map((t) => (
-                <li key={t}>
-                  <i>✓</i>
-                  <span>{t}</span>
-                </li>
-              ))}
+              <li><i>✓</i><span>Всички наши цени са без ДДС</span></li>
+              <li><i>✓</i><span>Инсталацията — 50 % при старт, 50 % когато агентът звъни на първите пратки</span></li>
+              <li><i>✓</i><span>Поддръжката — месец за месец, без обвързване за година, 30 дни предизвестие</span></li>
+              <li><i>✓</i><span>Нов агент за друга задача (например „къде е пратката ми“) = нова инсталация; поддръжката остава същите 100 €</span></li>
+              <li><i>✓</i><span>Платформите са на твое име — спираш, сменяш или местиш, когато поискаш</span></li>
+              <li><i>✓</i><span>Офертата е валидна до 30.11.2026</span></li>
             </ul>
           </article>
         </div>
-        <p className="note">
-          Цената на едро в България е по-висока от Румъния и Гърция заради
-          телефонията към българските мобилни мрежи. Над ~3 000 обаждания на
-          месец минаваме на директен български телефонен канал — и
-          преразглеждаме цената надолу заедно.
-        </p>
       </section>
 
       <section>
         <div className="sechead">
-          <p className="kick">Пилотът</p>
-          <h2 className="h2sub">Една държава, 500 обаждания, две седмици</h2>
-          <p className="lead">
-            Не те караме да купуваш трите държави на доверие. Тръгваме с един
-            магазин в България, виждаме числата заедно и чак тогава
-            разширяваме. Пилотът струва 500 € инсталация + обажданията по
-            ценоразписа (500 × 0,45 € = 225 €); платформената такса тръгва след
-            него.
-          </p>
+          <p className="kick">Планът</p>
+          <h2 className="h2sub">От „да“ до първите потвърдени пратки — три седмици</h2>
         </div>
         <div className="days">
           {PILOT.map((d) => (
@@ -612,56 +611,8 @@ export default function AndreyaOferta() {
         <p className="note">
           Процент потвърдени пратки не обещаваме предварително — зависи от
           магазина и клиентите му. Обещаваме числата всеки понеделник и
-          корекции същия ден. Ако след пилота не искаш да продължиш, спираме и
-          не дължиш нищо повече.
-        </p>
-      </section>
-
-      <section>
-        <div className="sechead">
-          <p className="kick">Какво още можем да добавим · агенти</p>
-          <h2 className="h2sub">Същият агент, други разговори</h2>
-          <p className="lead">
-            Потвърждението е първото обаждане. Всеки от агентите отдолу ползва
-            същата платформа и същата връзка със системата ти — тръгва за дни,
-            не за месеци. Продаваш го на магазините като отделна услуга, по
-            същия модел на едро.
-          </p>
-        </div>
-        <div className="cat">
-          {CAT_AGENTS.map((a) => (
-            <article className="item" key={a.h}>
-              <span className="tag">{a.tag}</span>
-              <h3>{a.h}</h3>
-              <p>{a.p}</p>
-              <p className="pr">
-                <b>{a.pr}</b>
-              </p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <div className="sechead">
-          <p className="kick">Какво още можем да добавим · услуги</p>
-          <h2 className="h2sub">Около агента: канали, табло, интеграции</h2>
-        </div>
-        <div className="cat three">
-          {CAT_SERVICES.map((s) => (
-            <article className="item svc" key={s.h}>
-              <h3>{s.h}</h3>
-              <p>{s.p}</p>
-              <p className="pr">
-                <b>{s.pr}</b>
-              </p>
-            </article>
-          ))}
-        </div>
-        <p className="note">
-          Цените в каталога са ориентир на едро за същия модел. Точната цена на
-          всяка допълнителна услуга фиксираме при обема, който ти кажеш — и
-          винаги така, че да има място за твоята надбавка.
+          корекции същия ден. Ако след пилота не искаш да продължиш, спираш
+          поддръжката и акаунтите остават твои.
         </p>
       </section>
 
@@ -679,17 +630,16 @@ export default function AndreyaOferta() {
           ))}
         </div>
         <p className="note">
-          Обаждания с рекламна цел (повторна поръчка, недовършена поръчка)
-          правим само към клиенти, дали съгласие за контакт при поръчката.
-          Останалото — потвърждение, доставка, връщане — е обслужване на вече
-          направена поръчка и не иска отделно съгласие.
+          Потвърждение, доставка и връщане са обслужване на вече направена
+          поръчка и не искат отделно съгласие. Обаждания с рекламна цел не
+          правим без съгласие на клиента при поръчката.
         </p>
       </section>
 
       <section>
         <div className="sechead">
           <p className="kick">От теб, за да тръгнем</p>
-          <h2 className="h2sub">Шест неща за срещата</h2>
+          <h2 className="h2sub">Пет неща за срещата</h2>
         </div>
         <ol className="need">
           {NEED.map((n) => (
@@ -703,11 +653,9 @@ export default function AndreyaOferta() {
       <section className="closing">
         <h2>Следващата стъпка</h2>
         <p>
-          Днес следобед ти звъня да минем офертата заедно и да уточним първия
-          магазин за пилота. Ако ти е по-удобен друг час — запиши си 45 минути
-          тук: <a href={SRESHTA}>promarketing.pw/sreshta</a>. След разговора
-          всичко останало правя аз, и до две седмици агентът звъни на първите
-          пратки.
+          Запиши си 45 минути тук: <a href={SRESHTA}>promarketing.pw/sreshta</a>{" "}
+          — минаваме процеса, откриваме акаунтите на твое име и до три
+          седмици агентът звъни на първите пратки. Всичко останало правя аз.
         </p>
         <p className="ctas">
           <a className="btn" href={SRESHTA}>
