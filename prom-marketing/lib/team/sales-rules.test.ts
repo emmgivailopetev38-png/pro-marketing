@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { byFollowup, pipelineOf, salesBucket, salesScore } from "./sales-rules";
+import { bookingNote, byFollowup, pipelineOf, salesBucket, salesScore } from "./sales-rules";
 
 const NOW = new Date("2026-09-22T07:00:00Z");
 const SINCE = "2026-08-23T00:00:00Z";
@@ -38,6 +38,18 @@ describe("sales-rules", () => {
       { id: "a", next_followup_at: "2026-09-18T07:00:00Z", updated_at: "" },
     ].sort(byFollowup);
     expect(list.map((x) => x.id)).toEqual(["a", "b", "c"]);
+  });
+
+  it("бележката при записването: Ели + дейността, без повторение", () => {
+    expect(bookingNote({ business: "Магазин във Варна", raw_payload: { notes: "Губи клиенти. · Дейност: Магазин във Варна" } })).toBe(
+      "Губи клиенти. · Дейност: Магазин във Варна"
+    );
+    expect(bookingNote({ business: "Психотерапевт", automation_goal: "записване на пациенти", raw_payload: { notes: "Cal.com,  16:45" } })).toBe(
+      "Cal.com, 16:45 · Дейност: Психотерапевт · Цел: записване на пациенти"
+    );
+    expect(bookingNote({ business: "Юрист", raw_payload: null })).toBe("Дейност: Юрист");
+    expect(bookingNote({ raw_payload: { notes: "" } })).toBeNull();
+    expect(bookingNote({ raw_payload: { notes: "а".repeat(400) } }, 50)?.length).toBe(50);
   });
 
   it("резултатът: затваряне от срещи", () => {

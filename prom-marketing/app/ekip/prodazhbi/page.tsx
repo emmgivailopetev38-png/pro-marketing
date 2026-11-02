@@ -92,11 +92,32 @@ export default async function ProdazhbiPage() {
         {board.meetings.length > 0 && (
           <section className="space-y-2">
             <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-emerald-300">📅 Срещи · следващите 14 дни</h2>
+            <p className="-mt-1 text-xs text-[var(--color-text-tertiary)]">📝 = какво е казал човекът, когато си е записал срещата (на Ели или във формата).</p>
             <ul className="divide-y divide-white/5 rounded-2xl border border-white/10">
               {board.meetings.map((m) => (
-                <li key={m.id} className="flex flex-wrap items-baseline justify-between gap-x-3 px-4 py-2 text-sm">
-                  <span className="font-medium">{m.name}</span>
-                  <span className="text-[var(--color-text-secondary)]">{fmtSofia(m.at)}</span>
+                <li key={m.id} className="px-4 py-2 text-sm">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                    <span className="font-medium">
+                      {m.name}
+                      {m.phone && (
+                        <a href={`tel:${m.phone}`} className="ml-2 text-xs font-normal text-[var(--color-accent-cyan)]">
+                          📞 {m.phone}
+                        </a>
+                      )}
+                    </span>
+                    <span className="text-[var(--color-text-secondary)]">
+                      {fmtSofia(m.at)}
+                      {m.meeting_url && (
+                        <>
+                          {" · "}
+                          <a href={m.meeting_url} target="_blank" rel="noreferrer" className="text-[var(--color-accent-cyan)] underline">
+                            ▶ Meet
+                          </a>
+                        </>
+                      )}
+                    </span>
+                  </div>
+                  {m.note && <p className="mt-0.5 text-[11px] leading-snug text-[var(--color-text-tertiary)]">📝 {m.note}</p>}
                 </li>
               ))}
             </ul>

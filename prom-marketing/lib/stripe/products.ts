@@ -5,8 +5,8 @@ import { OFFERS } from "@/lib/webinar/config";
  * плащане, който гласовият агент праща (/plati/<token>).
  *
  * Цените на курса и менторството идват от lib/webinar/config.ts. Цените на
- * услугите са от ценоразписа от 27.08.2026 (components/admin/skript/pricing-data.ts)
- * и се държат на едно място — тук. Гласовият агент НЕ избира сума: избира
+ * услугите са от ценоразписа (components/admin/skript/pricing-data.ts), сверен на
+ * 02.11.2026 на срещата Ивайло–Георги, и се държат на едно място — тук. Гласовият агент НЕ избира сума: избира
  * идентификатор от `VOICE_PAY_PRODUCTS`, а сумата идва оттук.
  */
 export const CHECKOUT_PRODUCTS = {
@@ -56,13 +56,13 @@ export const CHECKOUT_PRODUCTS = {
   },
 
   /* ── Услугите, които гласовият агент може да затвори с линк ─────────────
-     Сумите са крайни за плащане с карта. Абонаментът (290/490/890 €/мес) не
+     Сумите са крайни за плащане с карта. Абонаментът (300/490/890 €/мес) не
      минава оттук — започва от месеца на пускането и се фактурира от CRM-а. */
   "glas-vnedryavane": {
     name: "Гласов AI агент · внедряване",
     description:
-      "Агент с ваш сценарий и глас, свързан с телефона и системата ви, тестван върху реални разговори. Абонаментът за минутите и поддръжката започва от месеца на пускането.",
-    priceEur: 2400,
+      "Агент с ваш сценарий и глас, свързан с телефона и системата ви, тестван върху реални разговори. Първият месец „Старт“ е включен; след него абонаментът за минутите и поддръжката е от 300 €/мес.",
+    priceEur: 1000,
     successPath: "/plati/uspeh?p=glas",
     cancelPath: "/glas",
   },
@@ -70,7 +70,7 @@ export const CHECKOUT_PRODUCTS = {
     name: "Гласов AI агент · внедряване · първа вноска (70%)",
     description:
       "Първата вноска, с която започва работата по вашия агент. Останалите 30% се плащат при предаване на работещия агент.",
-    priceEur: 1680,
+    priceEur: 700,
     successPath: "/plati/uspeh?p=glas",
     cancelPath: "/glas",
   },
@@ -78,7 +78,7 @@ export const CHECKOUT_PRODUCTS = {
     name: "Гласов AI агент · капаро 30%",
     description:
       "Капаро, с което запазвате мястото си и започва работата по вашия агент. Останалите 70% се плащат при предаване на работещия агент.",
-    priceEur: 720,
+    priceEur: 300,
     successPath: "/plati/uspeh?p=glas",
     cancelPath: "/glas",
   },
@@ -86,15 +86,15 @@ export const CHECKOUT_PRODUCTS = {
     name: "AI автоматизация · един процес",
     description:
       "Един процес, изграден и предаден работещ до 7 работни дни, с обучение как се ползва и 30 дни гаранция.",
-    priceEur: 1900,
+    priceEur: 2000,
     successPath: "/plati/uspeh?p=avtomatizacia",
     cancelPath: "/ai-avtomatizacia",
   },
   "crm-vnedryavane": {
     name: "CRM и автоматичен follow-up · внедряване",
     description:
-      "CRM с вашите етапи, автоматичен follow-up, който пази причината за отлагане, импорт на контактите и обучение на екипа.",
-    priceEur: 2900,
+      "CRM с вашите етапи, автоматичен follow-up, който пази причината за отлагане, импорт на контактите и базово обучение на екипа.",
+    priceEur: 4000,
     successPath: "/plati/uspeh?p=crm",
     cancelPath: "/ai-crm",
   },
@@ -117,13 +117,12 @@ export function isCheckoutProductId(v: string): v is CheckoutProductId {
  * плащане → пренасочване към promarketing.pw/plati/uspeh?p=…).
  */
 export const STRIPE_PAYMENT_LINKS: Partial<Record<CheckoutProductId, string>> = {
-  // Създадени на 07.09.2026 в Stripe → Payment Links (Pro Marketing LTD), с „Collect full names“
-  // и пренасочване след плащане към /plati/uspeh?p=…
-  "glas-vnedryavane": "https://buy.stripe.com/dRmdR936H2Yk65j6wg53O02",
-  "glas-vnedryavane-70": "https://buy.stripe.com/9B614ngXxeH2gJX8Eo53O03",
-  "glas-kaparo-30": "https://buy.stripe.com/28E9ATdLl2Yk8drcUE53O06",
-  "avtomatizacia-proces": "https://buy.stripe.com/14AdR9bDd1Ugalzf2M53O04",
-  "crm-vnedryavane": "https://buy.stripe.com/bJe3cvePp0Qc65j1bW53O05",
+  // 02.11.2026: цените се смениха (гласов агент 2 400 → 1 000 / 700 / 300, автоматизация
+  // 1 900 → 2 000, CRM 2 900 → 4 000). Линковете от 07.09.2026 бяха със старите суми и
+  // са свалени оттук — без ключ /plati показва „Ивайло ще уреди плащането лично“, а
+  // гласовият агент не обещава линк. Новите се правят в Stripe → Payment Links
+  // (еднократно, EUR, „Collect full names“, след плащане → /plati/uspeh?p=…) и се
+  // слагат тук със същите идентификатори.
 };
 
 export function paymentLinkFor(id: CheckoutProductId): string | null {

@@ -2,7 +2,7 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 import { openPromisesByContact, type PromiseRow } from "@/lib/contacts/dnevnik-repository";
 import type { TeamActor } from "./session";
-import { byFollowup, pipelineOf, salesBucket, salesScore, type PipelineStep, type SalesContact } from "./sales-rules";
+import { bookingNote, byFollowup, pipelineOf, salesBucket, salesScore, type PipelineStep, type SalesContact } from "./sales-rules";
 
 /**
  * Таблото на продавача. Единицата работа е картонът, който той води
@@ -16,6 +16,9 @@ export interface SalesRow extends SalesContact {
   promises: PromiseRow[];
   last_activity: { title: string; at: string; by: string | null } | null;
   next_meeting: string | null;
+  /** какво е казал човекът при записването (бележката на Ели / формата) */
+  next_meeting_note: string | null;
+  next_meeting_url: string | null;
 }
 
 export interface SalesBoard {
@@ -28,7 +31,7 @@ export interface SalesBoard {
   lost: SalesRow[];
   steps: PipelineStep[];
   score: ReturnType<typeof salesScore>;
-  meetings: Array<{ id: string; name: string; at: string; contact_id: string | null }>;
+  meetings: Array<{ id: string; name: string; at: string; contact_id: string | null; phone: string | null; note: string | null; meeting_url: string | null }>;
 }
 
 export async function loadSalesBoard(actor: TeamActor, now: Date = new Date()): Promise<SalesBoard> {
@@ -55,7 +58,7 @@ export async function loadSalesBoard(actor: TeamActor, now: Date = new Date()): 
       : Promise.resolve({ data: [] }),
     sb
       .from("bookings")
-      .select("id, attendee_name, attendee_email, attendee_phone, scheduled_at, status")
+      .select("id, attendee_name, attendee_email, attendee_phone, scheduled_at, status, business, automation_goal, timeline, meeting_url, raw_payload")
       .gte("scheduled_at", new Date(now.getTime() - 3_600_000).toISOString())
       .lte("scheduled_at", new Date(now.getTime() + 14 * 86_400_000).toISOString())
       .not("status", "in", "(cancelled,rejected)")
@@ -69,12 +72,27 @@ export async function loadSalesBoard(actor: TeamActor, now: Date = new Date()): 
     if (c.email) byEmail.set(c.email.toLowerCase(), c);
     if (c.phone) byPhone.set(c.phone.replace(/\D/g, "").slice(-9), c);
   }
-  const nextMeeting = new Map<string, string>();
+  const nextMeeting = new Map<string, { at: string; note: string | null; url: string | null }>();
   const meetings: SalesBoard["meetings"] = [];
-  for (const b of (bookings ?? []) as Array<{ id: string; attendee_name: string; attendee_email: string | null; attendee_phone: string | null; scheduled_at: string; status: string }>) {
+  type BookingRow = {
+    id: string;
+    attendee_name: string;
+    attendee_email: string | null;
+    attendee_phone: string | null;
+    scheduled_at: string;
+    status: string;
+    business: string | null;
+    automation_goal: string | null;
+    timeline: string | null;
+    meeting_url: string | null;
+    raw_payload: unknown;
+  };
+  for (const b of (bookings ?? []) as BookingRow[]) {
     const c = (b.attendee_email && byEmail.get(b.attendee_email.toLowerCase())) || (b.attendee_phone && byPhone.get(b.attendee_phone.replace(/\D/g, "").slice(-9))) || null;
-    if (c && !nextMeeting.has(c.id)) nextMeeting.set(c.id, b.scheduled_at);
-    if (c || !memberId) meetings.push({ id: b.id, name: b.attendee_name, at: b.scheduled_at, contact_id: c?.id ?? null });
+    const note = bookingNote(b);
+    const url = b.meeting_url && /^https?:\/\//.test(b.meeting_url) ? b.meeting_url : null;
+    if (c && !nextMeeting.has(c.id)) nextMeeting.set(c.id, { at: b.scheduled_at, note, url });
+    if (c || !memberId) meetings.push({ id: b.id, name: b.attendee_name, at: b.scheduled_at, contact_id: c?.id ?? null, phone: b.attendee_phone ?? c?.phone ?? null, note, meeting_url: url });
   }
 
   const lastAct = new Map<string, { title: string; at: string; by: string | null }>();
@@ -101,7 +119,9 @@ export async function loadSalesBoard(actor: TeamActor, now: Date = new Date()): 
     ...c,
     promises: promises.get(c.id) ?? [],
     last_activity: lastAct.get(c.id) ?? null,
-    next_meeting: nextMeeting.get(c.id) ?? null,
+    next_meeting: nextMeeting.get(c.id)?.at ?? null,
+    next_meeting_note: nextMeeting.get(c.id)?.note ?? null,
+    next_meeting_url: nextMeeting.get(c.id)?.url ?? null,
   }));
 
   const board: SalesBoard = {

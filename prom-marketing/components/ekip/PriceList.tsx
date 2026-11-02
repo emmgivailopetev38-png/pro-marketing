@@ -1,4 +1,4 @@
-import { BUNDLES, PRICE_RULES, SERVICES } from "@/components/admin/skript/pricing-data";
+import { BUNDLES, BUNDLES_NOTE, PRICES_UPDATED, PRICE_RULES, SERVICES } from "@/components/admin/skript/pricing-data";
 
 /** Ценоразписът за продавачите — само за четене; сменя се в pricing-data.ts от Ивайло. */
 export function PriceList() {
@@ -6,7 +6,7 @@ export function PriceList() {
     <div className="space-y-6">
       <p className="rounded-xl border border-amber-400/30 bg-amber-400/5 p-3 text-xs text-amber-100">
         Цените са с ДДС и се казват на глас точно така, както са тук. Не се дава отстъпка без размяна. Ако нещо липсва —
-        питаш Ивайло в съобщенията, не измисляш.
+        питаш Ивайло в съобщенията, не измисляш. Сверени: {PRICES_UPDATED}.
       </p>
       {SERVICES.map((s) => (
         <section key={s.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4" style={{ borderColor: `${s.tint}44` }}>
@@ -38,6 +38,7 @@ export function PriceList() {
 
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
         <h2 className="text-base font-semibold">Пакети</h2>
+        <p className="mt-1 text-[11px] text-amber-200">{BUNDLES_NOTE}</p>
         <div className="mt-3 grid gap-2 sm:grid-cols-3">
           {BUNDLES.map((b) => (
             <div key={b.id} className="rounded-xl border p-3" style={{ borderColor: `${b.tint}55` }}>
