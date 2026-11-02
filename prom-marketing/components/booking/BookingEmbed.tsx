@@ -6,7 +6,7 @@ import { trackBookingSuccess } from "@/lib/cal/embed";
 const USERNAME = process.env.NEXT_PUBLIC_CAL_USERNAME ?? "promarketing";
 const SLUG = process.env.NEXT_PUBLIC_CAL_EVENT_SLUG ?? "consultation";
 
-export function BookingEmbed() {
+export function BookingEmbed({ calLink }: { calLink?: string } = {}) {
   useEffect(() => {
     (async () => {
       const cal = await getCalApi({ namespace: "booking-inline" });
@@ -47,7 +47,7 @@ export function BookingEmbed() {
     // колапс докато зарежда.
     <Cal
       namespace="booking-inline"
-      calLink={`${USERNAME}/${SLUG}`}
+      calLink={calLink ?? `${USERNAME}/${SLUG}`}
       style={{ width: "100%", height: "auto", minHeight: "560px", overflow: "visible" }}
       config={{ layout: "month_view", theme: "dark" }}
     />

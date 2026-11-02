@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/booking" },
   title: "Резервирай разговор",
   description:
-    "Запази 45-минутен разговор с Ивайло Петев — обсъждаме процесите ви и какво AI автоматизация може да направи за бизнеса ви.",
+    "Запази 60-минутен разговор с Георги от екипа на Ивайло Петев — обсъждаме процесите ви и какво AI автоматизация може да направи за бизнеса ви.",
 };
 
 export default function BookingPage() {
@@ -39,7 +39,7 @@ export default function BookingPage() {
             Резервация
           </p>
           <h1 className="font-display text-[clamp(36px,7vw,72px)] font-extrabold leading-[0.95]">
-            Запази <span className="text-cyan-300">45 мин</span> разговор
+            Запази <span className="text-cyan-300">60 мин</span> разговор
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-[#a5b0c8] md:text-lg">
             Без презентации. Без обещания на калпак. Обсъждаме процесите ви, болезнените места и
@@ -70,7 +70,7 @@ export default function BookingPage() {
         {/* Fallback — ако вграденият календар не се зареди (блокери, бавна мрежа) */}
         <div className="mt-4 text-center">
           <a
-            href="https://cal.com/promarketing/consultation"
+            href="https://cal.com/promarketing/konsultacia-georgi"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-full border border-cyan-400/40 px-6 py-3 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-400/10"
@@ -80,7 +80,7 @@ export default function BookingPage() {
         </div>
 
         <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
-          <Card title="45 минути" body="Достатъчно за дълбок разговор, не за повърхностно представяне." />
+          <Card title="60 минути" body="Достатъчно за дълбок разговор, не за повърхностно представяне." />
           <Card title="Без презентации" body="Не сме тук да продаваме. Тук сме да разберем дали ще си помогнем." />
           <Card title="Конкретен план" body="След разговора получаваш писмен план — какво, кога, на каква стойност." />
         </div>
