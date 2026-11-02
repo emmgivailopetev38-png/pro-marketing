@@ -6,6 +6,7 @@ import { parseWhen, speakDate } from "@/lib/voice/when";
 import { upsertBooking, updateBooking } from "@/lib/crm/repository";
 import { listBookings } from "@/lib/crm/list-read";
 import { cancelCalBooking, createCalBooking, isCalWriteConfigured } from "@/lib/cal/create-booking";
+import { activeCloser } from "@/lib/team/closer";
 
 export const dynamic = "force-dynamic";
 
@@ -198,6 +199,11 @@ async function putInCalendar(args: {
     };
   }
 
+  // Клоузърът влиза в поканата ОЩЕ ПРИ ЗАПИСВАНЕТО — календарната задача
+  // минава чак в 07:30/13:30/18:30 и среща, записана час по-рано, би го
+  // подминала. Грешка тук не бива да спира самото записване.
+  const closer = await activeCloser().catch(() => null);
+
   const res = await createCalBooking({
     name: args.name,
     email: args.email,
@@ -205,6 +211,7 @@ async function putInCalendar(args: {
     durationMinutes: args.durationMinutes,
     phone: args.phone,
     notes: args.notes,
+    guests: closer?.email ? [closer.email] : [],
   });
 
   if (!res.ok) {

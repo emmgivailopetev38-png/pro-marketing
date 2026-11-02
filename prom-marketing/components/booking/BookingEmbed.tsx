@@ -6,7 +6,7 @@ import { trackBookingSuccess } from "@/lib/cal/embed";
 const USERNAME = process.env.NEXT_PUBLIC_CAL_USERNAME ?? "promarketing";
 const SLUG = process.env.NEXT_PUBLIC_CAL_EVENT_SLUG ?? "consultation";
 
-export function BookingEmbed({ calLink }: { calLink?: string } = {}) {
+export function BookingEmbed({ calLink, guests }: { calLink?: string; guests?: string[] } = {}) {
   useEffect(() => {
     (async () => {
       const cal = await getCalApi({ namespace: "booking-inline" });
@@ -49,7 +49,10 @@ export function BookingEmbed({ calLink }: { calLink?: string } = {}) {
       namespace="booking-inline"
       calLink={calLink ?? `${USERNAME}/${SLUG}`}
       style={{ width: "100%", height: "auto", minHeight: "560px", overflow: "visible" }}
-      config={{ layout: "month_view", theme: "dark" }}
+      // „guests" предпопълва полето Add guests — така клоузърът получава
+      // поканата с Meet линка в момента на записването, не чак когато мине
+      // календарната задача. Човекът може да го махне, тогава §18 го добавя.
+      config={{ layout: "month_view", theme: "dark", ...(guests?.length ? { guests } : {}) }}
     />
   );
 }
