@@ -20,6 +20,7 @@ import {
   type NoteRow,
 } from "./queue-rules";
 import { seesGiven, seesLead } from "./routing-rules";
+import { ELI_TYPES, summarizeEli, type EliInfo, type EliRow } from "./eli-rules";
 import { FRESH_WINDOW_DAYS, RELEAD_KIND } from "./relead-rules";
 import { loadRotationPool } from "./routing";
 import { loadIvailoClaims } from "./ivailo";
@@ -129,6 +130,18 @@ async function loadAttempts(sb: Sb, ids: string[]): Promise<Map<string, AttemptS
  * `meeting` от екипа). До 01.10.2026 картата четеше само първите и
  * бележката от изхода изчезваше от екрана, макар да беше в базата.
  */
+async function loadEli(sb: Sb, ids: string[]): Promise<Map<string, EliInfo>> {
+  if (ids.length === 0) return new Map();
+  const { data } = await sb
+    .from("contact_activities")
+    .select("contact_id, activity_type, occurred_at, metadata")
+    .in("contact_id", ids)
+    .in("activity_type", [...ELI_TYPES])
+    .order("occurred_at", { ascending: false })
+    .limit(2000);
+  return summarizeEli((data ?? []) as EliRow[]);
+}
+
 async function loadNotes(sb: Sb, ids: string[]): Promise<Map<string, CardNote[]>> {
   if (ids.length === 0) return new Map();
   const cols = "contact_id, activity_type, title, body, occurred_at, created_by, metadata";
@@ -207,7 +220,8 @@ function toLead(
   attempts: Map<string, AttemptSummary>,
   forms: Map<string, FormInfo>,
   notes: Map<string, CardNote[]>,
-  claims: Map<string, IvailoClaim> = new Map()
+  claims: Map<string, IvailoClaim> = new Map(),
+  eli: Map<string, EliInfo> = new Map()
 ): QueueLead {
   const form = forms.get(c.id);
   const att = attempts.get(c.id);
@@ -245,6 +259,7 @@ function toLead(
     offer_key: offer,
     offer_label: offerLabel(offer),
     relead_at: att?.given?.kind === RELEAD_KIND ? att.given.at : null,
+    eli: eli.get(c.id) ?? null,
   };
 }
 
@@ -351,8 +366,12 @@ export async function loadSetterQueue(now: Date = new Date(), viewerId: string |
   const waiting = split.waiting.filter((c) => !givenIds.has(c.id));
   const later = split.later;
   const shown = [...freshContacts, ...cancelledContacts, ...noshowContacts, ...givenContacts, ...retry, ...waiting];
-  const [forms, notes] = await Promise.all([loadForms(sb, shown), loadNotes(sb, shown.map((c) => c.id))]);
-  const lead = (c: ContactLite) => toLead(c, attempts, forms, notes);
+  const [forms, notes, eli] = await Promise.all([
+    loadForms(sb, shown),
+    loadNotes(sb, shown.map((c) => c.id)),
+    loadEli(sb, shown.map((c) => c.id)),
+  ]);
+  const lead = (c: ContactLite) => toLead(c, attempts, forms, notes, undefined, eli);
 
   const booked: BookedRow[] = ((bookedRows ?? []) as Array<Record<string, unknown>>).map((b) => ({
     id: String(b.id),
@@ -394,12 +413,13 @@ export async function searchLeads(raw: string): Promise<QueueLead[]> {
   const found = (data ?? []) as ContactLite[];
   if (found.length === 0) return [];
   const ids = found.map((c) => c.id);
-  const [attempts, forms, notes, claims] = await Promise.all([
+  const [attempts, forms, notes, claims, eli] = await Promise.all([
     loadAttempts(sb, ids),
     loadForms(sb, found),
     loadNotes(sb, ids),
     // Търсачката показва всеки — но човекът на Ивайло излиза с надпис защо не се звъни.
-    loadIvailoClaims(found, { now: new Date() }, sb).catch(() => new Map<string, IvailoClaim>()),
+    loadIvailoClaims(found, { now: new Date() }, sb).catch(() => new Map<string, IvailoClaim>()),,
+    loadEli(sb, ids),
   ]);
-  return found.map((c) => toLead(c, attempts, forms, notes, claims));
+  return found.map((c) => toLead(c, attempts, forms, notes, claims, eli));
 }
