@@ -25,6 +25,40 @@ export interface SalesContact {
   created_at: string;
 }
 
+/** Срещата, както е записана в `bookings` — само полетата, от които се чете какво е казал човекът. */
+export interface BookingLike {
+  business?: string | null;
+  automation_goal?: string | null;
+  timeline?: string | null;
+  /** `raw_payload.notes` — бележката на Ели / Hermes / календарната задача при записването */
+  raw_payload?: unknown;
+}
+
+/**
+ * Какво е казал човекът, когато си е записал срещата — един ред за картата на
+ * продавача (02.11.2026, Георги: „как да видя какво са дали като бележка, като
+ * са се записвали?“). Бележката е първа; дейността, целта и срокът се добавят
+ * само ако бележката вече не ги съдържа (Ели завършва с „· Дейност: …“).
+ */
+export function bookingNote(b: BookingLike, max = 280): string | null {
+  const rawNotes = b.raw_payload && typeof b.raw_payload === "object" ? (b.raw_payload as Record<string, unknown>).notes : null;
+  const note = typeof rawNotes === "string" ? rawNotes.replace(/\s+/g, " ").trim() : "";
+  const parts: string[] = note ? [note] : [];
+  const lower = note.toLowerCase();
+  const extra: Array<[string, string | null | undefined]> = [
+    ["Дейност", b.business],
+    ["Цел", b.automation_goal],
+    ["Кога", b.timeline],
+  ];
+  for (const [label, v] of extra) {
+    const s = (v ?? "").replace(/\s+/g, " ").trim();
+    if (s && !lower.includes(s.toLowerCase().slice(0, 40))) parts.push(`${label}: ${s}`);
+  }
+  if (!parts.length) return null;
+  const out = parts.join(" · ");
+  return out.length > max ? out.slice(0, max - 1).trimEnd() + "…" : out;
+}
+
 export type SalesBucket = "today" | "overdue" | "handed" | "pipeline" | "won" | "lost";
 
 /** Днес/просрочени по обещаното чуване; печеливши и загубени — за последните 30 дни. */

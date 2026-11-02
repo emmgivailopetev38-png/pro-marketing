@@ -107,6 +107,19 @@ export function SalesCard({ row, mode, isOwner = false }: { row: SalesRow; mode:
         {row.next_meeting && (
           <p>
             📅 среща: <b className="text-emerald-300">{when(row.next_meeting)}</b>
+            {row.next_meeting_url && (
+              <>
+                {" · "}
+                <a href={row.next_meeting_url} target="_blank" rel="noreferrer" className="text-[var(--color-accent-cyan)] underline">
+                  ▶ Meet
+                </a>
+              </>
+            )}
+          </p>
+        )}
+        {row.next_meeting_note && (
+          <p className="rounded-lg border border-emerald-400/20 bg-emerald-400/5 px-2 py-1 text-[11px] leading-snug text-emerald-100">
+            📝 При записването: {row.next_meeting_note}
           </p>
         )}
         {row.promises.length > 0 && (
