@@ -48,7 +48,7 @@ export default function BookingPage() {
         </div>
 
         <div className="rounded-2xl border border-cyan-500/15 bg-[#0a0a1f]/60 p-2 md:p-4">
-          <BookingEmbed />
+          <BookingEmbed guests={["george.mandadzhiev@gmail.com"]} />
         </div>
 
         {/* Телефонът на гласовия агент: екранът след лийд формата в Meta води
