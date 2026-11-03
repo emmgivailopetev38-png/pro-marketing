@@ -19,6 +19,16 @@ describe("isFirstMeeting — новите срещи са за клоузъра,
   it("етап след оферта → фолоуъп дори без записи", () => {
     for (const stage of ["proposal", "negotiating", "won", "lost"]) expect(isFirstMeeting({ stage, activities: [], now })).toBe(false);
   });
+  it("истинските етапи от CRM-а след презентация/оферта → фолоуъп (Ивайло, 03.11)", () => {
+    for (const stage of ["presentation_sent", "offer_sent"]) expect(isFirstMeeting({ stage, activities: [], now })).toBe(false);
+  });
+  it("оферта, създадена от Ивайло, или презентация → фолоуъп, дори етапът да е discovery", () => {
+    for (const activity_type of ["offer_created", "offer_ready", "presentation_sent", "payment_received"])
+      expect(isFirstMeeting({ stage: "discovery", activities: [{ activity_type, occurred_at: "2026-10-08T10:00:00Z" }], now })).toBe(false);
+  });
+  it("ред в offers → фолоуъп, без значение от етапа и записите", () => {
+    expect(isFirstMeeting({ stage: "contacted", activities: [], hasOffer: true, now })).toBe(false);
+  });
   it("обаждане или Viber преди срещата не правят фолоуъп", () => {
     expect(isFirstMeeting({ stage: "contacted", activities: [{ activity_type: "call", occurred_at: "2026-10-26T09:24:00Z" }, { activity_type: "viber_sent", occurred_at: "2026-10-29T06:18:00Z" }], now })).toBe(true);
   });

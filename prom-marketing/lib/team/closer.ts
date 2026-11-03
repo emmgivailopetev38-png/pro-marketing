@@ -1,7 +1,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 import { ASSIGN_TYPE } from "./queue-rules";
-import { isFirstMeeting } from "./closer-rules";
+import { FOLLOWUP_ACTIVITY_TYPES, isFirstMeeting } from "./closer-rules";
 import { listMembers } from "./repository";
 import type { TeamMember } from "./types";
 
@@ -38,13 +38,22 @@ export async function assignMeetingToCloser(args: {
   if (!c) return null;
   if (c.owner_id) return c.owner_id === closer.id ? closer : null;
   // Само първата среща е за клоузъра (Ивайло, 01.11.2026): фолоуъп → остава при Ивайло.
-  const { data: prior } = await sb
-    .from("contact_activities")
-    .select("activity_type, occurred_at")
-    .eq("contact_id", args.contactId)
-    .in("activity_type", ["meeting", "offer", "offer_sent", "invoice", "payment"])
-    .limit(50);
-  if (!isFirstMeeting({ stage: (c as { stage?: string | null }).stage ?? null, activities: (prior ?? []) as { activity_type: string; occurred_at: string }[] })) return null;
+  // Има ли оферта или среща с Ивайло — човекът е негов (Ивайло, 03.11.2026), клоузърът не го получава.
+  const [{ data: prior }, { count: offers }] = await Promise.all([
+    sb
+      .from("contact_activities")
+      .select("activity_type, occurred_at")
+      .eq("contact_id", args.contactId)
+      .in("activity_type", ["meeting", ...FOLLOWUP_ACTIVITY_TYPES])
+      .limit(50),
+    sb.from("offers").select("id", { count: "exact", head: true }).eq("contact_id", args.contactId),
+  ]);
+  const first = isFirstMeeting({
+    stage: (c as { stage?: string | null }).stage ?? null,
+    activities: (prior ?? []) as { activity_type: string; occurred_at: string }[],
+    hasOffer: (offers ?? 0) > 0,
+  });
+  if (!first) return null;
   const { error } = await sb.from("contacts").update({ owner_id: closer.id }).eq("id", args.contactId);
   if (error) return null;
   await sb.from("contact_activities").insert({
