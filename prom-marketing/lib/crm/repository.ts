@@ -1683,12 +1683,25 @@ export async function upsertBooking(input: {
     return { id: null, created: false, error: error?.message ?? "insert failed" };
   }
 
-  // Срещата се отразява и в картона на контакта, ако го има по имейл или телефон.
-  const { data: contact } = await sb
-    .from("contacts")
-    .select("id")
-    .eq("email", payload.attendee_email as string)
-    .maybeSingle();
+  // Срещата се отразява и в картона на контакта — по истински имейл, иначе по телефон.
+  // Ели не пита за имейл (от 28.10): часът идва с `bez-imeil@…` или `…+glas-<номер>@…`,
+  // а търсенето само по имейл оставяше картона без среща и без клоузър (03.11.2026).
+  const attendeeEmail = payload.attendee_email as string;
+  const realMail = /^(bez-imeil@promarketing\.pw|unknown@unknown)$|\+glas-/.test(attendeeEmail) ? null : attendeeEmail;
+  let contact: { id: string } | null = null;
+  if (realMail) {
+    const { data: byEmail } = await sb.from("contacts").select("id").eq("email", realMail).maybeSingle();
+    contact = byEmail;
+  }
+  if (!contact && payload.attendee_phone) {
+    const { data: byPhone } = await sb
+      .from("contacts")
+      .select("id")
+      .in("phone", phoneVariants(payload.attendee_phone as string))
+      .order("created_at", { ascending: true })
+      .limit(1);
+    contact = byPhone?.[0] ?? null;
+  }
   if (contact && input.log_activity !== false) {
     await logActivity(sb, {
       contact_id: contact.id,
@@ -1700,14 +1713,14 @@ export async function upsertBooking(input: {
     }).catch(() => {});
   }
 
-  // Ð¡ÑÐµÑÐ°ÑÐ° Ðµ Ð½Ð° ÐºÐ»Ð¾ÑÐ·ÑÑÐ°: ÐºÐ°ÑÑÐ¾Ð½ÑÑ Ð¾ÑÐ¸Ð²Ð° Ð² Ð½ÐµÐ³Ð¾Ð²Ð¸ÑÐµ âÐÑÐ¾Ð´Ð°Ð¶Ð±Ð¸ Â· Ð¼Ð¾Ð¸ÑÐµ ÑÐ¾ÑÐ°â
-  // (lib/team/closer.ts). ÐÐ°Ð¶Ð¸ Ð·Ð° Ð²ÑÐ¸ÑÐºÐ¸ Ð²ÑÐ¾Ð´Ð¾Ð²Ðµ â Cal.com ÑÐ¸Ð½ÑÑÐ¾Ð½, ÐµÐºÐ¸Ð¿Ð°, Ð³Ð»Ð°ÑÐ¾Ð²Ð¸Ñ Ð°Ð³ÐµÐ½Ñ.
+  // Срещата е на клоузъра: картонът отива в неговите „Продажби · моите хора“
+  // (lib/team/closer.ts). Важи за всички входове — Cal.com синхрон, екипа, гласовия агент.
   if (contact) {
     const { assignMeetingToCloser } = await import("@/lib/team/closer");
     await assignMeetingToCloser({
       contactId: contact.id,
-      reason: `Ð¡ÑÐµÑÐ° Ð½Ð° ${when.toISOString().slice(0, 16).replace("T", " ")} UTC (${input.source ?? "hermes"})`,
-      createdBy: "ÑÐ¸ÑÑÐµÐ¼Ð°",
+      reason: `Среща на ${when.toISOString().slice(0, 16).replace("T", " ")} UTC (${input.source ?? "hermes"})`,
+      createdBy: "система",
     }).catch(() => null);
   }
 

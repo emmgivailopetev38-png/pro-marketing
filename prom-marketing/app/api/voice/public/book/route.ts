@@ -11,6 +11,8 @@ import { sendTelegram } from "@/lib/notifications/telegram";
 import { identityForSessionKey, phoneKey } from "@/lib/voice/quota";
 import { checkBookingAllowed } from "@/lib/voice/booking-guard";
 import { escapeHtml as esc } from "@/lib/text/escape";
+import { assignMeetingToCloser, closerForMeeting } from "@/lib/team/closer";
+import { findContactByEmailOrPhone } from "@/lib/team/cancelled";
 
 export const dynamic = "force-dynamic";
 
@@ -171,6 +173,13 @@ export async function POST(request: Request) {
 
     const notes = [d.tema, d.deynost ? `Дейност: ${d.deynost}` : null].filter(Boolean).join(" · ") || null;
 
+    // Чия е срещата: първата е на клоузъра — той влиза в поканата още сега, а
+    // картонът става негов (иначе не го вижда в „Продажби“). Фолоуъп или оферта
+    // от Ивайло → остава при Ивайло. Картонът се търси и по телефон: Ели не пита
+    // за имейл, а търсенето само по имейл не намираше никого (03.11.2026).
+    const known = await findContactByEmailOrPhone(email, telefon).catch(() => null);
+    const closer = await closerForMeeting(known?.id ?? null).catch(() => null);
+
     // Календарът пръв: ако той откаже, в CRM-а не бива да остане среща,
     // за която Ивайло мисли, че е потвърдена.
     let inCalendar = false;
@@ -191,6 +200,7 @@ export async function POST(request: Request) {
         startISO: start.toISOString(),
         phone: telefon,
         notes,
+        guests: closer?.email ? [closer.email] : [],
       });
       inCalendar = res.ok;
       meetingUrl = res.meetingUrl;
@@ -221,7 +231,7 @@ export async function POST(request: Request) {
 
     // Картонът на човека — за да не остане срещата да виси без контакт.
     if (email || telefon) {
-      await upsertContactAndLog({
+      const saved = await upsertContactAndLog({
         full_name: d.ime,
         email,
         phone: telefon,
@@ -236,7 +246,18 @@ export async function POST(request: Request) {
           created_by: "voice_reception",
           metadata: { in_calendar: inCalendar, cal_error: calError, when: start.toISOString() },
         },
-      }).catch((e) => console.error("[voice/public/book] contact", e));
+      }).catch((e) => {
+        console.error("[voice/public/book] contact", e);
+        return null;
+      });
+      // Нов човек няма картон преди разговора — става негов чак сега.
+      if (closer && saved?.contact_id) {
+        await assignMeetingToCloser({
+          contactId: saved.contact_id,
+          reason: `Първа консултация ${speakDay(start)} в ${speakTime(start)} (записана от Ели)`,
+          createdBy: "voice_reception",
+        }).catch(() => null);
+      }
     }
 
     await notify(d, start, inCalendar ? null : calError ?? (email ? "Cal.com отказа" : telefon ? "Cal.com отказа" : "няма телефон"));
@@ -252,7 +273,7 @@ export async function POST(request: Request) {
         when: start.toISOString(),
         spoken: email
           ? `${moved}Готово — ${when}. Потвърждението вече е на ${email}, там е и линкът за срещата.`
-          : `${moved}Готово — ${when}, с Ивайло. Потвърждението с линка ще ви дойде във Viber, на този номер.`,
+          : `${moved}Готово — ${when}, ${closer ? `с ${spokenName(closer.full_name)} от екипа на Ивайло` : "с Ивайло"}. Потвърждението с линка ще ви дойде във Viber, на този номер.`,
       });
     }
 
@@ -294,6 +315,12 @@ async function notify(
     d.tema ? `💬 ${esc(d.tema)}` : null,
   ].filter(Boolean);
   await sendTelegram(lines.join("\n")).catch(() => {});
+}
+
+/** Как Ели казва клоузъра: „Георги“, не „Джордж“ — така е в поканата и в сценария ѝ. */
+function spokenName(fullName: string): string {
+  const first = fullName.trim().split(/\s+/)[0] ?? "";
+  return first === "Джордж" ? "Георги" : first;
 }
 
 /** `ime+glas-359888123456@gmail.com` — часът без имейл пак влиза в календара. */
