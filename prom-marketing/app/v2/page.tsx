@@ -18,6 +18,7 @@ import { NavbarV2 } from "@/components/landing/v2/NavbarV2";
 import { HeroV3 } from "@/components/landing/v2/HeroV3";
 import { ClientsV2 } from "@/components/landing/v2/ClientsV2";
 import { DovolniKlientiV3 } from "@/components/landing/v2/DovolniKlientiV3";
+import { UspehiV3 } from "@/components/landing/v2/UspehiV3";
 import { ConversionFloats } from "@/components/landing/v2/ConversionFloats";
 import { BookingConfetti } from "@/components/effects/BookingConfetti";
 import { Toaster } from "@/components/ui/sonner";
@@ -55,6 +56,8 @@ export default function HomePageV2() {
         {/* 25.10.2026 — истински отзиви дословно, веднага след героя (lib/site/otzivi.ts). */}
         <DovolniKlientiV3 />
         <ClientsV2 />
+        {/* 03.11.2026 — „Резултати, които се виждат": числа от CRM + 3 видеа → /uspehi (lib/site/uspehi.ts). */}
+        <UspehiV3 />
         <ServicesV2 />
         <VideoGalleryV2 />
         <ExpertV2 />
