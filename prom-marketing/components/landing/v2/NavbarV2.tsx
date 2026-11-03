@@ -49,6 +49,7 @@ import { track } from "@/lib/analytics/track";
 const NAV: { href: string; label: string; isNew?: boolean; soon?: boolean }[] = [
   { href: "/ai-avtomatizacia", label: "Услуги" },
   { href: "/#klienti", label: "Клиенти" },
+  { href: "/uspehi", label: "Успехи", isNew: true },
   { href: "https://petevai.com", label: "Petev.ai", isNew: true },
   { href: "/rakovodstva", label: "Ръководства" },
   { href: "/#kontakti", label: "Контакти" },

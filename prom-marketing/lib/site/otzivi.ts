@@ -70,10 +70,10 @@ export const OTZIVI: Otziv[] = [
 
 /** Истински броеве от Supabase, проверени на датата `kam`. */
 export const CHISLA = {
-  klienti: 21,
-  sreshtiOtAvgust: 45,
+  klienti: 23,
+  sreshtiOtAvgust: 56,
   mesechniUslugi: 7,
-  kam: "25.10.2026",
+  kam: "03.11.2026", // CRM (Supabase) 03.11: contacts.stage=won 23 · bookings completed от 21.08 = 56
 } as const;
 
 export function redSChisla(c = CHISLA): string {

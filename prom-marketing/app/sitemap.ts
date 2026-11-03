@@ -32,6 +32,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: p.priority,
     })),
 
+    // 03.11.2026 — успехите: числа, видеа, зад кадър.
+    { url: abs("/uspehi"), lastModified: now, changeFrequency: "weekly" as const, priority: 0.8 },
+
     // Хъбът на ръководствата и всяко ръководство. Идват директно от
     // lib/seo/guides.ts — ново ръководство влиза в картата само.
     {
