@@ -9,12 +9,15 @@
  * от линк към продукт, продуктова обработка, без достъп до кода на сайта (Laravel), с одобрение на всичко от Галина.
  * Цена (Ивайло, на срещата): 800 € без ДДС (960 € с ДДС) еднократно, общо за 3-те компютъра + инсталацията + обучението.
  * Плащане 50 % предварително, 50 % след като системата работи. Абонаментите на AI програмите са на нейно име.
- * Без цифри за резултати и без отзиви. Обръщението е на „ти“. Примерното видео за рокля е прикачено към писмото.
+ * Без цифри за резултати и без отзиви. Обръщението е на „ти“. Примерното видео за рокля (AI, 9:16) е на страницата като плейър; в PDF-а — само ред с линка.
  */
 
 const PDF = "/oferta/kosara/ProMarketing-za-Kosara.pdf";
 const TEL = "tel:+359877399963";
 const VIBER = "viber://chat?number=%2B359877399963";
+const PAGE = "https://promarketing.pw/oferta/kosara";
+const VIDEO = "/oferta/kosara/kosara-rokla-video.mp4";
+const POSTER = "/oferta/kosara/kosara-rokla-poster.jpg";
 
 const CSS = `
 /* сайтът е тъмен (color-scheme: dark в globals.css) — тази страница е светла докрай,
@@ -86,6 +89,15 @@ html:has(.fh-doc),body:has(.fh-doc){background:#F3F6F7;color-scheme:light}
 .fh-doc .talk .who.k{color:#9CC9D6}
 .fh-doc .talk .res{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 .fh-doc .talk .res span{font-family:var(--fh-mono),monospace;font-size:12.5px;border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:5px 11px;color:#DCE7EA}
+
+/* примерното видео */
+.fh-doc .vid{background:var(--ink);color:#EAF1F3;border-radius:16px;padding:24px 26px 22px;margin-top:18px;text-align:center}
+.fh-doc .vid h3{color:#fff;font-size:17px;line-height:1.35;margin:0 auto 8px;max-width:52ch}
+.fh-doc .vid .vidnote{font-size:14.5px;line-height:1.55;color:#BFD7DD;max-width:62ch;margin:0 auto 18px}
+.fh-doc .vid video{display:block;width:100%;max-width:360px;aspect-ratio:9/16;margin:0 auto;border-radius:14px;background:#000;object-fit:cover}
+.fh-doc .vid .vidai{font-size:13px;line-height:1.5;color:#BFD7DD;max-width:50ch;margin:12px auto 0}
+.fh-doc .vid .vidlink{display:none}
+.fh-doc .vid a{color:#9CC9D6}
 
 /* цени */
 .fh-doc .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--surface);border:1px solid var(--rule);border-radius:14px;overflow:hidden;font-size:14.5px}
@@ -177,6 +189,7 @@ html:has(.fh-doc),body:has(.fh-doc){background:#F3F6F7;color-scheme:light}
   .fh-doc .flow,.fh-doc .cat,.fh-doc .cat.three,.fh-doc .rules,.fh-doc .days,.fh-doc .facts,.fh-doc .countries,.fh-doc .need{grid-template-columns:1fr}
   .fh-doc .masthead{padding:36px 0 26px}
   .fh-doc .closing{padding:24px 20px}
+  .fh-doc .vid{padding:20px 16px 18px}
   .fh-doc .pull p{font-size:18px}
   .fh-doc .tbl tbody th{width:34%}
 }
@@ -211,6 +224,13 @@ html:has(.fh-doc),body:has(.fh-doc){background:#F3F6F7;color-scheme:light}
   .fh-doc .fstep h3{font-size:12px}
   .fh-doc .fstep p{font-size:10.5px}
   .fh-doc .talk{grid-template-columns:1fr 1fr;padding:12px 14px;gap:8px 16px;margin-top:10px}
+  .fh-doc .vid{padding:12px 14px;margin-top:10px;text-align:left;break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .fh-doc .vid h3{font-size:12.5px;margin:0 0 4px;max-width:none}
+  .fh-doc .vid .vidnote{font-size:11px;margin:0 0 6px;max-width:none}
+  .fh-doc .vid .vidwrap{display:none}
+  .fh-doc .vid .vidlink{display:block;font-size:11.5px;font-weight:600;color:#fff;margin:0 0 4px}
+  .fh-doc .vid .vidlink a{color:#9CC9D6}
+  .fh-doc .vid .vidai{font-size:10.5px;margin:0;max-width:none}
   .fh-doc .talk h3{font-size:12.5px;margin-bottom:4px}
   .fh-doc .talk .line{font-size:11.5px;padding:3px 0}
   .fh-doc .talk .who{font-size:10px}
@@ -434,25 +454,30 @@ export default function KosaraOfertaPage() {
             </article>
           ))}
         </div>
-        <div className="talk">
-          <div>
-            <h3>Пример: видео за рокля от kosara.bg</h3>
-            <p className="note" style={{ color: "#BFD7DD", marginTop: 0 }}>
-              Към писмото с офертата е прикачено примерно видео за рокля от kosara.bg — това е резултатът от един линк
-              към продукт. Видеата за твоите продукти са с реалистични деца-модели в дрехата, без глас, само със
-              субтитри.
-            </p>
+        <div className="vid">
+          <h3>Пример: видео за роклята от kosara.bg — направено от линка на продукта</h3>
+          <p className="vidnote">
+            Един линк към продукта — и готово видео за мрежите. Така ще изглеждат видеата за твоите продукти:
+            реалистични деца-модели в дрехата, без глас, само със субтитри.
+          </p>
+          <div className="vidwrap">
+            <video
+              controls
+              playsInline
+              preload="metadata"
+              poster={POSTER}
+              aria-label="Примерно видео за детска рокля от kosara.bg, направено от линка на продукта"
+            >
+              <source src={VIDEO} type="video/mp4" />
+              Браузърът ти не показва видео — свали го от <a href={VIDEO}>тук</a>.
+            </video>
           </div>
-          <div>
-            <h3>Какво стои зад него</h3>
-            <div className="res">
-              <span>вход: линк към роклята</span>
-              <span>изход: готово видео за мрежите</span>
-              <span>субтитри и музика</span>
-              <span>надпис „AI“ върху видеото</span>
-              <span>насрочване при твое „да“</span>
-            </div>
-          </div>
+          <p className="vidlink">
+            Видеото: <a href={PAGE}>promarketing.pw/oferta/kosara</a>
+          </p>
+          <p className="vidai">
+            🤖 Видеото е генерирано с AI (хората и сцената са синтетични; роклята е истинският продукт)
+          </p>
         </div>
       </section>
 
