@@ -29,6 +29,7 @@ import {
 import { PipelineBars } from "@/components/admin/charts/PipelineBars";
 import { DonutChart } from "@/components/admin/charts/DonutChart";
 import { Sparkline, type SparklinePoint } from "@/components/admin/charts/Sparkline";
+import { loadPari } from "@/lib/crm/pari-data";
 
 export const dynamic = "force-dynamic";
 
@@ -127,6 +128,10 @@ export default async function AdminDashboard() {
         .select("id, status, scheduled_at, attendee_name, attendee_email, business, meeting_url")
     );
 
+  // „Пари · равносметка“ — кредитите, падежите и тегленото в брой (по банката).
+  // Тръгва заедно с останалото; ако таблиците ги няма, таблото не пада.
+  const pariPromise = loadPari(3).catch(() => null);
+
   const [contactsRes, activitiesRes, bookingsRes, metaLeadsRes, invoicesRes, manualReviewRes, paymentsRes, expensesRes, metaReportsRes, gpsRes, recurringRes, offersRes, projectsRes] = await Promise.all([
     // Беше select("*") — теглеше и `notes` (свободен текст, може да е дълъг),
     // `phone` и `source_ref` за ВСЕКИ контакт, при положение че таблото не
@@ -176,6 +181,10 @@ export default async function AdminDashboard() {
     supabase.from("offers").select("status, amount_gross, valid_until"),
     supabase.from("projects").select("status, due_date, amount_gross"),
   ]);
+
+  const pari = await pariPromise;
+  const pariSoon = pari ? pari.upcoming.filter((u) => u.daysLeft <= 7).reduce((s, u) => s + u.amount, 0) : 0;
+  const pariFocus = pari ? ([...pari.summaries].reverse().find((s) => s.clientIncome > 0 || s.out > 0) ?? null) : null;
 
   const offersAll = (offersRes.data ?? []) as Array<{ status: string; amount_gross: number | null; valid_until: string | null }>;
   const projectsAll = (projectsRes.data ?? []) as Array<{ status: string; due_date: string | null; amount_gross: number | null }>;
@@ -581,6 +590,27 @@ export default async function AdminDashboard() {
             <KpiCard label="Meta лидове YTD" value={metaLeadsYtd || "—"} hint={`Разход: ${metaSpendHint} · отделни валути`} color="#1877F2" href="/admin/meta-ads" />
           </div>
         </section>
+
+        {/* ─── Пари · равносметка ──────────────────────────────────────── */}
+        {pari && (
+          <section>
+            <h2 className="hud mb-3">Пари · кредити, падежи, теглено в брой</h2>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <KpiCard label="Дълг общо" value={formatMoney(pari.totals.payableCompany + pari.totals.payablePersonal)} hint={`фирма ${formatMoney(pari.totals.payableCompany)} · лично ${formatMoney(pari.totals.payablePersonal)}`} color="#e08a3c" href="/admin/pari" />
+              <KpiCard label="Плащания до 7 дни" value={formatMoney(pariSoon)} hint={`${pari.upcoming.filter((u) => u.daysLeft <= 7).length} падежа · вноски ${formatMoney(pari.totals.installmentsCompany + pari.totals.installmentsPersonal)}/мес`} color={pariSoon > 0 ? "#e5c069" : "#35c08c"} href="/admin/pari" />
+              <KpiCard label="Ни дължат" value={formatMoney(pari.totals.receivable)} hint={pari.totals.potential > 0 ? `+ ${formatMoney(pari.totals.potential)} за договаряне` : "вземания по договори"} color="#35c08c" href="/admin/pari" />
+              <KpiCard label="Теглени в брой" value={formatMoney(pariFocus?.cashWithdrawn ?? 0)} hint={pariFocus ? `${pariFocus.month} · от клиенти ${formatMoney(pariFocus.clientIncome)}` : "—"} color={(pariFocus?.cashWithdrawn ?? 0) > 1000 ? "#e2574e" : "#d9a74a"} href="/admin/pari" />
+            </div>
+            {pari.signals.filter((s) => s.level === "red").length > 0 && (
+              <p className="mt-2 text-xs text-red-300">
+                ⚠️ {pari.signals.filter((s) => s.level === "red").map((s) => s.title).join(" · ")}{" "}
+                <Link href="/admin/pari" className="underline">
+                  виж
+                </Link>
+              </p>
+            )}
+          </section>
+        )}
 
         {/* ─── Ключови метрики ─────────────────────────────────────────── */}
         <section>
