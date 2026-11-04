@@ -216,9 +216,10 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         let meetingUrl: string | null = null;
         let calUid: string | null = null;
         if (wantInvite && email && isCalWriteConfigured()) {
-          // Клоузърът получава поканата с Meet линка в своя календар — освен ако сам записва.
+          // Клоузърът получава поканата с Meet линка в своя календар — и когато сам записва:
+          // без поканата срещата я няма в календара му и в Meet той чака да го пуснат (04.11, Благой).
           const closer = await activeCloser().catch(() => null);
-          const guests = closer && closer.email && closer.id !== actor.member?.id ? [closer.email] : [];
+          const guests = closer && closer.email ? [closer.email] : [];
           const cal = await createCalBooking({
             name,
             email,
