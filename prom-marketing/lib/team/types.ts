@@ -55,7 +55,7 @@ export const TEAM_MODULE_LABEL: Record<TeamModule, string> = {
   komisioni: "Комисионни",
   napredak: "Напредък · моите числа",
   belezhki: "Бележки · за системата",
-  demo: "Демо · JARVIS, Палуба, Гласово демо",
+  demo: "Демо · системата, сайтът, видеата",
 };
 
 export const TEAM_MODULE_HREF: Record<TeamModule, string> = {
@@ -69,7 +69,7 @@ export const TEAM_MODULE_HREF: Record<TeamModule, string> = {
   komisioni: "/ekip/komisioni",
   napredak: "/ekip/napredak",
   belezhki: "/ekip/belezhki",
-  demo: "/admin/jarvis",
+  demo: "/ekip/demo",
 };
 
 export interface TeamPermissions {

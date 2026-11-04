@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { loadReview, saveGeneralComment, upsertAnswers } from "@/lib/pregled/repository";
-import { isValidKey } from "@/lib/pregled/types";
+import { isDemoKey, isValidKey } from "@/lib/pregled/types";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +39,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ key
 
   const loaded = await loadReview(key);
   if (!loaded) return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
+  if (isDemoKey(key)) return NextResponse.json({ ok: true, saved: parsed.data.answers.length });
 
   let saved = 0;
   if (parsed.data.answers.length) {

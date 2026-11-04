@@ -61,3 +61,12 @@ export const KEY_PATTERN = /^[a-z0-9][a-z0-9-]{7,79}$/;
 export function isValidKey(key: string): boolean {
   return KEY_PATTERN.test(key);
 }
+
+/**
+ * Демо пакет за показване пред клиент (04.11.2026, клоузърът Георги): ключ
+ * „demo-…“. Бутоните работят на екрана, но нищо не се записва и никой не
+ * получава имейл, Telegram или ред в CRM-а — следващият гледа чисто демо.
+ */
+export function isDemoKey(key: string): boolean {
+  return key.startsWith("demo-");
+}
