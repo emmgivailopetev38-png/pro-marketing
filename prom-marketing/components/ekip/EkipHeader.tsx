@@ -20,6 +20,7 @@ const SHORT: Record<string, string> = {
   komisioni: "🏆 Комисионни",
   napredak: "📈 Напредък",
   belezhki: "📝 Бележки",
+  demo: "🎬 Демо",
 };
 
 /**

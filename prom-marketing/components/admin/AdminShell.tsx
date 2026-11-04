@@ -142,7 +142,10 @@ const DEMO_GROUPS: LinkGroup[] = [
   },
   {
     label: "Моята зона",
-    items: [{ href: "/ekip/prodazhbi", label: "Към моите хора", icon: Users }],
+    items: [
+      { href: "/ekip/demo", label: "Всички демота", icon: Clapperboard },
+      { href: "/ekip/prodazhbi", label: "Към моите хора", icon: Users },
+    ],
   },
 ];
 

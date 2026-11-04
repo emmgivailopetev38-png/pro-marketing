@@ -6,7 +6,7 @@ import { escapeHtml } from "@/lib/email/escape";
 import { sendTelegram } from "@/lib/notifications/telegram";
 import { loadReview, markSubmitted, saveGeneralComment, upsertAnswers } from "@/lib/pregled/repository";
 import { buildSummary, summaryHeadline, summaryText, type Summary, type SummaryLine } from "@/lib/pregled/summary";
-import { isValidKey } from "@/lib/pregled/types";
+import { isDemoKey, isValidKey } from "@/lib/pregled/types";
 
 export const dynamic = "force-dynamic";
 
@@ -98,6 +98,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ key
 
   let loaded = await loadReview(key);
   if (!loaded) return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
+
+  // Демото отговаря като истинското, но не пише нищо и не праща нищо.
+  if (isDemoKey(key)) {
+    const now = new Date().toISOString();
+    const rows = (parsed.data.answers ?? []).map((a) => ({ item_code: a.code, verdict: a.verdict, comment: a.comment, updated_at: now }));
+    const s = buildSummary(loaded.review.items, rows);
+    return NextResponse.json({ ok: true, notified: true, approved: s.approved.length, rejected: s.rejected.length, pending: s.pending.length, total: s.total });
+  }
 
   try {
     if (parsed.data.answers?.length) {
