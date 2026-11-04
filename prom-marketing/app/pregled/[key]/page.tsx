@@ -1,6 +1,6 @@
 import { PregledForm } from "@/components/pregled/PregledForm";
 import { loadReview, touchView } from "@/lib/pregled/repository";
-import { isValidKey } from "@/lib/pregled/types";
+import { isDemoKey, isValidKey } from "@/lib/pregled/types";
 
 /**
  * /pregled/<ключ> — клиентът гледа клиповете и ги одобрява с по един бутон.
@@ -202,7 +202,9 @@ export default async function PregledPage({ params }: { params: Promise<{ key: s
             <span>
               <b>{govoreshti}</b> с български глас
             </span>
-            <span>Изборът Ви се пази — може да спрете и да продължите по-късно</span>
+            <span>
+              {isDemoKey(review.key) ? "Демо — нищо не се записва и не се изпраща" : "Изборът Ви се пази — може да спрете и да продължите по-късно"}
+            </span>
           </p>
         </header>
 
