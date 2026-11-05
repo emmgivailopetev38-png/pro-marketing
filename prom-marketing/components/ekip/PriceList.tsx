@@ -37,7 +37,7 @@ export function PriceList() {
       ))}
 
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-        <h2 className="text-base font-semibold">Пакети</h2>
+        <h2 className="text-base font-semibold">Стълбата</h2>
         <p className="mt-1 text-[11px] text-amber-200">{BUNDLES_NOTE}</p>
         <div className="mt-3 grid gap-2 sm:grid-cols-3">
           {BUNDLES.map((b) => (

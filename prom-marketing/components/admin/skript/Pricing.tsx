@@ -149,7 +149,7 @@ export function Pricing() {
       {/* ---- пакетите ---- */}
       <div>
         <p className="mb-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--color-accent-violet)]">
-          Пакетите
+          Стълбата
         </p>
         <h3 className="mb-1 text-xl font-bold text-[var(--color-text-primary)]">
           Най-силният ход: не продавай услуга, продавай ниво
