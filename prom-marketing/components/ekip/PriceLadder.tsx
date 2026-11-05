@@ -88,18 +88,25 @@ export function PriceLadder() {
               <p className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-[var(--color-text-tertiary)]">
                 На вноски · TBI
               </p>
-              <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+              <ul className="mt-1.5 space-y-1">
                 {l.installments.map((v) => (
-                  <div key={v.term} className="rounded-xl bg-black/30 px-2 py-1.5 text-center">
-                    <p className="text-[10px] text-[var(--color-text-tertiary)]">{v.term}</p>
-                    <p className="font-mono text-[15px] font-bold leading-tight text-[var(--color-text-primary)]">
+                  <li
+                    key={v.term}
+                    className="grid grid-cols-[52px_1fr_auto] items-baseline gap-2 rounded-xl bg-black/30 px-2.5 py-1.5 whitespace-nowrap"
+                  >
+                    <span className="text-[11px] text-[var(--color-text-tertiary)]">{v.term}</span>
+                    <span className="font-mono text-[16px] font-bold leading-none text-[var(--color-text-primary)]">
                       {v.monthly}
-                    </p>
-                    <p className="text-[9.5px] text-[var(--color-text-tertiary)]">/мес · общо {v.total}</p>
-                    <p className="text-[9px] text-[var(--color-text-tertiary)]">(23,79 %: {v.alt})</p>
-                  </div>
+                      <span className="ml-1 font-sans text-[10px] font-normal text-[var(--color-text-tertiary)]">/мес</span>
+                    </span>
+                    <span className="text-right text-[9.5px] leading-tight text-[var(--color-text-tertiary)]">
+                      общо {v.total}
+                      <br />
+                      <span className="opacity-80">23,79 %: {v.alt}</span>
+                    </span>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
 
             <p className="mt-4 text-[12px] italic text-[var(--color-text-secondary)]">{l.who}</p>
