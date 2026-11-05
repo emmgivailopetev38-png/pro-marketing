@@ -9,6 +9,7 @@ import { SERVICE_TYPES, SERVICE_TYPE_LABEL } from "@/lib/team/service-types";
 import type { SalesRow } from "@/lib/team/sales";
 import type { EkipActionResult } from "@/lib/team/types";
 import { ago } from "@/lib/team/time";
+import { briefLines, type BriefSegment } from "@/lib/team/brief-rules";
 
 /**
  * Един картон в таблото на продавача. Отгоре кой е и докъде е, после
@@ -40,6 +41,53 @@ function Submit({ children, tone = "plain" }: { children: React.ReactNode; tone?
     <button type="submit" disabled={pending} className={`rounded-xl border px-3 py-2 text-xs font-semibold transition disabled:opacity-50 ${cls}`}>
       {pending ? "…" : children}
     </button>
+  );
+}
+
+function Seg({ s }: { s: BriefSegment }) {
+  if (s.kind === "link")
+    return (
+      <a href={s.href} target="_blank" rel="noreferrer" className="break-all text-[var(--color-accent-cyan)] underline">
+        {s.label}
+      </a>
+    );
+  if (s.kind === "bold") return <b className="text-[var(--color-text-primary)]">{s.text}</b>;
+  return <>{s.text}</>;
+}
+
+/**
+ * Брифът от Ивайло (05.11.2026: „всичко да е в системата, в неговата система да си е“):
+ * кой е човекът, оферта, възражения дословно с линк към записа, къде се изгуби,
+ * как да го отвори. Свит по подразбиране — отваря се с един клик на картата.
+ */
+function BriefBox({ brief }: { brief: NonNullable<SalesRow["brief"]> }) {
+  const lines = briefLines(brief.body);
+  return (
+    <details className="rounded-xl border border-amber-400/30 bg-amber-400/5 px-3 py-2">
+      <summary className="cursor-pointer select-none text-xs font-semibold text-amber-200">
+        {brief.title} · {when(brief.at)}
+      </summary>
+      <div className="mt-2 max-h-[28rem] space-y-1 overflow-y-auto text-[12px] leading-snug text-[var(--color-text-secondary)]">
+        {lines.map((l, i) => {
+          if (l.kind === "blank") return <div key={i} className="h-1" />;
+          if (l.kind === "h")
+            return (
+              <p key={i} className={`font-semibold text-[var(--color-text-primary)] ${l.level === 3 ? "mt-2 text-[12px]" : "mt-3 text-[13px]"}`}>
+                {l.segments.map((s, j) => (
+                  <Seg key={j} s={s} />
+                ))}
+              </p>
+            );
+          return (
+            <p key={i} className="whitespace-pre-wrap break-words">
+              {l.segments.map((s, j) => (
+                <Seg key={j} s={s} />
+              ))}
+            </p>
+          );
+        })}
+      </div>
+    </details>
   );
 }
 
@@ -136,6 +184,7 @@ export function SalesCard({ row, mode, isOwner = false }: { row: SalesRow; mode:
             {row.last_activity.by ?? "—"} · {row.last_activity.title} · {ago(row.last_activity.at)}
           </p>
         )}
+        {row.brief && <BriefBox brief={row.brief} />}
       </div>
 
       {!closed && (
