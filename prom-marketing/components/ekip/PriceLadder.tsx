@@ -1,13 +1,14 @@
 import { ArrowRight, Check } from "lucide-react";
-import { LADDER_FLOW, LEVELS, PRICES_UPDATED } from "@/components/admin/skript/pricing-data";
+import { LADDER_FLOW, LEVELS, PRICES_UPDATED, TBI_NOTE } from "@/components/admin/skript/pricing-data";
 
 /**
- * Стълбата: трите нива на обучението като стъпала (I → II → III) и лентата
- * „как се движи клиентът“. Една и съща при Джордж (/ekip/ceni) и при Ивайло
- * (/admin/skript → Цени). Без състояние — само данни от pricing-data.ts.
+ * Стълбата: трите нива на обучението като стъпала (I → II → III), вноските на
+ * TBI за 6 / 12 / 24 месеца и лентата „как се движи клиентът“. Една и съща при
+ * Джордж (/ekip/ceni) и при Ивайло (/admin/skript → Цени). Без състояние — само
+ * данни от pricing-data.ts.
  */
 export function PriceLadder() {
-  const heights = ["md:min-h-[460px]", "md:min-h-[510px]", "md:min-h-[560px]"];
+  const heights = ["md:min-h-[520px]", "md:min-h-[570px]", "md:min-h-[620px]"];
   return (
     <section className="space-y-5">
       <div>
@@ -81,7 +82,25 @@ export function PriceLadder() {
             <p className="mt-4 font-mono text-[34px] font-black leading-none text-[var(--color-text-primary)]">
               {l.price}
             </p>
-            <p className="mt-1 text-[12px] text-[var(--color-text-tertiary)]">{l.tbi}</p>
+
+            {/* вноските на TBI */}
+            <div className="mt-3 rounded-2xl border p-2.5" style={{ borderColor: `${l.tint}44`, background: `${l.tint}0d` }}>
+              <p className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-[var(--color-text-tertiary)]">
+                На вноски · TBI
+              </p>
+              <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+                {l.installments.map((v) => (
+                  <div key={v.term} className="rounded-xl bg-black/30 px-2 py-1.5 text-center">
+                    <p className="text-[10px] text-[var(--color-text-tertiary)]">{v.term}</p>
+                    <p className="font-mono text-[15px] font-bold leading-tight text-[var(--color-text-primary)]">
+                      {v.monthly}
+                    </p>
+                    <p className="text-[9.5px] text-[var(--color-text-tertiary)]">/мес · общо {v.total}</p>
+                    <p className="text-[9px] text-[var(--color-text-tertiary)]">(23,79 %: {v.alt})</p>
+                  </div>
+                ))}
+              </div>
+            </div>
 
             <p className="mt-4 text-[12px] italic text-[var(--color-text-secondary)]">{l.who}</p>
 
@@ -104,6 +123,8 @@ export function PriceLadder() {
           </li>
         ))}
       </ol>
+
+      <p className="text-[11.5px] leading-relaxed text-[var(--color-text-tertiary)]">{TBI_NOTE}</p>
 
       {/* как се движи клиентът */}
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-3">
