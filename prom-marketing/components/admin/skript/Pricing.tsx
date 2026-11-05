@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Check, Clock, Quote, AlertTriangle } from "lucide-react";
-import { SERVICES, BUNDLES, TARGET_MIX, PRICE_RULES } from "./pricing-data";
+import { SERVICES, TARGET_MIX, PRICE_RULES } from "./pricing-data";
+import { PriceLadder } from "@/components/ekip/PriceLadder";
 
 export function Pricing() {
   const [active, setActive] = useState(SERVICES[0].id);
@@ -10,6 +11,8 @@ export function Pricing() {
 
   return (
     <div className="space-y-8">
+      <PriceLadder />
+
       {/* ---- целта ---- */}
       <div className="cc-panel overflow-hidden">
         <div className="border-b border-white/8 bg-[rgba(6,182,212,0.07)] px-5 py-4">
@@ -144,49 +147,6 @@ export function Pricing() {
             <p className="text-[13.5px] leading-relaxed text-[#fde68a]">{svc.rule}</p>
           </div>
         )}
-      </div>
-
-      {/* ---- пакетите ---- */}
-      <div>
-        <p className="mb-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--color-accent-violet)]">
-          Пакетите
-        </p>
-        <h3 className="mb-1 text-xl font-bold text-[var(--color-text-primary)]">
-          Най-силният ход: не продавай услуга, продавай ниво
-        </h3>
-        <p className="mb-4 max-w-3xl text-[13.5px] text-[var(--color-text-secondary)]">
-          Отделната услуга се сравнява с цена. Пакетът се сравнява с това къде иска да бъде
-          бизнесът му. Давай трите заедно — средният се избира.
-        </p>
-        <div className="grid gap-4 lg:grid-cols-3">
-          {BUNDLES.map((b) => (
-            <div
-              key={b.id}
-              className="cc-panel flex flex-col p-5"
-              style={b.highlight ? { borderColor: `${b.tint}88` } : undefined}
-            >
-              <p
-                className="font-mono text-[11px] font-bold tracking-[0.18em]"
-                style={{ color: b.tint }}
-              >
-                {b.name}
-              </p>
-              <p className="mt-2 font-mono text-3xl font-bold text-[var(--color-text-primary)]">
-                {b.price}
-              </p>
-              <p className="text-[13px] text-[var(--color-text-tertiary)]">после {b.monthly}</p>
-              <p className="mt-3 text-[13px] italic text-[var(--color-text-secondary)]">{b.who}</p>
-              <ul className="mt-3 flex-1 space-y-1.5">
-                {b.includes.map((i) => (
-                  <li key={i} className="flex gap-2 text-[13px] text-[var(--color-text-secondary)]">
-                    <Check className="mt-0.5 size-3.5 shrink-0" style={{ color: b.tint }} />
-                    {i}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
       </div>
 
       {/* ---- правилата ---- */}
