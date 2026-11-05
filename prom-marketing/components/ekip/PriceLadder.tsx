@@ -92,14 +92,14 @@ export function PriceLadder() {
                 {l.installments.map((v) => (
                   <li
                     key={v.term}
-                    className="grid grid-cols-[52px_1fr_auto] items-baseline gap-2 rounded-xl bg-black/30 px-2.5 py-1.5 whitespace-nowrap"
+                    className="grid grid-cols-[40px_1fr_auto] items-center gap-1.5 rounded-xl bg-black/30 px-2 py-1.5"
                   >
-                    <span className="text-[11px] text-[var(--color-text-tertiary)]">{v.term}</span>
-                    <span className="font-mono text-[16px] font-bold leading-none text-[var(--color-text-primary)]">
+                    <span className="text-[10.5px] text-[var(--color-text-tertiary)]">{v.term}</span>
+                    <span className="whitespace-nowrap font-mono text-[15px] font-bold leading-none text-[var(--color-text-primary)]">
                       {v.monthly}
                       <span className="ml-1 font-sans text-[10px] font-normal text-[var(--color-text-tertiary)]">/мес</span>
                     </span>
-                    <span className="text-right text-[9.5px] leading-tight text-[var(--color-text-tertiary)]">
+                    <span className="whitespace-nowrap text-right text-[9px] leading-tight text-[var(--color-text-tertiary)]">
                       общо {v.total}
                       <br />
                       <span className="opacity-80">23,79 %: {v.alt}</span>
