@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { openPromisesByContact, type PromiseRow } from "@/lib/contacts/dnevnik-repository";
 import type { TeamActor } from "./session";
 import { bookingNote, byFollowup, pipelineOf, salesBucket, salesScore, type PipelineStep, type SalesContact } from "./sales-rules";
+import { BRIEF_PREFIX, pickBriefs, type Brief } from "./brief-rules";
 
 /**
  * Таблото на продавача. Единицата работа е картонът, който той води
@@ -19,6 +20,8 @@ export interface SalesRow extends SalesContact {
   /** какво е казал човекът при записването (бележката на Ели / формата) */
   next_meeting_note: string | null;
   next_meeting_url: string | null;
+  /** брифът, който Ивайло остави при предаването („🎯 Бриф за Георги …“) — кой е, оферта, възражения, ъгъл */
+  brief: Brief | null;
 }
 
 export interface SalesBoard {
@@ -45,7 +48,7 @@ export async function loadSalesBoard(actor: TeamActor, now: Date = new Date()): 
   const contacts = (data ?? []) as SalesContact[];
   const ids = contacts.map((c) => c.id);
 
-  const [promises, { data: acts }, { data: bookings }] = await Promise.all([
+  const [promises, { data: acts }, { data: briefActs }, { data: bookings }] = await Promise.all([
     openPromisesByContact(ids),
     ids.length
       ? sb
@@ -55,6 +58,10 @@ export async function loadSalesBoard(actor: TeamActor, now: Date = new Date()): 
           .gte("occurred_at", since)
           .order("occurred_at", { ascending: false })
           .limit(3000)
+      : Promise.resolve({ data: [] }),
+    // брифовете са дълги — теглят се отделно, само тях (без срок: брифът не изтича)
+    ids.length
+      ? sb.from("contact_activities").select("contact_id, title, body, occurred_at").in("contact_id", ids).like("title", `${BRIEF_PREFIX}%`).order("occurred_at", { ascending: false }).limit(1200)
       : Promise.resolve({ data: [] }),
     sb
       .from("bookings")
@@ -115,6 +122,8 @@ export async function loadSalesBoard(actor: TeamActor, now: Date = new Date()): 
     }
   }
 
+  const briefs = pickBriefs((briefActs ?? []) as Array<{ contact_id: string; title: string | null; body: string | null; occurred_at: string }>);
+
   const rows: SalesRow[] = contacts.map((c) => ({
     ...c,
     promises: promises.get(c.id) ?? [],
@@ -122,6 +131,7 @@ export async function loadSalesBoard(actor: TeamActor, now: Date = new Date()): 
     next_meeting: nextMeeting.get(c.id)?.at ?? null,
     next_meeting_note: nextMeeting.get(c.id)?.note ?? null,
     next_meeting_url: nextMeeting.get(c.id)?.url ?? null,
+    brief: briefs.get(c.id) ?? null,
   }));
 
   const board: SalesBoard = {
