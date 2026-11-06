@@ -10,11 +10,14 @@ import {
   contactPhone,
   describeCall,
   inboundInfo,
+  outboundInfo,
   parsePostCall,
   verifyElevenLabsSignature,
   type InboundInfo,
+  type OutboundInfo,
   type PostCallEvent,
 } from "@/lib/voice/postcall";
+import { fromSofia, parseWhen, sofiaToday, speakDate } from "@/lib/voice/when";
 import { closeVoiceSession } from "@/lib/voice/quota";
 import { closeTreningSession } from "@/lib/trening/postcall";
 import { escapeHtml as esc } from "@/lib/text/escape";
@@ -163,6 +166,15 @@ export async function POST(request: Request) {
     }
   }
 
+  // Изходящо на Ели: „ще ви потърсим утре в единайсет“ или „не ме търсете“ влизат
+  // в картона — дотогава обещанието оставаше само в транскрипта (Благой, 03.11.2026).
+  if (!inbound && contactId) {
+    const promise = outboundInfo(ev);
+    if (promise.doNotCall || promise.callbackWhen) {
+      await applyOutboundPromise(contactId, promise, ev, name).catch((e) => console.error("[webhooks/elevenlabs] обещание", e));
+    }
+  }
+
   /**
    * Тефтерът се затваря тук и това е единственото място, където изговорените
    * минути стават известни. Дотук редът стои с `seconds = 0` — а личният
@@ -190,6 +202,69 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json({ ok: true, contact_id: contactId, booked: ev.booked });
+}
+
+/** Следващият работен ден в 10:00 по София — когато часът от думите не се разбира. */
+export function nextWorkMorning(from: Date): Date {
+  const t = sofiaToday(from);
+  for (let add = 1; add <= 4; add++) {
+    const d = new Date(Date.UTC(t.y, t.m - 1, t.d + add));
+    const wd = d.getUTCDay();
+    if (wd !== 0 && wd !== 6) return fromSofia(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), 10, 0);
+  }
+  return fromSofia(t.y, t.m, t.d + 1, 10, 0);
+}
+
+/**
+ * Обещанието от изходящия разговор влиза в картона:
+ *   • „не ме търсете“ → `not_interested` (Ели не звъни пак — auto-call-rules; никой не пише първи);
+ *   • „звъннете ми утре в единайсет“ → `needs_call` с час (в списъка на Георги), бележка
+ *     и Telegram. Часът се разбира с `parseWhen`; не се ли разбере — следващият работен
+ *     ден в 10:00, а думите на човека остават в бележката.
+ */
+async function applyOutboundPromise(contactId: string, out: OutboundInfo, ev: PostCallEvent, name: string | null): Promise<void> {
+  const sb = createServiceClient();
+  const who = name ?? ev.callerNumber ?? "човекът";
+  const crm = `https://promarketing.pw/admin/clients/${contactId}`;
+  const occurredAt = ev.startedAt.toISOString();
+
+  if (out.doNotCall) {
+    await sb.from("contacts").update({ followup_status: "not_interested" }).eq("id", contactId);
+    await sb.from("contact_activities").insert({
+      contact_id: contactId,
+      activity_type: "note",
+      title: "🚫 Не иска да го търсим · каза го на Ели",
+      body: `Казано на Ели по телефона. Отбелязан „не се интересува“: Ели не звъни пак, никой не пише първи.${
+        out.outcome ? ` Изход по Ели: ${out.outcome}.` : ""
+      }`,
+      occurred_at: occurredAt,
+      created_by: "eli_auto",
+      metadata: { kind: "do_not_call", conversation_id: ev.conversationId, outcome: out.outcome },
+    });
+    await sendTelegram(`🚫 <b>${esc(who)}</b> каза на Ели да не го търсим — отбелязан „не се интересува“.\n<a href="${crm}">Картонът</a>`);
+    return;
+  }
+
+  if (!out.callbackWhen) return;
+  const parsed = parseWhen(out.callbackWhen, { now: ev.startedAt, defaultHour: 10 });
+  const understood = !!parsed && parsed.date.getTime() > ev.startedAt.getTime() - 60_000;
+  const at = understood && parsed ? parsed.date : nextWorkMorning(ev.startedAt);
+  const said = out.callbackWhen.slice(0, 80);
+  await sb.from("contacts").update({ followup_status: "needs_call", next_followup_at: at.toISOString() }).eq("id", contactId);
+  await sb.from("contact_activities").insert({
+    contact_id: contactId,
+    activity_type: "note",
+    title: `📞 Обещано обаждане · ${speakDate(at)} · „${said}“ (Ели)`,
+    body: `Човекът поиска да го потърсим: „${said}“. Ели обеща, че колегата ще звънне тогава. В списъка за звънене за ${speakDate(at)}.${
+      understood ? "" : " Часът не се разбра от думите — сложен е следващият работен ден в 10:00; виж думите му."
+    }`,
+    occurred_at: occurredAt,
+    created_by: "eli_auto",
+    metadata: { kind: "callback_promise", when_said: out.callbackWhen, at: at.toISOString(), understood, conversation_id: ev.conversationId },
+  });
+  await sendTelegram(
+    `📞 <b>${esc(who)}</b> иска да му се звънне: „${esc(said)}“ → <b>${esc(speakDate(at))}</b>. Ели обеща — в списъка за звънене.\n<a href="${crm}">Картонът</a>`
+  );
 }
 
 /**

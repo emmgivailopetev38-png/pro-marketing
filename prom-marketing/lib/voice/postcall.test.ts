@@ -5,6 +5,7 @@ import {
   describeCall,
   inboundInfo,
   isOwnNumber,
+  outboundInfo,
   parsePostCall,
   signElevenLabs,
   verifyElevenLabsSignature,
@@ -150,5 +151,34 @@ describe("входящото на 0876", () => {
     expect(inboundInfo(ev).phone).toBe("+359899123456");
     const hidden = inbound("+359876447159", { povod: "лично" });
     expect(inboundInfo(hidden).phone).toBeNull();
+  });
+});
+
+describe("обещанията от изходящото на Ели", () => {
+  const noBooking = [
+    { role: "agent", message: "Здравейте, Благой! Един бърз въпрос — става ли?", time_in_call_secs: 0 },
+    { role: "user", message: "Не, утре в единайсет.", time_in_call_secs: 4 },
+  ];
+  const collected = (fields: Record<string, unknown>) => ({
+    data_collection_results: Object.fromEntries(Object.entries(fields).map(([k, value]) => [k, { value }])),
+  });
+
+  it("„звъннете ми утре в единайсет“ → кога, с думите на човека", () => {
+    const ev = parsePostCall(sample({ transcript: noBooking, analysis: collected({ obadi_se_koga: "утре в 11", ne_tarsete: false, rezultat: "obadi_se" }) }))!;
+    expect(ev.booked).toBe(false);
+    expect(outboundInfo(ev)).toEqual({ callbackWhen: "утре в 11", doNotCall: false, outcome: "obadi_se" });
+  });
+
+  it("„не ме търсете“ и празните думи на модела", () => {
+    const ev = parsePostCall(sample({ transcript: noBooking, analysis: collected({ obadi_se_koga: "няма", ne_tarsete: "true", rezultat: "ne_tarsete" }) }))!;
+    expect(outboundInfo(ev)).toEqual({ callbackWhen: null, doNotCall: true, outcome: "ne_tarsete" });
+    const none = parsePostCall(sample({ transcript: noBooking, analysis: collected({ obadi_se_koga: "null", ne_tarsete: "false" }) }))!;
+    expect(outboundInfo(none)).toEqual({ callbackWhen: null, doNotCall: false, outcome: null });
+  });
+
+  it("записан час → няма обещание за обаждане, дори моделът да е написал нещо", () => {
+    const ev = parsePostCall(sample({ analysis: collected({ obadi_se_koga: "утре", rezultat: "zapisan_chas" }) }))!;
+    expect(ev.booked).toBe(true);
+    expect(outboundInfo(ev).callbackWhen).toBeNull();
   });
 });

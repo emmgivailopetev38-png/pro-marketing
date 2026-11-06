@@ -264,6 +264,7 @@ export async function POST(request: Request) {
 
     const when = `${speakDay(start)} в ${speakTime(start)}`;
     const moved = shifted ? `Най-близкото свободно е ${when} — записах теб там. ` : "";
+    const withWhom = closer ? `с ${spokenName(closer.full_name)} от екипа на Ивайло` : "с Ивайло";
 
     if (inCalendar) {
       return NextResponse.json({
@@ -272,8 +273,8 @@ export async function POST(request: Request) {
         in_calendar: true,
         when: start.toISOString(),
         spoken: email
-          ? `${moved}Готово — ${when}. Потвърждението вече е на ${email}, там е и линкът за срещата.`
-          : `${moved}Готово — ${when}, ${closer ? `с ${spokenName(closer.full_name)} от екипа на Ивайло` : "с Ивайло"}. Потвърждението с линка ще ви дойде във Viber, на този номер.`,
+          ? `${moved}Готово — ${when}, ${withWhom}. Потвърждението вече е на ${email}, там е и линкът за срещата.`
+          : `${moved}Готово — ${when}, ${withWhom}. ${noEmailConfirmation(closer)}`,
       });
     }
 
@@ -284,7 +285,7 @@ export async function POST(request: Request) {
       when: start.toISOString(),
       spoken: email
         ? `${moved}Записах те за ${when}. Потвърждението ще ти дойде на ${email} до няколко минути.`
-        : `${moved}Записах ви за ${when}. Потвърждението ще ви дойде във Viber, на този номер.`,
+        : `${moved}Записах ви за ${when}, ${withWhom}. ${noEmailConfirmation(closer)}`,
     });
   } catch (err) {
     console.error("[voice/public/book]", err);
@@ -315,6 +316,17 @@ async function notify(
     d.tema ? `💬 ${esc(d.tema)}` : null,
   ].filter(Boolean);
   await sendTelegram(lines.join("\n")).catch(() => {});
+}
+
+/**
+ * Без имейл потвърждение няма откъде да дойде: Viber потвърждения не правим
+ * (Ивайло, 06.11.2026: „Георги си ги потвърждава сам“), а обещан Viber без
+ * съобщение правеше неявили се (Пламен и Стоян, 04.11.2026 — и двамата без
+ * потвърждение). Затова казваме единственото сигурно: клоузърът ще звънне да потвърди.
+ */
+function noEmailConfirmation(closer: { full_name: string } | null): string {
+  const who = closer ? spokenName(closer.full_name) : "Ивайло";
+  return `${who} ще ви звънне на този номер, за да потвърди часа.`;
 }
 
 /** Как Ели казва клоузъра: „Георги“, не „Джордж“ — така е в поканата и в сценария ѝ. */
