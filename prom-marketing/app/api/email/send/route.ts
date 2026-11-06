@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { timingSafeEqual } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email/resend";
 import { upsertContactAndLog } from "@/lib/contacts/repository";
+import { checkHermesAuth } from "@/lib/crm/auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -19,7 +19,8 @@ const bodySchema = z.object({
   subject: z.string().min(1).max(200),
   html: z.string().min(1).max(60_000).optional(),
   text: z.string().min(1).max(60_000).optional(),
-  replyTo: z.email().optional(),
+  /** Where replies land: one address or several (e.g. the closer AND the owner). */
+  replyTo: z.union([z.email(), z.array(z.email()).min(1).max(5)]).optional(),
   from: z.email().optional(),
   attachments: z.array(attachmentSchema).max(10).optional(),
   /** Required for token (Hermes) sends to non-owner recipients — explicit human approval. */
@@ -59,17 +60,12 @@ async function requireAdmin() {
   return user;
 }
 
+/**
+ * Token callers (Hermes profiles, scripts): HERMES_API_TOKEN or INTERNAL_SEND_TOKEN,
+ * same rule as every /api/crm/* route (lib/crm/auth.ts, constant-time compare).
+ */
 function checkBearer(request: Request): { email: string } | null {
-  const expected = process.env.INTERNAL_SEND_TOKEN;
-  if (!expected) return null;
-  const header = request.headers.get("authorization") ?? "";
-  const prefix = "Bearer ";
-  if (!header.startsWith(prefix)) return null;
-  const provided = header.slice(prefix.length);
-  const a = Buffer.from(provided);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length) return null;
-  if (!timingSafeEqual(a, b)) return null;
+  if (!checkHermesAuth(request)) return null;
   const adminEmail = (process.env.ALLOWED_ADMIN_EMAILS ?? "")
     .split(",")
     .map((s) => s.trim())
@@ -118,8 +114,9 @@ export async function POST(request: Request) {
   }
 
   // Default reply-to is the admin who's sending — so replies land in their inbox
-  // even when the From address is the branded promarketing.pw email.
-  const replyTo = parsed.data.replyTo ?? user.email;
+  // even when the From address is the branded promarketing.pw email (that address
+  // has no inbox). Several addresses = the reply reaches e.g. the closer AND Ivailo.
+  const replyTo: string | string[] = parsed.data.replyTo ?? user.email;
 
   const result = await sendEmail({
     to: parsed.data.to,

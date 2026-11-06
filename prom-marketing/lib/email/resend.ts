@@ -25,8 +25,8 @@ export interface SendArgs {
   subject: string;
   html: string;
   text?: string;
-  /** Where replies land. Defaults to EMAIL_REPLY_TO env or the From address. */
-  replyTo?: string;
+  /** Where replies land (one address or several). Defaults to EMAIL_REPLY_TO env or the From address. */
+  replyTo?: string | string[];
   attachments?: SendAttachment[];
 }
 
@@ -85,7 +85,10 @@ export async function sendRelayEmail(args: RelayArgs): Promise<RelayResult> {
 export async function sendEmail(args: SendArgs): Promise<{ id: string | null; error: string | null }> {
   // Use || (not ??) so an empty-string env var also falls back to a valid sender.
   const from = process.env.EMAIL_FROM || "ProMarketing <onboarding@resend.dev>";
-  const replyTo = args.replyTo || process.env.EMAIL_REPLY_TO || undefined;
+  const replyTo =
+    (Array.isArray(args.replyTo) ? (args.replyTo.length > 0 ? args.replyTo : undefined) : args.replyTo) ||
+    process.env.EMAIL_REPLY_TO ||
+    undefined;
   try {
     const client = getClient();
     const { data, error } = await client.emails.send({
