@@ -135,6 +135,7 @@ export async function POST(request: Request) {
           minutes,
           call_successful: ev.callSuccessful,
           booked: ev.booked,
+          voicemail: ev.voicemail,
           channel: ev.channel,
           caller_number: ev.callerNumber,
           summary: ev.summary,
@@ -168,7 +169,7 @@ export async function POST(request: Request) {
 
   // Изходящо на Ели: „ще ви потърсим утре в единайсет“ или „не ме търсете“ влизат
   // в картона — дотогава обещанието оставаше само в транскрипта (Благой, 03.11.2026).
-  if (!inbound && contactId) {
+  if (!inbound && contactId && !ev.voicemail) {
     const promise = outboundInfo(ev);
     if (promise.doNotCall || promise.callbackWhen) {
       await applyOutboundPromise(contactId, promise, ev, name).catch((e) => console.error("[webhooks/elevenlabs] обещание", e));
@@ -195,11 +196,14 @@ export async function POST(request: Request) {
   }).catch((e) => console.error("[webhooks/elevenlabs] тефтер", e));
 
   // Известието към Ивайло тръгва СЛЕД отговора — ElevenLabs чака 200, не Resend.
-  after(async () => {
-    await notifyOwner(ev, { name, email, phone, contactId, title, minutes }, inbound).catch((e) =>
-      console.error("[webhooks/elevenlabs] notify", e)
-    );
-  });
+  // Гласова поща не е разговор — стои в картона, не буди Ивайло.
+  if (!ev.voicemail) {
+    after(async () => {
+      await notifyOwner(ev, { name, email, phone, contactId, title, minutes }, inbound).catch((e) =>
+        console.error("[webhooks/elevenlabs] notify", e)
+      );
+    });
+  }
 
   return NextResponse.json({ ok: true, contact_id: contactId, booked: ev.booked });
 }

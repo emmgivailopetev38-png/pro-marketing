@@ -1,24 +1,24 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
+import { nextWorkingDayAt } from "@/lib/contacts/followup";
 import { fmtSofia } from "./time";
 import { findContactByEmailOrPhone } from "./cancelled";
 import { notifyNoShowBooking } from "./notify";
+import { getMemberById } from "./repository";
 
 /**
- * Човекът не се е явил на срещата — от таблото на Ивайло, от API-то (проверката
- * на Claude по Fathom и календара) или от Хермес. Последицата е една:
+ * Човекът не се е явил на срещата — от таблото на Ивайло, от /ekip (Георги,
+ * който води срещите), от API-то (проверката на Claude по календара) или от
+ * Хермес. Последицата е една (Ивайло, 06.11.2026: „които не се явят — Георги
+ * ги отбелязва и Ели пак им звъни, да не ги пуска“):
  *
- *   1. срещата става `no_show`;
- *   2. картонът отива в списъка на Ивайло за звънене — чуване „сега“, бележка
- *      в картона с пропуснатия час;
- *   3. Ивайло получава известие.
- *
- * До 06.10.2026 картонът отиваше при Димитър („🙈 Не се явиха“). Правилото на
- * Ивайло оттогава: „има ли записана среща и ми е била в календара — човекът
- * приключва за Димитър“ (ivailo-rules.ts). А проверката по Fathom бърка
- * разговора по телефона с неявяване — на 02.10 Subay излезе „не се яви“,
- * макар Ивайло вече да му беше дал оферта, и Димитър му звъня. Ако Ивайло
- * иска точно този човек да го звънне екипът — „🤝 Дай на екипа“ от картона.
+ *   1. срещата става `no_show` (прави го викащият, преди да стигне тук);
+ *   2. бележка `kind: noshow` в картона — по нея Ели звъни за нов час още
+ *      до минути (кронът voice-auto, lib/voice/auto-call-rules.ts: до 4 опита
+ *      за 7 дни, докато запише час или човекът каже „не“);
+ *   3. чуване за човека, който води срещата, на следващата сутрин — ако Ели
+ *      дотогава не е записала нов час;
+ *   4. Ивайло получава известие.
  *
  * Странично действие: не хвърля.
  */
@@ -41,23 +41,37 @@ export async function handleNoShowBooking(input: { bookingId: string; by: string
     const at = String(b.scheduled_at);
     const contact = await findContactByEmailOrPhone(b.attendee_email as string | null, b.attendee_phone as string | null);
 
-    // Никой от екипа не получава картона: срещата е стояла в календара на Ивайло.
-    const memberName: string | null = null;
+    // С кого е била срещата: водещият на картона (клоузърът), иначе Ивайло.
+    // Ели го казва в първото изречение („за срещата с Георги…“).
+    let memberName: string | null = null;
+    let memberFirst = "Ивайло";
     if (contact?.id) {
-      const nowIso = new Date().toISOString();
-      await sb.from("contacts").update({ followup_status: "needs_call", next_followup_at: nowIso }).eq("id", contact.id);
+      const { data: c } = await sb.from("contacts").select("owner_id").eq("id", contact.id).maybeSingle();
+      const ownerId = (c as { owner_id?: string | null } | null)?.owner_id ?? null;
+      const member = ownerId ? await getMemberById(ownerId).catch(() => null) : null;
+      if (member?.full_name) {
+        memberName = member.full_name;
+        memberFirst = member.full_name.trim().split(/\s+/)[0] || member.full_name;
+      }
+    }
+
+    if (contact?.id) {
+      const now = new Date();
+      const nextIso = nextWorkingDayAt(now, 10).toISOString();
+      await sb.from("contacts").update({ followup_status: "needs_call", next_followup_at: nextIso }).eq("id", contact.id);
       await sb.from("contact_activities").insert({
         contact_id: contact.id,
         activity_type: "note",
-        title: `🙈 Не се яви на срещата · ${fmtSofia(at)} · за Ивайло`,
-        body: `Срещата за ${fmtSofia(at)} е отбелязана „не се яви“ (${input.by}). Чуването е за днес в списъка на Ивайло — срещата е била в календара му, затова не отива при Димитър (правило от 06.10.2026). Ако е говорил с човека по телефона, срещата не е „не се яви“ — оправи я на „проведена“ от /admin/bookings.`,
-        occurred_at: nowIso,
+        title: `🙈 Не се яви на срещата · ${fmtSofia(at)} · Ели звъни за нов час`,
+        body: `Срещата с ${memberFirst} за ${fmtSofia(at)} е отбелязана „не се яви“ (${input.by}). Ели му звъни за нов час още до минути — и пак на другия ден, после през два дни (до 4 опита за 7 дни), докато запише час или човекът каже „не“. Ако дотогава няма нов час, е в списъка на ${memberFirst} за ${fmtSofia(nextIso)}. Говорил ли е по телефона с него — срещата не е „не се яви“: оправи я на „проведена“.`,
+        occurred_at: now.toISOString(),
         created_by: input.by,
         metadata: {
           kind: "noshow",
           missed_at: at,
           missed_url: (b.meeting_url as string | null) ?? null,
           missed_booking_id: String(b.id),
+          missed_with: memberFirst,
         },
       });
     }
