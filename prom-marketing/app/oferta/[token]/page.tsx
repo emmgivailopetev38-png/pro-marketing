@@ -1,0 +1,218 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { getOfferByToken } from "@/lib/oferti/repository";
+import { fmtEur, isToken } from "@/lib/oferti/smetki";
+import { viewModel } from "@/lib/oferti/view";
+import { OFFER_CSS } from "@/lib/oferti/page-css";
+
+export const dynamic = "force-dynamic";
+
+type Params = { params: Promise<{ token: string }> };
+
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { token } = await params;
+  if (!isToken(token)) return { title: "Оферта · ProMarketing", robots: { index: false, follow: false } };
+  const offer = await getOfferByToken(token);
+  if (!offer) return { title: "Оферта · ProMarketing", robots: { index: false, follow: false } };
+  const v = viewModel(offer);
+  return {
+    title: `Оферта за ${v.forLine} · ${offer.title} · ProMarketing`,
+    description: v.content.outcome ?? offer.title,
+    robots: { index: false, follow: false },
+  };
+}
+
+/** /oferta/<код> — офертата онлайн (същото като PDF-а) + бутоните за PDF, обаждане и Viber. */
+export default async function OfertaPage({ params }: Params) {
+  const { token } = await params;
+  if (!isToken(token)) notFound();
+  const offer = await getOfferByToken(token);
+  if (!offer) notFound();
+  const v = viewModel(offer);
+  const { content, seller, totals } = v;
+  const vie = content.greeting === "vie";
+  const showMonthly = totals.monthly_after > 0;
+  const showOneTime = totals.one_time > 0;
+  const viber = `viber://chat?number=${encodeURIComponent(seller.phone_raw)}`;
+
+  return (
+    <>
+      <style dangerouslySetInnerHTML={{ __html: OFFER_CSS }} />
+      <div className="band" />
+      <div className="wrap">
+        <header className="head">
+          <div className="brand">
+            Pro<b>Marketing</b>
+            <small>AI МАРКЕТИНГ · АВТОМАТИЗАЦИИ · СИСТЕМИ ЗА МАЛКИ ФИРМИ</small>
+          </div>
+          <div className="meta">
+            Оферта № {v.number} · {v.date}
+            <br />
+            валидна до {v.validUntil}
+          </div>
+        </header>
+
+        <p className="eyebrow">Оферта за {v.forLine}</p>
+        <h1>{offer.title}</h1>
+        <p className="greet">{v.greeting}</p>
+        {content.intro && <p className="lead">{content.intro}</p>}
+        {content.pain && (
+          <div className="pain">
+            <small>Това чухме от {vie ? "Вас" : "теб"}</small>
+            {content.pain}
+          </div>
+        )}
+        {content.outcome && <p className="outcome">{content.outcome}</p>}
+
+        <div className="cta">
+          <a className="btn p" href={`/oferta/${token}/pdf`} target="_blank" rel="noreferrer">
+            Свали офертата като PDF
+          </a>
+          <a className="btn s" href={`tel:${seller.phone_raw}`}>
+            Обади се на {seller.first} · {seller.phone}
+          </a>
+          <a className="btn s" href={viber}>
+            Пиши във Viber
+          </a>
+        </div>
+
+        <h2>Какво получава{vie ? "те" : "ш"}</h2>
+        {offer.items.map((it, i) => (
+          <article className="card" key={i}>
+            <div className="top">
+              <div>
+                <h3>{it.title}</h3>
+                {it.subtitle && <p className="sub">{it.subtitle}</p>}
+              </div>
+              <div className="price">
+                <b>{fmtEur(it.price)}</b>
+                <span>
+                  {it.unit}
+                  {it.qty && it.qty > 1 ? ` × ${it.qty}` : ""}
+                </span>
+                {it.setup_price ? (
+                  <span>
+                    + {fmtEur(it.setup_price)} {it.setup_label ?? "внедряване"}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+            {it.bullets.length > 0 && (
+              <ul className="pts">
+                {it.bullets.map((b, j) => (
+                  <li key={j}>{b}</li>
+                ))}
+              </ul>
+            )}
+            {it.outcome && <p className="res">Резултатът: {it.outcome}</p>}
+            {it.not_included && it.not_included.length > 0 && <p className="not">Не включва: {it.not_included.join(" · ")}</p>}
+            {it.note && <p className="note">{it.note}</p>}
+          </article>
+        ))}
+
+        <h2>Инвестицията</h2>
+        <table>
+          <tbody>
+            {offer.items.map((it, i) => (
+              <tr key={i}>
+                <td>
+                  {it.title}
+                  {it.setup_price ? <small>+ внедряване {fmtEur(it.setup_price)} еднократно</small> : null}
+                </td>
+                <td className="r">
+                  {fmtEur((it.price ?? 0) * (it.qty && it.qty > 0 ? it.qty : 1))} {it.unit}
+                </td>
+              </tr>
+            ))}
+            {totals.discount > 0 && (
+              <tr>
+                <td>Отстъпка{offer.discount_note ? ` — ${offer.discount_note}` : ""}</td>
+                <td className="r">− {fmtEur(totals.discount)}</td>
+              </tr>
+            )}
+            {showOneTime && (
+              <tr className="tot">
+                <td>Общо еднократно</td>
+                <td className="r">{fmtEur(totals.one_time_after)}</td>
+              </tr>
+            )}
+            {showMonthly && (
+              <tr className="tot">
+                <td>Общо месечно</td>
+                <td className="r">{fmtEur(totals.monthly_after)} /мес</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+        {v.vatLine && <p className="vat">{v.vatLine}</p>}
+        {v.hasInstallments && (
+          <div className="inst">
+            <small>На вноски през TBI Bank</small>
+            {v.installmentLines.map((l, i) => (
+              <div key={i}>
+                {v.installmentLines.length > 1 ? `${l.title}: ` : ""}
+                {l.line} на месец
+              </div>
+            ))}
+            <em>Ориентировъчно, без застраховка; точната вноска се вижда при одобрението онлайн — минути, без посещение в банка.</em>
+          </div>
+        )}
+
+        {content.next_steps.length > 0 && (
+          <>
+            <h2>Как протича</h2>
+            <ol className="steps">
+              {content.next_steps.map((s, i) => (
+                <li key={i}>{s}</li>
+              ))}
+            </ol>
+          </>
+        )}
+        {content.terms.length > 0 && (
+          <>
+            <h2>Условия</h2>
+            <ul className="terms">
+              {content.terms.map((t, i) => (
+                <li key={i}>{t}</li>
+              ))}
+            </ul>
+          </>
+        )}
+        {content.ps && <p className="ps">P.S. {content.ps}</p>}
+
+        <div className="cta">
+          <a className="btn p" href={`tel:${seller.phone_raw}`}>
+            Казвам „да“ — обаждане на {seller.first}
+          </a>
+          <a className="btn s" href={viber}>
+            Viber
+          </a>
+          <a className="btn s" href={`/oferta/${token}/pdf`} target="_blank" rel="noreferrer">
+            PDF
+          </a>
+        </div>
+
+        <footer className="sign">
+          <div>
+            <b>{seller.name}</b>
+            <span className="role">{seller.role}</span>
+            <div>
+              <a href={`tel:${seller.phone_raw}`}>{seller.phone}</a>
+            </div>
+            {seller.key !== "ivailo" && (
+              <div className="role">
+                Ивайло Петев · основател · <a href="tel:+359877399963">+359 877 399 963</a>
+              </div>
+            )}
+          </div>
+          <div className="right">
+            Въпрос или „да“ — отговор на имейла или едно обаждане.
+            <br />
+            <a href="https://promarketing.pw">promarketing.pw</a> · <a href="https://petevai.com">petevai.com</a>
+          </div>
+        </footer>
+        <p className="foot">ProMarketing · Pro Marketing LTD · Русе · оферта № {v.number}</p>
+      </div>
+    </>
+  );
+}

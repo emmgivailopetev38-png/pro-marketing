@@ -37,6 +37,7 @@ export const TEAM_MODULES = [
   "saobshtenia",
   "materiali",
   "ceni",
+  "oferti",
   "komisioni",
   "napredak",
   "belezhki",
@@ -56,6 +57,7 @@ export const TEAM_MODULE_LABEL: Record<TeamModule, string> = {
   napredak: "Напредък · моите числа",
   belezhki: "Бележки · за системата",
   demo: "Демо · системата, сайтът, видеата",
+  oferti: "Оферти · PDF за клиента",
 };
 
 export const TEAM_MODULE_HREF: Record<TeamModule, string> = {
@@ -70,6 +72,7 @@ export const TEAM_MODULE_HREF: Record<TeamModule, string> = {
   napredak: "/ekip/napredak",
   belezhki: "/ekip/belezhki",
   demo: "/ekip/demo",
+  oferti: "/ekip/oferti",
 };
 
 export interface TeamPermissions {

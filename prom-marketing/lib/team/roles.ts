@@ -20,7 +20,7 @@ import {
 const DEFAULTS: Record<TeamRole, TeamModule[]> = {
   owner: [...TEAM_MODULES],
   setter: ["zvanene", "zadachi", "saobshtenia", "materiali", "napredak", "belezhki"],
-  sales: ["prodazhbi", "zadachi", "saobshtenia", "materiali", "ceni", "komisioni", "napredak", "belezhki"],
+  sales: ["prodazhbi", "zadachi", "saobshtenia", "materiali", "ceni", "oferti", "komisioni", "napredak", "belezhki"],
   delivery: ["proekti", "zadachi", "saobshtenia", "materiali", "napredak", "belezhki"],
   marketing: ["proekti", "zadachi", "saobshtenia", "materiali", "napredak", "belezhki"],
 };

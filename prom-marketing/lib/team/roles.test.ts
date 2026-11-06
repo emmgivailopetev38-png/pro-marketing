@@ -38,7 +38,7 @@ describe("roles: кой какво вижда", () => {
     const sales = { role: "sales" as const, permissions: { modules: { zvanene: true, ceni: false } } };
     expect(canSee(sales, "zvanene")).toBe(true);
     expect(canSee(sales, "ceni")).toBe(false);
-    expect(visibleModules(sales)).toEqual(["zvanene", "prodazhbi", "zadachi", "saobshtenia", "materiali", "komisioni", "napredak", "belezhki"]);
+    expect(visibleModules(sales)).toEqual(["zvanene", "prodazhbi", "zadachi", "saobshtenia", "materiali", "oferti", "komisioni", "napredak", "belezhki"]);
   });
 
   it("собственикът вижда всичко, каквото и да пише в правата", () => {

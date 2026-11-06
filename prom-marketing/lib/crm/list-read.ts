@@ -210,21 +210,24 @@ export interface ContactProfile {
   invoices: CrmRow[];
   payments: CrmRow[];
   recurring_services: CrmRow[];
+  /** офертите към човека — кратко: номер, заглавие, статус, линк, сума */
+  offers: CrmRow[];
   error: string | null;
 }
 
 /** Пълен профил — всичко вързано към contact_id (философията на CRM-а). */
 export async function getContactProfile(id: string, activityLimit = 30): Promise<ContactProfile> {
   const sb = createServiceClient();
-  const empty = { activities: [], invoices: [], payments: [], recurring_services: [] };
+  const empty = { activities: [], invoices: [], payments: [], recurring_services: [], offers: [] };
   const { data: contact } = await sb.from("contacts").select("*").eq("id", id).maybeSingle();
   if (!contact) return { contact: null, ...empty, error: "contact not found" };
 
-  const [{ data: acts }, { data: inv }, { data: pay }, { data: rec }] = await Promise.all([
+  const [{ data: acts }, { data: inv }, { data: pay }, { data: rec }, { data: offs }] = await Promise.all([
     sb.from("contact_activities").select("*").eq("contact_id", id),
     sb.from("invoices").select("*").eq("contact_id", id),
     sb.from("payments").select("*").eq("contact_id", id),
     sb.from("recurring_services").select("*").eq("contact_id", id),
+    sb.from("offers").select("id, number, token, title, status, amount_gross, currency, url, valid_until, sent_at, created_at, created_by").eq("contact_id", id),
   ]);
   return {
     contact: contact as CrmRow,
@@ -232,6 +235,7 @@ export async function getContactProfile(id: string, activityLimit = 30): Promise
     invoices: sortByDateDesc((inv ?? []) as CrmRow[], (r) => r.issue_date ?? r.created_at),
     payments: sortByDateDesc((pay ?? []) as CrmRow[], (r) => r.paid_at ?? r.created_at),
     recurring_services: sortByDateDesc((rec ?? []) as CrmRow[], (r) => r.created_at),
+    offers: sortByDateDesc((offs ?? []) as CrmRow[], (r) => r.created_at),
     error: null,
   };
 }

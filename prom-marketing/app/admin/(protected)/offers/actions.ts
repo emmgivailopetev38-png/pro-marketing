@@ -53,3 +53,66 @@ export async function setOfferStatusAction(formData: FormData) {
   if (res.error) throw new Error(res.error);
   revalidateDelivery();
 }
+
+// ── оферти от модули (06.11.2026): билдър, изпращане с PDF, шаблони ──────────
+import { buildSchema, templateSchema } from "@/lib/oferti/schema";
+import { buildOffer, resetTemplate, saveTemplate, sendOffer } from "@/lib/oferti/repository";
+import { SELLERS } from "@/lib/oferti/katalog";
+import { shortSummary } from "@/lib/oferti/view";
+import type { BuilderState } from "@/lib/oferti/builder-types";
+
+function payloadOf(formData: FormData): unknown {
+  try {
+    return JSON.parse(String(formData.get("payload") ?? "{}"));
+  } catch {
+    return null;
+  }
+}
+
+function issues(e: { issues: Array<{ path: PropertyKey[]; message: string }> }): string {
+  return e.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+}
+
+/** Нова оферта от модули или промяна на съществуваща (payload = JSON от билдъра). */
+export async function buildOfferAction(_prev: BuilderState, formData: FormData): Promise<BuilderState> {
+  const actor = await requireAdmin();
+  const parsed = buildSchema.safeParse(payloadOf(formData));
+  if (!parsed.success) return { ok: false, error: `Невалидни данни — ${issues(parsed.error)}` };
+  const seller = parsed.data.seller ?? "ivailo";
+  const r = await buildOffer(parsed.data, { created_by: actor, owner_id: SELLERS[seller].team_member_id, seller });
+  if (r.error || !r.offer || !r.view) return { ok: false, error: r.error ?? "записът не мина" };
+  revalidateDelivery();
+  return { ok: true, id: r.offer.id, url: r.view.url, pdf_url: r.view.pdfUrl, number: r.view.number, title: r.offer.title, summary: shortSummary(r.view) };
+}
+
+/** Имейлът с прикачения PDF — Ивайло натиска бутона сам, затова тръгва веднага. */
+export async function sendOfferAction(_prev: BuilderState, formData: FormData): Promise<BuilderState> {
+  const actor = await requireAdmin();
+  const id = str(formData.get("id"));
+  if (!id) return { ok: false, error: "липсва офертата" };
+  const r = await sendOffer({ id, to: str(formData.get("to")), text: str(formData.get("text")), subject: str(formData.get("subject")), approved: true }, actor);
+  if (!r.ok || !r.sent) return { ok: false, error: r.error ?? "не тръгна" };
+  revalidateDelivery();
+  return { ok: true, id, sent: { to: r.sent.to }, url: r.sent.url, pdf_url: r.sent.pdf_url };
+}
+
+/** Нов/променен шаблон (примерна оферта). */
+export async function saveTemplateAction(_prev: BuilderState, formData: FormData): Promise<BuilderState> {
+  const actor = await requireAdmin();
+  const parsed = templateSchema.safeParse(payloadOf(formData));
+  if (!parsed.success) return { ok: false, error: `Невалидни данни — ${issues(parsed.error)}` };
+  const r = await saveTemplate(parsed.data, actor);
+  if (r.error || !r.template) return { ok: false, error: r.error ?? "записът не мина" };
+  revalidateDelivery();
+  return { ok: true, template_key: r.template.key, title: r.template.name };
+}
+
+/** Връща шаблона към стандартния от каталога. */
+export async function resetTemplateAction(formData: FormData): Promise<void> {
+  const actor = await requireAdmin();
+  const key = str(formData.get("key"));
+  if (!key) throw new Error("липсва key");
+  const r = await resetTemplate(key, actor);
+  if (r.error) throw new Error(r.error);
+  revalidateDelivery();
+}
