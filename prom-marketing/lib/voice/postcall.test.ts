@@ -182,3 +182,23 @@ describe("обещанията от изходящото на Ели", () => {
     expect(outboundInfo(ev).callbackWhen).toBeNull();
   });
 });
+
+describe("гласова поща", () => {
+  it("системният инструмент voicemail_detection → не е говорил човек, заглавието го казва", () => {
+    const transcript = [
+      { role: "agent", message: "Здравейте, Благой! Ели съм, от Про Маркетинг…", time_in_call_secs: 0 },
+      { role: "user", message: "Здравейте, в момента не мога да се обадя, оставете съобщение след сигнала.", time_in_call_secs: 5 },
+      { role: "agent", message: "", time_in_call_secs: 12, tool_calls: [{ tool_name: "voicemail_detection", params_as_json: "{}" }] },
+    ];
+    const ev = parsePostCall(sample({ transcript, metadata: { call_duration_secs: 38 } }))!;
+    expect(ev.voicemail).toBe(true);
+    expect(ev.booked).toBe(false);
+    expect(describeCall(ev).title).toMatch(/^📼 Гласова поща/);
+  });
+
+  it("причина за край с voicemail от ElevenLabs — също гласова поща; обикновен разговор — не", () => {
+    expect(parsePostCall(sample({ metadata: { termination_reason: "voicemail_detected" } }))!.voicemail).toBe(true);
+    expect(parsePostCall(sample())!.voicemail).toBe(false);
+    expect(describeCall(parsePostCall(sample())!).title).toMatch(/^🎙️ Разговор/);
+  });
+});

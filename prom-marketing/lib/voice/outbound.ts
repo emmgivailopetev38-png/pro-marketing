@@ -62,6 +62,16 @@ export function buildOutboundPayload(args: {
     conversation_initiation_client_data: {
       dynamic_variables: args.variables,
     },
+    // Twilio познава гласова поща/факс още при вдигането → затваря, без да
+    // говори на запис (минути, кредити и „разговор“ в картона). „unknown“ и
+    // „human“ оставят разговора да тече; вторият пазач е системният инструмент
+    // voicemail_detection на агента.
+    telephony_call_config: {
+      twilio_machine_detection: {
+        mode: "enable",
+        actions: [{ action: "hang_up", answered_by: ["machine_start", "fax"] }],
+      },
+    },
   };
 }
 

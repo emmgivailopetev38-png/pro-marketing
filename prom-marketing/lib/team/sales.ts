@@ -1,6 +1,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 import { openPromisesByContact, type PromiseRow } from "@/lib/contacts/dnevnik-repository";
+import { isLiveBooking } from "@/lib/crm/booking-status";
 import type { TeamActor } from "./session";
 import { bookingNote, byFollowup, pipelineOf, salesBucket, salesScore, type PipelineStep, type SalesContact } from "./sales-rules";
 import { BRIEF_PREFIX, pickBriefs, type Brief } from "./brief-rules";
@@ -34,7 +35,18 @@ export interface SalesBoard {
   lost: SalesRow[];
   steps: PipelineStep[];
   score: ReturnType<typeof salesScore>;
-  meetings: Array<{ id: string; name: string; at: string; contact_id: string | null; phone: string | null; note: string | null; meeting_url: string | null }>;
+  /** срещите за 7 дни назад (резултатът им се отбелязва тук) и 14 напред */
+  meetings: Array<{
+    id: string;
+    name: string;
+    at: string;
+    contact_id: string | null;
+    phone: string | null;
+    note: string | null;
+    meeting_url: string | null;
+    /** accepted/pending/confirmed = жива; completed / no_show = с резултат */
+    status: string;
+  }>;
 }
 
 export async function loadSalesBoard(actor: TeamActor, now: Date = new Date()): Promise<SalesBoard> {
@@ -66,11 +78,12 @@ export async function loadSalesBoard(actor: TeamActor, now: Date = new Date()): 
     sb
       .from("bookings")
       .select("id, attendee_name, attendee_email, attendee_phone, scheduled_at, status, business, automation_goal, timeline, meeting_url, raw_payload")
-      .gte("scheduled_at", new Date(now.getTime() - 3_600_000).toISOString())
+      // 7 дни назад: миналите срещи чакат „проведена“ / „не се яви“ от водещия (06.11.2026).
+      .gte("scheduled_at", new Date(now.getTime() - 7 * 86_400_000).toISOString())
       .lte("scheduled_at", new Date(now.getTime() + 14 * 86_400_000).toISOString())
       .not("status", "in", "(cancelled,rejected)")
       .order("scheduled_at", { ascending: true })
-      .limit(60),
+      .limit(80),
   ]);
 
   const byEmail = new Map<string, SalesContact>();
@@ -98,8 +111,11 @@ export async function loadSalesBoard(actor: TeamActor, now: Date = new Date()): 
     const c = (b.attendee_email && byEmail.get(b.attendee_email.toLowerCase())) || (b.attendee_phone && byPhone.get(b.attendee_phone.replace(/\D/g, "").slice(-9))) || null;
     const note = bookingNote(b);
     const url = b.meeting_url && /^https?:\/\//.test(b.meeting_url) ? b.meeting_url : null;
-    if (c && !nextMeeting.has(c.id)) nextMeeting.set(c.id, { at: b.scheduled_at, note, url });
-    if (c || !memberId) meetings.push({ id: b.id, name: b.attendee_name, at: b.scheduled_at, contact_id: c?.id ?? null, phone: b.attendee_phone ?? c?.phone ?? null, note, meeting_url: url });
+    const upcoming = new Date(b.scheduled_at).getTime() >= now.getTime() - 3_600_000 && isLiveBooking(b.status);
+    if (c && upcoming && !nextMeeting.has(c.id)) nextMeeting.set(c.id, { at: b.scheduled_at, note, url });
+    if (c || !memberId) {
+      meetings.push({ id: b.id, name: b.attendee_name, at: b.scheduled_at, contact_id: c?.id ?? null, phone: b.attendee_phone ?? c?.phone ?? null, note, meeting_url: url, status: b.status });
+    }
   }
 
   const lastAct = new Map<string, { title: string; at: string; by: string | null }>();

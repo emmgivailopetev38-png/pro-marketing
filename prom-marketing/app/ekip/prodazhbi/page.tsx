@@ -5,8 +5,10 @@ import { allowed, ekipNav } from "@/lib/team/nav";
 import { homeFor } from "@/lib/team/roles";
 import { STAGE_COLOR, STAGE_LABEL, type ContactStage } from "@/lib/contacts/types";
 import { fmtSofia } from "@/lib/team/time";
+import { isLiveBooking } from "@/lib/crm/booking-status";
 import { EkipHeader } from "@/components/ekip/EkipHeader";
 import { SalesCard } from "@/components/ekip/SalesCard";
+import { MeetingOutcome } from "@/components/ekip/MeetingOutcome";
 import { NapredakStrip } from "@/components/ekip/NapredakStrip";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +26,12 @@ export default async function ProdazhbiPage() {
   const [board, nav] = await Promise.all([loadSalesBoard(actor), ekipNav(actor)]);
   const isOwner = actor.kind === "owner";
   const s = board.score;
+  // Минали срещи без резултат чакат „проведена“ / „не се яви“ от водещия (06.11.2026).
+  const nowMs = Date.now();
+  const isPast = (at: string) => new Date(at).getTime() < nowMs - 15 * 60_000;
+  const upcoming = board.meetings.filter((m) => !isPast(m.at) && isLiveBooking(m.status));
+  const pastOpen = board.meetings.filter((m) => isPast(m.at) && isLiveBooking(m.status));
+  const pastDone = board.meetings.filter((m) => isPast(m.at) && !isLiveBooking(m.status));
 
   return (
     <div className="mx-auto max-w-2xl pb-24">
@@ -35,7 +43,7 @@ export default async function ProdazhbiPage() {
           <Stat label="просрочени" value={board.overdue.length} accent="rose" />
           <Stat label="предадени" value={board.handed.length} accent="violet" />
           <Stat label="в тръбата" value={board.pipeline.length} accent="cyan" />
-          <Stat label="срещи 14 дни" value={board.meetings.length} accent="emerald" />
+          <Stat label="срещи 14 дни" value={upcoming.length} accent="emerald" />
           <Stat label="спечелени 30д" value={board.won.length} accent="emerald" />
         </section>
 
@@ -89,12 +97,40 @@ export default async function ProdazhbiPage() {
           ))}
         </Section>
 
-        {board.meetings.length > 0 && (
+        {pastOpen.length > 0 && (
+          <section className="space-y-2">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-rose-300">🧾 Минали срещи · какъв е резултатът? · {pastOpen.length}</h2>
+            <p className="-mt-1 text-xs text-[var(--color-text-tertiary)]">
+              Веднага след срещата: ✅ проведена или 🙈 не се яви. При „не се яви“ Ели му звъни за нов час още до минути и пак в следващите дни (до 4
+              опита). Не го отбелязвай „Загубен“ — така Ели спира.
+            </p>
+            <ul className="divide-y divide-white/5 rounded-2xl border border-rose-400/20">
+              {pastOpen.map((m) => (
+                <li key={m.id} className="px-4 py-2 text-sm">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                    <span className="font-medium">
+                      {m.name}
+                      {m.phone && (
+                        <a href={`tel:${m.phone}`} className="ml-2 text-xs font-normal text-[var(--color-accent-cyan)]">
+                          📞 {m.phone}
+                        </a>
+                      )}
+                    </span>
+                    <span className="text-[var(--color-text-secondary)]">{fmtSofia(m.at)}</span>
+                  </div>
+                  <MeetingOutcome bookingId={m.id} name={m.name} when={fmtSofia(m.at)} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {upcoming.length > 0 && (
           <section className="space-y-2">
             <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-emerald-300">📅 Срещи · следващите 14 дни</h2>
             <p className="-mt-1 text-xs text-[var(--color-text-tertiary)]">📝 = какво е казал човекът, когато си е записал срещата (на Ели или във формата).</p>
             <ul className="divide-y divide-white/5 rounded-2xl border border-white/10">
-              {board.meetings.map((m) => (
+              {upcoming.map((m) => (
                 <li key={m.id} className="px-4 py-2 text-sm">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-3">
                     <span className="font-medium">
@@ -122,6 +158,22 @@ export default async function ProdazhbiPage() {
               ))}
             </ul>
           </section>
+        )}
+
+        {pastDone.length > 0 && (
+          <details className="rounded-2xl border border-white/10 p-3">
+            <summary className="cursor-pointer text-sm text-[var(--color-text-tertiary)]">🗂 Минали срещи с резултат · 7 дни · {pastDone.length}</summary>
+            <ul className="mt-2 divide-y divide-white/5 text-sm">
+              {pastDone.map((m) => (
+                <li key={m.id} className="flex flex-wrap items-baseline justify-between gap-x-3 py-1.5">
+                  <span>{m.name}</span>
+                  <span className="text-xs text-[var(--color-text-secondary)]">
+                    {fmtSofia(m.at)} · {m.status === "completed" ? "✅ проведена" : m.status === "no_show" ? "🙈 не се яви · Ели звъни" : m.status}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </details>
         )}
 
         <Section title={`💼 В тръбата · ${board.pipeline.length}`} tone="text-[var(--color-accent-cyan)]" hint={board.pipeline.length === 0 ? "Още нямаш картони на свое име. Ивайло ги дава от картона на клиента — „Отговорник“." : undefined}>

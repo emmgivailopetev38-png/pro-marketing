@@ -74,6 +74,12 @@ export interface PostCallEvent {
   channel: "telefon" | "sait";
   /** Полетата от „Data collection“ на агента (входящият на 0876: ime, povod, obadi_se…). */
   collected: Record<string, string>;
+  /**
+   * Гласова поща: агентът е разпознал запис (системният инструмент
+   * `voicemail_detection`) или ElevenLabs е затворил с такава причина. Не е
+   * вдигнал човек — Ели звъни пак, Ивайло не получава „разговор“.
+   */
+  voicemail: boolean;
 }
 
 type Json = Record<string, unknown>;
@@ -106,6 +112,7 @@ export function parsePostCall(payload: unknown): PostCallEvent | null {
 
   const transcript: TranscriptLine[] = [];
   let booked = false;
+  let voicemail = /voicemail/i.test(str(metadata.termination_reason) ?? "");
   const rawTranscript = Array.isArray(data.transcript) ? data.transcript : [];
   for (const item of rawTranscript) {
     const line = obj(item);
@@ -117,6 +124,7 @@ export function parsePostCall(payload: unknown): PostCallEvent | null {
     const calls = Array.isArray(line.tool_calls) ? line.tool_calls : [];
     const results = Array.isArray(line.tool_results) ? line.tool_results : [];
     const toolName = (x: unknown) => str(obj(x).tool_name) ?? str(obj(x).name) ?? "";
+    if (calls.some((c) => toolName(c) === "voicemail_detection")) voicemail = true;
     const calledBooking = calls.some((c) => toolName(c) === "zapishi_chas");
     const failedBooking = results.some((r) => toolName(r) === "zapishi_chas" && obj(r).is_error === true);
     const okBooking = results.some((r) => toolName(r) === "zapishi_chas" && obj(r).is_error !== true);
@@ -153,6 +161,7 @@ export function parsePostCall(payload: unknown): PostCallEvent | null {
     booked,
     channel: callerNumber ? "telefon" : "sait",
     collected,
+    voicemail,
   };
 }
 
@@ -261,7 +270,9 @@ export function describeCall(ev: PostCallEvent, inbound: InboundInfo | null = nu
     ? `📲 Входящо на 0876 · ${inbound.povod ? inbound.povod.slice(0, 90) : "без повод"} · ${minutes} мин${
         ev.booked ? " · записа си час" : inbound.obadiSe ? " · 📞 да му се обади Ивайло" : ""
       }`
-    : `🎙️ Разговор с гласовия агент ${where} · ${minutes} мин${ev.booked ? " · записа си час" : ""}`;
+    : ev.voicemail
+      ? `📼 Гласова поща ${where} · ${ev.durationSecs} сек · Ели затвори, не е говорил човек`
+      : `🎙️ Разговор с гласовия агент ${where} · ${minutes} мин${ev.booked ? " · записа си час" : ""}`;
 
   const parts: string[] = [];
   if (ev.summary) parts.push(ev.summary);

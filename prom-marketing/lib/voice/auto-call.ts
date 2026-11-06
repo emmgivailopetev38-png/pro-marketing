@@ -94,6 +94,7 @@ export function autoOptions(): AcOptions {
     eliAgentId: ELI_AGENT_ID,
     newDelayMin: intEnv("VOICE_AUTO_NEW_DELAY_MIN", DEFAULT_OPTIONS.newDelayMin),
     maxAttempts: intEnv("VOICE_AUTO_MAX_ATTEMPTS", DEFAULT_OPTIONS.maxAttempts),
+    noshowMaxAttempts: intEnv("VOICE_AUTO_NOSHOW_MAX_ATTEMPTS", DEFAULT_OPTIONS.noshowMaxAttempts),
     skipPhones: skipPhones(),
   };
 }
@@ -378,9 +379,13 @@ export async function runAutoCalls(args: { now?: Date; dryRun?: boolean; force?:
       await sb.from("contact_activities").insert({
         contact_id: call.contactId,
         activity_type: AUTO_LOG_TYPE,
-        title: `📞 Ели звъни сама · ${label} · опит ${call.attempt}/${opts.maxAttempts}`,
+        title: `📞 Ели звъни сама · ${label} · опит ${call.attempt}/${call.maxAttempts}`,
         body: `Автоматично обаждане от 0876 447 159 (агентът „Ели“). Разговорът влиза в картона, щом приключи. ${
-          call.attempt < opts.maxAttempts ? "Не вдигне ли — още един опит в следващ работен ден." : "Това е последният автоматичен опит."
+          call.attempt < call.maxAttempts
+            ? call.reason === "noshow"
+              ? `Не вдигне ли — Ели пробва пак (до ${call.maxAttempts} опита за ${opts.noshowMaxAgeDays} дни), докато запише нов час.`
+              : "Не вдигне ли — още един опит в следващ работен ден."
+            : "Това е последният автоматичен опит."
         }`,
         occurred_at: new Date().toISOString(),
         created_by: "eli_auto",

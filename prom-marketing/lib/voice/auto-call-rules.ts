@@ -55,7 +55,16 @@ export interface AcOptions {
   /** Колко дни назад гледаме за нов лийд (петък–неделя чакат до понеделник). */
   newMaxAgeDays: number;
   noshowMaxAgeDays: number;
+  /** Опити при нов лийд — в различни дни. */
   maxAttempts: number;
+  /**
+   * Опити при неявил се (Ивайло, 06.11.2026: „които не се явят — Георги ги
+   * отбелязва и Ели пак им звъни, да не ги пуска“): веднага, на другия ден и
+   * после през `noshowGapDays`, докато запише час или човекът каже „не“.
+   */
+  noshowMaxAttempts: number;
+  /** Дни пауза между опитите от третия нататък и след разговор без час. */
+  noshowGapDays: number;
   /** Последните 9 цифри на номера, на които никога не звъним. */
   skipPhones: Set<string>;
 }
@@ -65,12 +74,16 @@ export const DEFAULT_OPTIONS: Omit<AcOptions, "eliAgentId" | "skipPhones"> = {
   newMaxAgeDays: 5,
   noshowMaxAgeDays: 7,
   maxAttempts: 2,
+  noshowMaxAttempts: 4,
+  noshowGapDays: 2,
 };
 
 export interface AcCall {
   contactId: string;
   reason: AutoReason;
   attempt: number;
+  /** Таванът за този повод — за надписа „опит 2/4“. */
+  maxAttempts: number;
   toNumber: string;
   triggerAt: string;
   variables: Record<string, string>;
@@ -161,8 +174,17 @@ function isEliCall(a: AcAct, eliAgentId: string): boolean {
 
 function eliAnswered(a: AcAct): boolean {
   const m = meta(a);
+  // Гласова поща: Ели може да остави 20-секундно съобщение — това не е вдигнал човек.
+  if (m.voicemail === true) return false;
   const secs = typeof m.duration_secs === "number" ? m.duration_secs : 0;
   return secs >= ANSWERED_SECS && m.call_successful !== "failure";
+}
+
+/** Бележките от post-call webhook-а: обещано обаждане или „не ме търсете“ — Ели спира. */
+function isPromiseOrStop(a: AcAct): boolean {
+  if (a.activity_type !== "note") return false;
+  const k = meta(a).kind;
+  return k === "callback_promise" || k === "do_not_call";
 }
 
 /** Говорил ли е Ивайло (или екипът) с човека — разговор, среща, оферта. */
@@ -262,6 +284,23 @@ export function spokenWhen(iso: string, now: Date): string {
   return `на ${d} ${MONTHS[m - 1]}`;
 }
 
+const HOUR_WORDS = [
+  "нула", "един", "два", "три", "четири", "пет", "шест", "седем", "осем", "девет", "десет", "единайсет",
+  "дванайсет", "тринайсет", "четиринайсет", "петнайсет", "шестнайсет", "седемнайсет", "осемнайсет",
+  "деветнайсет", "двайсет", "двайсет и един", "двайсет и два", "двайсет и три",
+];
+
+/** „в петнайсет часа“, „в десет и половина“ — часът с думи, за първото изречение (то не минава през модела). */
+export function spokenTime(iso: string): string {
+  const p = sofiaParts(new Date(iso));
+  const h = HOUR_WORDS[p.hour] ?? String(p.hour);
+  if (p.minute === 0) return `в ${h} часа`;
+  if (p.minute === 30) return `в ${h} и половина`;
+  if (p.minute === 15) return `в ${h} и петнайсет`;
+  if (p.minute === 45) return `в ${h} и четирийсет и пет`;
+  return `в ${h} и ${p.minute}`;
+}
+
 /** Какво е поискал във формата — за „звъня по заявката ви за …“. */
 export function zayavkaFrom(lead: AcAct | undefined): string {
   if (!lead) return "AI автоматизация";
@@ -319,15 +358,24 @@ export function decide(
     return { skip: "няма повод (нов лийд или неявил се)" };
   }
   const triggerMs = ms(trigger.occurred_at);
+  const missedAt = String(meta(trigger).missed_at ?? trigger.occurred_at);
+  const missedBookingId = meta(trigger).missed_booking_id ? String(meta(trigger).missed_booking_id) : null;
 
   // Говорил ли е Ивайло с човека: при нов лийд — никога; при неявил се —
-  // след пропуснатия час, или изобщо е имал проведена среща.
+  // след пропуснатия час, или по-рано е имал проведена среща. Самата
+  // пропусната среща също стои в картона като `meeting` (upsertBooking я
+  // записва при резервацията) — тя не е проведена и не спира обаждането
+  // (Стоян, 04.11.2026: Ели изобщо не му звънна заради този запис).
   if (reason === "nov" && past.some(isHumanTalk)) return { skip: "Ивайло вече е говорил с него" };
   if (reason === "noshow") {
+    const missedMs = ms(missedAt);
     if (past.some((a) => ms(a.occurred_at) > triggerMs && isHumanTalk(a))) return { skip: "говорили след пропуснатия час" };
-    if (past.some((a) => a.activity_type === "meeting" || a.activity_type === "meeting_outcome")) {
-      return { skip: "имал е проведена среща" };
-    }
+    const held = past.some((a) => {
+      if (a.activity_type !== "meeting" && a.activity_type !== "meeting_outcome") return false;
+      if (missedBookingId && String(meta(a).booking_id ?? "") === missedBookingId) return false;
+      return ms(a.occurred_at) < missedMs - 60_000;
+    });
+    if (held) return { skip: "имал е проведена среща" };
   }
   if (c.last_heard_from_at && ms(c.last_heard_from_at) > triggerMs) return { skip: "чут след повода" };
   if (past.some((a) => REPLY_TYPES.has(a.activity_type) && ms(a.occurred_at) > triggerMs)) {
@@ -337,47 +385,72 @@ export function decide(
   // Опитите след повода: нашите записи за набиране и разговорите на Ели.
   const after = past.filter((a) => ms(a.occurred_at) >= triggerMs);
   const eliCalls = after.filter((a) => isEliCall(a, opts.eliAgentId));
-  if (eliCalls.some(eliAnswered)) return { skip: "вдигна на Ели — поема Ивайло" };
+  const answered = eliCalls.filter(eliAnswered);
+  const maxAttempts = reason === "noshow" ? opts.noshowMaxAttempts : opts.maxAttempts;
+  const gapMs = opts.noshowGapDays * 86_400_000;
+  if (answered.length) {
+    if (reason === "nov") return { skip: "вдигна на Ели — поема Ивайло" };
+    // Неявил се, който е говорил с Ели, но без час: едно обаждане още след
+    // паузата — освен ако е обещал кога да го потърсим или е казал „не“.
+    if (after.some(isPromiseOrStop)) return { skip: "обеща обаждане или не иска — Ели спира" };
+    if (answered.length >= 2) return { skip: "говори с Ели два пъти без час — стига" };
+    const lastTalk = answered.map((a) => ms(a.occurred_at)).sort((x, y) => y - x)[0];
+    if (nowMs - lastTalk < gapMs) return { skip: `говори с Ели без час — пауза ${opts.noshowGapDays} дни` };
+  }
   const dials = after.filter((a) => a.activity_type === AUTO_LOG_TYPE);
   const attempts = Math.max(dials.length, eliCalls.length);
-  if (attempts >= opts.maxAttempts) return { skip: `${attempts} опита — стига` };
+  if (attempts >= maxAttempts) return { skip: `${attempts} опита — стига` };
   const lastTry = [...dials, ...eliCalls].map((a) => a.occurred_at).sort().pop();
   if (lastTry && sofiaDay(lastTry) === sofiaDay(now)) return { skip: "днес вече е звъняно" };
+  // Неявил се: веднага и на другия ден; оттам нататък през два дни, за да не е тормоз.
+  if (reason === "noshow" && attempts >= 2 && lastTry && nowMs - ms(lastTry) < gapMs) {
+    return { skip: `пауза ${opts.noshowGapDays} дни между опитите` };
+  }
 
   const ime = firstName(c.full_name);
-  const when = spokenWhen(trigger.occurred_at, now);
-  const missedAt = String(meta(trigger).missed_at ?? trigger.occurred_at);
-  const variables: Record<string, string> =
-    reason === "nov"
-      ? {
-          pozdrav: ime ? `Здравейте, ${ime}!` : "Здравейте!",
-          ime,
-          zayavka: zayavkaFrom(lead),
-          data_zayavka: when,
-          istoriya: `Нова заявка от ${when}.${attempts ? " Втори опит — първия път не вдигна." : ""}`,
-          deynost: (c.business || c.company || "").trim(),
-          imeil: (c.email ?? "").trim(),
-          telefon: toNumber,
-          kanal: "izhodyasht",
-          sesia: "",
-          minuti: "",
-        }
-      : {
-          pozdrav: ime ? `Здравейте, ${ime}!` : "Здравейте!",
-          ime,
-          zayavka: "срещата с Ивайло",
-          data_zayavka: spokenWhen(missedAt, now),
-          istoriya: `Имаше записан час при Ивайло ${spokenWhen(missedAt, now)} и не влезе — разминахме се. Целта: нов удобен час, без упрек.${attempts ? " Втори опит." : ""}`,
-          deynost: (c.business || c.company || "").trim(),
-          imeil: (c.email ?? "").trim(),
-          telefon: toNumber,
-          kanal: "propusnata_sreshta",
-          sesia: "",
-          minuti: "",
-        };
+  const pozdrav = ime ? `Здравейте, ${ime}!` : "Здравейте!";
+  const base = {
+    pozdrav,
+    ime,
+    deynost: (c.business || c.company || "").trim(),
+    imeil: (c.email ?? "").trim(),
+    telefon: toNumber,
+    sesia: "",
+    minuti: "",
+  };
+  let variables: Record<string, string>;
+  if (reason === "nov") {
+    const when = spokenWhen(trigger.occurred_at, now);
+    const zayavka = zayavkaFrom(lead);
+    variables = {
+      ...base,
+      zayavka,
+      data_zayavka: when,
+      // Първото изречение на Ели е шаблон: „{{pozdrav}} Ели съм, от Про Маркетинг — {{povod}}. … {{vhod}}“.
+      povod: `по заявката ви за ${zayavka}`,
+      vhod: "Един бърз въпрос и ви намирам удобен час — става ли?",
+      istoriya: `Нова заявка от ${when}.${attempts ? " Втори опит — първия път не вдигна." : ""}`,
+      kanal: "izhodyasht",
+    };
+  } else {
+    // С кого е била срещата — от бележката (клоузърът), иначе Ивайло.
+    const who = String(meta(trigger).missed_with ?? "").trim() || "Ивайло";
+    const whenAt = `${spokenWhen(missedAt, now)} ${spokenTime(missedAt)}`;
+    variables = {
+      ...base,
+      zayavka: `срещата с ${who}`,
+      data_zayavka: whenAt,
+      povod: `за срещата с ${who} ${whenAt} — разминахме се`,
+      vhod: "Звъня само да ви намеря нов удобен час — имате ли една минута?",
+      istoriya: `Имаше записан час при ${who} ${whenAt} и не влезе — разминахме се. Целта: нов удобен час, без упрек.${
+        attempts ? ` Опит ${attempts + 1}.` : ""
+      }${answered.length ? " Вече говори с Ели веднъж и не записа час — този път леко, но до час." : ""}`,
+      kanal: "propusnata_sreshta",
+    };
+  }
 
   return {
-    call: { contactId: c.id, reason, attempt: attempts + 1, toNumber, triggerAt: trigger.occurred_at, variables },
+    call: { contactId: c.id, reason, attempt: attempts + 1, maxAttempts, toNumber, triggerAt: trigger.occurred_at, variables },
   };
 }
 

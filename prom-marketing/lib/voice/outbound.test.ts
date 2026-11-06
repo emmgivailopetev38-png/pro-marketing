@@ -34,6 +34,13 @@ describe("изходящото обаждане от Коста", () => {
       conversation_initiation_client_data: {
         dynamic_variables: { ime: "Иван", kanal: "sait", sesia: "vs_1" },
       },
+      // Гласова поща/факс → Twilio затваря още при вдигането; „unknown“/„human“ оставят разговора.
+      telephony_call_config: {
+        twilio_machine_detection: {
+          mode: "enable",
+          actions: [{ action: "hang_up", answered_by: ["machine_start", "fax"] }],
+        },
+      },
     });
   });
 });

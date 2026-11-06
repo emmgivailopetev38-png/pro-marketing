@@ -7,6 +7,7 @@ import {
   firstName,
   inCallWindow,
   orderCalls,
+  spokenTime,
   spokenWhen,
   zayavkaFrom,
   type AcAct,
@@ -171,11 +172,29 @@ describe("опитите", () => {
     const l = lead("2026-10-27T07:00:00Z");
     expect(decide(contact(), [l, eli("2026-10-27T08:00:00Z", 34)], false, NOW, opts)).toEqual({ skip: "вдигна на Ели — поема Ивайло" });
   });
+
+  it("гласова поща не е вдигнал човек — дори съобщението да е дълго", () => {
+    const l = lead("2026-10-27T07:00:00Z");
+    const vm = act("voice_call", "2026-10-27T08:00:00Z", { metadata: { agent_id: ELI, duration_secs: 41, call_successful: "unknown", voicemail: true } });
+    const d = decide(contact(), [l, vm], false, NOW, opts);
+    expect("call" in d && d.call.attempt).toBe(2);
+  });
+
+  it("първото изречение: поводът и входът са променливи", () => {
+    const d = decide(contact(), [lead("2026-10-28T07:00:00Z")], false, NOW, opts);
+    if (!("call" in d)) throw new Error("очаквах обаждане");
+    expect(d.call.variables.povod).toBe("по заявката ви за безплатен AI одит");
+    expect(d.call.variables.vhod).toMatch(/^Един бърз въпрос/);
+    expect(d.call.maxAttempts).toBe(2);
+  });
 });
 
 describe("неявил се", () => {
-  const noshow = (at = "2026-10-27T12:00:00Z") =>
-    act("note", at, { title: "🙈 Не се яви на срещата", metadata: { kind: "noshow", missed_at: "2026-10-27T09:00:00Z" } });
+  const noshow = (at = "2026-10-27T12:00:00Z", over: Record<string, unknown> = {}) =>
+    act("note", at, { title: "🙈 Не се яви на срещата", metadata: { kind: "noshow", missed_at: "2026-10-27T09:00:00Z", ...over } });
+  const dial = (at: string) => act(AUTO_LOG_TYPE, at, { created_by: "eli_auto" });
+  const eli = (at: string, secs: number) =>
+    act("voice_call", at, { metadata: { agent_id: ELI, duration_secs: secs, call_successful: "success" } });
 
   it("звъни за нов час, дори ако е говорил по телефона ПРЕДИ срещата", () => {
     const before = act("call", "2026-10-20T08:00:00Z", { title: "Говорихме · интерес" });
@@ -183,9 +202,20 @@ describe("неявил се", () => {
     expect("call" in d).toBe(true);
     if (!("call" in d)) return;
     expect(d.call.reason).toBe("noshow");
+    expect(d.call.maxAttempts).toBe(4);
     expect(d.call.variables.kanal).toBe("propusnata_sreshta");
     expect(d.call.variables.zayavka).toBe("срещата с Ивайло");
-    expect(d.call.variables.data_zayavka).toBe("вчера");
+    expect(d.call.variables.data_zayavka).toBe("вчера в единайсет часа");
+    expect(d.call.variables.povod).toBe("за срещата с Ивайло вчера в единайсет часа — разминахме се");
+    expect(d.call.variables.vhod).toMatch(/нов удобен час/);
+  });
+
+  it("казва с кого е била срещата — клоузърът от бележката", () => {
+    const d = decide(contact(), [noshow("2026-10-27T12:00:00Z", { missed_with: "Георги", missed_booking_id: "b1" })], false, NOW, opts);
+    if (!("call" in d)) throw new Error("очаквах обаждане");
+    expect(d.call.variables.zayavka).toBe("срещата с Георги");
+    expect(d.call.variables.povod).toBe("за срещата с Георги вчера в единайсет часа — разминахме се");
+    expect(d.call.variables.istoriya).toMatch(/при Георги/);
   });
 
   it("не звъни, ако е говорено след пропуснатия час или е имал проведена среща", () => {
@@ -193,6 +223,48 @@ describe("неявил се", () => {
     expect(decide(contact(), [noshow(), after], false, NOW, opts)).toEqual({ skip: "говорили след пропуснатия час" });
     const met = act("meeting", "2026-10-01T08:00:00Z", { title: "🎥 Среща" });
     expect(decide(contact(), [met, noshow()], false, NOW, opts)).toEqual({ skip: "имал е проведена среща" });
+  });
+
+  it("самата пропусната среща стои в картона като `meeting` — тя не е проведена и не спира Ели", () => {
+    // upsertBooking записва „Среща · дата“ в часа на срещата (Стоян, 04.11.2026: заради нея Ели не му звънна).
+    const missed = act("meeting", "2026-10-27T09:00:00Z", { title: "Среща · 2026-10-27", metadata: { booking_id: "b1" } });
+    const d = decide(contact(), [missed, noshow("2026-10-27T12:00:00Z", { missed_booking_id: "b1" })], false, NOW, opts);
+    expect("call" in d).toBe(true);
+    // Същото и без booking_id в бележката — часът на срещата съвпада с пропуснатия.
+    const d2 = decide(contact(), [missed, noshow()], false, NOW, opts);
+    expect("call" in d2).toBe(true);
+  });
+
+  it("до четири опита: веднага, на другия ден, после през два дни", () => {
+    const n = noshow("2026-10-22T12:00:00Z", { missed_at: "2026-10-22T09:00:00Z" });
+    const a1 = dial("2026-10-22T12:30:00Z");
+    const a2 = dial("2026-10-23T08:00:00Z");
+    const d3 = decide(contact(), [n, a1, a2], false, NOW, opts);
+    expect("call" in d3 && d3.call.attempt).toBe(3);
+    expect(decide(contact(), [n, a1, a2, dial("2026-10-27T08:00:00Z")], false, NOW, opts)).toEqual({ skip: "пауза 2 дни между опитите" });
+    expect(decide(contact(), [n, a1, a2, dial("2026-10-25T08:00:00Z"), dial("2026-10-26T08:00:00Z")], false, NOW, opts)).toEqual({
+      skip: "4 опита — стига",
+    });
+  });
+
+  it("говорил с Ели без час → още един опит след два дни; обещано обаждане или „не“ → спира", () => {
+    const n = noshow("2026-10-24T12:00:00Z", { missed_at: "2026-10-24T09:00:00Z" });
+    expect(decide(contact(), [n, eli("2026-10-27T08:00:00Z", 60)], false, NOW, opts)).toEqual({ skip: "говори с Ели без час — пауза 2 дни" });
+    const d = decide(contact(), [n, eli("2026-10-26T08:00:00Z", 60)], false, NOW, opts);
+    if (!("call" in d)) throw new Error("очаквах обаждане");
+    expect(d.call.attempt).toBe(2);
+    expect(d.call.variables.istoriya).toMatch(/говори с Ели веднъж/);
+    const promise = act("note", "2026-10-26T08:05:00Z", { metadata: { kind: "callback_promise", at: "2026-11-02T08:00:00Z" } });
+    expect(decide(contact(), [n, eli("2026-10-26T08:00:00Z", 60), promise], false, NOW, opts)).toEqual({ skip: "обеща обаждане или не иска — Ели спира" });
+    expect(decide(contact(), [n, eli("2026-10-24T13:00:00Z", 60), eli("2026-10-26T08:00:00Z", 50)], false, NOW, opts)).toEqual({
+      skip: "говори с Ели два пъти без час — стига",
+    });
+  });
+
+  it("часът с думи за първото изречение", () => {
+    expect(spokenTime("2026-10-27T09:00:00Z")).toBe("в единайсет часа");
+    expect(spokenTime("2026-10-27T12:30:00Z")).toBe("в четиринайсет и половина");
+    expect(spokenTime("2026-10-27T07:15:00Z")).toBe("в девет и петнайсет");
   });
 
   it("неявилите се са първи в реда", () => {

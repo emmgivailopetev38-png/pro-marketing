@@ -685,25 +685,26 @@ export interface NoShowBooking {
   scheduledAtIso: string;
   /** кой го е отбелязал — „Ивайло“, „проверката“, „Хермес“ */
   by: string;
-  /** човекът от екипа, който получи картона; null = никой */
+  /** човекът от екипа, който води срещата (клоузърът); null = Ивайло */
   memberName: string | null;
 }
 
 /**
- * Пропусната среща: картонът е в списъка на Ивайло за днес — срещата е била в
- * календара му, затова не отива при екипа (правило от 06.10.2026). Никога не хвърля.
+ * Пропусната среща: Ели звъни за нов час до минути (lib/voice/auto-call-rules.ts),
+ * водещият на срещата го вижда в списъка си на другата сутрин. Никога не хвърля.
  */
 export async function notifyNoShowBooking(n: NoShowBooking): Promise<void> {
   const when = fmtSofia(n.scheduledAtIso);
   const card = n.contactId ? `${SITE}/admin/clients/${n.contactId}` : `${SITE}/admin/bookings`;
+  const who = n.memberName ?? "Ивайло";
   const lines = [
     `🙈 <b>Не се яви на срещата</b>`,
-    `${escapeHtml(n.name)} · ${escapeHtml(when)}`,
+    `${escapeHtml(n.name)} · ${escapeHtml(when)} · с ${escapeHtml(who)}`,
     n.phone ? `📞 ${escapeHtml(n.phone)}` : null,
     `Отбеляза: ${escapeHtml(n.by)}`,
     n.contactId
-      ? `→ В списъка ти за звънене е за днес. При Димитър не отива — срещата е била в календара ти. Ако сте говорили по телефона, оправи срещата на „проведена“.`
-      : `⚠️ Няма картон в CRM-а — никой не е получил задача.`,
+      ? `→ Ели му звъни за нов час до минути (до 4 опита за 7 дни). Няма ли час — утре в 10:00 е в списъка на ${escapeHtml(who)}. Ако сте говорили по телефона, оправи срещата на „проведена“.`
+      : `⚠️ Няма картон в CRM-а — Ели няма на кого да звъни.`,
   ].filter(Boolean) as string[];
 
   await sendTelegram(lines.join("\n"), { buttons: [{ text: "Картонът в CRM-а", url: card }] }).catch(() => false);
