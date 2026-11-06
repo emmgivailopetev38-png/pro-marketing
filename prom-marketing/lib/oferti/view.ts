@@ -129,5 +129,5 @@ export function shortSummary(v: OfferView): string {
   if (v.totals.one_time_after > 0) tot.push(`еднократно ${fmtEur(v.totals.one_time_after)}`);
   if (v.totals.monthly_after > 0) tot.push(`месечно ${fmtEur(v.totals.monthly_after)}`);
   if (v.totals.discount > 0) tot.push(`отстъпка ${fmtEur(v.totals.discount)}`);
-  return [...rows, `Общо: ${tot.join(" · ") || "—"} (${v.vatLine.replace(/\.$/, "").toLowerCase() || "без ДДС"})`, `Валидна до ${v.validUntil}`].join("\n");
+  return [...rows, `Общо: ${tot.join(" · ") || "—"} (${v.vatLine ? v.vatLine.replace(/\.$/, "").replace(/^Всички/, "всички").replace(/^Цените/, "цените") : "без ред за ДДС"})`, `Валидна до ${v.validUntil}`].join("\n");
 }
