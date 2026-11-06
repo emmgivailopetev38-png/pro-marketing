@@ -177,11 +177,61 @@ function isRefusal(a: AcAct): boolean {
   return REFUSAL.test(a.title ?? "");
 }
 
-/** Първото име, ако прилича на име — иначе празно (Ели казва само „Здравейте!“). */
+/**
+ * Имена, при които буква по буква не стига — „ъ“, „ь“ и „я“ нямат свой латински
+ * знак (Dimitar → Димитър, Petyo → Петьо, Nadia → Надя). Останалите минават по
+ * правилата в `latinToCyrillic`.
+ */
+const NAME_DICT: Record<string, string> = {
+  dimitar: "Димитър", petar: "Петър", aleksandar: "Александър", alexandar: "Александър", alexander: "Александър",
+  lachezar: "Лъчезар", lachezara: "Лъчезара", krastyo: "Кръстьо", krasto: "Кръстьо", parvan: "Първан", galab: "Гълъб",
+  valcho: "Вълчо", valko: "Вълко", sabi: "Съби", sabin: "Събин", stanko: "Станко", tsanko: "Цанко", tsanka: "Цанка",
+  vania: "Ваня", vanya: "Ваня", tania: "Таня", tanya: "Таня", nadia: "Надя", nadya: "Надя", sonia: "Соня", sonya: "Соня",
+  petia: "Петя", petya: "Петя", katia: "Катя", katya: "Катя", mitia: "Митя", zhenia: "Женя", jenia: "Женя", vasia: "Вася",
+  jivko: "Живко", jordan: "Йордан", jordanka: "Йорданка", john: "Джон", george: "Георги", gosho: "Гошо",
+  ivailo: "Ивайло", ivaylo: "Ивайло", iliq: "Илия", ilia: "Илия", maria: "Мария", nikolai: "Николай", andrei: "Андрей",
+  sergei: "Сергей", matei: "Матей", mihail: "Михаил", mihael: "Михаел", michael: "Михаил", christo: "Христо",
+  christina: "Христина", christian: "Кристиан", kristian: "Кристиан", stoian: "Стоян", boian: "Боян", julia: "Юлия",
+  shteryo: "Щерьо", kolyo: "Кольо", kolio: "Кольо", gancho: "Ганчо", pencho: "Пенчо", penyo: "Пеньо", penio: "Пеньо",
+  stoyo: "Стойо", lyuben: "Любен", luben: "Любен", lyubomir: "Любомир", lubomir: "Любомир", lyudmil: "Людмил", ludmil: "Людмил",
+  lyudmila: "Людмила", ludmila: "Людмила", dessislava: "Десислава", dessy: "Деси", desi: "Деси", vesselin: "Веселин",
+  vessela: "Весела", alex: "Алекс", niki: "Ники", nikki: "Ники", vicky: "Вики", vikki: "Вики", mimi: "Мими",
+};
+
+/** Двойки и тройки букви, които са една българска (редът е важен: „sht“ преди „sh“, „ya“ преди „ay“). */
+const LAT_GROUPS: [RegExp, string][] = [
+  [/shch/g, "щ"], [/sht/g, "щ"], [/zh/g, "ж"], [/ch/g, "ч"], [/sh/g, "ш"], [/ts/g, "ц"], [/tz/g, "ц"],
+  [/yu/g, "ю"], [/iu/g, "ю"], [/ya/g, "я"], [/iya/g, "ия"], [/ia$/g, "ия"],
+  [/(^|[aeiou])yo/g, "$1йо"], [/yo/g, "ьо"], [/(^|[aeiou])jo/g, "$1йо"],
+  [/ay/g, "ай"], [/ey/g, "ей"], [/oy/g, "ой"], [/uy/g, "уй"], [/kh/g, "х"], [/ph/g, "ф"], [/th/g, "т"], [/ck/g, "к"],
+];
+const LAT_ONE: Record<string, string> = {
+  a: "а", b: "б", c: "ц", d: "д", e: "е", f: "ф", g: "г", h: "х", i: "и", j: "й", k: "к", l: "л", m: "м",
+  n: "н", o: "о", p: "п", q: "я", r: "р", s: "с", t: "т", u: "у", v: "в", w: "в", x: "кс", y: "и", z: "з",
+};
+
+/**
+ * Латинско име от Meta формата → на кирилица, за да го изговори Ели („Здравейте,
+ * Elmer!“ се четеше буква по буква — 4 от 7 вдигнали на 03–05.11.2026). Име, което
+ * не е само латински букви, се връща както е.
+ */
+export function latinToCyrillic(name: string): string {
+  if (!/^[A-Za-z]+$/.test(name)) return name;
+  const low = name.toLowerCase();
+  const known = NAME_DICT[low];
+  if (known) return known;
+  let s = low;
+  for (const [re, to] of LAT_GROUPS) s = s.replace(re, to);
+  s = s.replace(/[a-z]/g, (ch) => LAT_ONE[ch] ?? ch);
+  return s;
+}
+
+/** Първото име, ако прилича на име — иначе празно (Ели казва само „Здравейте!“). Латиница → кирилица. */
 export function firstName(full: string | null | undefined): string {
   const t = (full ?? "").trim().split(/\s+/)[0] ?? "";
   if (t.length < 2 || /\d|@|\+/.test(t)) return "";
-  return t.charAt(0).toUpperCase() + t.slice(1);
+  const name = latinToCyrillic(t);
+  return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
 const MONTHS = ["януари", "февруари", "март", "април", "май", "юни", "юли", "август", "септември", "октомври", "ноември", "декември"];

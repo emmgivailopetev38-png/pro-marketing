@@ -193,6 +193,38 @@ export function inboundInfo(ev: PostCallEvent): InboundInfo {
   };
 }
 
+export interface OutboundInfo {
+  /** Кога човекът поиска да му се звънне — с неговите думи („утре в единайсет“); null, ако не е искал или има час. */
+  callbackWhen: string | null;
+  /** „Не ме търсете“ / „махнете ме“ / „не съм оставял заявка“. */
+  doNotCall: boolean;
+  /** Изходът по преценка на агента (zapisan_chas, obadi_se, zaet_bez_chas, ne_interesuva, ne_tarsete, ne_biznes, drugo). */
+  outcome: string | null;
+}
+
+/** Думите, с които моделът казва „няма такова“, вместо да остави полето празно. */
+const EMPTY_WORDS = /^(null|none|n\/a|nema|-|–|—|не|няма|не е казал|не е казала|не е поискал|не е поискала|не иска|празно|empty|unknown|false)$/i;
+
+function collectedText(v: string | undefined): string | null {
+  const t = (v ?? "").trim();
+  return !t || EMPTY_WORDS.test(t) ? null : t;
+}
+
+/**
+ * Изходящ разговор на Ели (нов лийд, неявил се, фолоуъп): какво е обещала и какво
+ * не бива да правим повече. Полетата идват от „Data collection“ на агента
+ * (obadi_se_koga, ne_tarsete, rezultat). Дотогава „ще ви потърсим утре в единайсет“
+ * оставаше само в транскрипта и никой не звънеше (Благой, 03.11.2026).
+ */
+export function outboundInfo(ev: PostCallEvent): OutboundInfo {
+  const c = ev.collected;
+  return {
+    callbackWhen: ev.booked ? null : collectedText(c.obadi_se_koga),
+    doNotCall: /^(true|1|да|yes)$/i.test((c.ne_tarsete ?? "").trim()),
+    outcome: collectedText(c.rezultat)?.toLowerCase() ?? null,
+  };
+}
+
 /** Плейсхолдърът, който формата подава, когато няма имейл — не е адрес на човек. */
 export const NO_EMAIL = "bez-imeil@promarketing.pw";
 

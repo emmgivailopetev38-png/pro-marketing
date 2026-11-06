@@ -205,8 +205,25 @@ describe("неявил се", () => {
 
 describe("думите", () => {
   it("име, кога, какво", () => {
-    expect(firstName("vladimir dimov")).toBe("Vladimir");
+    expect(firstName("vladimir dimov")).toBe("Владимир");
     expect(firstName("+359888")).toBe("");
+    expect(firstName("Светла Иван Мишеви")).toBe("Светла");
+  });
+
+  it("латинските имена от Meta формата стават кирилица, за да ги изговори Ели", () => {
+    const cases: Record<string, string> = {
+      Elmer: "Елмер", Blagoy: "Благой", Svetlozar: "Светлозар", Plamen: "Пламен", Yordanka: "Йорданка", Nailedin: "Наиледин",
+      Vasil: "Васил", Elena: "Елена", Stoyan: "Стоян", Boyko: "Бойко", Nikolay: "Николай", Yulia: "Юлия", Maria: "Мария",
+      Liliq: "Лилия", Mariq: "Мария", Zhivko: "Живко", Chavdar: "Чавдар", Tsvetan: "Цветан", Cvetelina: "Цветелина",
+      Ventsislav: "Венцислав", Hristo: "Христо", Yordan: "Йордан", Yoana: "Йоана", Petyo: "Петьо", Kristiyan: "Кристиян",
+      Dimitar: "Димитър", Lachezar: "Лъчезар", Nadia: "Надя", Vanya: "Ваня", Georgi: "Георги", Shteryo: "Щерьо", Reneta: "Ренета",
+    };
+    for (const [lat, cyr] of Object.entries(cases)) expect(firstName(lat), lat).toBe(cyr);
+    // Кирилица и смесени низове не се пипат.
+    expect(firstName("Лъчезар Генов")).toBe("Лъчезар");
+    expect(firstName("Ivan4o")).toBe("");
+    expect(firstName("Funky-360")).toBe("");
+    expect(firstName("Jean-Pierre")).toBe("Jean-Pierre");
     expect(spokenWhen("2026-10-28T02:00:00Z", NOW)).toBe("тази нощ");
     expect(spokenWhen("2026-10-27T17:00:00Z", NOW)).toBe("вчера вечерта");
     expect(spokenWhen("2026-10-26T08:00:00Z", NOW)).toBe("в понеделник");
