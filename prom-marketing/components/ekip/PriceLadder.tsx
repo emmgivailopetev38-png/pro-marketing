@@ -1,11 +1,11 @@
 import { ArrowRight, Check } from "lucide-react";
-import { LADDER_FLOW, LEVELS, PRICES_UPDATED, TBI_NOTE } from "@/components/admin/skript/pricing-data";
+import { DOWNSELL, LADDER_FLOW, LEVELS, PRICES_UPDATED, TBI_NOTE } from "@/components/admin/skript/pricing-data";
 
 /**
  * Стълбата: трите нива на обучението като стъпала (I → II → III), вноските на
- * TBI за 6 / 12 / 24 месеца и лентата „как се движи клиентът“. Една и съща при
- * Джордж (/ekip/ceni) и при Ивайло (/admin/skript → Цени). Без състояние — само
- * данни от pricing-data.ts.
+ * TBI за 6 / 12 / 24 месеца, стъпало 0 (даунселът „Самообучение“) и лентата
+ * „как се движи клиентът“. Една и съща при Георги (/ekip/ceni) и при Ивайло
+ * (/admin/skript → Цени). Без състояние — само данни от pricing-data.ts.
  */
 export function PriceLadder() {
   const heights = ["md:min-h-[520px]", "md:min-h-[570px]", "md:min-h-[620px]"];
@@ -16,11 +16,12 @@ export function PriceLadder() {
           Стълбата · {PRICES_UPDATED.split(" ")[0]}
         </p>
         <h2 className="mt-1 text-2xl font-bold leading-tight text-[var(--color-text-primary)] sm:text-3xl">
-          Три нива. Една среща — една оферта.
+          Стълбата. Георги избира пакета — казва един.
         </h2>
         <p className="mt-1 max-w-2xl text-[13.5px] text-[var(--color-text-secondary)]">
-          Всяка среща води към Ниво I. Пита „как да печеля“ — Ниво II. Иска най-бързото и най-личното — Ниво III. Цените са с
-          ДДС и се казват точно така.
+          Основната оферта е Ниво II — „нямам клиенти“ значи маркетинг и продажби с AI. Иска само обучение и автоматизации
+          — Ниво I. „Искам курса, не срещи“ — Ниво 0 за 2 000 €. Най-бързото и най-личното — Ниво III. „Нямам време да
+          уча“ — Команден център 7 900 €. Цените са с ДДС и се казват точно така.
         </p>
       </div>
 
@@ -130,6 +131,36 @@ export function PriceLadder() {
           </li>
         ))}
       </ol>
+
+      {/* стъпало 0 — даунселът */}
+      <div
+        className="rounded-3xl border p-4 sm:p-5"
+        style={{
+          borderColor: `${DOWNSELL.tint}55`,
+          backgroundImage: `radial-gradient(120% 80% at 0% 0%, ${DOWNSELL.tint}1a 0%, transparent 60%)`,
+        }}
+      >
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: DOWNSELL.tint }}>
+            Ниво 0 · даунсел от Ниво I
+          </span>
+          <h3 className="text-lg font-bold leading-snug text-[var(--color-text-primary)]">{DOWNSELL.name}</h3>
+          <p className="font-mono text-[28px] font-black leading-none text-[var(--color-text-primary)]">{DOWNSELL.price}</p>
+          <span className="text-[11px] text-[var(--color-text-tertiary)]">{DOWNSELL.priceNote}</span>
+        </div>
+        <p className="mt-2 text-[12px] italic text-[var(--color-text-secondary)]">{DOWNSELL.who}</p>
+        <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
+          {DOWNSELL.includes.map((x) => (
+            <li key={x} className="flex gap-2 text-[12.5px] leading-snug text-[var(--color-text-secondary)]">
+              <Check className="mt-0.5 size-3.5 shrink-0" style={{ color: DOWNSELL.tint }} />
+              {x}
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-[11.5px] italic leading-relaxed" style={{ color: DOWNSELL.tint }}>
+          {DOWNSELL.pitch}
+        </p>
+      </div>
 
       <p className="text-[11.5px] leading-relaxed text-[var(--color-text-tertiary)]">{TBI_NOTE}</p>
 
