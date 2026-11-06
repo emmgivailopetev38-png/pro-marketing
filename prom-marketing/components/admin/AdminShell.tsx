@@ -67,6 +67,7 @@ const LINK_GROUPS: LinkGroup[] = [
       { href: "/admin/skript", label: "Разговорът", icon: Route },
       { href: "/admin/trenirovka", label: "Тренировка МВП", icon: GraduationCap },
       { href: "/admin/igra", label: "Кандидати · Играта", icon: Gamepad2 },
+      { href: "/admin/liniyata", label: "Линията · цените", icon: Sparkles },
     ],
   },
   {

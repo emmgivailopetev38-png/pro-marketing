@@ -1,0 +1,178 @@
+/* „Линията“ — цените като малки червени числа, които се въртят в кръгчето.
+   Геометрията (център 250/290, посоката на линията) е и в LiniyataCeni.tsx —
+   сменя ли се там, сменя се и тук (въртенето и бягащото число). */
+
+.stage {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 33% 58%, rgba(150, 30, 25, 0.24), transparent 55%),
+    radial-gradient(ellipse at 90% 0%, rgba(217, 167, 74, 0.06), transparent 45%),
+    #0b0a09;
+  border: 1px solid rgba(217, 167, 74, 0.14);
+}
+.svg { display: block; width: 100%; height: auto; }
+
+/* ── числата в кръгчето: еднакво малки, червени, игриви ── */
+.num {
+  font-family: var(--data, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  fill: #e0675b;
+  paint-order: stroke;
+  stroke: rgba(11, 10, 9, 0.85);
+  stroke-width: 3px;
+}
+.pulse { animation: pulse 1.8s ease-out; }
+@keyframes pulse {
+  0% { fill: #ffd27a; filter: drop-shadow(0 0 6px rgba(255, 107, 74, 0.9)); }
+  100% { fill: #e0675b; filter: none; }
+}
+
+.spin { transform-box: view-box; transform-origin: 250px 290px; animation: spin linear infinite; }
+.spinBack { transform-box: view-box; transform-origin: 250px 290px; animation: spin linear infinite reverse; }
+.counter { transform-box: fill-box; transform-origin: center; animation: spin linear infinite reverse; }
+.counterBack { transform-box: fill-box; transform-origin: center; animation: spin linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.wobble { transform-box: fill-box; transform-origin: center; animation: wobble 2.8s ease-in-out infinite; }
+@keyframes wobble {
+  0%, 100% { transform: translate(0, 0) rotate(-4deg); }
+  25% { transform: translate(2px, -3px) rotate(3deg); }
+  50% { transform: translate(-1px, 2px) rotate(-2deg); }
+  75% { transform: translate(-3px, -1px) rotate(5deg); }
+}
+
+/* ── кръгчето ── */
+.ring { stroke: #b8322a; stroke-width: 2.5; filter: drop-shadow(0 0 10px rgba(200, 50, 40, 0.45)); }
+.dash {
+  fill: none;
+  stroke: rgba(224, 103, 91, 0.35);
+  stroke-width: 1;
+  stroke-dasharray: 2 9;
+  transform-box: view-box;
+  transform-origin: 250px 290px;
+  animation: spin 90s linear infinite;
+}
+
+/* ── ограничителите: червен лист с ток ── */
+.sheet { stroke: #ff5a45; stroke-width: 1; filter: drop-shadow(0 0 8px rgba(255, 70, 50, 0.55)); }
+.zap {
+  fill: none;
+  stroke: #ffd9a8;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+  stroke-dasharray: 7 5;
+  animation: zap 0.9s steps(3) infinite;
+}
+@keyframes zap {
+  0% { stroke-dashoffset: 0; opacity: 0.9; }
+  50% { opacity: 0.35; }
+  100% { stroke-dashoffset: -36; opacity: 0.9; }
+}
+.flash { animation: flash 8s linear infinite; }
+@keyframes flash {
+  0%, 57% { opacity: 0.85; filter: none; }
+  60% { opacity: 1; filter: drop-shadow(0 0 20px #ff5a45) brightness(1.7); }
+  68%, 100% { opacity: 0.85; filter: none; }
+}
+
+/* ── едно число опитва да избяга нагоре, удря листа и се връща малко ── */
+.escaper { transform-box: view-box; transform-origin: 0 0; animation: escape 8s ease-in-out infinite; opacity: 0; }
+@keyframes escape {
+  0%, 28% { transform: translate(360.4px, 231.4px) scale(1); opacity: 0; }
+  34% { transform: translate(360.4px, 231.4px) scale(1); opacity: 1; }
+  59% { transform: translate(423.1px, 198.1px) scale(1.5); opacity: 1; }
+  62% { transform: translate(409px, 205.6px) scale(1.15); opacity: 1; }
+  84% { transform: translate(345px, 239px) scale(1); opacity: 1; }
+  92%, 100% { transform: translate(345px, 239px) scale(1); opacity: 0; }
+}
+.escaperText { animation: escapeColor 8s ease-in-out infinite; }
+@keyframes escapeColor {
+  0%, 40% { fill: #e0675b; }
+  59% { fill: #f0c87a; }
+  66%, 100% { fill: #e0675b; }
+}
+
+/* ── „свиването“: голямото, ясното, неподвижното → малко, в кръгчето ── */
+.flyer { transform-box: view-box; transform-origin: 0 0; transition: transform 2.6s cubic-bezier(0.65, 0, 0.35, 1); }
+.flyerIn { animation: fadeIn 0.45s ease-out; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.flyerText {
+  font-family: var(--data, "JetBrains Mono", ui-monospace, monospace);
+  font-size: 56px;
+  font-weight: 700;
+  fill: #f0c87a;
+  transition: fill 2.6s ease;
+  filter: drop-shadow(0 0 14px rgba(240, 200, 122, 0.35));
+}
+.flyerTextSmall { fill: #e0675b; }
+.thick {
+  stroke: #f0c87a;
+  stroke-width: 12;
+  stroke-linecap: round;
+  opacity: 0.9;
+  transition: stroke-width 2.6s ease, stroke 2.6s ease, opacity 2.6s ease;
+}
+.thickThin { stroke-width: 1.5; stroke: #e0675b; opacity: 0; }
+
+/* ── бутоните и таблицата ── */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font: 600 13px var(--data, ui-monospace, monospace);
+  color: #f2efe7;
+  background: rgba(184, 50, 42, 0.14);
+  border: 1px solid rgba(224, 103, 91, 0.35);
+  border-radius: 999px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.chip:hover { background: rgba(184, 50, 42, 0.28); }
+.chip:disabled { opacity: 0.5; cursor: default; }
+.chipAll { background: rgba(217, 167, 74, 0.14); border-color: rgba(217, 167, 74, 0.45); }
+.chipAll:hover { background: rgba(217, 167, 74, 0.26); }
+.caption { min-height: 20px; font-size: 13px; color: var(--color-text-secondary, #a5a69e); }
+
+.tableWrap { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; min-width: 420px; }
+.table th {
+  font: 600 10px/1 var(--data, ui-monospace, monospace);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary, #7a7c72);
+  text-align: left;
+  padding: 8px 6px;
+}
+.table td { padding: 5px 6px; border-top: 1px solid rgba(255, 255, 255, 0.05); vertical-align: middle; }
+.rowStart td { background: rgba(217, 167, 74, 0.05); }
+.price { font: 500 13px var(--data, ui-monospace, monospace); color: #e0675b; }
+.lbl { display: block; font-size: 11px; color: var(--color-text-tertiary, #7a7c72); }
+.sum {
+  display: inline-block;
+  font: 500 13px var(--data, ui-monospace, monospace);
+  color: #e0675b;
+  background: none;
+  border: 0;
+  padding: 3px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  animation: tiny 3.2s ease-in-out infinite;
+}
+.sum:hover { background: rgba(184, 50, 42, 0.2); }
+@keyframes tiny {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-1px) rotate(1.5deg); }
+}
+.count { font: 500 12px var(--data, ui-monospace, monospace); color: var(--color-text-secondary, #a5a69e); }
+
+.eq { display: grid; gap: 6px; font-size: 14px; color: var(--color-text-secondary, #a5a69e); }
+.eq b { font: 500 13px var(--data, ui-monospace, monospace); color: #e0675b; }
+
+@media (prefers-reduced-motion: reduce) {
+  .spin, .spinBack, .counter, .counterBack, .wobble, .dash, .zap, .flash, .sum { animation: none; }
+  .escaper { display: none; }
+  .flyer, .flyerText, .thick { transition-duration: 0.6s; }
+}
