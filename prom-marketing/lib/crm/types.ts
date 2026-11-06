@@ -590,6 +590,17 @@ export interface OfferRow {
   id: string;
   contact_id: string | null;
   title: string;
+  /** оферта от модули (06.11.2026): номер, публичен код, редове, текстове */
+  number?: number | null;
+  token?: string | null;
+  template_key?: string | null;
+  items?: unknown[];
+  content?: Record<string, unknown>;
+  discount?: number | null;
+  discount_note?: string | null;
+  vat_mode?: "incl" | "excl" | "none";
+  owner_id?: string | null;
+  created_by?: string | null;
   description: string | null;
   amount_net: number | null;
   amount_gross: number | null;
