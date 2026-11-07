@@ -233,9 +233,18 @@ describe("редът на писмата", () => {
     expect(Math.round((NOW - start) / DAY)).toBe(8);
   });
 
-  it("камерите идват рано — четвърто писмо в общия кръг", () => {
-    expect(WARM_SEQUENCE[3].key).toBe("w3b_kameri");
-    const { html } = WARM_SEQUENCE[3].build("Иван", {});
+  it("филмът-уебинар е пръв в общия кръг (22.10.2026)", () => {
+    expect(WARM_SEQUENCE[0].key).toBe("uebinar_valnata");
+    expect(WARM_SEQUENCE[0].afterDays).toBe(WARM_SEQUENCE[1].afterDays);
+    const { html, text } = WARM_SEQUENCE[0].build("Иван", { contactId: "27b44907-5643-4674-bda0-93ebf7fdacdf" });
+    expect(html).toContain("/uebinar?k=27b44907");
+    expect(text).toContain("/uebinar?k=27b44907");
+    expect(html).toContain("дори гласът");
+  });
+
+  it("камерите идват рано — пето писмо в общия кръг", () => {
+    expect(WARM_SEQUENCE[4].key).toBe("w3b_kameri");
+    const { html } = WARM_SEQUENCE[4].build("Иван", {});
     expect(html).toContain("/demo/ohrana");
     expect(html).toContain("работно");
   });
@@ -248,7 +257,8 @@ describe("текстовете", () => {
   });
 
   it("ключовете не се бъркат със студената поредица", () => {
-    expect(ALL_WARM_STEPS.every((s) => /^(w|t_)/.test(s.key))).toBe(true);
+    // Изключение е само филмът-уебинар — ключът му е общ нарочно (виж uebinar-step.ts).
+    expect(ALL_WARM_STEPS.every((s) => /^(w|t_)/.test(s.key) || s.key === "uebinar_valnata")).toBe(true);
   });
 
   it("първите 14 дни идват по пътеката след оферта, не като вариант на демото", () => {
