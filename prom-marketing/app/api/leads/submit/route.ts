@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/resend";
 import { sendWelcomeEmail } from "@/lib/email/welcome";
 import { escapeHtml } from "@/lib/email/escape";
+import { safeForMail } from "@/lib/security/form-guard";
 import { notifyTeamNewLead } from "@/lib/team/notify";
 import { routeNewLead } from "@/lib/team/routing";
 import { phoneVariants } from "@/lib/contacts/repository";
@@ -129,7 +130,7 @@ export async function POST(request: Request) {
       supabase,
       contactId,
       to: email,
-      fullName: full_name,
+      fullName: safeForMail(full_name, 60, ""),
       source: "website",
     });
   }
