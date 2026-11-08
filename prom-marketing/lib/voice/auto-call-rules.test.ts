@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   AUTO_LOG_TYPE,
   DEFAULT_OPTIONS,
+  formAnswersSummary,
+  formProfileFor,
   bgMobileE164,
   decide,
   firstName,
@@ -120,7 +122,23 @@ describe("нов лийд", () => {
     const call = decide(contact(), [lead], false, now, { ...opts, skipForms: new Set(["111"]) });
     expect("call" in call).toBe(true);
   });
-  it("не звъни, ако Ивайло вече е говорил с човека", () => {
+ 
+  it("форма „Покрай работата“ → профил: не фирма, разговор с Георги, отговорите в бележката", () => {
+    const now = new Date("2026-11-09T09:00:00+02:00");
+    const lead = { activity_type: "meta_lead", title: "Meta lead · ПОКРАЙ РАБОТАТА", occurred_at: "2026-11-09T08:40:00+02:00", created_by: "meta_webhook", metadata: { form_id: "3062805607239108", meta_lead_id: "555" } };
+    const d = decide(contact(), [lead], false, now, opts);
+    expect("call" in d).toBe(true);
+    if (!("call" in d)) return;
+    expect(d.call.variables.kanal).toBe("pokrai_rabotata");
+    expect(d.call.variables.povod).toMatch(/Покрай работата/);
+    expect(d.call.variables.istoriya).toMatch(/ЧОВЕК НА ЗАПЛАТА/);
+    expect(d.call.metaLeadId).toBe("555");
+    const prof = formProfileFor("3062805607239108")!;
+    expect(formAnswersSummary(prof, [{ name: "situacia", values: ["rabota"] }, { name: "vreme", values: ["h2_5"] }, { name: "cel", values: ["uslugi"] }, { name: "phone_number", values: ["+359888"] }]))
+      .toBe("Къде е сега: на работа е и иска още един доход покрай нея; Време седмично: 2–5 часа; Цел: да прави AI системи за фирми срещу заплащане");
+    expect(formProfileFor("1443268750632089")).toBeNull();
+  });
+ it("не звъни, ако Ивайло вече е говорил с човека", () => {
     const talked = act("call", "2026-10-28T08:00:00Z", { title: "Говорихме", created_by: "Ивайло" });
     expect(decide(contact(), [lead(), talked], false, NOW, opts)).toEqual({ skip: "Ивайло вече е говорил с него" });
   });
