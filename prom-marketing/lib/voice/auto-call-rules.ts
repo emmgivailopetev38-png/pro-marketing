@@ -114,6 +114,25 @@ export interface FormProfile {
   /** ключ на въпроса → етикет; ключ на опцията → текст (Meta връща ключовете) */
   answers: Record<string, { label: string; options: Record<string, string> }>;
 }
+/**
+ * 08.11.2026 — „AI обучение, платено от държавата“: проект „Специфични умения за
+ * работната сила“ на Агенцията по заетостта (ПРЧР 2021–2027), срок 16.11.2026, 16:00.
+ * Една и съща цел за Meta формата и за формата на /obuchenie-az — различни са
+ * само поводът (реклама ↔ сайт) и откъде е дошъл човекът.
+ */
+const AZ_OBUCHENIE_ZAYAVKA =
+  "безплатен разговор за AI обучението на екипа ви, платено от държавата (проект на Агенцията по заетостта)";
+const AZ_OBUCHENIE_PROFIL =
+  "ФИРМА/РАБОТОДАТЕЛ, който иска безплатно AI обучение за екипа си по проект „Специфични умения за работната сила“ на Агенцията по заетостта. Държавата възстановява 100 % — до 1 278 € на човек и до 15 338 € на фирма; срок за заявление 16.11.2026, 16:00; ние пишем заявлението, той подписва с КЕП и праща през ССЕВ. Допустими: служители на трудов договор от 4 часа или договор за управление, самоосигуряващи се собственици; не: граждански договори, общини, училища, първично земеделие; без публично финансирано обучение през 2026. Цел на разговора: потвърди броя служители на трудов договор и дали имат КЕП, обясни трите стъпки (звъним → ние пишем заявлението → той подписва с КЕП и праща) и запиши 20-минутен разговор с Георги ОЩЕ ТАЗИ СЕДМИЦА — срокът е 16.11. Не обещавай одобрение (решава Агенцията). Не говори за цена — за фирмата при одобрение е 0 €.";
+/**
+ * `vhod` е последното изречение от шаблона на Ели („{{pozdrav}} Ели съм, от Про
+ * Маркетинг — {{povod}}. … {{vhod}}“) — затова е въпрос, а откъде е дошъл
+ * човекът („рекламата „AI обучение, платено от държавата“…“) стои в профила.
+ */
+const AZ_OBUCHENIE_VHOD = "Два бързи въпроса и ви намирам удобен час — става ли?";
+/** Формата на promarketing.pw/obuchenie-az — `metadata.form_id` на website_form активността. */
+export const OBUCHENIE_AZ_WEB_FORM = "sait-obuchenie-az";
+
 export const FORM_PROFILES: Record<string, FormProfile> = {
   "3062805607239108": {
     kanal: "pokrai_rabotata",
@@ -126,6 +145,45 @@ export const FORM_PROFILES: Record<string, FormProfile> = {
       vreme: { label: "Време седмично", options: { h2_5: "2–5 часа", h5_10: "5–10 часа", h10: "над 10 часа" } },
       cel: { label: "Цел", options: { ucha: "да научи AI и автоматизации", uslugi: "да прави AI системи за фирми срещу заплащане", svoe: "да автоматизира своя идея или бизнес" } },
     },
+  },
+  // 08.11.2026 — Meta лийд формата „AI обучение, платено от държавата“ (Агенция по заетостта, срок 16.11).
+  "2625101691244588": {
+    kanal: "az_obuchenie",
+    zayavka: AZ_OBUCHENIE_ZAYAVKA,
+    povod: "по заявката ви от рекламата за AI обучението на екипа, платено от държавата — за две минути да проверим дали фирмата ви е допустима и как подаваме заявлението до шестнайсети ноември",
+    vhod: AZ_OBUCHENIE_VHOD,
+    profil: `Дошъл от рекламата „AI обучение, платено от държавата“ (Агенция по заетостта, срок 16.11). ${AZ_OBUCHENIE_PROFIL}`,
+    answers: {
+      sluzhiteli: {
+        label: "Служители на трудов договор",
+        options: {
+          sam: "само собственикът (самоосигуряващ се / управител)",
+          s2_5: "2–5 души на трудов договор",
+          s6_15: "6–15 души",
+          s16: "над 15 души",
+        },
+      },
+      sfera: {
+        label: "Сфера",
+        options: {
+          targovia: "търговия / онлайн магазин",
+          uslugi: "услуги",
+          horeca: "ресторант / хотел / туризъм",
+          proizvodstvo: "производство / строителство / транспорт",
+          drugo: "друго",
+        },
+      },
+      kep: { label: "КЕП", options: { da: "има КЕП", ne: "няма КЕП", neznam: "не знае — счетоводителят" } },
+    },
+  },
+  // Същото, но от страницата /obuchenie-az (броят служители е в бележката на картона, не в Meta).
+  [OBUCHENIE_AZ_WEB_FORM]: {
+    kanal: "az_obuchenie",
+    zayavka: AZ_OBUCHENIE_ZAYAVKA,
+    povod: "по заявката ви от сайта за AI обучението на екипа, платено от държавата — за две минути да проверим дали фирмата ви е допустима и как подаваме заявлението до шестнайсети ноември",
+    vhod: AZ_OBUCHENIE_VHOD,
+    profil: `Дошъл от страницата promarketing.pw/obuchenie-az (AI обучение, платено от държавата; Агенция по заетостта, срок 16.11). ${AZ_OBUCHENIE_PROFIL}`,
+    answers: {},
   },
 };
 export function formProfileFor(formId: string | null | undefined): FormProfile | null {
@@ -480,6 +538,8 @@ export function decide(
     const leadFormId = lead && meta(lead).form_id != null ? String(meta(lead).form_id) : null;
     const prof = formProfileFor(leadFormId);
     const zayavka = prof ? prof.zayavka : zayavkaFrom(lead);
+    // Форма от сайта (напр. /obuchenie-az): отговорите идват готови в metadata.answers_summary.
+    const webAnswers = prof && lead && typeof meta(lead).answers_summary === "string" ? String(meta(lead).answers_summary).trim() : "";
     variables = {
       ...base,
       zayavka,
@@ -487,7 +547,7 @@ export function decide(
       // Първото изречение на Ели е шаблон: „{{pozdrav}} Ели съм, от Про Маркетинг — {{povod}}. … {{vhod}}“.
       povod: prof ? prof.povod : `по заявката ви за ${zayavka}`,
       vhod: prof ? prof.vhod : "Един бърз въпрос и ви намирам удобен час — става ли?",
-      istoriya: `Нова заявка от ${when}.${prof ? ` ${prof.profil}` : ""}${attempts ? " Втори опит — първия път не вдигна." : ""}`,
+      istoriya: `Нова заявка от ${when}.${prof ? ` ${prof.profil}` : ""}${webAnswers ? ` Отговори във формата — ${webAnswers}.` : ""}${attempts ? " Втори опит — първия път не вдигна." : ""}`,
       kanal: prof ? prof.kanal : "izhodyasht",
     };
   } else {
