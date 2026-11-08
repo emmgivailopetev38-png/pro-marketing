@@ -111,6 +111,15 @@ describe("нов лийд", () => {
     expect("skip" in decide(contact(), [lead("2026-10-20T08:00:00Z")], false, NOW, opts)).toBe(true);
   });
 
+
+  it("лийд от форма в VOICE_AUTO_SKIP_FORMS не е за Ели (звъни човек)", () => {
+    const now = new Date("2026-11-09T09:00:00+02:00");
+    const lead = { activity_type: "meta_lead", title: "Meta lead · ПОКРАЙ РАБОТАТА", occurred_at: "2026-11-09T08:40:00+02:00", created_by: "meta_webhook", metadata: { form_id: "3062805607239108" } };
+    const skip = decide(contact(), [lead], false, now, { ...opts, skipForms: new Set(["3062805607239108"]) });
+    expect("skip" in skip && skip.skip).toMatch(/форма 3062805607239108/);
+    const call = decide(contact(), [lead], false, now, { ...opts, skipForms: new Set(["111"]) });
+    expect("call" in call).toBe(true);
+  });
   it("не звъни, ако Ивайло вече е говорил с човека", () => {
     const talked = act("call", "2026-10-28T08:00:00Z", { title: "Говорихме", created_by: "Ивайло" });
     expect(decide(contact(), [lead(), talked], false, NOW, opts)).toEqual({ skip: "Ивайло вече е говорил с него" });

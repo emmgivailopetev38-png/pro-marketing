@@ -67,6 +67,12 @@ export interface AcOptions {
   noshowGapDays: number;
   /** Последните 9 цифри на номера, на които никога не звъним. */
   skipPhones: Set<string>;
+  /**
+   * Meta лийд форми, чиито лийдове НЕ са за Ели (08.11.2026: формата „ПОКРАЙ
+   * РАБОТАТА“ — хора на заплата, не фирми; Ели v4.2 не записва не-фирми, затова
+   * тях ги звъни човек — Георги). Живата стойност: VOICE_AUTO_SKIP_FORMS.
+   */
+  skipForms?: Set<string>;
 }
 
 export const DEFAULT_OPTIONS: Omit<AcOptions, "eliAgentId" | "skipPhones"> = {
@@ -353,6 +359,8 @@ export function decide(
   } else if (lead && nowMs - ms(lead.occurred_at) <= opts.newMaxAgeDays * 86_400_000) {
     reason = "nov";
     trigger = lead;
+    const formId = meta(lead).form_id != null ? String(meta(lead).form_id) : null;
+    if (formId && opts.skipForms?.has(formId)) return { skip: `форма ${formId} — звъни човек, не Ели` };
     if (nowMs - ms(lead.occurred_at) < opts.newDelayMin * 60_000) return { skip: "лийдът е от преди минути — след малко" };
   } else {
     return { skip: "няма повод (нов лийд или неявил се)" };
