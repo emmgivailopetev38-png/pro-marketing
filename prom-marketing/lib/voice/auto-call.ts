@@ -96,6 +96,7 @@ export function autoOptions(): AcOptions {
     maxAttempts: intEnv("VOICE_AUTO_MAX_ATTEMPTS", DEFAULT_OPTIONS.maxAttempts),
     noshowMaxAttempts: intEnv("VOICE_AUTO_NOSHOW_MAX_ATTEMPTS", DEFAULT_OPTIONS.noshowMaxAttempts),
     skipPhones: skipPhones(),
+    skipForms: new Set((process.env.VOICE_AUTO_SKIP_FORMS ?? "").split(/[,\s]+/).map((s) => s.trim()).filter(Boolean)),
   };
 }
 
