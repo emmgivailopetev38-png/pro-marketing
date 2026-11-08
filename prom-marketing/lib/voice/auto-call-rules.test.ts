@@ -138,6 +138,37 @@ describe("нов лийд", () => {
       .toBe("Къде е сега: на работа е и иска още един доход покрай нея; Време седмично: 2–5 часа; Цел: да прави AI системи за фирми срещу заплащане");
     expect(formProfileFor("1443268750632089")).toBeNull();
   });
+
+  it("форма „AI обучение АЗ“ (2625101691244588) → kanal az_obuchenie, профил за фирма, отговорите по ключове", () => {
+    const now = new Date("2026-11-09T09:00:00+02:00");
+    const lead = { activity_type: "meta_lead", title: "Meta lead · AI обучение АЗ", occurred_at: "2026-11-09T08:40:00+02:00", created_by: "meta_webhook", metadata: { form_id: "2625101691244588", meta_lead_id: "777" } };
+    const d = decide(contact(), [lead], false, now, opts);
+    expect("call" in d).toBe(true);
+    if (!("call" in d)) return;
+    expect(d.call.variables.kanal).toBe("az_obuchenie");
+    expect(d.call.variables.zayavka).toMatch(/Агенцията по заетостта/);
+    expect(d.call.variables.povod).toMatch(/шестнайсети ноември/);
+    expect(d.call.variables.vhod).toMatch(/става ли\?$/);
+    expect(d.call.variables.istoriya).toMatch(/ФИРМА\/РАБОТОДАТЕЛ/);
+    expect(d.call.variables.istoriya).toMatch(/Не обещавай одобрение/);
+    expect(d.call.metaLeadId).toBe("777");
+    const prof = formProfileFor("2625101691244588")!;
+    expect(formAnswersSummary(prof, [{ name: "sluzhiteli", values: ["s2_5"] }, { name: "sfera", values: ["horeca"] }, { name: "kep", values: ["neznam"] }]))
+      .toBe("Служители на трудов договор: 2–5 души на трудов договор; Сфера: ресторант / хотел / туризъм; КЕП: не знае — счетоводителят");
+  });
+
+  it("форма от сайта /obuchenie-az → същият профил, отговорите от metadata.answers_summary", () => {
+    const now = new Date("2026-11-09T09:00:00+02:00");
+    const lead = { activity_type: "website_form", title: "🎓 AI обучение АЗ · заявка от сайта", occurred_at: "2026-11-09T08:40:00+02:00", created_by: "website", metadata: { form_id: "sait-obuchenie-az", answers_summary: "Служители на трудов договор: 6–15" } };
+    const d = decide(contact(), [lead], false, now, opts);
+    expect("call" in d).toBe(true);
+    if (!("call" in d)) return;
+    expect(d.call.variables.kanal).toBe("az_obuchenie");
+    expect(d.call.variables.povod).toMatch(/от сайта/);
+    expect(d.call.variables.istoriya).toMatch(/ФИРМА\/РАБОТОДАТЕЛ/);
+    expect(d.call.variables.istoriya).toMatch(/Отговори във формата — Служители на трудов договор: 6–15\./);
+    expect(d.call.metaLeadId).toBeNull();
+  });
  it("не звъни, ако Ивайло вече е говорил с човека", () => {
     const talked = act("call", "2026-10-28T08:00:00Z", { title: "Говорихме", created_by: "Ивайло" });
     expect(decide(contact(), [lead(), talked], false, NOW, opts)).toEqual({ skip: "Ивайло вече е говорил с него" });
