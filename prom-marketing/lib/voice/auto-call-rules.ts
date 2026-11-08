@@ -93,9 +93,57 @@ export interface AcCall {
   toNumber: string;
   triggerAt: string;
   variables: Record<string, string>;
+  /** Meta лийдът (metadata.meta_lead_id) — за отговорите от формата при профилирани форми. */
+  metaLeadId?: string | null;
+  formProfile?: FormProfile | null;
 }
 
 export type AcDecision = { call: AcCall } | { skip: string };
+
+/**
+ * Профил на разговора по Meta лийд форма. 08.11.2026 — „ПОКРАЙ РАБОТАТА“: хора на
+ * нормална работа, които искат още един доход с AI (аудиторията на Йончев). Не са
+ * фирми — Ели не ги отпраща, а записва двайсет-минутния разговор с Георги.
+ */
+export interface FormProfile {
+  kanal: string;
+  zayavka: string;
+  povod: string;
+  vhod: string;
+  profil: string;
+  /** ключ на въпроса → етикет; ключ на опцията → текст (Meta връща ключовете) */
+  answers: Record<string, { label: string; options: Record<string, string> }>;
+}
+export const FORM_PROFILES: Record<string, FormProfile> = {
+  "3062805607239108": {
+    kanal: "pokrai_rabotata",
+    zayavka: "безплатния двайсет-минутен разговор — как да започнете с AI покрай работата",
+    povod: "по заявката ви от рекламата „Покрай работата“, за безплатния двайсет-минутен разговор как да започнете с AI покрай работата",
+    vhod: "Един-два въпроса и ви намирам удобен час — става ли?",
+    profil: "ЧОВЕК НА ЗАПЛАТА, НЕ ФИРМА (рекламата „Покрай работата“): иска още един доход с AI покрай работата; разговорът с Георги е двайсет минути — честно откъде да започне; не го отпращаш като „не е бизнес“.",
+    answers: {
+      situacia: { label: "Къде е сега", options: { rabota: "на работа е и иска още един доход покрай нея", biznes: "има малък бизнес и иска да го автоматизира", start: "търси с какво да започне / още учи" } },
+      vreme: { label: "Време седмично", options: { h2_5: "2–5 часа", h5_10: "5–10 часа", h10: "над 10 часа" } },
+      cel: { label: "Цел", options: { ucha: "да научи AI и автоматизации", uslugi: "да прави AI системи за фирми срещу заплащане", svoe: "да автоматизира своя идея или бизнес" } },
+    },
+  },
+};
+export function formProfileFor(formId: string | null | undefined): FormProfile | null {
+  return formId ? FORM_PROFILES[String(formId)] ?? null : null;
+}
+/** „Къде е сега: на работа е…; Време седмично: 2–5 часа; Цел: …“ от field_data на Meta (стойностите са ключове на опциите). */
+export function formAnswersSummary(profile: FormProfile, fieldData: Array<{ name?: string; values?: unknown[] }> | null | undefined): string {
+  if (!fieldData?.length) return "";
+  const parts: string[] = [];
+  for (const [key, q] of Object.entries(profile.answers)) {
+    const f = fieldData.find((x) => x.name === key);
+    const v = f?.values?.[0];
+    if (v == null) continue;
+    const raw = String(v);
+    parts.push(`${q.label}: ${q.options[raw] ?? raw}`);
+  }
+  return parts.join("; ");
+}
 
 const LEAD_TYPES = new Set(["meta_lead", "website_form"]);
 /** Картони, на които Ели не звъни: курсистите от Академията и трейдинг фунията. */
@@ -429,16 +477,18 @@ export function decide(
   let variables: Record<string, string>;
   if (reason === "nov") {
     const when = spokenWhen(trigger.occurred_at, now);
-    const zayavka = zayavkaFrom(lead);
+    const leadFormId = lead && meta(lead).form_id != null ? String(meta(lead).form_id) : null;
+    const prof = formProfileFor(leadFormId);
+    const zayavka = prof ? prof.zayavka : zayavkaFrom(lead);
     variables = {
       ...base,
       zayavka,
       data_zayavka: when,
       // Първото изречение на Ели е шаблон: „{{pozdrav}} Ели съм, от Про Маркетинг — {{povod}}. … {{vhod}}“.
-      povod: `по заявката ви за ${zayavka}`,
-      vhod: "Един бърз въпрос и ви намирам удобен час — става ли?",
-      istoriya: `Нова заявка от ${when}.${attempts ? " Втори опит — първия път не вдигна." : ""}`,
-      kanal: "izhodyasht",
+      povod: prof ? prof.povod : `по заявката ви за ${zayavka}`,
+      vhod: prof ? prof.vhod : "Един бърз въпрос и ви намирам удобен час — става ли?",
+      istoriya: `Нова заявка от ${when}.${prof ? ` ${prof.profil}` : ""}${attempts ? " Втори опит — първия път не вдигна." : ""}`,
+      kanal: prof ? prof.kanal : "izhodyasht",
     };
   } else {
     // С кого е била срещата — от бележката (клоузърът), иначе Ивайло.
@@ -457,8 +507,12 @@ export function decide(
     };
   }
 
+  const leadAct: AcAct | undefined = reason === "nov" ? lead : undefined;
+  const leadMeta = leadAct ? meta(leadAct) : {};
+  const metaLeadId = leadMeta.meta_lead_id != null ? String(leadMeta.meta_lead_id) : null;
+  const formProfile = leadAct ? formProfileFor(leadMeta.form_id != null ? String(leadMeta.form_id) : null) : null;
   return {
-    call: { contactId: c.id, reason, attempt: attempts + 1, maxAttempts, toNumber, triggerAt: trigger.occurred_at, variables },
+    call: { contactId: c.id, reason, attempt: attempts + 1, maxAttempts, toNumber, triggerAt: trigger.occurred_at, variables, metaLeadId, formProfile },
   };
 }
 

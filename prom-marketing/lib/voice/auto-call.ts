@@ -7,6 +7,7 @@ import { outboundApiKey, placeOutboundCall } from "./outbound";
 import {
   AUTO_LOG_TYPE,
   DEFAULT_OPTIONS,
+  formAnswersSummary,
   DEFAULT_WINDOW,
   decide,
   inCallWindow,
@@ -336,6 +337,12 @@ export async function runAutoCalls(args: { now?: Date; dryRun?: boolean; force?:
   const sb = createServiceClient();
   const dialed: AutoRunResult["dialed"] = [];
   for (const call of picked.slice(0, room)) {
+    // Профилирана форма (напр. „Покрай работата“): отговорите на човека влизат в бележката на Ели.
+    if (call.formProfile && call.metaLeadId) {
+      const { data: ml } = await sb.from("meta_leads").select("field_data").eq("meta_lead_id", call.metaLeadId).maybeSingle();
+      const summary = formAnswersSummary(call.formProfile, (ml as { field_data?: Array<{ name?: string; values?: unknown[] }> } | null)?.field_data);
+      if (summary) call.variables.istoriya = `${call.variables.istoriya} Отговори във формата — ${summary}.`;
+    }
     // Заключването: един ключ = едно набиране, дори при две паралелни пускания.
     // С деня вътре: паднало набиране (ElevenLabs/Twilio грешка) се пробва пак утре.
     const key = `voice-auto:${call.contactId}:${call.reason}:${call.triggerAt.slice(0, 16)}:${call.attempt}:${sofiaDay(now)}`;
