@@ -41,6 +41,16 @@ export function PriceList() {
                     <li key={i}>• {i}</li>
                   ))}
                 </ul>
+                {t.value && t.value.length > 0 && (
+                  <div className="mt-2 rounded-lg border border-dashed border-white/15 p-2">
+                    <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[var(--color-text-tertiary)]">Стойността в числа</p>
+                    <ul className="mt-1 space-y-0.5 text-[11px] text-[var(--color-text-secondary)]">
+                      {t.value.map((v) => (
+                        <li key={v}>{v}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 <p className="mt-2 text-[11px] italic text-[var(--color-text-tertiary)]">{t.pitch}</p>
               </div>
             ))}
