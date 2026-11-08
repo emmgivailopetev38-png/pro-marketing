@@ -120,6 +120,20 @@ export function PriceLadder() {
                 </li>
               ))}
             </ul>
+            {l.value && l.value.length > 0 && (
+              <div className="mt-3 rounded-xl border border-dashed p-2.5" style={{ borderColor: `${l.tint}66` }}>
+                <p className="font-mono text-[9.5px] uppercase tracking-[0.18em]" style={{ color: l.tint }}>
+                  Стойността в числа
+                </p>
+                <ul className="mt-1 space-y-1">
+                  {l.value.map((v) => (
+                    <li key={v} className="text-[12px] leading-snug text-[var(--color-text-secondary)]">
+                      {v}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-3">
               <p className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-[var(--color-text-tertiary)]">Излиза с</p>
@@ -157,6 +171,18 @@ export function PriceLadder() {
             </li>
           ))}
         </ul>
+        {DOWNSELL.value && (
+          <div className="mt-3 rounded-xl border border-dashed border-slate-400/40 p-2.5">
+            <p className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-slate-300">Стойността в числа</p>
+            <ul className="mt-1 space-y-1">
+              {DOWNSELL.value.map((v) => (
+                <li key={v} className="text-[12px] leading-snug text-[var(--color-text-secondary)]">
+                  {v}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <p className="mt-3 text-[11.5px] italic leading-relaxed" style={{ color: DOWNSELL.tint }}>
           {DOWNSELL.pitch}
         </p>
