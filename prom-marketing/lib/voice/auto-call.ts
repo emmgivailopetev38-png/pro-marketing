@@ -101,7 +101,7 @@ export function autoOptions(): AcOptions {
   };
 }
 
-/** `VOICE_AUTO_HOURS=09:00-17:50`, `VOICE_AUTO_DAYS=Mon,Tue,Wed,Thu,Fri` — смяна без промяна на кода (env + redeploy). */
+/** `VOICE_AUTO_HOURS=08:30-17:00`, `VOICE_AUTO_DAYS=Mon,Tue,Wed,Thu,Fri` — смяна без промяна на кода (env + redeploy). */
 export function callWindow(): CallWindow {
   const win = { ...DEFAULT_WINDOW };
   const h = /^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$/.exec((process.env.VOICE_AUTO_HOURS ?? "").trim());

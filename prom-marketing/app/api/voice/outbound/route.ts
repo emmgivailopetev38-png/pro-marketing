@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { checkHermesAuth } from "@/lib/crm/auth";
-import { creditsLeft, dailyMax, readSwitch, runAutoCalls, writeSwitch } from "@/lib/voice/auto-call";
+import { callWindow, creditsLeft, dailyMax, readSwitch, runAutoCalls, writeSwitch } from "@/lib/voice/auto-call";
+import { inCallWindow } from "@/lib/voice/auto-call-rules";
 import { enqueueFollowups, followupDailyMax, pendingFollowups, runFollowupQueue, upsertAgent } from "@/lib/voice/followup";
+
+const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -28,11 +31,13 @@ export const maxDuration = 60;
 export async function GET(request: Request) {
   if (!checkHermesAuth(request)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const [sw, credits, preview, queue] = await Promise.all([readSwitch(), creditsLeft(), runAutoCalls({ dryRun: true }), pendingFollowups()]);
+  const win = callWindow();
   return NextResponse.json({
     on: sw.on,
     switched_at: sw.at,
     switched_by: sw.by,
     paused_until: sw.until ?? null,
+    hours: { days: win.days, from: hhmm(win.startMin), to: hhmm(win.endMin), now_in_window: inCallWindow(new Date(), win) },
     cap: dailyMax(),
     today: preview.today,
     credits,
