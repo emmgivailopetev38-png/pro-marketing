@@ -49,18 +49,22 @@ const lead = (at = "2026-10-28T07:30:00Z") =>
   act("meta_lead", at, { title: "Meta lead · ProMarketing · AI одит", body: "Поиска: 🔎 Безплатен AI одит", metadata: { offer: "ai_odit" } });
 
 describe("часовете", () => {
-  it("пон–пт 09:00–17:50 по София", () => {
-    expect(inCallWindow(new Date("2026-10-28T07:00:00Z"))).toBe(true); // ср 09:00
-    expect(inCallWindow(new Date("2026-10-28T06:59:00Z"))).toBe(false); // ср 08:59
-    expect(inCallWindow(new Date("2026-10-28T15:49:00Z"))).toBe(true); // ср 17:49
-    expect(inCallWindow(new Date("2026-10-28T15:50:00Z"))).toBe(false); // ср 17:50
+  it("пон–пт 08:30–17:00 по София (09.11.2026: „да звъни до 17:00“)", () => {
+    expect(inCallWindow(new Date("2026-10-28T06:30:00Z"))).toBe(true); // ср 08:30
+    expect(inCallWindow(new Date("2026-10-28T06:29:00Z"))).toBe(false); // ср 08:29
+    expect(inCallWindow(new Date("2026-10-28T14:59:00Z"))).toBe(true); // ср 16:59
+    expect(inCallWindow(new Date("2026-10-28T15:00:00Z"))).toBe(false); // ср 17:00
+    expect(inCallWindow(new Date("2026-10-28T16:30:00Z"))).toBe(false); // ср 18:30
+    expect(inCallWindow(new Date("2026-10-28T18:59:00Z"))).toBe(false); // ср 20:59 (старият край беше 21:00)
     expect(inCallWindow(new Date("2026-10-30T09:00:00Z"))).toBe(true); // петък 11:00
     expect(inCallWindow(new Date("2026-10-31T09:00:00Z"))).toBe(false); // събота
     expect(inCallWindow(new Date("2026-11-01T09:00:00Z"))).toBe(false); // неделя
   });
   it("лятното време се смята правилно (UTC+3)", () => {
-    expect(inCallWindow(new Date("2026-10-22T06:00:00Z"))).toBe(true); // чт 09:00 EEST
-    expect(inCallWindow(new Date("2026-10-22T05:59:00Z"))).toBe(false);
+    expect(inCallWindow(new Date("2026-10-22T05:30:00Z"))).toBe(true); // чт 08:30 EEST
+    expect(inCallWindow(new Date("2026-10-22T05:29:00Z"))).toBe(false);
+    expect(inCallWindow(new Date("2026-10-22T13:59:00Z"))).toBe(true); // чт 16:59 EEST
+    expect(inCallWindow(new Date("2026-10-22T14:00:00Z"))).toBe(false); // чт 17:00 EEST
   });
   it("друг прозорец (напр. без петък)", () => {
     const win = { days: ["Mon", "Tue", "Wed", "Thu"], startMin: 600, endMin: 1065 };
