@@ -324,6 +324,8 @@ export async function buildOffer(input: BuildInput, actor: BuildActor): Promise<
   } else {
     return fail("офертата иска модули (items) или шаблон (template_key)");
   }
+  // remove:true има смисъл само при сливане; в пълния списък такъв ред просто не влиза
+  itemInputs = itemInputs.filter((i) => !i.remove);
   const built = buildItems(itemInputs);
   if (built.errors.length > 0) return fail(built.errors.join("; "), built.errors);
   const items = built.items;
