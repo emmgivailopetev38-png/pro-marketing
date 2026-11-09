@@ -28,6 +28,8 @@ export interface OfferBuilderProps {
 }
 
 type Draft = {
+  /** заглавието на ръка (празно = от модулите) */
+  title: string;
   contact_id: string;
   client_name: string;
   client_company: string;
@@ -90,6 +92,7 @@ export function OfferBuilder(p: OfferBuilderProps) {
   const contacts = useMemo(() => p.contacts ?? [], [p.contacts]);
   const isTemplate = p.mode === "template";
   const empty: Draft = {
+    title: "",
     contact_id: p.presetContactId ?? "",
     client_name: "",
     client_company: "",
@@ -121,6 +124,7 @@ export function OfferBuilder(p: OfferBuilderProps) {
       const o = p.initialOffer;
       return {
         ...empty,
+        title: o.content.title ?? "",
         contact_id: o.contact_id ?? "",
         client_name: o.content.client_name ?? o.contact?.full_name ?? "",
         client_company: o.content.client_company ?? o.contact?.company ?? "",
@@ -220,6 +224,7 @@ export function OfferBuilder(p: OfferBuilderProps) {
         client_name: d.client_name || undefined,
         client_company: d.client_company || undefined,
         template_key: d.template_key || undefined,
+        title: p.initialOffer ? d.title.trim() : d.title.trim() || undefined,
         items: d.items.map(itemPayload),
         greeting: d.greeting,
         seller: d.seller,
@@ -272,7 +277,9 @@ export function OfferBuilder(p: OfferBuilderProps) {
                 <form action={sendAction} className="grid gap-2 rounded-lg border border-white/10 bg-black/20 p-3 sm:grid-cols-[1fr_auto]">
                   <input type="hidden" name="id" value={state.id} />
                   <div className="space-y-2">
-                    <input name="to" type="email" defaultValue={d.client_email} placeholder="имейлът на човека" required className={inputCls} />
+                    <input name="to" type="text" defaultValue={d.client_email} placeholder="имейлът на човека (няколко — със запетая)" required className={inputCls} />
+                    <input name="cc" type="text" placeholder="копие (CC) — по желание, със запетая" className={inputCls} />
+                    <p className="text-[11px] text-[var(--color-text-tertiary)]">Скрито копие отива до продавача и до Ивайло; отговорите — също.</p>
                     <textarea name="text" placeholder="Уводът на имейла (по желание) — линкът, редовете, PDF-ът и подписът се добавят сами" className={areaCls} />
                   </div>
                   <button type="submit" disabled={sending} className="self-start rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-black hover:bg-emerald-400 disabled:opacity-60">
@@ -357,6 +364,9 @@ export function OfferBuilder(p: OfferBuilderProps) {
                   <option value="ivailo">Ивайло Петев</option>
                   <option value="georgi">Георги Мандаджиев</option>
                 </select>
+              </Field>
+              <Field label="Заглавие на офертата (по желание)" className="sm:col-span-2">
+                <input value={d.title} onChange={(e) => set("title", e.target.value)} placeholder="празно = от модулите, напр. „Гласов агент + Ели“" className={inputCls} />
               </Field>
               <Field label="Валидна (дни)">
                 <input value={d.valid_days} onChange={(e) => set("valid_days", e.target.value)} placeholder={p.initialOffer ? "без промяна" : "14"} className={inputCls} />

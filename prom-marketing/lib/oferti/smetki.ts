@@ -30,6 +30,13 @@ export function fmtEur(n: number | null | undefined): string {
   return `${grouped}${dec ? "," + dec : ""} €`;
 }
 
+/** „500 €/мес“, „1 000 € еднократно“ — наклонената черта се лепи към сумата. */
+export function withUnit(amount: string, unit: string | null | undefined): string {
+  const u = (unit ?? "").trim();
+  if (!u) return amount;
+  return u.startsWith("/") ? `${amount}${u}` : `${amount} ${u}`;
+}
+
 export function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
@@ -135,6 +142,8 @@ export interface ItemInput {
   setup_label?: string;
   qty?: number;
   note?: string;
+  /** само при items_mode = "merge": маха реда с този key */
+  remove?: boolean;
 }
 
 /** Сглобява редовете: модул от каталога (+ поправки) или свободен ред. Връща грешките на човешки. */
@@ -178,8 +187,65 @@ export function buildItems(inputs: ItemInput[]): { items: OfferItem[]; errors: s
   return { items, errors };
 }
 
+function definedOnly<T extends object>(o: T): Partial<T> {
+  return Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null)) as Partial<T>;
+}
+
+/**
+ * Поправки по key върху съществуващите редове (09.11.2026): същият key → сливане (цената и всичко
+ * неказано се пази), нов key → добавя се, remove:true → махa се; неспоменатите редове остават.
+ * Повтарящ се key (два реда „custom“) се хваща по ред на появяване.
+ */
+export function mergeItems(base: ItemInput[], patches: ItemInput[]): ItemInput[] {
+  const merged: ItemInput[] = base.map((b) => ({ ...b }));
+  const used = new Set<number>();
+  const removed = new Set<number>();
+  for (const patch of patches) {
+    const idx = merged.findIndex((b, k) => b.key === patch.key && !used.has(k));
+    if (idx >= 0) {
+      used.add(idx);
+      if (patch.remove) removed.add(idx);
+      else merged[idx] = { ...merged[idx], ...definedOnly(patch) };
+    } else if (!patch.remove) {
+      merged.push({ ...patch });
+      used.add(merged.length - 1);
+    }
+  }
+  return merged.filter((_, k) => !removed.has(k)).map((x) => {
+    const rest = { ...x };
+    delete rest.remove;
+    return rest;
+  });
+}
+
+/**
+ * Името, както се пише в документ: „даниел вучев“ / „ДАНИЕЛ ВУЧЕВ“ → „Даниел Вучев“ (09.11.2026).
+ * Лийдовете от Meta често са с малки букви; смесено изписване („МакДоналд“) се оставя както е.
+ */
+export function niceName(full: string | null | undefined): string {
+  const s = (full ?? "").trim().replace(/\s+/g, " ");
+  if (!s) return "";
+  const letters = s.replace(/[^\p{L}]/gu, "");
+  if (!letters) return s;
+  const allLower = letters === letters.toLowerCase();
+  const allUpper = letters === letters.toUpperCase() && letters.length > 3;
+  if (!allLower && !allUpper) return s;
+  return s
+    .toLowerCase()
+    .replace(/(^|[\s\-‑'’])(\p{L})/gu, (_m, sep: string, ch: string) => sep + ch.toUpperCase());
+}
+
+/** Фирмата: изцяло с малки букви („cafemag.bg“) → с главна първа буква („Cafemag.bg“); иначе както е. */
+export function niceCompany(company: string | null | undefined): string {
+  const s = (company ?? "").trim();
+  if (!s) return "";
+  const letters = s.replace(/[^\p{L}]/gu, "");
+  if (!letters || letters !== letters.toLowerCase()) return s;
+  return s[0].toUpperCase() + s.slice(1);
+}
+
 export function firstName(full: string | null | undefined): string {
-  const s = (full ?? "").trim();
+  const s = niceName(full);
   if (!s) return "";
   return s.split(/\s+/)[0];
 }
@@ -191,10 +257,15 @@ export function greeting(form: GreetingForm, name: string | null | undefined): s
 }
 
 /** Заглавието на офертата за CRM-а и имейла: „Ниво II · Пари с AI + Ели · гласов AI агент“. */
-export function offerTitle(items: OfferItem[]): string {
+export function offerTitle(items: OfferItem[], custom?: string | null): string {
+  const c = (custom ?? "").trim();
+  if (c) return c;
   const names = items.map((i) => i.title.trim()).filter(Boolean);
   if (names.length === 0) return "Оферта";
   if (names.length <= 2) return names.join(" + ");
+  // три кратки реда се събират изцяло („Гласов агент + Имейл и чат агент + Поддръжка“), иначе „+ още N“
+  const all = names.join(" + ");
+  if (names.length === 3 && all.length <= 90) return all;
   return `${names[0]} + ${names[1]} + още ${names.length - 2}`;
 }
 
@@ -202,7 +273,7 @@ export function offerTitle(items: OfferItem[]): string {
 export function summaryLines(items: OfferItem[]): string[] {
   return items.map((i) => {
     const qty = i.qty && i.qty > 1 ? ` × ${i.qty}` : "";
-    const price = i.price === null || i.price === undefined ? "цена по договорка" : `${fmtEur(i.price)}${qty} ${i.unit}`;
+    const price = i.price === null || i.price === undefined ? "цена по договорка" : withUnit(`${fmtEur(i.price)}${qty}`, i.unit);
     const setup = i.setup_price ? ` + ${fmtEur(i.setup_price)} ${i.setup_label ?? "внедряване"}` : "";
     return `${i.title} — ${price}${setup}`;
   });

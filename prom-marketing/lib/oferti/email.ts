@@ -1,8 +1,9 @@
 /** Имейлът, с който тръгва офертата — PDF прикачен + линкът, отговорът стига до продавача и Ивайло. */
 import { escapeHtml } from "@/lib/text/escape";
 import { IVAILO_EMAIL } from "./katalog";
-import { fmtEur } from "./smetki";
+import { fmtEur, withUnit } from "./smetki";
 import type { OfferView } from "./view";
+import { kamVie } from "./vie";
 
 export interface OfferEmail {
   subject: string;
@@ -19,25 +20,29 @@ function paragraphs(text: string): string {
     .join("");
 }
 
-export function offerEmail(v: OfferView, opts: { subject?: string; text?: string } = {}): OfferEmail {
+export function offerEmail(v: OfferView, opts: { subject?: string; text?: string; greeting?: string } = {}): OfferEmail {
   const { seller, content } = v;
-  const who = v.clientCompany || v.clientName || "теб";
+  const vie = content.greeting === "vie";
+  const who = v.clientCompany || v.clientName || (vie ? "Вас" : "теб");
   const subject = (opts.subject ?? "").trim() || `Оферта за ${who} — ${v.offer.title} · ProMarketing`;
-  const intro = (opts.text ?? "").trim() || content.intro || `Благодаря за разговора. Ето какво предлагаме за ${who} — накратко, както говорихме.`;
-  const rows = v.offer.items.map((i) => {
+  const ownText = (opts.text ?? "").trim();
+  const intro = ownText || content.intro || `Благодаря за разговора. Ето какво предлагаме за ${who} — накратко, както говорихме.`;
+  // обръщението: дадено на ръка („Здравейте, Даниел и Мирослава!“) или от името; ако уводът вече почва със „Здравей…“ — не се дублира
+  const greetLine = /^здравей/i.test(ownText) ? "" : (opts.greeting ?? "").trim() || v.greeting;
+  const rows = v.items.map((i) => {
     const setup = i.setup_price ? ` + ${fmtEur(i.setup_price)} ${i.setup_label ?? "внедряване"}` : "";
-    return { title: i.title, price: `${fmtEur(i.price)} ${i.unit}${setup}` };
+    return { title: i.title, price: `${withUnit(fmtEur(i.price), i.unit)}${setup}` };
   });
   const tot: string[] = [];
   if (v.totals.one_time_after > 0) tot.push(`${fmtEur(v.totals.one_time_after)} еднократно`);
   if (v.totals.monthly_after > 0) tot.push(`${fmtEur(v.totals.monthly_after)} на месец`);
   const totalLine = tot.join(" + ");
   const replyWho = seller.key === "ivailo" ? "стига направо до мен" : `стига до ${seller.first} и до Ивайло`;
-  const nextStep = content.next_steps[0] ? content.next_steps[0] : "Казваш „да“ — с отговор на този имейл или по телефона.";
+  const nextStepRaw = content.next_steps[0] ? content.next_steps[0] : "Казваш „да“ — с отговор на този имейл или по телефона.";
+  const nextStep = vie ? kamVie(nextStepRaw) : nextStepRaw;
 
   const text = [
-    v.greeting,
-    "",
+    ...(greetLine ? [greetLine, ""] : []),
     intro,
     "",
     `Офертата е прикачена като PDF и е тук: ${v.url}`,
@@ -61,7 +66,7 @@ export function offerEmail(v: OfferView, opts: { subject?: string; text?: string
     .replace(/\n{3,}/g, "\n\n");
 
   const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1d2320;max-width:640px">
-<p style="margin:0 0 14px"><strong>${escapeHtml(v.greeting)}</strong></p>
+${greetLine ? `<p style="margin:0 0 14px"><strong>${escapeHtml(greetLine)}</strong></p>` : ""}
 ${paragraphs(intro)}
 <p style="margin:0 0 14px">Офертата е прикачена като PDF и е тук: <a href="${v.url}" style="color:#0e7490">${escapeHtml(v.url.replace(/^https?:\/\//, ""))}</a></p>
 <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 14px;width:100%">

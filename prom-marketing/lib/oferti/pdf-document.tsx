@@ -4,16 +4,20 @@
  * Без емоджита — NotoSans няма глифове за тях.
  */
 import { Document, Page, Text, View, StyleSheet, Font, Link } from "@react-pdf/renderer";
-import { fmtEur } from "./smetki";
+import { fmtEur, withUnit } from "./smetki";
 import type { OfferView } from "./view";
 
 const FONT_HOST = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "https://promarketing.pw";
 
+// Курсив няма отделен файл: регистрираме курсивните варианти върху същите файлове,
+// за да не пада PDF-ът с „Could not resolve font … fontStyle italic“ (09.11.2026 — оферта № 2026-042).
 Font.register({
   family: "NotoSans",
   fonts: [
     { src: `${FONT_HOST}/fonts/NotoSans-Regular.ttf`, fontWeight: 400 },
     { src: `${FONT_HOST}/fonts/NotoSans-Bold.ttf`, fontWeight: 700 },
+    { src: `${FONT_HOST}/fonts/NotoSans-Regular.ttf`, fontWeight: 400, fontStyle: "italic" },
+    { src: `${FONT_HOST}/fonts/NotoSans-Bold.ttf`, fontWeight: 700, fontStyle: "italic" },
   ],
 });
 // кирилицата не се пренася по срички — думата остава цяла
@@ -61,7 +65,7 @@ const s = StyleSheet.create({
   bulletText: { flex: 1, fontSize: 9.5, lineHeight: 1.45 },
   cardOutcome: { marginTop: 7, fontSize: 9.5, color: C.cyan, fontWeight: 700, lineHeight: 1.45 },
   cardNot: { marginTop: 6, fontSize: 8.5, color: C.faint, lineHeight: 1.45 },
-  note: { marginTop: 6, fontSize: 9, color: C.soft, fontStyle: "italic" as const, lineHeight: 1.45 },
+  note: { marginTop: 6, fontSize: 9, color: C.soft, lineHeight: 1.45 },
   table: { borderWidth: 1, borderColor: C.line, borderRadius: 6, overflow: "hidden" },
   tr: { flexDirection: "row", paddingVertical: 7, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: C.line },
   trLast: { borderBottomWidth: 0 },
@@ -83,7 +87,7 @@ const s = StyleSheet.create({
   term: { flexDirection: "row", marginBottom: 3 },
   termDash: { width: 10, color: C.faint },
   termText: { flex: 1, fontSize: 9.2, color: C.soft, lineHeight: 1.5 },
-  ps: { marginTop: 10, fontSize: 9.5, color: C.soft, fontStyle: "italic" as const, lineHeight: 1.5 },
+  ps: { marginTop: 10, fontSize: 9.5, color: C.soft, lineHeight: 1.5 },
   sign: { marginTop: 22, flexDirection: "row", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: C.line, paddingTop: 12 },
   signName: { fontSize: 11, fontWeight: 700 },
   signRole: { fontSize: 8.5, color: C.soft, marginTop: 1 },
@@ -108,7 +112,8 @@ function Bullets({ items }: { items: string[] }) {
 
 export function OfferPdf({ v }: { v: OfferView }) {
   const { offer, seller, content, totals } = v;
-  const items = offer.items ?? [];
+  // редовете от модела (при „Вие“ — вече в учтива форма)
+  const items = v.items;
   const showMonthly = totals.monthly_after > 0;
   const showOneTime = totals.one_time_after > 0 || totals.one_time > 0;
   return (
@@ -180,7 +185,7 @@ export function OfferPdf({ v }: { v: OfferView }) {
                   ) : null}
                 </View>
                 <Text style={s.tdPrice}>
-                  {fmtEur((it.price ?? 0) * (it.qty && it.qty > 0 ? it.qty : 1))} {it.unit}
+                  {withUnit(fmtEur((it.price ?? 0) * (it.qty && it.qty > 0 ? it.qty : 1)), it.unit)}
                 </Text>
               </View>
             ))}
@@ -199,7 +204,7 @@ export function OfferPdf({ v }: { v: OfferView }) {
             {showMonthly ? (
               <View style={[s.tr, s.trTotal, s.trLast]}>
                 <Text style={s.totalLabel}>Общо месечно</Text>
-                <Text style={s.totalVal}>{fmtEur(totals.monthly_after)} /мес</Text>
+                <Text style={s.totalVal}>{fmtEur(totals.monthly_after)}/мес</Text>
               </View>
             ) : null}
           </View>

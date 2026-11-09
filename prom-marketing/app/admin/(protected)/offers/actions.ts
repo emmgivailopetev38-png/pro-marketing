@@ -90,7 +90,7 @@ export async function sendOfferAction(_prev: BuilderState, formData: FormData): 
   const actor = await requireAdmin();
   const id = str(formData.get("id"));
   if (!id) return { ok: false, error: "липсва офертата" };
-  const r = await sendOffer({ id, to: str(formData.get("to")), text: str(formData.get("text")), subject: str(formData.get("subject")), approved: true }, actor);
+  const r = await sendOffer({ id, to: str(formData.get("to")), cc: str(formData.get("cc")), text: str(formData.get("text")), subject: str(formData.get("subject")), approved: true }, actor);
   if (!r.ok || !r.sent) return { ok: false, error: r.error ?? "не тръгна" };
   revalidateDelivery();
   return { ok: true, id, sent: { to: r.sent.to }, url: r.sent.url, pdf_url: r.sent.pdf_url };
