@@ -35,7 +35,7 @@ import {
   Clapperboard,
   Settings,
   LogOut,
-  type LucideIcon, Mic, Presentation, Route, Gamepad2, UserCog, PhoneCall, PhoneOutgoing, TrendingUp, ListChecks, MessagesSquare, HandCoins, BookOpen, PiggyBank, Activity, StickyNote, Landmark} from "lucide-react";
+  type LucideIcon, Mic, Presentation, Route, Gamepad2, UserCog, PhoneCall, PhoneOutgoing, TrendingUp, ListChecks, MessagesSquare, HandCoins, BookOpen, PiggyBank, Activity, StickyNote, Landmark, Euro} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/landing/Logo";
 import { cn } from "@/lib/utils";
@@ -82,6 +82,7 @@ const LINK_GROUPS: LinkGroup[] = [
       { href: "/admin/leads", label: "Meta лидове", icon: Inbox },
       { href: "/admin/email", label: "Имейл", icon: Mail },
       { href: "/admin/offers", label: "Оферти", icon: FileSignature },
+      { href: "/admin/finansirane", label: "Евро проекти", icon: Euro },
       { href: "/admin/projects", label: "Проекти", icon: Briefcase },
       { href: "/admin/konversii", label: "Конверсии", icon: TrendingUp },
       { href: "/admin/zadachi", label: "Задачи", icon: ListChecks },
