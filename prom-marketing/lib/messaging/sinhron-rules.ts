@@ -1,4 +1,4 @@
-import { TZ, bgMobileE164, firstName, phoneKey, zayavkaFrom, type AcAct } from "@/lib/voice/auto-call-rules";
+import { ELI_CALLER_NUMBER, TZ, bgMobileE164, firstName, phoneKey, zayavkaFrom, type AcAct } from "@/lib/voice/auto-call-rules";
 
 /**
  * Синхронът Ели ↔ Viber/WhatsApp (Ивайло, 29.10.2026): „задачата, като се
@@ -77,7 +77,8 @@ export const SN_DEFAULTS: SnOptions = { maxAgeDays: 2, answeredSecs: 25 };
 
 export const BOOKING_URL = "https://promarketing.pw/booking";
 export const SIGNATURE = "🌐 promarketing.pw";
-export const ELI_NUMBER = "0876 447 159";
+/** Номерът, от който Ели звъни — хората го виждат като пропуснато обаждане. */
+export const ELI_NUMBER = ELI_CALLER_NUMBER;
 
 const REPLY_TYPES = new Set(["viber_received", "whatsapp_received", "email_received", "email_reply"]);
 const SENT_TYPES = new Set(["viber_sent", "whatsapp_sent"]);

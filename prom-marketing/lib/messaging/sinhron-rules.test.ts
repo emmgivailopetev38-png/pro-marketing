@@ -16,7 +16,7 @@ describe("синхронът Ели ↔ Viber/WhatsApp", () => {
     expect(d.item.channel).toBe("viber");
     expect(d.item.key).toBe("en-teodora-1029");
     expect(d.item.phone9).toBe("887803336");
-    expect(d.item.text).toContain("Ели, AI асистентката ми, Ви търси от 0876 447 159");
+    expect(d.item.text).toContain("Ели, AI асистентката ми, Ви търси от +1 509 351 1914");
     expect(d.item.text).toContain("безплатен AI одит");
     expect(d.item.text).toContain("https://promarketing.pw/booking\n🌐 promarketing.pw");
     expect(d.item.text).not.toMatch(/\?/);
@@ -86,13 +86,13 @@ describe("синхронът Ели ↔ Viber/WhatsApp", () => {
     expect("skip" in decideMessage(c, [lead, dial("2026-10-29T09:02:00Z"), paid], [], false, NOW) && "клиент").toBe("клиент");
   });
 
-  it("латиница или фирма вместо име → „Здравейте!“, ключът остава по името", () => {
+  it("познато име на латиница → на кирилица; фирма → „Здравейте!“; ключът остава по името", () => {
     const d = decideMessage({ ...c, full_name: "Adryan Stoykov" }, [lead, dial("2026-10-29T09:02:00Z")], [], false, NOW);
-    expect("item" in d && d.item.text.startsWith("Здравейте! Ивайло Петев е")).toBe(true);
+    expect("item" in d && d.item.text.startsWith("Здравейте, Адрян! Ивайло Петев е")).toBe(true);
     expect("item" in d && d.item.key).toBe("en-adryan-1029");
     expect(greetingName("Студио Христови")).toBe("");
     expect(greetingName("петя")).toBe("Петя");
-    expect(greetingName("Vania Georgieva")).toBe("");
+    expect(greetingName("Vania Georgieva")).toBe("Ваня");
   });
 
   it("чужд номер → не", () => {

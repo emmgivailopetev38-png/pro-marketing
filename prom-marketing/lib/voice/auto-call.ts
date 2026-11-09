@@ -7,6 +7,7 @@ import { outboundApiKey, placeOutboundCall } from "./outbound";
 import {
   AUTO_LOG_TYPE,
   DEFAULT_OPTIONS,
+  ELI_CALLER_NUMBER,
   formAnswersSummary,
   DEFAULT_WINDOW,
   decide,
@@ -28,7 +29,7 @@ import {
  * ръка през `/api/voice/outbound`. Всяко набиране:
  *   1. първо се „заключва“ в `automation_events` с ключ човек+повод+опит —
  *      две паралелни пускания не могат да наберат един човек два пъти;
- *   2. после ElevenLabs → Twilio набира от 0876 447 159;
+ *   2. после ElevenLabs → Twilio набира от +1 509 351 1914 (на него вдига входящата Ели);
  *   3. в картона влиза ред „📞 Ели звъни · нов лийд · опит 1/2“.
  * Разговорът сам идва после през post-call webhook-а (voice_call).
  *
@@ -42,8 +43,13 @@ import {
  */
 
 export const ELI_AGENT_ID = process.env.ELI_AGENT_ID?.trim() || "agent_9201m6101a2efy6btw7qgnbr1dve";
-/** +359 876 447 159 — Verified Caller ID в Twilio, внесен в ElevenLabs. */
-export const ELI_PHONE_NUMBER_ID = process.env.ELI_PHONE_NUMBER_ID?.trim() || "phnum_9101m60zjnvhenh81a15gwqd892s";
+/**
+ * +1 509 351 1914 (Twilio, `phnum_0301…`) — Ели звъни от него и на него вдига входящата Ели
+ * (`agent_2801…`), така че обратното обаждане стига до нея. До 09.11.2026 беше 0876 447 159
+ * (`phnum_9101…`, Verified Caller ID): от чужбина операторите го подменят с чужд американски
+ * номер и който звъннеше обратно, не стигаше до никого.
+ */
+export const ELI_PHONE_NUMBER_ID = process.env.ELI_PHONE_NUMBER_ID?.trim() || "phnum_0301m0hhmmn4fv7thdwpt9rmpv5g";
 
 /** Само активностите, от които зависи решението — без хилядите писма от поредиците. */
 const DECISION_TYPES = [
@@ -388,7 +394,7 @@ export async function runAutoCalls(args: { now?: Date; dryRun?: boolean; force?:
         contact_id: call.contactId,
         activity_type: AUTO_LOG_TYPE,
         title: `📞 Ели звъни сама · ${label} · опит ${call.attempt}/${call.maxAttempts}`,
-        body: `Автоматично обаждане от 0876 447 159 (агентът „Ели“). Разговорът влиза в картона, щом приключи. ${
+        body: `Автоматично обаждане от ${ELI_CALLER_NUMBER} (агентът „Ели“; звънне ли обратно — пак Ели). Разговорът влиза в картона, щом приключи. ${
           call.attempt < call.maxAttempts
             ? call.reason === "noshow"
               ? `Не вдигне ли — Ели пробва пак (до ${call.maxAttempts} опита за ${opts.noshowMaxAgeDays} дни), докато запише нов час.`
