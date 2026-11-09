@@ -7,6 +7,7 @@ import { loadClientMap } from "./klienti";
 import type { ClientWhy } from "./klienti-rules";
 import type { createServiceClient } from "@/lib/supabase/service";
 import { AUTOMATION_EXCLUDED_STAGES, automationSkipReason } from "./sequence-guard";
+import { chunks, normEmail, readAllPages } from "./paged";
 
 type Sb = ReturnType<typeof createServiceClient>;
 
@@ -180,14 +181,17 @@ export async function sendWarmStep(args: {
 }): Promise<{ sent: boolean; skipped?: string; error?: string }> {
   const { supabase, contactId, to, fullName, stage, followupStatus, track, step } = args;
 
-  const { data: already } = await supabase
+  // .limit(1), не .maybeSingle(): при два записа за една стъпка maybeSingle
+  // връща грешка без данни — и писмото тръгваше пак (10.11.2026).
+  const { data: already, error: alreadyErr } = await supabase
     .from("contact_activities")
     .select("id")
     .eq("contact_id", contactId)
     .eq("activity_type", "email_sent")
     .contains("metadata", { seq_step: step.key })
-    .maybeSingle();
-  if (already) return { sent: false, skipped: "already_sent" };
+    .limit(1);
+  if (alreadyErr) return { sent: false, skipped: "already_check_failed" };
+  if (already && already.length > 0) return { sent: false, skipped: "already_sent" };
 
   const ctx: BuildCtx = { contactId, stage, followupStatus, unsubscribeUrl: unsubscribeUrl(contactId) };
   const { html, text } = step.build(firstName(fullName), ctx);
@@ -258,18 +262,41 @@ export async function runWarmSequence(supabase: Sb): Promise<{
   if (mode === "off") return out;
 
   const floor = new Date(Date.now() - MAX_SILENCE_DAYS * DAY).toISOString();
+  const excluded = `(${EXCLUDED_STAGES.join(",")})`;
 
-  const { data: rows } = await supabase
-    .from("contacts")
-    .select("id, full_name, email, stage, followup_status, created_at, last_heard_from_at, updated_at")
-    .not("stage", "in", `(${EXCLUDED_STAGES.join(",")})`)
-    .not("email", "is", null)
-    .gte("updated_at", floor)
-    .order("updated_at", { ascending: false })
-    .limit(300);
-
-  const contacts = (rows ?? []) as WarmContact[];
-  if (contacts.length === 0) return out;
+  // Всичко се чете на страници (lib/email/paged.ts). До 10.11.2026 тук имаше
+  // .limit(300) за хората и ЕДНА заявка за активностите им (4 263 реда), от
+  // които Supabase връщаше само първите 1 000 → кръгът не виждаше пратените
+  // писма и стоеше на първото (374 души с 1-во, 3 с 3-то, никой нататък), а
+  // не виждаше и част от отказите (5 писма до отписали се). Не се прочете ли
+  // нещо — днес не тръгва нищо, утре пак.
+  let contacts: WarmContact[];
+  let acts: WarmActivity[];
+  let optOut: { ids: Set<string>; emails: Set<string> };
+  try {
+    contacts = await loadWarmContacts(supabase, floor, excluded);
+    if (contacts.length === 0) return out;
+    acts = [];
+    for (const part of chunks(contacts.map((c) => c.id))) {
+      acts.push(
+        ...(await readAllPages<WarmActivity>((from, to) =>
+          supabase
+            .from("contact_activities")
+            .select("id, contact_id, activity_type, occurred_at, created_at, metadata")
+            .in("contact_id", part)
+            .in("activity_type", TOUCH_TYPES)
+            .order("occurred_at", { ascending: true })
+            .order("id", { ascending: true })
+            .range(from, to)
+        ))
+      );
+    }
+    optOut = await loadOptOuts(supabase);
+  } catch (e) {
+    console.error("[warm-sequence] четенето от базата се провали — днес не тръгва нищо", e);
+    out.skipped.load_failed = 1;
+    return out;
+  }
 
   // Клиентите не получават автоматични писма. Не се знае ли кои са — днес
   // не тръгва нищо, утре пак: пропуснато писмо е по-евтино от писмо до клиент.
@@ -281,18 +308,13 @@ export async function runWarmSequence(supabase: Sb): Promise<{
     return out;
   }
 
-  const ids = contacts.map((c) => c.id);
-  const { data: acts } = await supabase
-    .from("contact_activities")
-    .select("contact_id, activity_type, occurred_at, created_at, metadata")
-    .in("contact_id", ids)
-    .order("occurred_at", { ascending: true });
-
   const byContact = new Map<string, Touches>();
   for (const c of contacts) {
-    byContact.set(c.id, { firstTalk: null, lastTouch: null, lastEmail: null, sentKeys: new Set(), optedOut: false });
+    const email = normEmail(c.email);
+    const optedOut = optOut.ids.has(c.id) || (email !== "" && optOut.emails.has(email));
+    byContact.set(c.id, { firstTalk: null, lastTouch: null, lastEmail: null, sentKeys: new Set(), optedOut });
   }
-  for (const a of acts ?? []) {
+  for (const a of acts) {
     const t = byContact.get(a.contact_id);
     if (!t) continue;
     const meta = (a.metadata ?? {}) as Record<string, unknown>;
@@ -310,10 +332,27 @@ export async function runWarmSequence(supabase: Sb): Promise<{
     t.lastTouch = t.lastTouch === null ? at : Math.max(t.lastTouch, at);
   }
 
+  // Най-дълго чакалите първи: таванът е 25 на ден, а чакащите са стотици —
+  // старата подредба по updated_at даваше реда винаги на едни и същи картони.
+  contacts.sort((a, b) => (byContact.get(a.id)!.lastEmail ?? 0) - (byContact.get(b.id)!.lastEmail ?? 0));
+
   const now = Date.now();
+  const sentTo = new Set<string>();
   for (const c of contacts) {
     if (out.sent >= MAX_PER_RUN) break;
     out.checked++;
+
+    // Отказът е по човек, не по картон: отписал се от един — мълчим и на другите.
+    if (byContact.get(c.id)!.optedOut) {
+      out.skipped.opted_out = (out.skipped.opted_out ?? 0) + 1;
+      continue;
+    }
+    // Два картона с един имейл → едно писмо, не две в една сутрин.
+    const email = normEmail(c.email);
+    if (email && sentTo.has(email)) {
+      out.skipped.same_email_today = (out.skipped.same_email_today ?? 0) + 1;
+      continue;
+    }
 
     const clientWhy = clients.get(c.id);
     if (clientWhy) {
@@ -332,6 +371,7 @@ export async function runWarmSequence(supabase: Sb): Promise<{
     if (mode === "dry") {
       out.details.push({ contact_id: c.id, name: c.full_name, step: decision.step.key, track: decision.track });
       out.skipped.dry_run = (out.skipped.dry_run ?? 0) + 1;
+      if (email) sentTo.add(email);
       continue;
     }
 
@@ -347,6 +387,7 @@ export async function runWarmSequence(supabase: Sb): Promise<{
     });
     if (res.sent) {
       out.sent++;
+      if (email) sentTo.add(email);
       out.details.push({ contact_id: c.id, name: c.full_name, step: decision.step.key, track: decision.track });
     } else {
       const why = res.skipped ?? res.error ?? "unknown";
@@ -355,6 +396,91 @@ export async function runWarmSequence(supabase: Sb): Promise<{
   }
 
   return out;
+}
+
+interface WarmActivity {
+  id: string;
+  contact_id: string;
+  activity_type: string;
+  occurred_at: string | null;
+  created_at: string;
+  metadata: Record<string, unknown> | null;
+}
+
+const CONTACT_COLS = "id, full_name, email, stage, followup_status, created_at, last_heard_from_at, updated_at";
+
+/**
+ * Кого гледа кръгът днес: картоните, пипани в последните 45 дни, ПЛЮС хората,
+ * на които сме писали или с които сме говорили в тези 45 дни — нашите писма
+ * не местят updated_at на картона и иначе човекът изпадаше насред кръга.
+ * Архивът (без докосване 45 дни) пак мълчи — това решава nextWarmStep.
+ */
+async function loadWarmContacts(supabase: Sb, floor: string, excluded: string): Promise<WarmContact[]> {
+  const updated = await readAllPages<WarmContact>((from, to) =>
+    supabase
+      .from("contacts")
+      .select(CONTACT_COLS)
+      .not("stage", "in", excluded)
+      .not("email", "is", null)
+      .gte("updated_at", floor)
+      .order("updated_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, to)
+  );
+  const have = new Set(updated.map((c) => c.id));
+  const touched = await readAllPages<{ contact_id: string }>((from, to) =>
+    supabase
+      .from("contact_activities")
+      .select("contact_id")
+      .in("activity_type", TOUCH_TYPES)
+      .gte("occurred_at", floor)
+      .order("occurred_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to)
+  );
+  const extraIds = [...new Set(touched.map((r) => r.contact_id))].filter((id) => !have.has(id));
+  const extra: WarmContact[] = [];
+  for (const part of chunks(extraIds)) {
+    extra.push(
+      ...(await readAllPages<WarmContact>((from, to) =>
+        supabase
+          .from("contacts")
+          .select(CONTACT_COLS)
+          .in("id", part)
+          .not("stage", "in", excluded)
+          .not("email", "is", null)
+          .order("id", { ascending: true })
+          .range(from, to)
+      ))
+    );
+  }
+  return [...updated, ...extra];
+}
+
+/**
+ * Отказите — отделна малка заявка, независима от всичко друго, и по ИМЕЙЛ:
+ * отказ от един картон спира всеки картон на същия човек (дубликатите от формите).
+ */
+async function loadOptOuts(supabase: Sb): Promise<{ ids: Set<string>; emails: Set<string> }> {
+  const rows = await readAllPages<{ contact_id: string }>((from, to) =>
+    supabase
+      .from("contact_activities")
+      .select("contact_id")
+      .eq("metadata->>email_opt_out", "true")
+      .order("id", { ascending: true })
+      .range(from, to)
+  );
+  const ids = new Set(rows.map((r) => r.contact_id));
+  const emails = new Set<string>();
+  for (const part of chunks([...ids])) {
+    const { data, error } = await supabase.from("contacts").select("email").in("id", part);
+    if (error) throw new Error(error.message);
+    for (const r of (data ?? []) as Array<{ email: string | null }>) {
+      const e = normEmail(r.email);
+      if (e) emails.add(e);
+    }
+  }
+  return { ids, emails };
 }
 
 /** Обратна съвместимост за тестовете и прегледа. */
