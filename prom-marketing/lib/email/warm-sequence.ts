@@ -7,8 +7,8 @@ import { loadClientMap } from "./klienti";
 import { normEmail, type ClientWhy } from "./klienti-rules";
 import type { createServiceClient } from "@/lib/supabase/service";
 import { AUTOMATION_EXCLUDED_STAGES, automationSkipReason } from "./sequence-guard";
-import { ID_CHUNK, readAllPages } from "./paged";
 import { chunks } from "@/lib/array";
+import { allRows } from "@/lib/supabase/all-rows";
 
 type Sb = ReturnType<typeof createServiceClient>;
 
@@ -265,48 +265,52 @@ export async function runWarmSequence(supabase: Sb): Promise<{
   const floor = new Date(Date.now() - MAX_SILENCE_DAYS * DAY).toISOString();
   const excluded = `(${EXCLUDED_STAGES.join(",")})`;
 
-  // Всичко се чете на страници (lib/email/paged.ts). До 10.11.2026 тук имаше
-  // .limit(300) за хората и ЕДНА заявка за активностите им (4 263 реда), от
-  // които Supabase връщаше само първите 1 000 → кръгът не виждаше пратените
+  // Всичко се чете на страници (allRows, lib/supabase/all-rows.ts). До 10.11.2026
+  // тук имаше .limit(300) за хората и ЕДНА заявка за активностите им (4 263 реда),
+  // от които Supabase връщаше само първите 1 000 → кръгът не виждаше пратените
   // писма и стоеше на първото (374 души с 1-во, 3 с 3-то, никой нататък), а
   // не виждаше и част от отказите (5 писма до отписали се). Не се прочете ли
-  // нещо — днес не тръгва нищо, утре пак.
-  let contacts: WarmContact[];
-  let acts: WarmActivity[];
-  let optOut: { ids: Set<string>; emails: Set<string> };
-  try {
-    contacts = await loadWarmContacts(supabase, floor, excluded);
-    if (contacts.length === 0) return out;
-    acts = [];
-    for (const part of chunks(contacts.map((c) => c.id), ID_CHUNK)) {
-      acts.push(
-        ...(await readAllPages<WarmActivity>((from, to) =>
-          supabase
-            .from("contact_activities")
-            .select("id, contact_id, activity_type, occurred_at, created_at, metadata")
-            .in("contact_id", part)
-            .in("activity_type", TOUCH_TYPES)
-            .order("occurred_at", { ascending: true })
-            .order("id", { ascending: true })
-            .range(from, to)
-        ))
-      );
-    }
-    optOut = await loadOptOuts(supabase);
-  } catch (e) {
-    console.error("[warm-sequence] четенето от базата се провали — днес не тръгва нищо", e);
-    out.skipped.load_failed = 1;
-    return out;
+  // нещо — грешката се хвърля ПРЕДИ първото писмо: днес не тръгва нищо, а
+  // сутрешният отчет казва „Топлият кръг: грешка — …“ вместо тих празен ден.
+  const contacts = await rowsOrThrow<WarmContact>("хората", (from, to) =>
+    supabase
+      .from("contacts")
+      .select("id, full_name, email, stage, followup_status, created_at, last_heard_from_at, updated_at")
+      .not("stage", "in", excluded)
+      .not("email", "is", null)
+      // Тригерът contact_activities_bump_parent мести updated_at при всяка нова
+      // активност (вкл. нашите писма) — затова този прозорец не изпуска никого.
+      .gte("updated_at", floor)
+      .order("updated_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, to)
+  );
+  if (contacts.length === 0) return out;
+  const acts: WarmActivity[] = [];
+  for (const part of chunks(contacts.map((c) => c.id), ID_CHUNK)) {
+    acts.push(
+      ...(await rowsOrThrow<WarmActivity>("активностите", (from, to) =>
+        supabase
+          .from("contact_activities")
+          .select("id, contact_id, activity_type, occurred_at, created_at, metadata")
+          .in("contact_id", part)
+          .in("activity_type", TOUCH_TYPES)
+          .order("occurred_at", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to)
+      ))
+    );
   }
+  const optOut = await loadOptOuts(supabase);
 
   // Клиентите не получават автоматични писма. Не се знае ли кои са — днес
   // не тръгва нищо, утре пак: пропуснато писмо е по-евтино от писмо до клиент.
+  // Грешката се хвърля, за да я покаже сутрешният отчет (10.11.2026).
   let clients: Map<string, ClientWhy>;
   try {
     clients = await loadClientMap(contacts, supabase);
-  } catch {
-    out.skipped.client_check_failed = contacts.length;
-    return out;
+  } catch (e) {
+    throw new Error(`топлият кръг не провери кои са клиенти: ${e instanceof Error ? e.message : String(e)}`);
   }
 
   const byContact = new Map<string, Touches>();
@@ -408,54 +412,16 @@ interface WarmActivity {
   metadata: Record<string, unknown> | null;
 }
 
-const CONTACT_COLS = "id, full_name, email, stage, followup_status, created_at, last_heard_from_at, updated_at";
+/** Колко id-та в един `.in()` — иначе адресът на заявката става твърде дълъг (150 ≈ 6 KB). */
+const ID_CHUNK = 150;
 
-/**
- * Кого гледа кръгът днес: картоните, пипани в последните 45 дни, ПЛЮС хората,
- * докоснати (разговор, среща, наше писмо) в тези 45 дни, дори картонът им да
- * не е пипан — предпазна мрежа, за да не изпада никой насред кръга.
- * Архивът (без докосване 45 дни) пак мълчи — това решава nextWarmStep.
- */
-async function loadWarmContacts(supabase: Sb, floor: string, excluded: string): Promise<WarmContact[]> {
-  const updated = await readAllPages<WarmContact>((from, to) =>
-    supabase
-      .from("contacts")
-      .select(CONTACT_COLS)
-      .not("stage", "in", excluded)
-      .not("email", "is", null)
-      .gte("updated_at", floor)
-      .order("updated_at", { ascending: false })
-      .order("id", { ascending: true })
-      .range(from, to)
-  );
-  const have = new Set(updated.map((c) => c.id));
-  const touched = await readAllPages<{ contact_id: string }>((from, to) =>
-    supabase
-      .from("contact_activities")
-      .select("contact_id")
-      .in("activity_type", TOUCH_TYPES)
-      .gte("occurred_at", floor)
-      .order("occurred_at", { ascending: true })
-      .order("id", { ascending: true })
-      .range(from, to)
-  );
-  const extraIds = [...new Set(touched.map((r) => r.contact_id))].filter((id) => !have.has(id));
-  const extra: WarmContact[] = [];
-  for (const part of chunks(extraIds, ID_CHUNK)) {
-    extra.push(
-      ...(await readAllPages<WarmContact>((from, to) =>
-        supabase
-          .from("contacts")
-          .select(CONTACT_COLS)
-          .in("id", part)
-          .not("stage", "in", excluded)
-          .not("email", "is", null)
-          .order("id", { ascending: true })
-          .range(from, to)
-      ))
-    );
-  }
-  return [...updated, ...extra];
+type Page<T> = PromiseLike<{ data: T[] | null; error: { message: string } | null }>;
+
+/** Всички страници (allRows) — или грешка с името на заявката, без нищо пратено. */
+async function rowsOrThrow<T>(what: string, page: (from: number, to: number) => Page<T>): Promise<T[]> {
+  const { rows, error } = await allRows<T>(page);
+  if (error) throw new Error(`топлият кръг не прочете ${what}: ${error}`);
+  return rows;
 }
 
 /**
@@ -463,7 +429,7 @@ async function loadWarmContacts(supabase: Sb, floor: string, excluded: string): 
  * отказ от един картон спира всеки картон на същия човек (дубликатите от формите).
  */
 async function loadOptOuts(supabase: Sb): Promise<{ ids: Set<string>; emails: Set<string> }> {
-  const rows = await readAllPages<{ contact_id: string }>((from, to) =>
+  const rows = await rowsOrThrow<{ contact_id: string }>("отказите", (from, to) =>
     supabase
       .from("contact_activities")
       .select("contact_id")
@@ -475,7 +441,7 @@ async function loadOptOuts(supabase: Sb): Promise<{ ids: Set<string>; emails: Se
   const emails = new Set<string>();
   for (const part of chunks([...ids], ID_CHUNK)) {
     const { data, error } = await supabase.from("contacts").select("email").in("id", part);
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(`топлият кръг не прочете имейлите на отписалите се: ${error.message}`);
     for (const r of (data ?? []) as Array<{ email: string | null }>) {
       const e = normEmail(r.email);
       if (e) emails.add(e);
