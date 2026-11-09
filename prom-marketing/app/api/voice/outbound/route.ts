@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { checkHermesAuth } from "@/lib/crm/auth";
-import { callWindow, creditsLeft, dailyMax, readSwitch, runAutoCalls, writeSwitch } from "@/lib/voice/auto-call";
-import { inCallWindow } from "@/lib/voice/auto-call-rules";
+import { ELI_PHONE_NUMBER_ID, callWindow, creditsLeft, dailyMax, readSwitch, runAutoCalls, writeSwitch } from "@/lib/voice/auto-call";
+import { ELI_CALLER_NUMBER, inCallWindow } from "@/lib/voice/auto-call-rules";
 import { enqueueFollowups, followupDailyMax, pendingFollowups, runFollowupQueue, upsertAgent } from "@/lib/voice/followup";
 
 const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
@@ -38,6 +38,7 @@ export async function GET(request: Request) {
     switched_by: sw.by,
     paused_until: sw.until ?? null,
     hours: { days: win.days, from: hhmm(win.startMin), to: hhmm(win.endMin), now_in_window: inCallWindow(new Date(), win) },
+    caller: { number: ELI_CALLER_NUMBER, phone_number_id: ELI_PHONE_NUMBER_ID },
     cap: dailyMax(),
     today: preview.today,
     credits,
