@@ -62,6 +62,8 @@ export interface OfferContent {
   seller: SellerKey;
   client_name?: string;
   client_company?: string;
+  /** заглавие, зададено на ръка (09.11.2026); без него заглавието се сглобява от модулите */
+  title?: string;
   /** уводът — ако липсва, се сглобява от шаблона */
   intro?: string;
   /** „Ти каза, че…“ — какво е казал човекът на срещата */

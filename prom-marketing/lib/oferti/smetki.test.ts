@@ -85,7 +85,7 @@ describe("сглобяването на редовете", () => {
     const { items } = buildItems([{ key: "nivo-2" }, { key: "eli" }]);
     expect(offerTitle(items)).toBe("Ниво II · Пари с AI + Ели · гласов AI агент");
     expect(summaryLines(items)[0]).toBe("Ниво II · Пари с AI — 6 900 € еднократно");
-    expect(summaryLines(items)[1]).toMatch(/300 € \/мес \+ 500 €/);
+    expect(summaryLines(items)[1]).toMatch(/300 €\/мес \+ 500 €/);
   });
 });
 
@@ -114,5 +114,59 @@ describe("текстовете", () => {
     expect(latin("Лъчезар Генов")).toBe("Lachezar-Genov");
     expect(pdfFilename("Лъчезар Генов", "Funky 360")).toBe("ProMarketing-Oferta-Funky-360.pdf");
     expect(validUntilIso(14, new Date("2026-11-06T10:00:00Z"))).toBe("2026-11-20");
+  });
+});
+
+describe("поправките от 09.11.2026 (офертите на Георги)", () => {
+  it("името и фирмата се пишат като в документ", async () => {
+    const { niceName, niceCompany, firstName } = await import("./smetki");
+    expect(niceName("даниел вучев")).toBe("Даниел Вучев");
+    expect(niceName("ДАНИЕЛ ВУЧЕВ")).toBe("Даниел Вучев");
+    expect(niceName("мария-елена петрова")).toBe("Мария-Елена Петрова");
+    expect(niceName("МакДоналд")).toBe("МакДоналд");
+    expect(niceName("Лъчезар Генов")).toBe("Лъчезар Генов");
+    expect(niceCompany("cafemag.bg")).toBe("Cafemag.bg");
+    expect(niceCompany("ТОТЕХ")).toBe("ТОТЕХ");
+    expect(firstName("даниел вучев")).toBe("Даниел");
+    expect(greeting("vie", "даниел вучев")).toBe("Здравейте, Даниел!");
+  });
+  it("заглавието на ръка печели; три кратки реда се събират изцяло", () => {
+    const items = buildItems([
+      { key: "eli", title: "Гласов агент", price: 1000, unit: "еднократно", setup_price: 0 },
+      { key: "avtomatizacia", title: "Имейл и чат агент", price: 1500 },
+      { key: "custom", title: "Поддръжка", price: 500, unit: "/мес" },
+    ]).items;
+    expect(offerTitle(items)).toBe("Гласов агент + Имейл и чат агент + Поддръжка");
+    expect(offerTitle(items, "Внедряване на гласов, имейл и чат агенти")).toBe("Внедряване на гласов, имейл и чат агенти");
+    expect(offerTitle(items, "  ")).toBe("Гласов агент + Имейл и чат агент + Поддръжка");
+  });
+  it("преименуване на ред пази цената (без нов „няма цена“)", async () => {
+    const { mergeItems } = await import("./smetki");
+    const base = [
+      { key: "eli", title: "Внедряване на гласов агент", price: 1000, unit: "еднократно" as const, setup_price: 0 },
+      { key: "avtomatizacia", title: "Агент за имейли", price: 1500, unit: "еднократно" as const },
+      { key: "custom", title: "Поддръжка", price: 500, unit: "/мес" as const },
+    ];
+    const merged = mergeItems(base, [
+      { key: "eli", title: "Гласов агент" },
+      { key: "avtomatizacia", title: "Имейл и чат агент с ERP интеграция" },
+      { key: "custom", title: "Поддръжка на двете системи" },
+    ]);
+    const built = buildItems(merged);
+    expect(built.errors).toEqual([]);
+    expect(built.items.map((i) => [i.title, i.price, i.unit])).toEqual([
+      ["Гласов агент", 1000, "еднократно"],
+      ["Имейл и чат агент с ERP интеграция", 1500, "еднократно"],
+      ["Поддръжка на двете системи", 500, "/мес"],
+    ]);
+    // remove маха, нов key се добавя, неспоменатото остава
+    const m2 = mergeItems(base, [{ key: "custom", remove: true }, { key: "petevai" }]);
+    expect(m2.map((i) => i.key)).toEqual(["eli", "avtomatizacia", "petevai"]);
+  });
+  it("списък с имейли: запетаи, точка и запетая, повторения", async () => {
+    const { emailList } = await import("./schema");
+    expect(emailList("daniel@cafemag.bg, Miroslava@cafemag.bg;daniel@cafemag.bg")).toEqual(["daniel@cafemag.bg", "miroslava@cafemag.bg"]);
+    expect(emailList(["a@b.bg", " c@d.bg "])).toEqual(["a@b.bg", "c@d.bg"]);
+    expect(emailList("")).toBeUndefined();
   });
 });

@@ -14,6 +14,8 @@ export const itemSchema = z.object({
   setup_label: z.string().max(120).optional(),
   qty: z.number().int().positive().max(20).optional(),
   note: z.string().max(400).optional(),
+  /** само при items_mode = "merge": true маха реда с този key от офертата */
+  remove: z.boolean().optional(),
 });
 
 export const contentSchema = z
@@ -36,7 +38,15 @@ export const buildSchema = z.object({
   client_name: z.string().trim().max(120).optional(),
   client_company: z.string().trim().max(160).optional(),
   template_key: z.string().trim().max(60).optional(),
+  /** заглавието на офертата на ръка; "" = обратно към сглобеното от модулите */
+  title: z.string().trim().max(200).optional(),
   items: z.array(itemSchema).max(12).optional(),
+  /**
+   * replace (по подразбиране) — items е целият списък редове;
+   * merge — само поправки по key върху редовете на съществуващата оферта (цената и останалото се пазят,
+   * неспоменатите редове остават, нов key се добавя, remove:true маха)
+   */
+  items_mode: z.enum(["replace", "merge"]).optional(),
   /** кратък вариант: само ключове от каталога */
   moduli: z.array(z.string().trim().min(1)).max(12).optional(),
   greeting: z.enum(["ti", "vie"]).optional(),
@@ -75,9 +85,27 @@ export const templateSchema = z.object({
 });
 export type TemplatePayload = z.infer<typeof templateSchema>;
 
+/** „a@x.bg, b@y.bg“ или ["a@x.bg","b@y.bg"] → ["a@x.bg","b@y.bg"] (без празни, малки букви). */
+export function emailList(v: unknown): unknown {
+  if (v === undefined || v === null || v === "") return undefined;
+  const parts = (Array.isArray(v) ? v : [v]).flatMap((x) => String(x ?? "").split(/[,;\s]+/));
+  const out = Array.from(new Set(parts.map((x) => x.trim().toLowerCase()).filter(Boolean)));
+  return out.length > 0 ? out : undefined;
+}
+const emails = z.preprocess(emailList, z.array(z.string().email()).max(10).optional());
+
 export const sendSchema = z.object({
   id: z.string().uuid(),
-  to: z.string().email().optional(),
+  /** един или няколко получатели (списък или „a@x.bg, b@y.bg“); без него — имейлът от картона */
+  to: emails,
+  /** копие (CC) — виждат се от всички */
+  cc: emails,
+  /** скрито копие (BCC) */
+  bcc: emails,
+  /** true (по подразбиране) → скрито копие до продавача и до Ивайло, за да имат изпратеното писмо */
+  copy_team: z.boolean().optional(),
+  /** обръщението на ред 1 вместо „Здравейте, <име>!“ — напр. „Здравейте, Даниел и Мирослава!“ */
+  greeting: z.string().trim().max(160).optional(),
   subject: z.string().trim().max(200).optional(),
   /** уводът на имейла вместо стандартния; линкът, редовете и подписът се добавят сами */
   text: z.string().max(4000).optional(),

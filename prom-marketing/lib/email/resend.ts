@@ -22,6 +22,10 @@ export interface SendAttachment {
 
 export interface SendArgs {
   to: string | string[];
+  /** копие (CC) — вижда се от получателите */
+  cc?: string | string[];
+  /** скрито копие (BCC) */
+  bcc?: string | string[];
   subject: string;
   html: string;
   text?: string;
@@ -91,12 +95,17 @@ export async function sendEmail(args: SendArgs): Promise<{ id: string | null; er
     undefined;
   try {
     const client = getClient();
+    const nonEmpty = (v?: string | string[]) => (Array.isArray(v) ? (v.length > 0 ? v : undefined) : v || undefined);
+    const cc = nonEmpty(args.cc);
+    const bcc = nonEmpty(args.bcc);
     const { data, error } = await client.emails.send({
       from,
       to: args.to,
       subject: args.subject,
       html: args.html,
       text: args.text,
+      ...(cc ? { cc } : {}),
+      ...(bcc ? { bcc } : {}),
       ...(replyTo ? { replyTo } : {}),
       ...(args.attachments && args.attachments.length > 0
         ? {

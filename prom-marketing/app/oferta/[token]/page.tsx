@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getOfferByToken } from "@/lib/oferti/repository";
-import { fmtEur, isToken } from "@/lib/oferti/smetki";
+import { fmtEur, isToken, withUnit } from "@/lib/oferti/smetki";
 import { viewModel } from "@/lib/oferti/view";
 import { OFFER_CSS } from "@/lib/oferti/page-css";
 
@@ -77,7 +77,7 @@ export default async function OfertaPage({ params }: Params) {
         </div>
 
         <h2>Какво получава{vie ? "те" : "ш"}</h2>
-        {offer.items.map((it, i) => (
+        {v.items.map((it, i) => (
           <article className="card" key={i}>
             <div className="top">
               <div>
@@ -113,14 +113,14 @@ export default async function OfertaPage({ params }: Params) {
         <h2>Инвестицията</h2>
         <table>
           <tbody>
-            {offer.items.map((it, i) => (
+            {v.items.map((it, i) => (
               <tr key={i}>
                 <td>
                   {it.title}
                   {it.setup_price ? <small>+ внедряване {fmtEur(it.setup_price)} еднократно</small> : null}
                 </td>
                 <td className="r">
-                  {fmtEur((it.price ?? 0) * (it.qty && it.qty > 0 ? it.qty : 1))} {it.unit}
+                  {withUnit(fmtEur((it.price ?? 0) * (it.qty && it.qty > 0 ? it.qty : 1)), it.unit)}
                 </td>
               </tr>
             ))}
@@ -139,7 +139,7 @@ export default async function OfertaPage({ params }: Params) {
             {showMonthly && (
               <tr className="tot">
                 <td>Общо месечно</td>
-                <td className="r">{fmtEur(totals.monthly_after)} /мес</td>
+                <td className="r">{fmtEur(totals.monthly_after)}/мес</td>
               </tr>
             )}
           </tbody>

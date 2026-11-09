@@ -8,6 +8,8 @@ import { recordAutomationEvent, updateContact } from "@/lib/crm/repository";
 import { sendEmail } from "@/lib/email/resend";
 import {
   DEFAULT_TEMPLATES,
+  IVAILO_EMAIL,
+  SELLERS,
   defaultStepsFor,
   type GreetingForm,
   type OfferContent,
@@ -16,7 +18,8 @@ import {
   type SellerKey,
   type VatMode,
 } from "./katalog";
-import { buildItems, offerTitle, summaryLines, totals, validUntilIso, type ItemInput } from "./smetki";
+import { buildItems, mergeItems, niceCompany, niceName, offerTitle, summaryLines, totals, validUntilIso, type ItemInput } from "./smetki";
+import { emailList } from "./schema";
 import { newToken } from "./token";
 import { offerUrl, shortSummary, viewModel, type OfferContactLite, type OfferFull, type OfferView } from "./view";
 import { offerEmail } from "./email";
@@ -223,8 +226,12 @@ export interface BuildInput {
   client_name?: string;
   client_company?: string;
   template_key?: string;
+  /** заглавието на ръка; "" = обратно към сглобеното от модулите; без него — пази се досегашното */
+  title?: string;
   /** редове с поправки; празно + шаблон = редовете на шаблона */
   items?: ItemInput[];
+  /** merge = поправки по key върху редовете на съществуващата оферта (цените се пазят) */
+  items_mode?: "replace" | "merge";
   greeting?: GreetingForm;
   seller?: SellerKey;
   intro?: string;
@@ -289,15 +296,17 @@ export async function buildOffer(input: BuildInput, actor: BuildActor): Promise<
     const { data } = await sb.from("contacts").select(CONTACT_COLS).ilike("email", input.client_email.trim()).limit(1).maybeSingle();
     contact = (data as OfferContactLite | null) ?? null;
   }
-  const clientName = (input.client_name ?? existing?.content.client_name ?? contact?.full_name ?? "").trim();
-  const clientCompany = (input.client_company ?? existing?.content.client_company ?? contact?.company ?? "").trim();
+  const clientName = niceName(input.client_name ?? existing?.content.client_name ?? contact?.full_name ?? "");
+  const clientCompany = niceCompany(input.client_company ?? existing?.content.client_company ?? contact?.company ?? "");
   if (!contact && !clientName && !clientCompany) return fail("дай contact_id (от търсенето в CRM-а) или client_name");
 
   // 3. шаблонът и редовете
   const template = input.template_key ? await getTemplate(input.template_key) : null;
   if (input.template_key && !template) return fail(`няма шаблон „${input.template_key}“`);
   let itemInputs: ItemInput[];
-  if (input.items && input.items.length > 0) {
+  if (existing && !template && input.items_mode === "merge" && input.items && input.items.length > 0) {
+    itemInputs = mergeItems(existing.items.map(templateItemInput), input.items);
+  } else if (input.items && input.items.length > 0) {
     if (template) {
       // поправките за човека върху редовете на шаблона: същият key → сливане, нов key → добавя се
       const byKey = new Map(template.items.map((t) => [t.key, t]));
@@ -324,11 +333,13 @@ export async function buildOffer(input: BuildInput, actor: BuildActor): Promise<
   const tc = template?.content ?? {};
   const ec = existing?.content;
   const seller: SellerKey = input.seller ?? ec?.seller ?? tc.seller ?? actor.seller ?? "ivailo";
+  const customTitle = input.title !== undefined ? input.title.trim() : (ec?.title ?? "").trim();
   const content: OfferContent = {
     greeting: input.greeting ?? ec?.greeting ?? tc.greeting ?? "ti",
     seller,
     client_name: clientName || undefined,
     client_company: clientCompany || undefined,
+    title: customTitle || undefined,
     intro: pick(input.intro, ec?.intro, tc.intro),
     pain: pick(input.pain, ec?.pain, tc.pain),
     outcome: pick(input.outcome, ec?.outcome, tc.outcome),
@@ -343,7 +354,7 @@ export async function buildOffer(input: BuildInput, actor: BuildActor): Promise<
 
   // 5. сумите, заглавието, кодът
   const t = totals(items, discount, vat_mode);
-  const title = offerTitle(items);
+  const title = offerTitle(items, customTitle);
   const token = existing?.token ?? newToken();
   const url = offerUrl(token);
   const row = {
@@ -433,7 +444,14 @@ function templateItemInput(i: OfferItem): ItemInput {
 
 export interface SendInput {
   id: string;
-  to?: string;
+  /** един или няколко получатели; без него — имейлът от картона */
+  to?: string | string[];
+  cc?: string | string[];
+  bcc?: string | string[];
+  /** скрито копие до продавача и Ивайло (по подразбиране — да) */
+  copy_team?: boolean;
+  /** обръщението вместо „Здравейте, <име>!“ */
+  greeting?: string;
   subject?: string;
   text?: string;
   approved?: boolean;
@@ -441,10 +459,13 @@ export interface SendInput {
 
 export interface SendResult {
   ok: boolean;
-  preview?: { to: string; subject: string; text: string; replyTo: string[]; url: string; pdf_url: string };
-  sent?: { to: string; resend_id: string | null; replyTo: string[]; url: string; pdf_url: string };
+  preview?: { to: string; cc: string[]; bcc: string[]; subject: string; text: string; replyTo: string[]; url: string; pdf_url: string; pdf_ok: boolean };
+  sent?: { to: string; cc: string[]; bcc: string[]; resend_id: string | null; replyTo: string[]; url: string; pdf_url: string };
   error?: string;
 }
+
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const asList = (v: string | string[] | undefined): string[] => (emailList(v) as string[] | undefined) ?? [];
 
 const EARLY_STAGES = new Set(["lead", "contacted", "discovery", "presentation_sent"]);
 
@@ -452,21 +473,32 @@ export async function sendOffer(input: SendInput, actor: string): Promise<SendRe
   const offer = await getOffer(input.id);
   if (!offer) return { ok: false, error: "няма такава оферта" };
   if (!offer.token) return { ok: false, error: "офертата не е от модули — няма PDF" };
-  const to = (input.to ?? offer.contact?.email ?? "").trim().toLowerCase();
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return { ok: false, error: "няма имейл за човека — дай to" };
+  const toList = asList(input.to);
+  if (toList.length === 0 && offer.contact?.email) toList.push(offer.contact.email.trim().toLowerCase());
+  if (toList.length === 0) return { ok: false, error: "няма имейл за човека — дай to" };
+  const bad = [...toList, ...asList(input.cc), ...asList(input.bcc)].filter((a) => !EMAIL_RE.test(a));
+  if (bad.length > 0) return { ok: false, error: `невалиден имейл: ${bad.join(", ")}` };
+  const cc = asList(input.cc).filter((a) => !toList.includes(a));
   const v = viewModel(offer);
-  const mail = offerEmail(v, { subject: input.subject, text: input.text });
-  if (!input.approved) {
-    return { ok: true, preview: { to, subject: mail.subject, text: mail.text, replyTo: mail.replyTo, url: v.url, pdf_url: v.pdfUrl } };
-  }
+  const team = input.copy_team === false ? [] : [SELLERS[v.seller.key].email, IVAILO_EMAIL].map((a) => a.toLowerCase());
+  const bcc = Array.from(new Set([...asList(input.bcc), ...team])).filter((a) => !toList.includes(a) && !cc.includes(a));
+  const to = toList.join(", ");
+  const mail = offerEmail(v, { subject: input.subject, text: input.text, greeting: input.greeting });
+
+  // PDF-ът се прави и при прегледа — счупен PDF се казва веднага, не след „да“
   let pdf: Buffer;
   try {
     pdf = await renderOfferPdf(v);
   } catch (e) {
     return { ok: false, error: `PDF-ът не се направи: ${e instanceof Error ? e.message : String(e)}` };
   }
+  if (!input.approved) {
+    return { ok: true, preview: { to, cc, bcc, subject: mail.subject, text: mail.text, replyTo: mail.replyTo, url: v.url, pdf_url: v.pdfUrl, pdf_ok: pdf.length > 1000 } };
+  }
   const r = await sendEmail({
-    to,
+    to: toList,
+    cc,
+    bcc,
     subject: mail.subject,
     html: mail.html,
     text: mail.text,
@@ -483,10 +515,10 @@ export async function sendOffer(input: SendInput, actor: string): Promise<SendRe
       sb,
       offer.contact.id,
       "email_sent",
-      `📧 Оферта № ${v.number} изпратена до ${to}`,
+      `📧 Оферта № ${v.number} изпратена до ${to}${cc.length > 0 ? ` · копие: ${cc.join(", ")}` : ""}`,
       `Тема: ${mail.subject}\n\n${mail.text}`,
       actor,
-      { offer_id: offer.id, resend_id: r.id, reply_to: mail.replyTo }
+      { offer_id: offer.id, resend_id: r.id, reply_to: mail.replyTo, to: toList, cc, bcc }
     ).catch(() => {});
     await updateContact({
       id: offer.contact.id,
@@ -500,5 +532,5 @@ export async function sendOffer(input: SendInput, actor: string): Promise<SendRe
     summary: `Оферта № ${v.number} до ${to} · ${actor}`,
     idempotency_key: `offer-sent:${offer.id}:${r.id ?? Date.now()}`,
   }).catch(() => {});
-  return { ok: true, sent: { to, resend_id: r.id, replyTo: mail.replyTo, url: v.url, pdf_url: v.pdfUrl } };
+  return { ok: true, sent: { to, cc, bcc, resend_id: r.id, replyTo: mail.replyTo, url: v.url, pdf_url: v.pdfUrl } };
 }

@@ -42,7 +42,8 @@ export async function ekipSendOfferAction(_prev: BuilderState, formData: FormDat
   if (!id) return { ok: false, error: "липсва офертата" };
   const to = String(formData.get("to") ?? "").trim() || undefined;
   const text = String(formData.get("text") ?? "").trim() || undefined;
-  const r = await sendOffer({ id, to, text, approved: true }, actor.kind === "owner" ? actor.name : `ekip:${actor.slug}`);
+  const cc = String(formData.get("cc") ?? "").trim() || undefined;
+  const r = await sendOffer({ id, to, cc, text, approved: true }, actor.kind === "owner" ? actor.name : `ekip:${actor.slug}`);
   if (!r.ok || !r.sent) return { ok: false, error: r.error ?? "не тръгна" };
   revalidatePath("/ekip/oferti");
   revalidatePath("/admin/offers");

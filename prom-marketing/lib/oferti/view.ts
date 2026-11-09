@@ -3,7 +3,8 @@
  * Всичко, което клиентът вижда, минава оттук: попълнени текстове, суми, продавач.
  */
 import { SELLERS, SITE, VAT_MODE_LABEL, type OfferContent, type OfferItem, type Seller, type VatMode } from "./katalog";
-import { fillAll, fmtDateBg, fmtEur, greeting, offerNumber, pdfFilename, totals, type Totals } from "./smetki";
+import { fillAll, fmtDateBg, fmtEur, greeting, niceCompany, niceName, offerNumber, pdfFilename, totals, withUnit, type Totals } from "./smetki";
+import { kamVie, kamVieAll } from "./vie";
 
 export interface OfferContactLite {
   id: string;
@@ -54,6 +55,8 @@ export interface OfferView {
   forLine: string;
   greeting: string;
   content: OfferContent;
+  /** редовете за показване — при „Вие“ текстовете от каталога са превърнати в учтива форма */
+  items: OfferItem[];
   totals: Totals;
   number: string;
   date: string;
@@ -73,10 +76,11 @@ export function offerUrl(token: string): string {
 
 export function viewModel(offer: OfferFull): OfferView {
   const seller = SELLERS[offer.content?.seller ?? "ivailo"] ?? SELLERS.ivailo;
-  const clientName = (offer.content?.client_name ?? offer.contact?.full_name ?? "").trim();
-  const clientCompany = (offer.content?.client_company ?? offer.contact?.company ?? "").trim();
+  const clientName = niceName(offer.content?.client_name ?? offer.contact?.full_name ?? "");
+  const clientCompany = niceCompany(offer.content?.client_company ?? offer.contact?.company ?? "");
   const validUntil = fmtDateBg(offer.valid_until);
-  const content = fillAll(
+  const vie = (offer.content?.greeting ?? "ti") === "vie";
+  const filled = fillAll(
     {
       greeting: offer.content?.greeting ?? "ti",
       seller: seller.key,
@@ -91,18 +95,44 @@ export function viewModel(offer: OfferFull): OfferView {
     },
     { name: clientName, company: clientCompany, seller: seller.key, date: validUntil }
   );
+  const content: OfferContent = vie
+    ? {
+        ...filled,
+        intro: filled.intro ? kamVie(filled.intro) : filled.intro,
+        pain: filled.pain ? kamVie(filled.pain) : filled.pain,
+        outcome: filled.outcome ? kamVie(filled.outcome) : filled.outcome,
+        ps: filled.ps ? kamVie(filled.ps) : filled.ps,
+        next_steps: kamVieAll(filled.next_steps) ?? [],
+        terms: kamVieAll(filled.terms) ?? [],
+      }
+    : filled;
+  const items: OfferItem[] = (offer.items ?? []).map((i) =>
+    vie
+      ? {
+          ...i,
+          title: kamVie(i.title),
+          subtitle: i.subtitle ? kamVie(i.subtitle) : i.subtitle,
+          bullets: kamVieAll(i.bullets) ?? [],
+          outcome: i.outcome ? kamVie(i.outcome) : i.outcome,
+          not_included: kamVieAll(i.not_included),
+          note: i.note ? kamVie(i.note) : i.note,
+          setup_label: i.setup_label ? kamVie(i.setup_label) : i.setup_label,
+        }
+      : i
+  );
   const t = totals(offer.items ?? [], offer.discount, offer.vat_mode ?? "incl");
   const token = offer.token ?? "";
   const url = token ? offerUrl(token) : (offer.url ?? SITE);
-  const withInst = (offer.items ?? []).filter((i) => i.installments && i.installments.length > 0);
+  const withInst = items.filter((i) => i.installments && i.installments.length > 0);
   return {
     offer,
     seller,
     clientName,
     clientCompany,
-    forLine: clientCompany && clientName ? `${clientName} · ${clientCompany}` : clientCompany || clientName || "теб",
+    forLine: clientCompany && clientName ? `${clientName} · ${clientCompany}` : clientCompany || clientName || (vie ? "Вас" : "теб"),
     greeting: greeting(content.greeting, clientName),
     content,
+    items,
     totals: t,
     number: offerNumber(offer.number, offer.created_at),
     date: fmtDateBg(offer.created_at),
@@ -121,9 +151,9 @@ export function viewModel(offer: OfferFull): OfferView {
 
 /** Кратко описание за Telegram/CRM: редовете + общото. */
 export function shortSummary(v: OfferView): string {
-  const rows = v.offer.items.map((i) => {
+  const rows = v.items.map((i) => {
     const setup = i.setup_price ? ` + ${fmtEur(i.setup_price)} внедряване` : "";
-    return `• ${i.title} — ${fmtEur(i.price)} ${i.unit}${setup}`;
+    return `• ${i.title} — ${withUnit(fmtEur(i.price), i.unit)}${setup}`;
   });
   const tot: string[] = [];
   if (v.totals.one_time_after > 0) tot.push(`еднократно ${fmtEur(v.totals.one_time_after)}`);
