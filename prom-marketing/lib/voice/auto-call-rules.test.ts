@@ -3,6 +3,7 @@ import {
   AUTO_LOG_TYPE,
   DEFAULT_OPTIONS,
   formAnswersSummary,
+  formOtseyan,
   formProfileFor,
   bgMobileE164,
   decide,
@@ -159,6 +160,21 @@ describe("нов лийд", () => {
     const prof = formProfileFor("2625101691244588")!;
     expect(formAnswersSummary(prof, [{ name: "sluzhiteli", values: ["s2_5"] }, { name: "sfera", values: ["horeca"] }, { name: "kep", values: ["neznam"] }]))
       .toBe("Служители на трудов договор: 2–5 души на трудов договор; Сфера: ресторант / хотел / туризъм; КЕП: не знае — счетоводителят");
+  });
+
+  it("форма „Пари с AI“ (09.11) → каналът на хората, платената програма в профила, отсяване по отговорите", () => {
+    const prof = formProfileFor("2092849658042640")!;
+    expect(prof.kanal).toBe("pokrai_rabotata");
+    expect(prof.profil).toMatch(/ПЛАТЕНА/);
+    expect(prof.profil).toMatch(/НЕ казваш цена/);
+    const dobar = [{ name: "situacia", values: ["rabota"] }, { name: "cel", values: ["dohod"] }, { name: "vreme", values: ["h5_10"] }, { name: "invest", values: ["vnoski"] }];
+    expect(formOtseyan(prof, dobar)).toBeNull();
+    expect(formAnswersSummary(prof, dobar)).toBe("Къде е сега: работи (стабилна работа) и иска втори доход; Цел: втори доход — AI системи за фирми срещу заплащане; Време седмично (4 месеца): 5–10 часа; Готов да инвестира (платена програма): да, с вноски");
+    expect(formOtseyan(prof, [{ name: "situacia", values: ["pensia"] }, { name: "invest", values: ["da"] }])).toBe("Къде е сега: пенсионер");
+    expect(formOtseyan(prof, [{ name: "situacia", values: ["rabota"] }, { name: "cel", values: ["bezplatno"] }, { name: "invest", values: ["ne"] }]))
+      .toBe("Цел: само безплатни материали; Готов да инвестира (платена програма): не — търси само безплатно");
+    expect(formOtseyan(formProfileFor("3062805607239108")!, [{ name: "situacia", values: ["start"] }])).toBeNull();
+    expect(formOtseyan(prof, null)).toBeNull();
   });
 
   it("форма от сайта /obuchenie-az → същият профил, отговорите от metadata.answers_summary", () => {
