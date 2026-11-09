@@ -65,6 +65,10 @@ const contactPatchSchema = z.object({
   followup_status: z.enum(FOLLOWUP_STATUSES).nullable().optional(),
   next_followup_at: z.string().nullable().optional(),
   last_heard_from_at: z.string().optional(),
+  /** чий е картонът (team_members.id); null = ничий. Асистентът на продавача го слага на нов човек (09.11.2026) */
+  owner_id: z.string().uuid().nullable().optional(),
+  /** с какво се занимава човекът/фирмата */
+  business: z.string().trim().max(300).optional(),
 });
 
 /**
