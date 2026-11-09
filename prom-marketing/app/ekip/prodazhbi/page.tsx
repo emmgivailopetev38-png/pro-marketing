@@ -9,6 +9,7 @@ import { isLiveBooking } from "@/lib/crm/booking-status";
 import { EkipHeader } from "@/components/ekip/EkipHeader";
 import { SalesCard } from "@/components/ekip/SalesCard";
 import { MeetingOutcome } from "@/components/ekip/MeetingOutcome";
+import { MeetingRecording } from "@/components/ekip/MeetingRecording";
 import { NapredakStrip } from "@/components/ekip/NapredakStrip";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +33,8 @@ export default async function ProdazhbiPage() {
   const upcoming = board.meetings.filter((m) => !isPast(m.at) && isLiveBooking(m.status));
   const pastOpen = board.meetings.filter((m) => isPast(m.at) && isLiveBooking(m.status));
   const pastDone = board.meetings.filter((m) => isPast(m.at) && !isLiveBooking(m.status));
+  // 🎥 минали срещи (без „не се яви“) без линк от записа — за анализа на разговорите (10.11.2026)
+  const noRecording = board.meetings.filter((m) => isPast(m.at) && m.status !== "no_show" && !m.recording_url);
 
   return (
     <div className="mx-auto max-w-2xl pb-24">
@@ -97,6 +100,16 @@ export default async function ProdazhbiPage() {
           ))}
         </Section>
 
+        {noRecording.length > 0 && (
+          <section className="rounded-2xl border border-amber-400/30 bg-amber-400/[0.06] px-4 py-3">
+            <p className="text-sm font-semibold text-amber-200">🎥 {noRecording.length === 1 ? "1 среща чака" : `${noRecording.length} срещи чакат`} линк от записа</p>
+            <p className="mt-0.5 text-xs text-[var(--color-text-tertiary)]">
+              След всяка среща: „🎥 Запис“ → линкът от Fathom / Meet / Drive (или го прати на асистента в Telegram). Записите ги анализираме — какво казва
+              човекът и къде се губи сделката.
+            </p>
+          </section>
+        )}
+
         {pastOpen.length > 0 && (
           <section className="space-y-2">
             <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-rose-300">🧾 Минали срещи · какъв е резултатът? · {pastOpen.length}</h2>
@@ -119,6 +132,7 @@ export default async function ProdazhbiPage() {
                     <span className="text-[var(--color-text-secondary)]">{fmtSofia(m.at)}</span>
                   </div>
                   <MeetingOutcome bookingId={m.id} name={m.name} when={fmtSofia(m.at)} />
+                  <MeetingRecording bookingId={m.id} url={m.recording_url} />
                 </li>
               ))}
             </ul>
@@ -161,15 +175,18 @@ export default async function ProdazhbiPage() {
         )}
 
         {pastDone.length > 0 && (
-          <details className="rounded-2xl border border-white/10 p-3">
+          <details open={pastDone.some((m) => m.status !== "no_show" && !m.recording_url)} className="rounded-2xl border border-white/10 p-3">
             <summary className="cursor-pointer text-sm text-[var(--color-text-tertiary)]">🗂 Минали срещи с резултат · 7 дни · {pastDone.length}</summary>
             <ul className="mt-2 divide-y divide-white/5 text-sm">
               {pastDone.map((m) => (
-                <li key={m.id} className="flex flex-wrap items-baseline justify-between gap-x-3 py-1.5">
-                  <span>{m.name}</span>
-                  <span className="text-xs text-[var(--color-text-secondary)]">
-                    {fmtSofia(m.at)} · {m.status === "completed" ? "✅ проведена" : m.status === "no_show" ? "🙈 не се яви · Ели звъни" : m.status}
-                  </span>
+                <li key={m.id} className="py-1.5">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                    <span>{m.name}</span>
+                    <span className="text-xs text-[var(--color-text-secondary)]">
+                      {fmtSofia(m.at)} · {m.status === "completed" ? "✅ проведена" : m.status === "no_show" ? "🙈 не се яви · Ели звъни" : m.status}
+                    </span>
+                  </div>
+                  {m.status !== "no_show" && <MeetingRecording bookingId={m.id} url={m.recording_url} />}
                 </li>
               ))}
             </ul>
