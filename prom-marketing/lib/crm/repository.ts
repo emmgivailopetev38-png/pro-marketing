@@ -904,6 +904,8 @@ const CONTACT_PATCH_FIELDS = [
   "followup_status",
   "next_followup_at",
   "last_heard_from_at",
+  "owner_id",
+  "business",
 ] as const;
 
 /**
@@ -925,6 +927,9 @@ export async function updateContact(args: {
   next_followup_at?: string | null;
   /** Кога сме се чули за последно — Хермес го слага след истински разговор. */
   last_heard_from_at?: string | null;
+  /** чий е картонът (team_members.id) */
+  owner_id?: string | null;
+  business?: string;
 }): Promise<{ error: string | null }> {
   const sb = createServiceClient();
   const { data: contact } = await sb
