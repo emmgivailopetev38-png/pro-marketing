@@ -9,6 +9,7 @@ import {
   DEFAULT_OPTIONS,
   ELI_CALLER_NUMBER,
   formAnswersSummary,
+  formOtseyan,
   DEFAULT_WINDOW,
   decide,
   inCallWindow,
@@ -346,7 +347,32 @@ export async function runAutoCalls(args: { now?: Date; dryRun?: boolean; force?:
     // Профилирана форма (напр. „Покрай работата“): отговорите на човека влизат в бележката на Ели.
     if (call.formProfile && call.metaLeadId) {
       const { data: ml } = await sb.from("meta_leads").select("field_data").eq("meta_lead_id", call.metaLeadId).maybeSingle();
-      const summary = formAnswersSummary(call.formProfile, (ml as { field_data?: Array<{ name?: string; values?: unknown[] }> } | null)?.field_data);
+      const fd = (ml as { field_data?: Array<{ name?: string; values?: unknown[] }> } | null)?.field_data;
+      // 09.11.2026 — отсят по отговорите („Пари с AI“: пенсионер / учи / само безплатно / „не“ на инвестицията):
+      // Ели не звъни, картонът получава бележка и not_interested, за да не влезе и в блока на Георги.
+      const otseyan = formOtseyan(call.formProfile, fd);
+      if (otseyan) {
+        const okey = `voice-auto-otseyan:${call.contactId}:${call.metaLeadId}`;
+        const { data: oc } = await sb
+          .from("automation_events")
+          .insert({ event_type: DIAL_EVENT, status: "skipped", related_contact_id: call.contactId, idempotency_key: okey, summary: "🚫 Ели не звъни · отсят по формата", detail: { why: otseyan } })
+          .select("id")
+          .maybeSingle();
+        if (oc) {
+          await sb.from("contact_activities").insert({
+            contact_id: call.contactId,
+            activity_type: "note",
+            title: "🚫 Отсят от формата „Пари с AI“ — Ели не звъни",
+            body: `Отговори: ${otseyan}. Програмата е платена (менторска, 4 месеца) — този човек търси друго. Получи безплатния достъп до Академията от екрана за благодарност; автоматичните писма продължават. Ако сам пише или звънне — разговорът е твой.`,
+            occurred_at: new Date().toISOString(),
+            created_by: "eli_auto",
+            metadata: { kind: "eli_auto_otseyan", meta_lead_id: call.metaLeadId, dedupe_key: okey },
+          });
+          await sb.from("contacts").update({ followup_status: "not_interested" }).eq("id", call.contactId);
+        }
+        continue;
+      }
+      const summary = formAnswersSummary(call.formProfile, fd);
       if (summary) call.variables.istoriya = `${call.variables.istoriya} Отговори във формата — ${summary}.`;
     }
     // Заключването: един ключ = едно набиране, дори при две паралелни пускания.
