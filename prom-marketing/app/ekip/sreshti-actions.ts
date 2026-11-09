@@ -10,6 +10,7 @@ import { handleNoShowBooking } from "@/lib/team/noshow";
 import { fmtSofia } from "@/lib/team/time";
 import { MEETING_MSG_KINDS, type MeetingMsgKind } from "@/lib/team/sreshta-saobshtenia";
 import type { EkipActionResult } from "@/lib/team/types";
+import { saveRecording } from "@/lib/team/zapisi";
 
 const OUTCOMES = new Set(["completed", "no_show"]);
 
@@ -126,4 +127,27 @@ export async function meetingCancelAction(_prev: EkipActionResult | null, formDa
         : "Картон с телефон в CRM-а няма — Ивайло е уведомен; нов час уговаряте с него."
     }`,
   };
+}
+
+/**
+ * 🎥 Линкът от записа на срещата (10.11.2026, Ивайло: „Георги след всеки разговор да добавя линковете
+ * от записаните срещи, за да ги анализираме“). Член на екипа — само за срещи на свои картони; Ивайло — всички.
+ */
+export async function meetingRecordingAction(_prev: EkipActionResult | null, formData: FormData): Promise<EkipActionResult> {
+  let actor;
+  try {
+    actor = await requireTeamActor();
+  } catch {
+    return { ok: false, error: "Сесията е изтекла — влез отново." };
+  }
+  const bookingId = String(formData.get("booking_id") ?? "").trim();
+  const url = String(formData.get("url") ?? "").trim();
+  if (!bookingId) return { ok: false, error: "Липсва срещата." };
+  const r = await saveRecording({ bookingId, url, by: actor.name, memberId: actor.kind === "member" ? actor.member.id : null });
+  if (!r.ok) return { ok: false, error: r.error ?? "Не се записа." };
+  revalidatePath("/ekip/prodazhbi");
+  revalidatePath("/ekip/zadachi");
+  revalidatePath("/ekip");
+  if (r.contact_id) revalidatePath(`/admin/clients/${r.contact_id}`);
+  return { ok: true, message: "Записът е добавен — ще го анализираме. Задачата е отметната." };
 }

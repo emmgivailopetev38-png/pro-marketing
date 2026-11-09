@@ -46,6 +46,8 @@ export interface SalesBoard {
     meeting_url: string | null;
     /** accepted/pending/confirmed = жива; completed / no_show = с резултат */
     status: string;
+    /** 🎥 линкът от записа (10.11.2026) */
+    recording_url: string | null;
   }>;
 }
 
@@ -77,7 +79,7 @@ export async function loadSalesBoard(actor: TeamActor, now: Date = new Date()): 
       : Promise.resolve({ data: [] }),
     sb
       .from("bookings")
-      .select("id, attendee_name, attendee_email, attendee_phone, scheduled_at, status, business, automation_goal, timeline, meeting_url, raw_payload")
+      .select("id, attendee_name, attendee_email, attendee_phone, scheduled_at, status, business, automation_goal, timeline, meeting_url, raw_payload, recording_url")
       // 7 дни назад: миналите срещи чакат „проведена“ / „не се яви“ от водещия (06.11.2026).
       .gte("scheduled_at", new Date(now.getTime() - 7 * 86_400_000).toISOString())
       .lte("scheduled_at", new Date(now.getTime() + 14 * 86_400_000).toISOString())
@@ -106,6 +108,7 @@ export async function loadSalesBoard(actor: TeamActor, now: Date = new Date()): 
     timeline: string | null;
     meeting_url: string | null;
     raw_payload: unknown;
+    recording_url: string | null;
   };
   for (const b of (bookings ?? []) as BookingRow[]) {
     const c = (b.attendee_email && byEmail.get(b.attendee_email.toLowerCase())) || (b.attendee_phone && byPhone.get(b.attendee_phone.replace(/\D/g, "").slice(-9))) || null;
@@ -114,7 +117,7 @@ export async function loadSalesBoard(actor: TeamActor, now: Date = new Date()): 
     const upcoming = new Date(b.scheduled_at).getTime() >= now.getTime() - 3_600_000 && isLiveBooking(b.status);
     if (c && upcoming && !nextMeeting.has(c.id)) nextMeeting.set(c.id, { at: b.scheduled_at, note, url });
     if (c || !memberId) {
-      meetings.push({ id: b.id, name: b.attendee_name, at: b.scheduled_at, contact_id: c?.id ?? null, phone: b.attendee_phone ?? c?.phone ?? null, note, meeting_url: url, status: b.status });
+      meetings.push({ id: b.id, name: b.attendee_name, at: b.scheduled_at, contact_id: c?.id ?? null, phone: b.attendee_phone ?? c?.phone ?? null, note, meeting_url: url, status: b.status, recording_url: b.recording_url ?? null });
     }
   }
 
