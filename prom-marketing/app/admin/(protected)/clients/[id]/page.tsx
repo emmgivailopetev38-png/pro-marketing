@@ -11,6 +11,8 @@ import { buildBoard } from "@/lib/team/tasks-rules";
 import { contactMessages, participants } from "@/lib/team/messages";
 import { summarizeThreads } from "@/lib/team/messages-rules";
 import { templatesFor } from "@/lib/team/service-types";
+import { fundingForContact } from "@/lib/finansirane/repository";
+import { ContactFundingBlock } from "@/components/admin/finansirane/ContactFundingBlock";
 import type { ActivityRow, ContactRow } from "@/lib/contacts/types";
 import type {
   InvoiceRow,
@@ -61,13 +63,14 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
   if (!contact) notFound();
 
-  const [promises, photo, members, contactTasks, msgs, people] = await Promise.all([
+  const [promises, photo, members, contactTasks, msgs, people, funding] = await Promise.all([
     listPromises(id),
     photoSrc((contact as ContactRow).photo_url ?? null),
     listActiveMembers(),
     tasksForContact(id),
     contactMessages(id),
     participants(),
+    fundingForContact(id).catch(() => []),
   ]);
   const threadKey = `contact:${id}`;
   const threadTitle = `👤 ${(contact as ContactRow).full_name ?? (contact as ContactRow).company ?? "клиент"}`;
@@ -104,6 +107,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         promises={promises}
         nowIso={new Date().toISOString()}
       />
+      <ContactFundingBlock rows={funding} />
       <ContactTeamPanel
         contactId={id}
         ownerId={(contact as ContactRow).owner_id ?? null}
