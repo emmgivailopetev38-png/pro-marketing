@@ -4,10 +4,11 @@ import { CLOSING_KEY, WARM_SEQUENCE, subjectFor, trackFor, warmStepsFor, type Wa
 import { firstName, type BuildCtx, type SequenceStep } from "./sequence-layout";
 import { unsubscribeUrl } from "./unsubscribe-token";
 import { loadClientMap } from "./klienti";
-import type { ClientWhy } from "./klienti-rules";
+import { normEmail, type ClientWhy } from "./klienti-rules";
 import type { createServiceClient } from "@/lib/supabase/service";
 import { AUTOMATION_EXCLUDED_STAGES, automationSkipReason } from "./sequence-guard";
-import { chunks, normEmail, readAllPages } from "./paged";
+import { ID_CHUNK, readAllPages } from "./paged";
+import { chunks } from "@/lib/array";
 
 type Sb = ReturnType<typeof createServiceClient>;
 
@@ -277,7 +278,7 @@ export async function runWarmSequence(supabase: Sb): Promise<{
     contacts = await loadWarmContacts(supabase, floor, excluded);
     if (contacts.length === 0) return out;
     acts = [];
-    for (const part of chunks(contacts.map((c) => c.id))) {
+    for (const part of chunks(contacts.map((c) => c.id), ID_CHUNK)) {
       acts.push(
         ...(await readAllPages<WarmActivity>((from, to) =>
           supabase
@@ -411,8 +412,8 @@ const CONTACT_COLS = "id, full_name, email, stage, followup_status, created_at, 
 
 /**
  * Кого гледа кръгът днес: картоните, пипани в последните 45 дни, ПЛЮС хората,
- * на които сме писали или с които сме говорили в тези 45 дни — нашите писма
- * не местят updated_at на картона и иначе човекът изпадаше насред кръга.
+ * докоснати (разговор, среща, наше писмо) в тези 45 дни, дори картонът им да
+ * не е пипан — предпазна мрежа, за да не изпада никой насред кръга.
  * Архивът (без докосване 45 дни) пак мълчи — това решава nextWarmStep.
  */
 async function loadWarmContacts(supabase: Sb, floor: string, excluded: string): Promise<WarmContact[]> {
@@ -440,7 +441,7 @@ async function loadWarmContacts(supabase: Sb, floor: string, excluded: string): 
   );
   const extraIds = [...new Set(touched.map((r) => r.contact_id))].filter((id) => !have.has(id));
   const extra: WarmContact[] = [];
-  for (const part of chunks(extraIds)) {
+  for (const part of chunks(extraIds, ID_CHUNK)) {
     extra.push(
       ...(await readAllPages<WarmContact>((from, to) =>
         supabase
@@ -472,7 +473,7 @@ async function loadOptOuts(supabase: Sb): Promise<{ ids: Set<string>; emails: Se
   );
   const ids = new Set(rows.map((r) => r.contact_id));
   const emails = new Set<string>();
-  for (const part of chunks([...ids])) {
+  for (const part of chunks([...ids], ID_CHUNK)) {
     const { data, error } = await supabase.from("contacts").select("email").in("id", part);
     if (error) throw new Error(error.message);
     for (const r of (data ?? []) as Array<{ email: string | null }>) {

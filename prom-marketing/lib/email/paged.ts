@@ -5,7 +5,8 @@
  * До 10.11.2026 топлият кръг четеше активностите на 300 души с една заявка
  * (4 263 реда) → виждаше само първите 1 000, „не знаеше“, че е пратил писмо,
  * и стоеше на първото писмо; не виждаше и част от отказите. Оттук нататък
- * всяка такава заявка минава през `readAllPages`.
+ * такива заявки минават през `readAllPages` (а дългите списъци с id-та —
+ * през `chunks` от `@/lib/array`, по `ID_CHUNK`).
  */
 
 /** Колко реда връща Supabase на една страница. */
@@ -39,17 +40,4 @@ export async function readAllPages<T>(
     if (rows.length < pageSize) return out;
   }
   throw new Error(`readAllPages: повече от ${maxPages} страници — спирам, вместо да чета безкрай`);
-}
-
-/** Разделя списък на парчета по `size` (за `.in()` с много id-та). */
-export function chunks<T>(items: readonly T[], size: number = ID_CHUNK): T[][] {
-  if (size <= 0) throw new Error("chunks: size трябва да е > 0");
-  const out: T[][] = [];
-  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
-  return out;
-}
-
-/** Имейл за сравнение: без интервали, малки букви. */
-export function normEmail(email: string | null | undefined): string {
-  return (email ?? "").trim().toLowerCase();
 }

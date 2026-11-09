@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { chunks, normEmail, readAllPages } from "./paged";
+import { readAllPages } from "./paged";
 
 /** Фалшива таблица: връща отрязъка [from, to] от `total` реда. */
 function table(total: number, calls: Array<[number, number]> = []) {
@@ -47,18 +47,5 @@ describe("readAllPages — всички редове, не само първит
   it("безкрайна таблица → спира с грешка след тавана на страниците", async () => {
     const page = () => Promise.resolve({ data: Array(10).fill({}), error: null });
     await expect(readAllPages(page, 10, 3)).rejects.toThrow(/страници/);
-  });
-});
-
-describe("chunks и normEmail", () => {
-  it("320 id-та на парчета по 150 → 150 + 150 + 20", () => {
-    const ids = Array.from({ length: 320 }, (_, i) => `id${i}`);
-    expect(chunks(ids).map((c) => c.length)).toEqual([150, 150, 20]);
-    expect(chunks([])).toEqual([]);
-  });
-
-  it("имейлите се сравняват без интервали и главни букви", () => {
-    expect(normEmail("  Ivan@Firma.BG ")).toBe("ivan@firma.bg");
-    expect(normEmail(null)).toBe("");
   });
 });
