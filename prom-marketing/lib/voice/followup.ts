@@ -3,7 +3,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { sendTelegram } from "@/lib/notifications/telegram";
 import { checkAgentCredits } from "./credits";
 import { outboundApiKey, placeOutboundCall } from "./outbound";
-import { AUTO_LOG_TYPE, bgMobileE164, inCallWindow, phoneKey, sofiaDay } from "./auto-call-rules";
+import { AUTO_LOG_TYPE, ELI_CALLER_NUMBER, bgMobileE164, inCallWindow, phoneKey, sofiaDay } from "./auto-call-rules";
 import { ELI_AGENT_ID, ELI_PHONE_NUMBER_ID, callWindow, creditsLeft, readSwitch } from "./auto-call";
 
 /**
@@ -233,7 +233,7 @@ export async function runFollowupQueue(args: { now?: Date; force?: boolean; max?
         contact_id: item.contact_id,
         activity_type: AUTO_LOG_TYPE,
         title: `📞 Ели звъни · персонален фолоуъп · ${item.povod}`,
-        body: `Обаждане от 0876 447 159 (агентът „Ели“, фолоуъп по поръчка на Ивайло от 29.10.2026): среща другата седмица или Ивайло да се обади. Разговорът влиза в картона, щом приключи.`,
+        body: `Обаждане от ${ELI_CALLER_NUMBER} (агентът „Ели“, фолоуъп по поръчка на Ивайло от 29.10.2026): среща другата седмица или Ивайло да се обади. Разговорът влиза в картона, щом приключи.`,
         occurred_at: new Date().toISOString(),
         created_by: "eli_followup",
         metadata: { kind: "eli_followup", povod: item.povod, agent_id: agentId, conversation_id: r.conversationId, dedupe_key: followupKey(item.contact_id, item.povod) },
