@@ -37,6 +37,11 @@ const CSS = `
 .pg-stapki li{display:flex;gap:12px;align-items:flex-start;color:var(--krem-tih);font-size:15px}
 .pg-stapki .n{flex:none;width:26px;height:26px;border-radius:50%;background:var(--zlato);color:var(--nokta);font:700 13px/26px var(--pg-sans),sans-serif;text-align:center}
 .pg-stapki b{color:var(--krem);font-weight:600}
+.pg-linkove{display:flex;flex-wrap:wrap;gap:12px;margin:18px 0 4px}
+.pg-doc .pg-linkove a{display:inline-flex;flex-direction:column;gap:3px;padding:12px 18px;border:1px solid var(--zlato);border-radius:8px;background:var(--kadife-2);color:var(--krem);max-width:100%}
+.pg-doc .pg-linkove a:hover{background:var(--kadife);border-color:var(--zlato-jarko)}
+.pg-linkove b{color:var(--zlato-jarko);font-weight:600;font-size:16px}
+.pg-linkove span{font-size:12.5px;color:var(--krem-tih)}
 .pg-redche{display:flex;flex-wrap:wrap;gap:8px 24px;font-size:13px;color:var(--krem-tih);margin-top:22px}
 .pg-redche b{color:var(--zlato);font-weight:500}
 
@@ -69,6 +74,8 @@ const CSS = `
 .pg-ekran{position:relative;border-radius:4px;overflow:hidden;background:#000;border:1px solid var(--linia);max-width:360px;margin:0 auto;width:100%}
 .pg-ekran video{display:block;width:100%;aspect-ratio:9/16;object-fit:cover;background:#000}
 .pg-nomer{position:absolute;top:0;left:0;z-index:2;font:600 11px/1 var(--pg-sans),sans-serif;letter-spacing:.18em;color:var(--nokta);background:var(--zlato);padding:6px 10px;border-radius:0 0 4px 0}
+.pg-doc a.pg-svali{align-self:center;font:500 13px/1 var(--pg-sans),sans-serif;color:var(--zlato-jarko);border:1px solid var(--linia);border-radius:6px;padding:9px 14px;text-decoration:none}
+.pg-doc a.pg-svali:hover{border-color:var(--zlato)}
 .pg-ime{font:600 17px/1.3 var(--pg-sans),sans-serif;color:var(--krem);margin:0}
 .pg-replika{font:italic 400 19px/1.35 var(--pg-serif),Georgia,serif;color:var(--zlato-jarko);border-left:2px solid var(--zlato);padding-left:12px;margin:0}
 .pg-replika.nyama{color:var(--krem-tih);border-color:var(--linia);font-style:normal;font-family:var(--pg-sans),sans-serif;font-size:14px}
@@ -171,6 +178,16 @@ export default async function PregledPage({ params }: { params: Promise<{ key: s
             )}
           </h1>
           <p className="pg-uvod">{intro}</p>
+          {review.links.length > 0 && (
+            <nav className="pg-linkove" aria-label="Документи към видеата">
+              {review.links.map((l) => (
+                <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer">
+                  <b>{l.label}</b>
+                  {l.note ? <span>{l.note}</span> : null}
+                </a>
+              ))}
+            </nav>
+          )}
           <ol className="pg-stapki">
             <li>
               <span className="n">1</span>

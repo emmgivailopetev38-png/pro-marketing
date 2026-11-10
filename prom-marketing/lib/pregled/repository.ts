@@ -1,7 +1,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 import type { AnswerInput, AnswerRow, ReviewItem, ReviewRow } from "./types";
-import { isValidKey } from "./types";
+import { cleanLinks, isValidKey } from "./types";
 
 /**
  * Достъп до client_reviews / client_review_answers през service role.
@@ -20,7 +20,7 @@ export async function loadReview(key: string): Promise<LoadedReview | null> {
   const { data: review, error } = await sb
     .from("client_reviews")
     .select(
-      "id, key, contact_id, client_name, heading, title, intro, items, view_count, last_seen_at, submit_count, submitted_at, general_comment"
+      "id, key, contact_id, client_name, heading, title, intro, items, view_count, last_seen_at, submit_count, submitted_at, general_comment, links"
     )
     .eq("key", key)
     .maybeSingle();
@@ -39,8 +39,9 @@ export async function loadReview(key: string): Promise<LoadedReview | null> {
   }
 
   const items = Array.isArray(review.items) ? (review.items as ReviewItem[]) : [];
+  const links = cleanLinks((review as { links?: unknown }).links);
   return {
-    review: { ...(review as Omit<ReviewRow, "items">), items },
+    review: { ...(review as Omit<ReviewRow, "items" | "links">), items, links },
     answers: (answers ?? []) as AnswerRow[],
   };
 }
