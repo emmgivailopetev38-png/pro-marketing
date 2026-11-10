@@ -40,6 +40,31 @@ export interface ReviewRow {
   submitted_at: string | null;
   /** Общите насоки на клиента към нас (не към отделен клип). */
   general_comment: string | null;
+  /** Документи към пакета (анализ, план, скриптове) — бутони под увода. */
+  links: ReviewLink[];
+}
+
+/** Бутон към документ до клиповете, напр. PDF с анализа. href е път под /public или https адрес. */
+export interface ReviewLink {
+  label: string;
+  href: string;
+  /** Ред под бутона: „4 стр. · отваря се направо“. */
+  note?: string | null;
+}
+
+/** Пропуска всичко, което не е бутон с текст и сигурен адрес (само /… или https://…). */
+export function cleanLinks(raw: unknown): ReviewLink[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(
+      (l): l is ReviewLink =>
+        !!l &&
+        typeof l === "object" &&
+        typeof (l as ReviewLink).label === "string" &&
+        typeof (l as ReviewLink).href === "string" &&
+        /^(\/(?!\/)|https:\/\/)/.test((l as ReviewLink).href)
+    )
+    .map((l) => ({ label: l.label, href: l.href, note: typeof l.note === "string" ? l.note : null }));
 }
 
 export interface AnswerRow {

@@ -245,8 +245,9 @@ export function PregledForm({ reviewKey, items, initialAnswers, initialGeneral }
       <section className="pg-sekcia">
         <h2 className="pg-h2">Клиповете</h2>
         <p className="pg-vodesht">
-          Кодът горе вляво (Ш01, В03…) е името на сцената — така ще си говорим за нея. Всеки клип е започнат от
-          истинската снимка на кутията, за да е шоколадът точно Вашият.
+          {reviewKey.startsWith("shokolad-")
+            ? "Кодът горе вляво (Ш01, В03…) е името на сцената — така ще си говорим за нея. Всеки клип е започнат от истинската снимка на кутията, за да е шоколадът точно Вашият."
+            : "Кодът горе вляво (H1, G2…) е името на видеото — така ще си говорим за него. Под всяко има бутон „Свали видеото“, ако искаш да го запазиш."}
         </p>
 
         <div className="pg-klipove">
@@ -270,6 +271,9 @@ export function PregledForm({ reviewKey, items, initialAnswers, initialGeneral }
                     onPlay={() => onPlay(it.code)}
                   />
                 </div>
+                <a className="pg-svali" href={it.video} download={`${it.code}.mp4`}>
+                  ⬇ Свали видеото
+                </a>
                 <h3 className="pg-ime">{it.name}</h3>
                 {it.line ? (
                   <p className="pg-replika">„{it.line}“</p>
