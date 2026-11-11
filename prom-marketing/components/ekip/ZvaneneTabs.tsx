@@ -9,7 +9,7 @@ import { ZVANENE_HINT, type ZvaneneTab, type ZvaneneView } from "@/lib/team/zvan
 export function ZvaneneTabs({ tabs, active }: { tabs: ZvaneneTab[]; active: ZvaneneView }) {
   return (
     <div className="space-y-2">
-      <nav className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Изгледи на звъненето">
+      <nav className="grid grid-cols-2 gap-2 sm:grid-cols-5" aria-label="Изгледи на звъненето">
         {tabs.map((t) => {
           const on = t.view === active;
           return (
@@ -24,7 +24,9 @@ export function ZvaneneTabs({ tabs, active }: { tabs: ZvaneneTab[]; active: Zvan
               }`}
             >
               {t.label}
-              <span className={on ? "text-[var(--color-accent-cyan)]" : "text-[var(--color-text-tertiary)]"}>{t.count}</span>
+              {t.count !== null && (
+                <span className={on ? "text-[var(--color-accent-cyan)]" : "text-[var(--color-text-tertiary)]"}>{t.count}</span>
+              )}
               {t.urgent > 0 && (
                 <span className="rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white">{t.urgent}</span>
               )}

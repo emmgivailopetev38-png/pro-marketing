@@ -5,6 +5,12 @@
  * Четири изгледа, по един екран работа наведнъж:
  *   🆕 Първо обаждане · 🔁 За повторно · 🤝 От Ивайло · 💜 Срещите
  *
+ * 11.11.2026 (Ивайло: „и стари, и топли — да имаме организирано звънене и да
+ * не пропуснем някой клиент“): петият изглед „🗂 Стари и топли“ — всички от
+ * септември 2026 насам, които не са в никой от горните списъци и не са хора
+ * на Ивайло (stari-rules.ts).
+ * Числото му се смята само когато изгледът е отворен — за да не бави другите.
+ *
  * Отказалите срещата и неявилите се влизат при „за повторно“ — на тях също се
  * звъни повторно и то днес. За да не се изгубят, страницата показва червена
  * лента с линк към тях на всеки друг изглед (`urgent` по-долу).
@@ -12,7 +18,7 @@
  * Чисти правила, без база — тестват се.
  */
 
-export const ZVANENE_VIEWS = ["novi", "povtorno", "ivailo", "sreshti", "studeni"] as const;
+export const ZVANENE_VIEWS = ["novi", "povtorno", "ivailo", "stari", "sreshti", "studeni"] as const;
 export type ZvaneneView = (typeof ZVANENE_VIEWS)[number];
 
 /** Входът /ekip без параметър: новите за първи разговор — основната работа. */
@@ -22,6 +28,7 @@ export const ZVANENE_LABEL: Record<ZvaneneView, string> = {
   novi: "🆕 Първо обаждане",
   povtorno: "🔁 За повторно",
   ivailo: "🤝 От Ивайло",
+  stari: "🗂 Стари и топли",
   sreshti: "💜 Срещите",
   studeni: "❄️ Студени",
 };
@@ -31,6 +38,7 @@ export const ZVANENE_HINT: Record<ZvaneneView, string> = {
   novi: "Хора, на които никой още не е звънял. Най-новите най-горе — те са най-топли.",
   povtorno: "Всички, на които се звъни втори път: отказали срещата, неявили се, обещано чуване за днес и тези, които не вдигнаха.",
   ivailo: "Картони, които Ивайло е дал на екипа. Влизаш с повода „преди време говорихте с Ивайло…“ и търсиш час.",
+  stari: "Всички останали без среща от септември насам: топлите, писаните без отговор и по-старите лийдове. Същото вижда и Ивайло. Звъниш отгоре надолу — щом натиснеш изход, картата тръгва по обичайния път.",
   sreshti: "Съобщенията по Viber за предстоящите срещи и списъкът с уговорените часове.",
   studeni: "Фирми от проучването, които не са ни търсили. Целта е среща с Ивайло, не продажба. Първо обещаните обаждания, после новите — София първа.",
 };
@@ -48,14 +56,16 @@ export interface ZvaneneCounts {
   booked: number;
   /** студените за звънене сега: дошлите за повторно + новите (виж prospects-rules.ts) */
   studeni?: number;
+  /** „стари и топли“ — известно само когато изгледът е отворен; иначе табът е без число */
+  stari?: number | null;
 }
 
 export interface ZvaneneTab {
   view: ZvaneneView;
   href: string;
   label: string;
-  /** числото на таба — колко карти/реда има вътре */
-  count: number;
+  /** числото на таба — колко карти/реда има вътре; null = не е смятано (табът е без число) */
+  count: number | null;
   /** колко от тях горят днес (червен бадж): отказали + неявили се, съобщения за пращане */
   urgent: number;
 }
@@ -76,10 +86,11 @@ export function zvaneneHref(view: ZvaneneView): string {
  * последен и само при човек, на когото Ивайло е дал студени фирми.
  */
 export function zvaneneTabs(c: ZvaneneCounts, active?: ZvaneneView): ZvaneneTab[] {
-  const count: Record<ZvaneneView, number> = {
+  const count: Record<ZvaneneView, number | null> = {
     novi: c.fresh,
     povtorno: c.cancelled + c.noshow + c.retry + c.waiting,
     ivailo: c.given,
+    stari: c.stari ?? null,
     sreshti: c.booked,
     studeni: c.studeni ?? 0,
   };
@@ -87,10 +98,11 @@ export function zvaneneTabs(c: ZvaneneCounts, active?: ZvaneneView): ZvaneneTab[
     novi: 0,
     povtorno: c.cancelled + c.noshow,
     ivailo: 0,
+    stari: 0,
     sreshti: c.msgsDue,
     studeni: 0,
   };
-  const views = ZVANENE_VIEWS.filter((v) => v !== "studeni" || count.studeni > 0 || active === "studeni");
+  const views = ZVANENE_VIEWS.filter((v) => v !== "studeni" || (count.studeni ?? 0) > 0 || active === "studeni");
   return views.map((view) => ({
     view,
     href: zvaneneHref(view),

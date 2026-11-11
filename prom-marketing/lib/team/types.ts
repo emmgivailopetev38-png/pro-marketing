@@ -197,7 +197,7 @@ export interface BookedRow {
  * waiting — не е вдигнал / чуване по-късно, може да върне обаждане ·
  * search — намерен през търсачката (върнал е обаждане, който и да е).
  */
-export type LeadCardMode = "fresh" | "given" | "cancelled" | "noshow" | "retry" | "waiting" | "search";
+export type LeadCardMode = "fresh" | "given" | "cancelled" | "noshow" | "retry" | "waiting" | "search" | "stari";
 
 export const EKIP_ACTIONS = [
   "no_answer",

@@ -423,3 +423,28 @@ export async function searchLeads(raw: string): Promise<QueueLead[]> {
   ]);
   return found.map((c) => toLead(c, attempts, forms, notes, claims, eli));
 }
+
+/**
+ * Карти за произволни картони — в реда на подадените id-та. За „🗂 Стари и
+ * топли“ (stari.ts): същата карта и същите бутони като в търсачката, без
+ * надписа „човек на Ивайло“ — тези хора вече са пресети.
+ */
+export async function loadLeadCards(ids: string[]): Promise<QueueLead[]> {
+  if (ids.length === 0) return [];
+  const sb = createServiceClient();
+  const { data } = await sb.from("contacts").select(COLS).in("id", ids).not("phone", "is", null);
+  const found = (data ?? []) as ContactLite[];
+  if (found.length === 0) return [];
+  const have = found.map((c) => c.id);
+  const [attempts, forms, notes, eli] = await Promise.all([
+    loadAttempts(sb, have),
+    loadForms(sb, found),
+    loadNotes(sb, have),
+    loadEli(sb, have),
+  ]);
+  const byId = new Map(found.map((c) => [c.id, toLead(c, attempts, forms, notes, undefined, eli)]));
+  return ids.flatMap((id) => {
+    const lead = byId.get(id);
+    return lead ? [lead] : [];
+  });
+}

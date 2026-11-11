@@ -4,6 +4,8 @@ import { getTeamActor } from "@/lib/team/session";
 import { getMemberById } from "@/lib/team/repository";
 import { loadSetterQueue, searchLeads } from "@/lib/team/queue";
 import { loadProspectQueue } from "@/lib/team/prospects";
+import { loadTeamStari } from "@/lib/team/stari";
+import { STARI_HINT, stariHeading, type StariPile } from "@/lib/team/stari-rules";
 import { fmtSofia } from "@/lib/team/time";
 import { MEETING_MINUTES } from "@/lib/cal/types";
 import { allowed, ekipNav } from "@/lib/team/nav";
@@ -30,6 +32,8 @@ export const dynamic = "force-dynamic";
  *   🔁 За повторно    — отказали срещата, неявили се, обещано чуване за днес,
  *                       не вдигнали (картата стои, докато той сам не я скрие)
  *   🤝 От Ивайло      — стари картони, които Ивайло е дал на екипа
+ *   🗂 Стари и топли  — всички останали без среща от септември насам (11.11.2026):
+ *                       топлите, писаните без отговор и по-старите лийдове
  *   💜 Срещите        — съобщенията по Viber и уговорените часове
  *
  * Търсачката (върнал е обаждане — кой е?) стои на всеки изглед. Отказаната и
@@ -64,6 +68,11 @@ export default async function EkipPage({
     loadMeetingMessages().catch(() => []),
     loadProspectQueue(viewerId).catch(() => ({ due: [], fresh: [], later: 0, freshTotal: 0 })),
   ]);
+  // „Стари и топли“ се чете само когато изгледът е отворен — другите остават бързи.
+  const inQueue = new Set(
+    [...queue.fresh, ...queue.given, ...queue.cancelled, ...queue.noshow, ...queue.retry, ...queue.waiting].map((l) => l.id)
+  );
+  const stari = view === "stari" ? await loadTeamStari(new Date(), viewerId, inQueue) : null;
   const todayMeetings = queue.booked;
   const msgsDue = msgs.filter((m) => m.due).length;
   const counts = {
@@ -76,6 +85,7 @@ export default async function EkipPage({
     msgsDue,
     booked: todayMeetings.length,
     studeni: cold.due.length + cold.freshTotal,
+    stari: stari ? stari.piles.topli.total + stari.piles.pisano.total + stari.piles.stari.total : null,
   };
   const tabs = zvaneneTabs(counts, view);
   const urgent = urgentBanner(view, counts);
@@ -283,6 +293,34 @@ export default async function EkipPage({
               </>
             )}
           </section>
+        )}
+
+        {view === "stari" && stari && (
+          <>
+            {stari.error ? (
+              <p className="rounded-2xl border border-rose-400/30 bg-rose-400/10 p-4 text-center text-sm text-rose-100">⚠️ {stari.error}</p>
+            ) : counts.stari === 0 ? (
+              <p className="rounded-2xl border border-white/10 p-6 text-center text-sm text-[var(--color-text-secondary)]">
+                Няма никой извън другите списъци. Всеки лийд от септември насам е или със среща, или с дата за обаждане.
+              </p>
+            ) : (
+              (["topli", "pisano", "stari"] as StariPile[]).map((pile) => {
+                const data = stari.piles[pile];
+                if (data.total === 0) return null;
+                return (
+                  <section key={pile} className="space-y-3">
+                    <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-amber-300">
+                      {stariHeading(pile, data.total, data.leads.length)}
+                    </h2>
+                    <p className="-mt-1 text-xs text-[var(--color-text-tertiary)]">{STARI_HINT[pile]}</p>
+                    {data.leads.map((l) => (
+                      <LeadCard key={`st-${l.id}`} lead={l} mode="stari" setterName={callerName} />
+                    ))}
+                  </section>
+                );
+              })
+            )}
+          </>
         )}
 
         {view === "sreshti" && (

@@ -155,7 +155,7 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
   const name = lead.full_name?.trim() || "Без име";
   // Първото изречение на разговора — докато с човека още не сме говорили.
   const opener =
-    mode === "fresh" || mode === "waiting" || (mode === "search" && lead.stage === "lead")
+    mode === "fresh" || mode === "waiting" || ((mode === "search" || mode === "stari") && lead.stage === "lead")
       ? openerFor(lead.offer_key ?? null, setterName)
       : null;
   const calParams = new URLSearchParams();
@@ -225,7 +225,7 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
             🙈 не се яви{lead.missed_at ? ` · ${when(lead.missed_at)}` : ""}
           </span>
         )}
-        {mode === "search" && (
+        {(mode === "search" || mode === "stari") && (
           <span className="shrink-0 rounded-full border border-white/15 px-2 py-0.5 text-[11px] text-[var(--color-text-secondary)]">
             {STAGE_LABEL[lead.stage] ?? lead.stage}
           </span>
@@ -240,6 +240,13 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
           <span className="mt-0.5 block text-xs font-normal text-amber-100/80">
             Ако той ти звънне — кажи му, че Ивайло ще му се обади, и натисни „🤝 Ивайло да му звънне“.
           </span>
+        </p>
+      )}
+
+      {/* „Стари и топли“: защо човекът е в списъка — „🔥 оферта пратена · последно се чухме 12.10“. */}
+      {mode === "stari" && lead.given_reason && (
+        <p className="mt-3 rounded-lg border border-amber-400/25 bg-amber-400/[0.06] px-3 py-2 text-xs text-amber-100">
+          {lead.given_reason}
         </p>
       )}
 
