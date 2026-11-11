@@ -49,6 +49,10 @@ type Draft = {
   valid_days: string;
   vat_mode: VatMode;
   notes: string;
+  /** ключовете на модулите „за сравнение“ (не влизат в сумата) */
+  alternatives: string[];
+  /** раздел „Кой е Ивайло Петев“ */
+  about: boolean;
   // template mode
   key: string;
   name: string;
@@ -112,6 +116,8 @@ export function OfferBuilder(p: OfferBuilderProps) {
     valid_days: "14",
     vat_mode: "incl",
     notes: "",
+    alternatives: [],
+    about: false,
     key: "",
     name: "",
     description: "",
@@ -144,6 +150,8 @@ export function OfferBuilder(p: OfferBuilderProps) {
         valid_days: "",
         vat_mode: o.vat_mode,
         notes: o.notes ?? "",
+        alternatives: (o.content.alternatives ?? []).map((a) => a.key),
+        about: Boolean(o.content.about),
       };
     }
     if (p.initialTemplate) {
@@ -239,6 +247,9 @@ export function OfferBuilder(p: OfferBuilderProps) {
         valid_days: num(d.valid_days) ?? undefined,
         vat_mode: p.canVat === false ? undefined : d.vat_mode,
         notes: d.notes || undefined,
+        // при промяна без пипане поправките по алтернативите (от асистента) се пазят: пращаме ги само ако списъкът е сменен
+        alternatives: sameKeys(d.alternatives, (p.initialOffer?.content.alternatives ?? []).map((a) => a.key)) && p.initialOffer ? undefined : d.alternatives.map((key) => ({ key })),
+        about: d.about,
       };
 
   const done = state?.ok && state.id;
@@ -456,6 +467,33 @@ export function OfferBuilder(p: OfferBuilderProps) {
             </Field>
           </div>
 
+          {!isTemplate && (
+            <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+              <span className="mb-2 block font-mono text-[10px] uppercase tracking-wider text-[var(--color-text-tertiary)]">
+                За сравнение в офертата — показват се с цената си, но не влизат в сумата (напр. другите нива)
+              </span>
+              <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
+                {p.modules
+                  .filter((m) => m.price !== null && m.key !== "custom" && !d.items.some((i) => i.key === m.key))
+                  .map((m) => (
+                    <label key={m.key} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={d.alternatives.includes(m.key)}
+                        disabled={!d.alternatives.includes(m.key) && d.alternatives.length >= 4}
+                        onChange={(e) => set("alternatives", e.target.checked ? [...d.alternatives, m.key] : d.alternatives.filter((k) => k !== m.key))}
+                      />
+                      {m.title} · {fmtEur(m.price)}
+                    </label>
+                  ))}
+              </div>
+              <label className="mt-3 flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={d.about} onChange={(e) => set("about", e.target.checked)} />
+                Раздел „Кой е Ивайло Петев“ — пътят му, числата от CRM-а, линкове към успехите, отзивите и видеата
+              </label>
+            </div>
+          )}
+
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {!isTemplate && p.canDiscount !== false && (
               <>
@@ -513,6 +551,10 @@ export function OfferBuilder(p: OfferBuilderProps) {
       )}
     </div>
   );
+}
+
+function sameKeys(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((k) => b.includes(k));
 }
 
 function itemPayload(i: OfferItem) {

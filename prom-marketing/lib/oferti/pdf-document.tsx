@@ -4,6 +4,7 @@
  * Без емоджита — NotoSans няма глифове за тях.
  */
 import { Document, Page, Text, View, StyleSheet, Font, Link } from "@react-pdf/renderer";
+import type { OfferItem } from "./katalog";
 import { fmtEur, withUnit } from "./smetki";
 import type { OfferView } from "./view";
 
@@ -95,6 +96,24 @@ const s = StyleSheet.create({
   signRight: { alignItems: "flex-end" },
   signHint: { fontSize: 8.5, color: C.soft, textAlign: "right", lineHeight: 1.5 },
   footer: { position: "absolute", bottom: 18, left: 44, right: 44, flexDirection: "row", justifyContent: "space-between", fontSize: 7.5, color: C.faint },
+  // „за сравнение“ (11.11.2026)
+  cmpNote: { fontSize: 9.8, color: C.soft, lineHeight: 1.55, marginBottom: 8 },
+  cmpRow: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: C.line },
+  cmpLabel: { width: 112, paddingVertical: 6, paddingHorizontal: 8, fontSize: 8.4, color: C.soft, lineHeight: 1.4 },
+  cmpCell: { flex: 1, paddingVertical: 6, paddingHorizontal: 7, fontSize: 8.6, lineHeight: 1.4, borderLeftWidth: 1, borderLeftColor: C.line },
+  cmpCellRec: { backgroundColor: C.cyanBg },
+  cmpColTitle: { fontSize: 9, fontWeight: 700, lineHeight: 1.3 },
+  cmpTag: { fontSize: 6.8, color: C.cyan, letterSpacing: 0.8, textTransform: "uppercase", marginTop: 2, fontWeight: 700 },
+  cmpStrong: { fontWeight: 700, color: C.amber },
+  cardAlt: { backgroundColor: C.panel },
+  altTag: { fontSize: 7, color: C.faint, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 3 },
+  // свободните раздели и „Кой е Ивайло Петев“
+  secText: { fontSize: 9.8, lineHeight: 1.55, marginBottom: 5 },
+  about: { borderWidth: 1, borderColor: C.line, borderRadius: 6, padding: 12, backgroundColor: C.panel },
+  aboutText: { fontSize: 9.6, lineHeight: 1.55, marginBottom: 5 },
+  aboutLabel: { fontSize: 7.5, color: C.amber, letterSpacing: 1.4, textTransform: "uppercase", marginTop: 5, marginBottom: 2 },
+  aboutProof: { fontSize: 10, fontWeight: 700, lineHeight: 1.45 },
+  aboutLink: { fontSize: 9.2, lineHeight: 1.6 },
 });
 
 function Bullets({ items }: { items: string[] }) {
@@ -106,6 +125,34 @@ function Bullets({ items }: { items: string[] }) {
           <Text style={s.bulletText}>{b}</Text>
         </View>
       ))}
+    </View>
+  );
+}
+
+function ItemCard({ it, tag }: { it: OfferItem; tag?: string }) {
+  return (
+    <View style={tag ? [s.card, s.cardAlt] : s.card} wrap={false}>
+      {tag ? <Text style={s.altTag}>{tag}</Text> : null}
+      <View style={s.cardTop}>
+        <Text style={s.cardTitle}>{it.title}</Text>
+        <View style={s.priceBox}>
+          <Text style={s.price}>{fmtEur(it.price)}</Text>
+          <Text style={s.priceUnit}>
+            {it.unit}
+            {it.qty && it.qty > 1 ? ` × ${it.qty}` : ""}
+          </Text>
+          {it.setup_price ? (
+            <Text style={s.priceUnit}>
+              + {fmtEur(it.setup_price)} {it.setup_label ?? "внедряване"}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+      {it.subtitle ? <Text style={s.cardSub}>{it.subtitle}</Text> : null}
+      <Bullets items={it.bullets ?? []} />
+      {it.outcome ? <Text style={s.cardOutcome}>Резултатът: {it.outcome}</Text> : null}
+      {it.not_included && it.not_included.length > 0 ? <Text style={s.cardNot}>Не включва: {it.not_included.join(" · ")}</Text> : null}
+      {it.note ? <Text style={s.note}>{it.note}</Text> : null}
     </View>
   );
 }
@@ -148,28 +195,7 @@ export function OfferPdf({ v }: { v: OfferView }) {
 
           <Text style={s.h2}>Какво получава{content.greeting === "vie" ? "те" : "ш"}</Text>
           {items.map((it, i) => (
-            <View key={i} style={s.card} wrap={false}>
-              <View style={s.cardTop}>
-                <Text style={s.cardTitle}>{it.title}</Text>
-                <View style={s.priceBox}>
-                  <Text style={s.price}>{fmtEur(it.price)}</Text>
-                  <Text style={s.priceUnit}>
-                    {it.unit}
-                    {it.qty && it.qty > 1 ? ` × ${it.qty}` : ""}
-                  </Text>
-                  {it.setup_price ? (
-                    <Text style={s.priceUnit}>
-                      + {fmtEur(it.setup_price)} {it.setup_label ?? "внедряване"}
-                    </Text>
-                  ) : null}
-                </View>
-              </View>
-              {it.subtitle ? <Text style={s.cardSub}>{it.subtitle}</Text> : null}
-              <Bullets items={it.bullets ?? []} />
-              {it.outcome ? <Text style={s.cardOutcome}>Резултатът: {it.outcome}</Text> : null}
-              {it.not_included && it.not_included.length > 0 ? <Text style={s.cardNot}>Не включва: {it.not_included.join(" · ")}</Text> : null}
-              {it.note ? <Text style={s.note}>{it.note}</Text> : null}
-            </View>
+            <ItemCard key={i} it={it} />
           ))}
 
           <Text style={s.h2}>Инвестицията</Text>
@@ -222,6 +248,64 @@ export function OfferPdf({ v }: { v: OfferView }) {
             </View>
           ) : null}
 
+          {v.compare ? (
+            <View>
+              <View wrap={false}>
+                <Text style={s.h2}>{v.compare.title}</Text>
+                <Text style={s.cmpNote}>{v.compare.note}</Text>
+                {v.compare.table ? (
+                  <View style={[s.table, { marginBottom: 10 }]}>
+                    <View style={[s.cmpRow, s.trTotal]}>
+                      <Text style={s.cmpLabel}> </Text>
+                      {v.compare.table.columns.map((c, i) => (
+                        <View key={i} style={c.recommended ? [s.cmpCell, s.cmpCellRec] : s.cmpCell}>
+                          <Text style={s.cmpColTitle}>{c.title}</Text>
+                          {c.recommended ? <Text style={s.cmpTag}>препоръчано</Text> : null}
+                        </View>
+                      ))}
+                    </View>
+                    {v.compare.table.rows.map((r, i, all) => (
+                      <View key={i} style={i === all.length - 1 ? [s.cmpRow, s.trLast] : s.cmpRow}>
+                        <Text style={s.cmpLabel}>{r.label}</Text>
+                        {r.values.map((val, j) => (
+                          <Text
+                            key={j}
+                            style={[
+                              s.cmpCell,
+                              v.compare!.table!.columns[j]?.recommended ? s.cmpCellRec : {},
+                              r.label === "Цена" ? s.cmpStrong : {},
+                            ]}
+                          >
+                            {val}
+                          </Text>
+                        ))}
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+              </View>
+              {v.alternatives.map((it, i) => (
+                <ItemCard key={i} it={it} tag="за сравнение — не влиза в сумата" />
+              ))}
+            </View>
+          ) : null}
+
+          {v.sections.map((sec, i) => (
+            <View key={i} wrap={false}>
+              <Text style={s.h2}>{sec.title}</Text>
+              {(sec.text ?? "")
+                .split(/\n\s*\n/)
+                .map((x) => x.trim())
+                .filter(Boolean)
+                .map((para, j) => (
+                  <Text key={j} style={s.secText}>
+                    {para}
+                  </Text>
+                ))}
+              {sec.bullets && sec.bullets.length > 0 ? <Bullets items={sec.bullets} /> : null}
+            </View>
+          ))}
+
           {content.next_steps.length > 0 ? (
             <View wrap={false}>
               <Text style={s.h2}>Как протича</Text>
@@ -246,6 +330,30 @@ export function OfferPdf({ v }: { v: OfferView }) {
             </View>
           ) : null}
           {content.ps ? <Text style={s.ps}>P.S. {content.ps}</Text> : null}
+
+          {v.about ? (
+            <View wrap={false}>
+              <Text style={s.h2}>{v.about.title}</Text>
+              <View style={s.about}>
+                {v.about.paragraphs.map((para, i) => (
+                  <Text key={i} style={s.aboutText}>
+                    {para}
+                  </Text>
+                ))}
+                <Text style={s.aboutLabel}>{v.about.proof_label}</Text>
+                <Text style={s.aboutProof}>{v.about.proof}</Text>
+                <Text style={s.aboutLabel}>{v.about.links_label}</Text>
+                {v.about.links.map((l, i) => (
+                  <Text key={i} style={s.aboutLink}>
+                    {l.label}:{" "}
+                    <Link src={l.url} style={{ color: C.cyan }}>
+                      {l.url.replace(/^https?:\/\//, "")}
+                    </Link>
+                  </Text>
+                ))}
+              </View>
+            </View>
+          ) : null}
 
           <View style={s.sign} wrap={false}>
             <View>

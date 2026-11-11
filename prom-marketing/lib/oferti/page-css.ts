@@ -43,6 +43,26 @@ html:has(.of-doc),body:has(.of-doc){background:#f4f6f8;color-scheme:light}
 .of-doc .inst{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:14px 0 0}
 .of-doc .inst small{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--violet);font-weight:700;margin-bottom:4px}
 .of-doc .inst em{display:block;color:var(--faint);font-style:normal;font-size:13px;margin-top:6px}
+.of-doc .cmp-note{color:var(--soft);margin:0 0 14px;font-size:16.5px}
+.of-doc .cmp-scroll{overflow-x:auto;margin:0 0 16px;-webkit-overflow-scrolling:touch}
+.of-doc table.cmp{min-width:560px}
+.of-doc table.cmp th{padding:12px 14px;border-bottom:1px solid var(--line);border-left:1px solid var(--line);background:var(--panel);font-size:15px;text-align:left;vertical-align:top;line-height:1.3}
+.of-doc table.cmp th:first-child{border-left:0;width:26%}
+.of-doc table.cmp th small{display:block;margin-top:4px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);font-weight:700}
+.of-doc table.cmp td{border-left:1px solid var(--line);font-size:15px;padding:10px 14px}
+.of-doc table.cmp td.lbl{border-left:0;color:var(--soft);font-size:14px}
+.of-doc table.cmp .rec{background:var(--cyan-bg)}
+.of-doc table.cmp tr.cena td:not(.lbl){font-weight:700;color:var(--amber);font-size:17px}
+.of-doc .card.alt{background:var(--panel);box-shadow:none}
+.of-doc .alt-tag{margin:0 0 6px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:700}
+.of-doc .sec-text{margin:0 0 10px;font-size:16.5px}
+.of-doc .about{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.of-doc .about p{margin:0 0 10px;font-size:16.5px}
+.of-doc .about small{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);font-weight:700;margin:12px 0 4px}
+.of-doc .about .proof{font-weight:700}
+.of-doc .about ul{margin:0;padding-left:20px;font-size:15.5px}
+.of-doc .about li{margin:4px 0}
+.of-doc .about a{color:var(--cyan)}
 .of-doc ol.steps{margin:0;padding:0;list-style:none;counter-reset:s}
 .of-doc ol.steps li{counter-increment:s;position:relative;padding-left:44px;margin:0 0 12px;font-size:16.5px}
 .of-doc ol.steps li::before{content:counter(s);position:absolute;left:0;top:1px;width:30px;height:30px;border-radius:50%;background:var(--cyan);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
@@ -60,5 +80,5 @@ html:has(.of-doc),body:has(.of-doc){background:#f4f6f8;color-scheme:light}
 .of-doc .sign .right{text-align:right;color:var(--soft);font-size:14px}
 .of-doc .foot{margin:40px 0 0;color:var(--faint);font-size:12.5px;text-align:center}
 @media (max-width:640px){.of-doc .head{flex-direction:column;align-items:flex-start}.of-doc .meta{text-align:left}.of-doc .card .top{flex-direction:column}.of-doc .price{text-align:left}.of-doc .sign .right{text-align:left}}
-@media print{.of-doc{background:#fff}.of-doc .cta{display:none}.of-doc .card{break-inside:avoid;box-shadow:none}}
+@media print{.of-doc{background:#fff}.of-doc .cta{display:none}.of-doc .card,.of-doc .about,.of-doc table.cmp{break-inside:avoid;box-shadow:none}}
 `;

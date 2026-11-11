@@ -18,6 +18,13 @@ export const itemSchema = z.object({
   remove: z.boolean().optional(),
 });
 
+/** Свободен раздел в офертата: заглавие + текст и/или точки. */
+export const sectionSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  text: z.string().max(1500).optional(),
+  bullets: z.array(z.string().max(300)).max(12).optional(),
+});
+
 export const contentSchema = z
   .object({
     greeting: z.enum(["ti", "vie"]).optional(),
@@ -57,6 +64,17 @@ export const buildSchema = z.object({
   next_steps: z.array(z.string().max(300)).max(8).optional(),
   terms: z.array(z.string().max(300)).max(10).optional(),
   ps: z.string().max(400).optional(),
+  /**
+   * Модули „за сравнение“ (напр. другите нива): показват се с цената и съдържанието си, но НЕ влизат в сумата.
+   * [] маха сравнението; без полето — пази се досегашното.
+   */
+  alternatives: z.array(itemSchema).max(4).optional(),
+  /** изречението над сравнението (иначе се сглобява само) */
+  alternatives_note: z.string().max(400).optional(),
+  /** раздел „Кой е Ивайло Петев“ — стандартният текст с числата от CRM-а и линковете към успехите и видеата */
+  about: z.boolean().optional(),
+  /** свободни раздели — за всичко, което не се побира в другите полета; [] ги маха */
+  sections: z.array(sectionSchema).max(4).optional(),
   discount: z.number().min(0).nullable().optional(),
   discount_note: z.string().max(200).optional(),
   valid_days: z.number().int().min(1).max(90).optional(),
@@ -113,3 +131,63 @@ export const sendSchema = z.object({
   approved: z.boolean().optional(),
   created_by: z.string().trim().max(60).optional(),
 });
+
+/** Имената на полетата на човешки — за грешките към продавача и асистента. */
+const FIELD_BG: Record<string, string> = {
+  title: "заглавието",
+  intro: "уводът",
+  pain: "„Това чухме от теб“",
+  outcome: "резултатът",
+  ps: "P.S.",
+  next_steps: "стъпките",
+  terms: "условията",
+  items: "редовете",
+  alternatives: "модулите за сравнение",
+  alternatives_note: "изречението над сравнението",
+  sections: "свободните раздели",
+  notes: "вътрешната бележка",
+  bullets: "точките",
+  text: "текстът",
+  note: "бележката по реда",
+  subtitle: "подзаглавието",
+  discount_note: "причината за отстъпката",
+  client_name: "името",
+  client_company: "фирмата",
+  client_email: "имейлът",
+  contact_id: "contact_id",
+};
+
+type IssueLike = { code?: string; path: PropertyKey[]; message: string; maximum?: unknown; minimum?: unknown; origin?: unknown; type?: unknown };
+
+function valueAt(raw: unknown, path: PropertyKey[]): unknown {
+  let cur: unknown = raw;
+  for (const k of path) {
+    if (cur === null || cur === undefined) return undefined;
+    cur = (cur as Record<PropertyKey, unknown>)[k];
+  }
+  return cur;
+}
+
+/**
+ * Грешките от проверката на човешки: „P.S. (ps): най-много 400 знака, а са 2 656“.
+ * Без това асистентът получава само „Invalid payload“ и не знае какво да оправи (11.11.2026 — офертата за трите нива).
+ */
+export function describeIssues(issues: IssueLike[], raw?: unknown): string[] {
+  return issues.map((i) => {
+    const path = i.path.map((k) => String(k));
+    const last = [...path].reverse().find((k) => !/^\d+$/.test(k)) ?? "";
+    const name = FIELD_BG[last] ? `${FIELD_BG[last]} (${path.join(".")})` : path.join(".") || "данните";
+    const val = valueAt(raw, i.path);
+    const kind = String(i.origin ?? i.type ?? (Array.isArray(val) ? "array" : typeof val));
+    if (i.code === "too_big" && typeof i.maximum === "number") {
+      if (kind === "string") return `${name}: най-много ${i.maximum} знака${typeof val === "string" ? `, а са ${val.length}` : ""} — съкрати го или го премести в свободен раздел (sections)`;
+      if (kind === "array") return `${name}: най-много ${i.maximum} на брой${Array.isArray(val) ? `, а са ${val.length}` : ""}`;
+      return `${name}: най-много ${i.maximum}`;
+    }
+    if (i.code === "too_small" && typeof i.minimum === "number") {
+      return kind === "string" ? `${name}: не може да е празно` : `${name}: най-малко ${i.minimum}`;
+    }
+    if (i.code === "invalid_type") return `${name}: липсва или е от грешен вид`;
+    return `${name}: ${i.message}`;
+  });
+}

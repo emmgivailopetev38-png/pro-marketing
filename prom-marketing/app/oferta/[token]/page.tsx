@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getOfferByToken } from "@/lib/oferti/repository";
+import type { OfferItem } from "@/lib/oferti/katalog";
 import { fmtEur, isToken, withUnit } from "@/lib/oferti/smetki";
 import { viewModel } from "@/lib/oferti/view";
 import { OFFER_CSS } from "@/lib/oferti/page-css";
@@ -20,6 +21,42 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     description: v.content.outcome ?? offer.title,
     robots: { index: false, follow: false },
   };
+}
+
+function ItemCard({ it, tag }: { it: OfferItem; tag?: string }) {
+  return (
+    <article className={tag ? "card alt" : "card"}>
+      {tag && <p className="alt-tag">{tag}</p>}
+      <div className="top">
+        <div>
+          <h3>{it.title}</h3>
+          {it.subtitle && <p className="sub">{it.subtitle}</p>}
+        </div>
+        <div className="price">
+          <b>{fmtEur(it.price)}</b>
+          <span>
+            {it.unit}
+            {it.qty && it.qty > 1 ? ` × ${it.qty}` : ""}
+          </span>
+          {it.setup_price ? (
+            <span>
+              + {fmtEur(it.setup_price)} {it.setup_label ?? "внедряване"}
+            </span>
+          ) : null}
+        </div>
+      </div>
+      {it.bullets.length > 0 && (
+        <ul className="pts">
+          {it.bullets.map((b, j) => (
+            <li key={j}>{b}</li>
+          ))}
+        </ul>
+      )}
+      {it.outcome && <p className="res">Резултатът: {it.outcome}</p>}
+      {it.not_included && it.not_included.length > 0 && <p className="not">Не включва: {it.not_included.join(" · ")}</p>}
+      {it.note && <p className="note">{it.note}</p>}
+    </article>
+  );
 }
 
 /** /oferta/<код> — офертата онлайн (същото като PDF-а) + бутоните за PDF, обаждане и Viber. */
@@ -78,36 +115,7 @@ export default async function OfertaPage({ params }: Params) {
 
         <h2>Какво получава{vie ? "те" : "ш"}</h2>
         {v.items.map((it, i) => (
-          <article className="card" key={i}>
-            <div className="top">
-              <div>
-                <h3>{it.title}</h3>
-                {it.subtitle && <p className="sub">{it.subtitle}</p>}
-              </div>
-              <div className="price">
-                <b>{fmtEur(it.price)}</b>
-                <span>
-                  {it.unit}
-                  {it.qty && it.qty > 1 ? ` × ${it.qty}` : ""}
-                </span>
-                {it.setup_price ? (
-                  <span>
-                    + {fmtEur(it.setup_price)} {it.setup_label ?? "внедряване"}
-                  </span>
-                ) : null}
-              </div>
-            </div>
-            {it.bullets.length > 0 && (
-              <ul className="pts">
-                {it.bullets.map((b, j) => (
-                  <li key={j}>{b}</li>
-                ))}
-              </ul>
-            )}
-            {it.outcome && <p className="res">Резултатът: {it.outcome}</p>}
-            {it.not_included && it.not_included.length > 0 && <p className="not">Не включва: {it.not_included.join(" · ")}</p>}
-            {it.note && <p className="note">{it.note}</p>}
-          </article>
+          <ItemCard key={i} it={it} />
         ))}
 
         <h2>Инвестицията</h2>
@@ -158,6 +166,67 @@ export default async function OfertaPage({ params }: Params) {
           </div>
         )}
 
+        {v.compare && (
+          <>
+            <h2>{v.compare.title}</h2>
+            <p className="cmp-note">{v.compare.note}</p>
+            {v.compare.table && (
+              <div className="cmp-scroll">
+                <table className="cmp">
+                  <thead>
+                    <tr>
+                      <th />
+                      {v.compare.table.columns.map((c, i) => (
+                        <th key={i} className={c.recommended ? "rec" : undefined}>
+                          {c.title}
+                          {c.recommended && <small>препоръчано</small>}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {v.compare.table.rows.map((r, i) => (
+                      <tr key={i} className={r.label === "Цена" ? "cena" : undefined}>
+                        <td className="lbl">{r.label}</td>
+                        {r.values.map((val, j) => (
+                          <td key={j} className={v.compare!.table!.columns[j]?.recommended ? "rec" : undefined}>
+                            {val}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {v.alternatives.map((it, i) => (
+              <ItemCard key={i} it={it} tag="за сравнение — не влиза в сумата" />
+            ))}
+          </>
+        )}
+
+        {v.sections.map((sec, i) => (
+          <section key={i}>
+            <h2>{sec.title}</h2>
+            {(sec.text ?? "")
+              .split(/\n\s*\n/)
+              .map((x) => x.trim())
+              .filter(Boolean)
+              .map((para, j) => (
+                <p className="sec-text" key={j}>
+                  {para}
+                </p>
+              ))}
+            {sec.bullets && sec.bullets.length > 0 && (
+              <ul className="pts">
+                {sec.bullets.map((b, j) => (
+                  <li key={j}>{b}</li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ))}
+
         {content.next_steps.length > 0 && (
           <>
             <h2>Как протича</h2>
@@ -179,6 +248,27 @@ export default async function OfertaPage({ params }: Params) {
           </>
         )}
         {content.ps && <p className="ps">P.S. {content.ps}</p>}
+
+        {v.about && (
+          <>
+            <h2>{v.about.title}</h2>
+            <div className="about">
+              {v.about.paragraphs.map((para, i) => (
+                <p key={i}>{para}</p>
+              ))}
+              <small>{v.about.proof_label}</small>
+              <p className="proof">{v.about.proof}</p>
+              <small>{v.about.links_label}</small>
+              <ul>
+                {v.about.links.map((l, i) => (
+                  <li key={i}>
+                    {l.label}: <a href={l.url}>{l.url.replace(/^https?:\/\//, "")}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </>
+        )}
 
         <div className="cta">
           <a className="btn p" href={`tel:${seller.phone_raw}`}>

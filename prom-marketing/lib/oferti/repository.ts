@@ -14,11 +14,12 @@ import {
   type GreetingForm,
   type OfferContent,
   type OfferItem,
+  type OfferSection,
   type OfferTemplate,
   type SellerKey,
   type VatMode,
 } from "./katalog";
-import { buildItems, mergeItems, niceCompany, niceName, offerTitle, summaryLines, totals, validUntilIso, type ItemInput } from "./smetki";
+import { buildAlternatives, buildItems, cleanSections, mergeItems, niceCompany, niceName, offerTitle, summaryLines, totals, validUntilIso, type ItemInput } from "./smetki";
 import { emailList } from "./schema";
 import { newToken } from "./token";
 import { offerUrl, shortSummary, viewModel, type OfferContactLite, type OfferFull, type OfferView } from "./view";
@@ -57,12 +58,17 @@ function rowToOffer(r: Row, contact: OfferContactLite | null): OfferFull {
       seller: content.seller ?? "ivailo",
       client_name: content.client_name,
       client_company: content.client_company,
+      title: content.title,
       intro: content.intro,
       pain: content.pain,
       outcome: content.outcome,
       ps: content.ps,
       next_steps: content.next_steps ?? [],
       terms: content.terms ?? [],
+      alternatives: Array.isArray(content.alternatives) ? content.alternatives : undefined,
+      alternatives_note: content.alternatives_note,
+      about: content.about === true ? true : undefined,
+      sections: Array.isArray(content.sections) ? content.sections : undefined,
     },
     discount: r.discount === null || r.discount === undefined ? null : Number(r.discount),
     discount_note: (r.discount_note as string | null) ?? null,
@@ -240,6 +246,13 @@ export interface BuildInput {
   next_steps?: string[];
   terms?: string[];
   ps?: string;
+  /** модули „за сравнение“ — не влизат в сумата; [] маха сравнението, без полето се пази досегашното */
+  alternatives?: ItemInput[];
+  alternatives_note?: string;
+  /** раздел „Кой е Ивайло Петев“ */
+  about?: boolean;
+  /** свободни раздели; [] ги маха */
+  sections?: OfferSection[];
   discount?: number | null;
   discount_note?: string;
   valid_days?: number;
@@ -330,6 +343,19 @@ export async function buildOffer(input: BuildInput, actor: BuildActor): Promise<
   if (built.errors.length > 0) return fail(built.errors.join("; "), built.errors);
   const items = built.items;
 
+  // 3а. модулите „за сравнение“ — не влизат в сумата; ред, който вече е в офертата, отпада оттам
+  const mainKeys = items.map((i) => i.key);
+  let alternatives: OfferItem[];
+  if (input.alternatives !== undefined) {
+    const alt = buildAlternatives(input.alternatives, mainKeys);
+    if (alt.errors.length > 0) return fail(alt.errors.join("; "), alt.errors);
+    alternatives = alt.items;
+  } else {
+    alternatives = (existing?.content.alternatives ?? template?.content.alternatives ?? []).filter((a) => !mainKeys.includes(a.key));
+  }
+  const sections = cleanSections(input.sections ?? existing?.content.sections ?? template?.content.sections);
+  const about = input.about ?? existing?.content.about ?? template?.content.about ?? false;
+
   // 4. текстовете
   const defaults = defaultStepsFor(items);
   const tc = template?.content ?? {};
@@ -348,6 +374,10 @@ export async function buildOffer(input: BuildInput, actor: BuildActor): Promise<
     ps: pick(input.ps, ec?.ps, tc.ps),
     next_steps: input.next_steps ?? ec?.next_steps?.length ? (input.next_steps ?? ec!.next_steps) : (tc.next_steps ?? defaults.next_steps),
     terms: input.terms ?? ec?.terms?.length ? (input.terms ?? ec!.terms) : (tc.terms ?? defaults.terms),
+    alternatives: alternatives.length > 0 ? alternatives : undefined,
+    alternatives_note: alternatives.length > 0 ? pick(input.alternatives_note, ec?.alternatives_note, tc.alternatives_note) : undefined,
+    about: about ? true : undefined,
+    sections: sections.length > 0 ? sections : undefined,
   };
   const vat_mode: VatMode = input.vat_mode ?? existing?.vat_mode ?? template?.vat_mode ?? "incl";
   const discount = input.discount === undefined ? (existing?.discount ?? null) : input.discount;

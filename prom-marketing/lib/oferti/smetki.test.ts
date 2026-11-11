@@ -1,6 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { MODULES, MODULE_BY_KEY, DEFAULT_TEMPLATES } from "./katalog";
-import { buildItems, fill, fmtEur, greeting, isToken, latin, offerNumber, offerTitle, pdfFilename, summaryLines, totals, validUntilIso } from "./smetki";
+import { ABOUT, COMPARE_ROWS, MODULES, MODULE_BY_KEY, DEFAULT_TEMPLATES } from "./katalog";
+import { buildSchema, describeIssues } from "./schema";
+import {
+  buildAlternatives,
+  buildItems,
+  cleanSections,
+  compareNote,
+  compareTable,
+  compareTitle,
+  fill,
+  fmtEur,
+  greeting,
+  isToken,
+  latin,
+  offerNumber,
+  offerTitle,
+  pdfFilename,
+  summaryLines,
+  totals,
+  validUntilIso,
+} from "./smetki";
 import { newToken } from "./token";
 
 describe("каталогът", () => {
@@ -168,5 +187,97 @@ describe("поправките от 09.11.2026 (офертите на Георг
     expect(emailList("daniel@cafemag.bg, Miroslava@cafemag.bg;daniel@cafemag.bg")).toEqual(["daniel@cafemag.bg", "miroslava@cafemag.bg"]);
     expect(emailList(["a@b.bg", " c@d.bg "])).toEqual(["a@b.bg", "c@d.bg"]);
     expect(emailList("")).toBeUndefined();
+  });
+});
+
+describe("за сравнение — другите нива (11.11.2026)", () => {
+  it("модулите за сравнение са от каталога, с цената си, без реда на офертата и без повторения", () => {
+    const { items, errors } = buildAlternatives([{ key: "nivo-1" }, { key: "nivo-2" }, { key: "nivo-3" }, { key: "nivo-2" }], ["nivo-1"]);
+    expect(errors).toEqual([]);
+    expect(items.map((i) => i.key)).toEqual(["nivo-2", "nivo-3"]);
+    expect(items.map((i) => i.price)).toEqual([6900, 9900]);
+  });
+  it("модул без цена и свободен ред не влизат за сравнение", () => {
+    expect(buildAlternatives([{ key: "marketing" }], []).errors[0]).toMatch(/няма цена/);
+    expect(buildAlternatives([{ key: "custom", title: "Нещо" }], []).errors[0]).toMatch(/свободен ред/);
+    expect(buildAlternatives([{ key: "nyama-takav" }], []).errors[0]).toMatch(/непознат/);
+    expect(buildAlternatives([{ key: "marketing", price: 900 }], []).items[0].price).toBe(900);
+  });
+  it("сравнението не променя сумата — тя е само от редовете на офертата", () => {
+    const main = buildItems([{ key: "nivo-1" }]).items;
+    expect(totals(main, 0, "incl").one_time).toBe(3900);
+  });
+  it("таблицата: трите нива по реда на каталога, препоръчаното е редът на офертата, цената е от реда", () => {
+    const main = buildItems([{ key: "nivo-2", price: 6500 }]).items;
+    const alts = buildAlternatives([{ key: "nivo-3" }, { key: "nivo-1" }], ["nivo-2"]).items;
+    const t = compareTable(main, alts)!;
+    expect(t.columns.map((c) => c.key)).toEqual(["nivo-1", "nivo-2", "nivo-3"]);
+    expect(t.columns.map((c) => c.recommended)).toEqual([false, true, false]);
+    const row = (label: string) => t.rows.find((r) => r.label === label)!.values;
+    expect(row("Лични срещи с Ивайло")).toEqual(["4 — по 1 на месец", "8 — по 2 на месец", "16 — всяка седмица"]);
+    expect(row("Цена")).toEqual(["3 900 €", "6 500 €", "9 900 €"]);
+    // сменена цена → вноските от стълбата не важат за този ред
+    expect(row("На вноски през TBI Bank")).toEqual(["от 195 €/мес (24 мес.)", "—", "от 494 €/мес (24 мес.)"]);
+    expect(compareTitle(main, alts)).toBe("Трите нива — за сравнение");
+  });
+  it("без факти в каталога няма таблица, а заглавието е общо", () => {
+    const main = buildItems([{ key: "eli" }]).items;
+    const alts = buildAlternatives([{ key: "komanden" }], ["eli"]).items;
+    expect(compareTable(main, alts)).toBeNull();
+    expect(compareTable(main, [])).toBeNull();
+    expect(compareTitle(main, alts)).toBe("Другите варианти — за сравнение");
+    expect(compareNote(main, "vie")).toMatch(/Препоръчваме Ви „Ели · гласов AI агент“/);
+  });
+  it("фактите за сравнение покриват всички нива на програмата", () => {
+    for (const key of ["nivo-0", "nivo-1", "nivo-2", "nivo-3"]) {
+      const c = MODULE_BY_KEY[key].compare!;
+      for (const r of COMPARE_ROWS) expect(c[r.key], `${key}.${r.key}`).toBeTruthy();
+    }
+  });
+});
+
+describe("свободните раздели и „Кой е Ивайло Петев“", () => {
+  it("празните раздели отпадат, текстът се подрязва", () => {
+    expect(
+      cleanSections([
+        { title: " Графикът ", text: " всеки вторник " },
+        { title: "", text: "без заглавие" },
+        { title: "Само заглавие" },
+        { title: "Точки", bullets: [" едно ", ""] },
+      ])
+    ).toEqual([
+      { title: "Графикът", text: "всеки вторник" },
+      { title: "Точки", bullets: ["едно"] },
+    ]);
+  });
+  it("разделът за Ивайло носи числата от CRM-а с дата и линкове към сайта", () => {
+    expect(ABOUT.proof).toMatch(/клиента · \d+ проведени срещи от август · \d+ активни месечни услуги · към \d{2}\.\d{2}\.\d{4}/);
+    for (const l of ABOUT.links) expect(l.url.startsWith("https://promarketing.pw/")).toBe(true);
+    // нашето съдържание — без емоджита (NotoSans няма глифове) и без обещания
+    expect(ABOUT.paragraphs.join(" ")).not.toMatch(/гарантир|№\s*1|най-добр/i);
+  });
+});
+
+describe("грешките на човешки", () => {
+  it("дълъг P.S. казва колко е позволено и колко е подадено", () => {
+    const raw = { contact_id: "93693295-3b32-4924-a88a-c3699a26e81d", template_key: "programa-1", ps: "x".repeat(2656) };
+    const parsed = buildSchema.safeParse(raw);
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) {
+      const errs = describeIssues(parsed.error.issues, raw);
+      expect(errs).toHaveLength(1);
+      expect(errs[0]).toMatch(/P\.S\. \(ps\): най-много 400 знака, а са 2656/);
+      expect(errs[0]).toMatch(/свободен раздел/);
+    }
+  });
+  it("схемата приема сравнение, раздели и „Кой е Ивайло“", () => {
+    const parsed = buildSchema.safeParse({
+      contact_id: "93693295-3b32-4924-a88a-c3699a26e81d",
+      template_key: "programa-1",
+      alternatives: [{ key: "nivo-2" }, { key: "nivo-3" }],
+      about: true,
+      sections: [{ title: "Графикът", text: "Всеки вторник и четвъртък." }],
+    });
+    expect(parsed.success).toBe(true);
   });
 });

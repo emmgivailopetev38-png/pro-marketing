@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { checkHermesAuth } from "@/lib/crm/auth";
 import { SELLERS } from "@/lib/oferti/katalog";
 import { buildOffer } from "@/lib/oferti/repository";
-import { buildSchema as schema } from "@/lib/oferti/schema";
+import { buildSchema as schema, describeIssues } from "@/lib/oferti/schema";
 import { shortSummary } from "@/lib/oferti/view";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,11 @@ export async function POST(request: Request) {
   if (!checkHermesAuth(request)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const raw = await request.json().catch(() => null);
   const parsed = schema.safeParse(raw);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid payload", issues: parsed.error.issues }, { status: 400 });
+  if (!parsed.success) {
+    // на човешки, за да може асистентът сам да се поправи (преди: само „Invalid payload“)
+    const errors = describeIssues(parsed.error.issues, raw);
+    return NextResponse.json({ ok: false, error: `Невалидни данни — ${errors.join("; ")}`, errors, issues: parsed.error.issues }, { status: 400 });
+  }
   const d = parsed.data;
   const items = d.items && d.items.length > 0 ? d.items : d.moduli?.map((key) => ({ key }));
   const created_by = d.created_by ?? "hermes";
@@ -39,6 +43,9 @@ export async function POST(request: Request) {
     seller: r.view.seller.name,
     valid_until: r.view.validUntil,
     totals: r.view.totals,
+    alternatives: r.view.alternatives.map((i) => ({ key: i.key, title: i.title, price: i.price, unit: i.unit })),
+    sections: r.view.sections.map((x) => x.title),
+    about: Boolean(r.view.about),
     summary: shortSummary(r.view),
   });
 }

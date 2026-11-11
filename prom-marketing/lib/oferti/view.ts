@@ -2,8 +2,24 @@
  * Моделът за показване на една оферта — общ за PDF-а, страницата и имейла.
  * Всичко, което клиентът вижда, минава оттук: попълнени текстове, суми, продавач.
  */
-import { SELLERS, SITE, VAT_MODE_LABEL, type OfferContent, type OfferItem, type Seller, type VatMode } from "./katalog";
-import { fillAll, fmtDateBg, fmtEur, greeting, niceCompany, niceName, offerNumber, pdfFilename, totals, withUnit, type Totals } from "./smetki";
+import { ABOUT, SELLERS, SITE, VAT_MODE_LABEL, type OfferContent, type OfferItem, type OfferSection, type Seller, type VatMode } from "./katalog";
+import {
+  compareNote,
+  compareTable,
+  compareTitle,
+  fillAll,
+  fmtDateBg,
+  fmtEur,
+  greeting,
+  niceCompany,
+  niceName,
+  offerNumber,
+  pdfFilename,
+  totals,
+  withUnit,
+  type CompareTable,
+  type Totals,
+} from "./smetki";
 import { kamVie, kamVieAll } from "./vie";
 
 export interface OfferContactLite {
@@ -68,6 +84,14 @@ export interface OfferView {
   hasInstallments: boolean;
   /** „6 × 1 211 € · 12 × 632 € · 24 × 344 €“ по модул с вноски */
   installmentLines: { title: string; line: string }[];
+  /** модулите „за сравнение“ (не влизат в сумата) — при „Вие“ в учтива форма */
+  alternatives: OfferItem[];
+  /** разделът „за сравнение“: заглавие, изречение, таблица (ако модулите имат факти) — или null */
+  compare: { title: string; note: string; table: CompareTable | null } | null;
+  /** свободните раздели */
+  sections: OfferSection[];
+  /** „Кой е Ивайло Петев“ — или null */
+  about: typeof ABOUT | null;
 }
 
 export function offerUrl(token: string): string {
@@ -92,6 +116,9 @@ export function viewModel(offer: OfferFull): OfferView {
       ps: offer.content?.ps,
       next_steps: offer.content?.next_steps ?? [],
       terms: offer.content?.terms ?? [],
+      alternatives_note: offer.content?.alternatives_note,
+      sections: offer.content?.sections,
+      about: offer.content?.about,
     },
     { name: clientName, company: clientCompany, seller: seller.key, date: validUntil }
   );
@@ -104,9 +131,17 @@ export function viewModel(offer: OfferFull): OfferView {
         ps: filled.ps ? kamVie(filled.ps) : filled.ps,
         next_steps: kamVieAll(filled.next_steps) ?? [],
         terms: kamVieAll(filled.terms) ?? [],
+        alternatives_note: filled.alternatives_note ? kamVie(filled.alternatives_note) : filled.alternatives_note,
+        sections: filled.sections?.map((sec) => ({
+          title: kamVie(sec.title),
+          ...(sec.text ? { text: kamVie(sec.text) } : {}),
+          ...(sec.bullets ? { bullets: kamVieAll(sec.bullets) ?? [] } : {}),
+        })),
       }
     : filled;
-  const items: OfferItem[] = (offer.items ?? []).map((i) =>
+  // шаблоните пишат „P.S. …“ в самия текст, а страницата и PDF-ът слагат „P.S.“ пред него → без двойно
+  if (content.ps) content.ps = content.ps.replace(/^\s*P\.\s*S\.\s*/i, "");
+  const polite = (i: OfferItem): OfferItem =>
     vie
       ? {
           ...i,
@@ -118,8 +153,19 @@ export function viewModel(offer: OfferFull): OfferView {
           note: i.note ? kamVie(i.note) : i.note,
           setup_label: i.setup_label ? kamVie(i.setup_label) : i.setup_label,
         }
-      : i
-  );
+      : i;
+  const items: OfferItem[] = (offer.items ?? []).map(polite);
+  const rawAlternatives = offer.content?.alternatives ?? [];
+  const alternatives: OfferItem[] = rawAlternatives.map(polite);
+  let compare: OfferView["compare"] = null;
+  if (alternatives.length > 0) {
+    const table = compareTable(items, alternatives);
+    compare = {
+      title: compareTitle(offer.items ?? [], rawAlternatives),
+      note: content.alternatives_note || compareNote(items, content.greeting),
+      table: table && vie ? { columns: table.columns, rows: table.rows.map((r) => ({ label: r.label, values: r.values.map((x) => kamVie(x)) })) } : table,
+    };
+  }
   const t = totals(offer.items ?? [], offer.discount, offer.vat_mode ?? "incl");
   const token = offer.token ?? "";
   const url = token ? offerUrl(token) : (offer.url ?? SITE);
@@ -146,6 +192,10 @@ export function viewModel(offer: OfferFull): OfferView {
       title: i.title,
       line: (i.installments ?? []).map((x) => `${x.term.replace(/\s*мес\.?/, "")} × ${fmtEur(x.monthly)}`).join(" · "),
     })),
+    alternatives,
+    compare,
+    sections: content.sections ?? [],
+    about: offer.content?.about ? ABOUT : null,
   };
 }
 
@@ -159,5 +209,16 @@ export function shortSummary(v: OfferView): string {
   if (v.totals.one_time_after > 0) tot.push(`еднократно ${fmtEur(v.totals.one_time_after)}`);
   if (v.totals.monthly_after > 0) tot.push(`месечно ${fmtEur(v.totals.monthly_after)}`);
   if (v.totals.discount > 0) tot.push(`отстъпка ${fmtEur(v.totals.discount)}`);
-  return [...rows, `Общо: ${tot.join(" · ") || "—"} (${v.vatLine ? v.vatLine.replace(/\.$/, "").replace(/^Всички/, "всички").replace(/^Цените/, "цените") : "без ред за ДДС"})`, `Валидна до ${v.validUntil}`].join("\n");
+  const extra: string[] = [];
+  if (v.alternatives.length > 0) {
+    extra.push(`За сравнение (не влизат в сумата): ${v.alternatives.map((i) => `${i.title} — ${withUnit(fmtEur(i.price), i.unit)}`).join("; ")}`);
+  }
+  if (v.sections.length > 0) extra.push(`Раздели: ${v.sections.map((x) => x.title).join("; ")}`);
+  if (v.about) extra.push(`Раздел „${v.about.title}“: да`);
+  return [
+    ...rows,
+    `Общо: ${tot.join(" · ") || "—"} (${v.vatLine ? v.vatLine.replace(/\.$/, "").replace(/^Всички/, "всички").replace(/^Цените/, "цените") : "без ред за ДДС"})`,
+    ...extra,
+    `Валидна до ${v.validUntil}`,
+  ].join("\n");
 }
