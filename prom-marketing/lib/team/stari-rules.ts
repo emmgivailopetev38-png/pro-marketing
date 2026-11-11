@@ -18,6 +18,10 @@
  *   · човек на Ивайло (говорил с него, среща в календара му, Академията,
  *     махнат от звъненето — ivailo-rules.ts), освен ако картонът е с водещ от
  *     екипа: тогава Ивайло сам го е дал и той е на екипа;
+ *   · сделка на Ивайло — има оферта или е на етап презентация/оферта/преговори и
+ *     никой от екипа не го води (Ивайло, 03.11.2026: „хора, които аз съм пратил
+ *     оферта и сме говорили — не му ги давай“). Знаците в ivailo-rules.ts не
+ *     хващат оферта, пратена без записан разговор (Full House, 11.11);
  *   · картон с водещ друг човек от екипа;
  *   · има насрочено чуване за друг ден — ще излезе в деня си;
  *   · последната му заявка е отпреди септември 2026. Ивайло, 11.11.2026: „добави
@@ -93,6 +97,14 @@ export function scheduledLater(nextFollowupAt: string | null | undefined, now: D
   return dayKey(nextFollowupAt) > dayKey(now);
 }
 
+/** Етапите, в които човекът е в сделка: презентация, оферта, преговори. */
+const DEAL_STAGES: ReadonlySet<string> = new Set(["presentation_sent", "offer_sent", "negotiating"]);
+
+/** Сделка: има оферта или е стигнал до презентация/оферта/преговори. Без водещ от екипа тя е на Ивайло. */
+export function isDeal(row: Pick<ZvRow, "stage" | "oferta">): boolean {
+  return row.oferta || DEAL_STAGES.has(row.stage);
+}
+
 /** Последната заявка на човека е от „последните“ — от септември 2026 насам. */
 export function recentEnough(leadAt: string | null | undefined, since: string = STARI_OT): boolean {
   const t = leadAt ? new Date(leadAt).getTime() : NaN;
@@ -100,7 +112,7 @@ export function recentEnough(leadAt: string | null | undefined, since: string = 
 }
 
 /** Излиза ли човекът в „Стари и топли“ на този, който гледа. */
-export function showsInStari(row: Pick<ZvRow, "id" | "lead_at">, i: Omit<StariInput, "rows">): boolean {
+export function showsInStari(row: Pick<ZvRow, "id" | "lead_at" | "stage" | "oferta">, i: Omit<StariInput, "rows">): boolean {
   if (i.inQueue.has(row.id)) return false;
   const c = i.contacts.get(row.id);
   const owner = c?.owner_id ?? null;
@@ -109,6 +121,7 @@ export function showsInStari(row: Pick<ZvRow, "id" | "lead_at">, i: Omit<StariIn
     if (i.viewerId && owner !== i.viewerId) return false;
   } else {
     if (i.ivailos.has(row.id)) return false;
+    if (isDeal(row)) return false;
     if (!recentEnough(row.lead_at, i.since)) return false;
   }
   return !scheduledLater(c?.next_followup_at, i.now);
