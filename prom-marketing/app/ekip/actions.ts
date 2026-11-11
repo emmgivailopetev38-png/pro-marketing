@@ -10,6 +10,8 @@ import { upsertBooking } from "@/lib/crm/repository";
 import { MEETING_MINUTES } from "@/lib/cal/types";
 import { createCalBooking, isCalWriteConfigured } from "@/lib/cal/create-booking";
 import { activeCloser } from "@/lib/team/closer";
+import { closerMeetUrl, sendCloserInvite } from "@/lib/team/closer-calendar";
+import { calRefusalReason } from "@/lib/team/closer-calendar-rules";
 import {
   FREE_STATUSES,
   LOOKAHEAD_MINUTES,
@@ -208,17 +210,19 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         const clash = await meetingClash(sb, meetingIso, { email, phone: c.phone });
         if (clash) return { ok: false, error: clash };
 
-        // Покана с Meet линк — през Cal.com, който държи календара на Ивайло.
+        // Покана с Meet линк — през Cal.com, който държи календара.
         // Първо Cal.com, после CRM-ът със същия ключ (uid): така webhook-ът
         // на Cal.com попада в същия ред, а не прави втора среща.
         const wantInvite = str(formData, "invite") === "1";
         let inviteNote = "";
         let meetingUrl: string | null = null;
         let calUid: string | null = null;
+        // Клоузърът получава срещата в календара си — и когато сам я записва:
+        // без нея я няма в календара му и в Meet той чака да го пуснат (04.11, Благой).
+        const closer = await activeCloser().catch(() => null);
+        /** Защо часът не е минал през Cal.com — пише се в поканата към клоузъра. */
+        let calWhy: string | null = null;
         if (wantInvite && email && isCalWriteConfigured()) {
-          // Клоузърът получава поканата с Meet линка в своя календар — и когато сам записва:
-          // без поканата срещата я няма в календара му и в Meet той чака да го пуснат (04.11, Благой).
-          const closer = await activeCloser().catch(() => null);
           const guests = closer && closer.email ? [closer.email] : [];
           const cal = await createCalBooking({
             name,
@@ -235,11 +239,18 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
               ? " Човекът получи покана с Meet линка на имейла си; готовото съобщение за Viber с линка е в „Съобщения за срещите“."
               : " Поканата е пратена по имейл.";
           } else {
-            inviteNote = ` Поканата през Cal.com не мина (${cal.error ?? "грешка"}) — срещата е записана само в CRM-а; Ивайло ще я сложи в календара.`;
+            // Cal.com записва само свободните си слотове (пон–пет 12–18 на кръгъл час): час по
+            // телефона за 11:00 или 17:30 се отказва — 4 от 5 срещи от /ekip между 04 и 11.11.2026.
+            calWhy = calRefusalReason(cal.error);
+            inviteNote = ` Cal.com не записа този час (${calWhy}), затова човекът НЕ получи покана по имейл — прати му Meet линка с готовото съобщение от „Съобщения за срещите“.`;
           }
         } else if (wantInvite && !email) {
-          inviteNote = " Без имейл няма покана и Meet линк — Ивайло ще звънне по телефона в уговорения час. Готовото съобщение за Viber е в „Съобщения за срещите“.";
+          inviteNote = closer
+            ? " Без имейл няма покана по пощата — прати му Meet линка с готовото съобщение от „Съобщения за срещите“."
+            : " Без имейл няма покана и Meet линк — Ивайло ще звънне по телефона в уговорения час. Готовото съобщение за Viber е в „Съобщения за срещите“.";
         }
+        // Среща без Cal.com няма свой линк — важи постоянният Meet линк на клоузъра (той е домакин).
+        if (!meetingUrl && closer) meetingUrl = closerMeetUrl();
 
         const booking = await upsertBooking({
           cal_booking_id: calUid ?? undefined,
@@ -257,6 +268,23 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
           log_activity: false,
         });
         if (booking.error) return { ok: false, error: `Срещата не се записа: ${booking.error}` };
+
+        // Cal.com не е сложил срещата в календара (отказан час, без имейл, без покана) →
+        // клоузърът я получава направо от нас, за всеки час (lib/team/closer-calendar.ts).
+        let calendarLine = calUid ? "📅 Календар: през Cal.com (покана и до човека)" : "📅 Календар: срещата НЕ е в календар";
+        if (!calUid && closer?.email && booking.id) {
+          const inv = await sendCloserInvite({ bookingId: booking.id, why: calWhy });
+          const mine = actor.member?.id === closer.id;
+          if (inv.ok) {
+            inviteNote += mine
+              ? " 📅 При теб срещата влезе в календара — поканата е на имейла ти."
+              : ` 📅 Срещата влезе в календара на ${closer.full_name} (покана на имейла му).`;
+            calendarLine = `📅 Календар: покана направо към ${closer.full_name}${calWhy ? ` — Cal.com отказа: ${calWhy}` : ""}`;
+          } else {
+            inviteNote += ` ⚠️ Срещата НЕ стигна до календара на ${mine ? "теб" : closer.full_name} (${inv.error ?? "грешка"}) — добави я на ръка.`;
+            calendarLine = `📅 Календар: поканата към ${closer.full_name} не тръгна (${inv.error ?? "грешка"})`;
+          }
+        }
 
         // Нов час за човек, който вече има предстояща среща = преместване. Старата
         // спира сама (статус „отменена“ + moved_to) — иначе напомнянията за стария
@@ -305,7 +333,7 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
           phone: c.phone,
           email,
           business,
-          note: [note || null, meetingUrl ? `Meet: ${meetingUrl}` : null, movedNote].filter(Boolean).join("\n") || null,
+          note: [note || null, meetingUrl ? `Meet: ${meetingUrl}` : null, calendarLine, movedNote].filter(Boolean).join("\n") || null,
           scheduledAtIso: meetingIso,
         }).catch(() => {});
         break;

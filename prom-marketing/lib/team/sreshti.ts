@@ -199,6 +199,11 @@ export async function closeUpcomingMeetings(args: {
         .eq("id", r.id)
         .in("status", [...LIVE_BOOKING_STATUSES]);
       if (!error) out.push({ id: r.id, whenIso: r.scheduled_at, name: r.attendee_name ?? "" });
+      // Срещата е в календара на клоузъра от наша покана → маха се и оттам.
+      if (!error && (r.raw_payload ?? {}).closer_invite) {
+        const { syncCloserInvite } = await import("./closer-calendar");
+        await syncCloserInvite(r.id, now).catch(() => {});
+      }
     }
     return out;
   } catch {

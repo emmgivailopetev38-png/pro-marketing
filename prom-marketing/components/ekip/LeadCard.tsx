@@ -473,7 +473,8 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
                   <span>📨 Покана с Meet линк по имейл (през Cal.com). Ти получаваш готово съобщение за Viber с линка.</span>
                 </label>
                 <p className="mt-1 text-[10px] leading-snug text-emerald-200/50">
-                  Без имейл няма линк — Ивайло звъни по телефона в уговорения час.
+                  📅 Срещата влиза в календара на клоузъра за всеки час. Извън пон–пет 12–18 (или на половин час) Cal.com не
+                  праща имейл на човека — тогава му прати Meet линка от „Съобщения за срещите“.
                 </p>
                 <SubmitBtn action="meeting" className="mt-2 w-full border-emerald-400/60 bg-emerald-500/15 text-emerald-200">
                   ✅ Записах среща
