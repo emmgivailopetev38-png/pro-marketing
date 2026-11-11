@@ -1656,7 +1656,7 @@ export async function upsertBooking(input: {
 
   const { data: existing } = await sb
     .from("bookings")
-    .select("id")
+    .select("id, raw_payload")
     .eq("cal_booking_id", key)
     .maybeSingle();
 
@@ -1678,6 +1678,12 @@ export async function upsertBooking(input: {
   };
 
   if (existing) {
+    // Повторен запис на същата среща не забравя къде е в календара: поканата към
+    // клоузъра и отметката от общия календар остават (иначе се пращат и слагат втори път).
+    const prevRaw = ((existing as { raw_payload?: Record<string, unknown> | null }).raw_payload ?? {}) as Record<string, unknown>;
+    const keep: Record<string, unknown> = {};
+    for (const k of ["closer_invite", "gcal_event_id", "gcal_added_at"]) if (prevRaw[k] != null) keep[k] = prevRaw[k];
+    if (Object.keys(keep).length) payload.raw_payload = { ...(payload.raw_payload as Record<string, unknown>), ...keep };
     const { error } = await sb.from("bookings").update(payload).eq("id", existing.id);
     if (error) return { id: existing.id, created: false, error: error.message ?? "update failed" };
     return { id: existing.id, created: false, error: null };
@@ -1799,5 +1805,12 @@ export async function updateBooking(args: {
         .join(", "),
     idempotency_key: `booking-upd:${args.id}:${Date.now()}`,
   }).catch(() => {});
+
+  // Срещата е в календара на клоузъра от наша покана (lib/team/closer-calendar.ts) →
+  // нов час или отмяна стигат и до календара му. Само за такива срещи — другите ги води Cal.com.
+  if ((args.status || args.scheduled_at) && rawNow.closer_invite) {
+    const { syncCloserInvite } = await import("@/lib/team/closer-calendar");
+    await syncCloserInvite(args.id).catch(() => {});
+  }
   return { error: null, cal_uid: calUid };
 }

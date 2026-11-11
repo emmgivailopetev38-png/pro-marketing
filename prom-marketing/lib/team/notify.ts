@@ -11,7 +11,7 @@ import { ivailoClaimFor } from "./ivailo";
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://promarketing.pw").replace(/\/$/, "");
 
-function ownerEmail(): string {
+export function ownerEmail(): string {
   return (
     process.env.EMAIL_REPLY_TO?.trim() ||
     (process.env.ALLOWED_ADMIN_EMAILS ?? "").split(",").map((s) => s.trim()).filter(Boolean)[0] ||
