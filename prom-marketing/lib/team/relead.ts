@@ -43,7 +43,9 @@ export async function giveReLeadToTeam(args: {
       createdAt: contact.created_at,
       hasPhone: !!contact.phone,
       attempts: count ?? 0,
-      ivailo: !!claim,
+      // „Махнат от звъненето“ не е причина да се изпусне нова заявка от друга реклама.
+      ivailo: !!claim && claim.why !== "taken",
+      taken: claim?.why === "taken",
       now,
     });
     if (!verdict.give) return { given: false, why: verdict.why };
