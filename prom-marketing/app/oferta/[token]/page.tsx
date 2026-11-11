@@ -172,7 +172,7 @@ export default async function OfertaPage({ params }: Params) {
             <p className="cmp-note">{v.compare.note}</p>
             {v.compare.table && (
               <div className="cmp-scroll">
-                <table className="cmp">
+                <table className="cmp" style={{ ["--cols" as string]: v.compare.table.columns.length }}>
                   <thead>
                     <tr>
                       <th />
