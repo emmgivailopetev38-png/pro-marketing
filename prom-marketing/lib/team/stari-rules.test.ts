@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ZvRow } from "@/lib/zvanene/rules";
 import {
   STARI_OT,
+  isDeal,
   recentEnough,
   scheduledLater,
   showsInStari,
@@ -81,6 +82,19 @@ describe("кой НЕ излиза при екипа", () => {
     const stara = row("a", "topal", "2026-03-02T09:00:00Z");
     const i = input([stara], { ivailos: new Set(["a"]) }, [{ id: "a", owner_id: GEORGI, next_followup_at: null }]);
     expect(teamStari(i).topli.map((r) => r.id)).toEqual(["a"]);
+  });
+
+  it("сделка на Ивайло: оферта или етап оферта/преговори без водещ от екипа (Full House, 11.11) — не; с водещ от екипа — да", () => {
+    const oferta: ZvRow = { ...row("a", "pisano"), stage: "offer_sent", oferta: true };
+    const pregovori: ZvRow = { ...row("b", "star"), stage: "negotiating" };
+    const prouchvane: ZvRow = { ...row("c", "topal"), stage: "discovery" };
+    expect(isDeal(oferta)).toBe(true);
+    expect(isDeal(pregovori)).toBe(true);
+    expect(isDeal(prouchvane)).toBe(false);
+    const p = teamStari(input([oferta, pregovori, prouchvane]));
+    expect([...p.topli, ...p.pisano, ...p.stari].map((r) => r.id)).toEqual(["c"]);
+    const dadena = teamStari(input([oferta], {}, [{ id: "a", owner_id: GEORGI, next_followup_at: null }]));
+    expect(dadena.pisano.map((r) => r.id)).toEqual(["a"]);
   });
 
   it("води го друг човек от екипа — вижда го той и собственикът, не аз", () => {
