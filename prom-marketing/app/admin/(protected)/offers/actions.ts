@@ -55,7 +55,7 @@ export async function setOfferStatusAction(formData: FormData) {
 }
 
 // ── оферти от модули (06.11.2026): билдър, изпращане с PDF, шаблони ──────────
-import { buildSchema, templateSchema } from "@/lib/oferti/schema";
+import { buildSchema, describeIssues, templateSchema } from "@/lib/oferti/schema";
 import { buildOffer, resetTemplate, saveTemplate, sendOffer } from "@/lib/oferti/repository";
 import { SELLERS } from "@/lib/oferti/katalog";
 import { shortSummary } from "@/lib/oferti/view";
@@ -76,8 +76,9 @@ function issues(e: { issues: Array<{ path: PropertyKey[]; message: string }> }):
 /** Нова оферта от модули или промяна на съществуваща (payload = JSON от билдъра). */
 export async function buildOfferAction(_prev: BuilderState, formData: FormData): Promise<BuilderState> {
   const actor = await requireAdmin();
-  const parsed = buildSchema.safeParse(payloadOf(formData));
-  if (!parsed.success) return { ok: false, error: `Невалидни данни — ${issues(parsed.error)}` };
+  const raw = payloadOf(formData);
+  const parsed = buildSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: `Невалидни данни — ${describeIssues(parsed.error.issues, raw).join("; ")}` };
   const seller = parsed.data.seller ?? "ivailo";
   const r = await buildOffer(parsed.data, { created_by: actor, owner_id: SELLERS[seller].team_member_id, seller });
   if (r.error || !r.offer || !r.view) return { ok: false, error: r.error ?? "записът не мина" };

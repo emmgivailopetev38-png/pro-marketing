@@ -40,6 +40,17 @@ export function offerEmail(v: OfferView, opts: { subject?: string; text?: string
   const replyWho = seller.key === "ivailo" ? "стига направо до мен" : `стига до ${seller.first} и до Ивайло`;
   const nextStepRaw = content.next_steps[0] ? content.next_steps[0] : "Казваш „да“ — с отговор на този имейл или по телефона.";
   const nextStep = vie ? kamVie(nextStepRaw) : nextStepRaw;
+  // какво още има вътре — за да го потърси човекът (11.11.2026: сравнението на нивата и „Кой е Ивайло Петев“)
+  const inside: string[] = [];
+  if (v.alternatives.length > 0) {
+    inside.push(
+      `В офертата има и сравнение с ${v.alternatives.map((i) => `„${i.title}“`).join(" и ")} — за да ${vie ? "изберете" : "избереш"} спокойно; избира се един вариант, цените не се събират.`
+    );
+  }
+  if (v.about) {
+    const uspehi = v.about.links[0];
+    inside.push(`Накрая има и кратко представяне на Ивайло Петев — пътят му, резултатите ни в числа и видеа. Всичко е и тук: ${uspehi.url}`);
+  }
 
   const text = [
     ...(greetLine ? [greetLine, ""] : []),
@@ -51,6 +62,8 @@ export function offerEmail(v: OfferView, opts: { subject?: string; text?: string
     totalLine ? `Общо: ${totalLine}${v.totals.discount > 0 ? ` (с отстъпка ${fmtEur(v.totals.discount)})` : ""}. ${v.vatLine}` : "",
     v.hasInstallments ? `На вноски през TBI Bank: ${v.installmentLines.map((l) => l.line).join(" / ")} на месец.` : "",
     "",
+    ...inside,
+    inside.length > 0 ? "" : null,
     content.outcome ? `${content.outcome}\n` : "",
     `Следващата стъпка: ${nextStep}`,
     `Офертата е валидна до ${v.validUntil}.`,
@@ -61,7 +74,7 @@ export function offerEmail(v: OfferView, opts: { subject?: string; text?: string
     `${seller.phone}`,
     "promarketing.pw · petevai.com",
   ]
-    .filter((l) => l !== null)
+    .filter((l): l is string => l !== null)
     .join("\n")
     .replace(/\n{3,}/g, "\n\n");
 
@@ -81,6 +94,14 @@ ${totalLine ? `<tr><td style="padding:10px;font-weight:700">Общо</td><td sty
 ${v.totals.discount > 0 ? `<p style="margin:0 0 6px;color:#475569">С отстъпка ${escapeHtml(fmtEur(v.totals.discount))}${v.offer.discount_note ? ` — ${escapeHtml(v.offer.discount_note)}` : ""}.</p>` : ""}
 ${v.vatLine ? `<p style="margin:0 0 6px;color:#475569">${escapeHtml(v.vatLine)}</p>` : ""}
 ${v.hasInstallments ? `<p style="margin:0 0 14px;color:#475569">На вноски през TBI Bank: ${escapeHtml(v.installmentLines.map((l) => l.line).join(" / "))} на месец.</p>` : ""}
+${inside
+  .map((line) => {
+    const m = line.match(/^(.*)(https?:\/\/\S+)$/);
+    return m
+      ? `<p style="margin:0 0 10px">${escapeHtml(m[1])}<a href="${m[2]}" style="color:#0e7490">${escapeHtml(m[2].replace(/^https?:\/\//, ""))}</a></p>`
+      : `<p style="margin:0 0 10px">${escapeHtml(line)}</p>`;
+  })
+  .join("")}
 ${content.outcome ? `<p style="margin:14px 0;padding:12px 14px;background:#ecfeff;border-left:3px solid #06b6d4">${escapeHtml(content.outcome)}</p>` : ""}
 <p style="margin:0 0 6px"><strong>Следващата стъпка:</strong> ${escapeHtml(nextStep)}</p>
 <p style="margin:0 0 18px;color:#475569">Офертата е валидна до ${escapeHtml(v.validUntil)}.</p>

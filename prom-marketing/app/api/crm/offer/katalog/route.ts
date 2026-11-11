@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { checkHermesAuth } from "@/lib/crm/auth";
-import { GROUP_LABEL, MODULES, SELLERS, VAT_MODE_LABEL } from "@/lib/oferti/katalog";
+import { ABOUT, GROUP_LABEL, MODULES, SELLERS, VAT_MODE_LABEL } from "@/lib/oferti/katalog";
 import { listTemplates } from "@/lib/oferti/repository";
 import { fmtEur } from "@/lib/oferti/smetki";
 
@@ -31,6 +31,8 @@ export async function GET(request: Request) {
       not_included: m.not_included ?? [],
       installments: m.installments ?? [],
       za_prodavacha: m.za_prodavacha ?? null,
+      /** има факти за таблицата „за сравнение“ (нивата на програмата) */
+      compare: m.compare ?? null,
     })),
     templates: templates.map((t) => ({
       key: t.key,
@@ -40,9 +42,14 @@ export async function GET(request: Request) {
       vat_mode: t.vat_mode,
     })),
     sellers: Object.values(SELLERS).map((s) => ({ key: s.key, name: s.name, phone: s.phone })),
+    /** „Кой е Ивайло Петев“ — стандартният раздел за доверие (about: true); това са фактите, друго не се твърди */
+    about: ABOUT,
+    limits: { intro: 1200, pain: 1200, outcome: 600, ps: 400, step: 300, steps: 8, term: 300, terms: 10, alternatives: 4, sections: 4, section_text: 1500, section_bullets: 12 },
     vat_modes: VAT_MODE_LABEL,
     pravila: [
       "Един човек — един пакет: избира се нивото според човека, не се изреждат три цени.",
+      "Човекът иска да види и другите нива → препоръчаното е редът на офертата, останалите влизат като „за сравнение“ (alternatives): таблица + разбивка, с цените си, но извън сумата.",
+      "Човекът пита кой е Ивайло / кои сме / има ли отзиви и видеа → about: true (стандартният раздел с пътя му, числата от CRM-а и линковете). Нещо друго по негова молба → свободен раздел (sections), само с верни факти.",
       "Цените са от стълбата (06.11.2026) и са с ДДС. Модул без цена (маркетинг, автоматизация по мярка, сайт, друго) влиза само с цена от Ивайло.",
       "Отстъпка — само срещу размяна (плащане накуп, видеоотзив, две препоръки) и само с „да“ от Ивайло; иначе се сваля обхватът, не цената.",
       "Офертата се прави като чернова, показва се на продавача (линк + PDF) и тръгва по имейл чак след изричното му „да“.",

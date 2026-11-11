@@ -5,12 +5,15 @@
  * стойността за CRM-а (amount_gross) е за първата година = еднократно + 12 × месечно.
  */
 import {
+  COMPARE_ROWS,
+  MODULES,
   MODULE_BY_KEY,
   SELLERS,
   type GreetingForm,
   type OfferContent,
   type OfferItem,
   type OfferModule,
+  type OfferSection,
   type SellerKey,
   type VatMode,
 } from "./katalog";
@@ -219,6 +222,128 @@ export function mergeItems(base: ItemInput[], patches: ItemInput[]): ItemInput[]
 }
 
 /**
+ * Модулите „за сравнение“ (11.11.2026): снимка от каталога (+ поправки), показват се с цената си, но НЕ влизат в сумата.
+ * Модул, който вече е ред на офертата, се пропуска (той е препоръчаният); повторен key — също.
+ */
+export function buildAlternatives(inputs: ItemInput[], mainKeys: string[]): { items: OfferItem[]; errors: string[] } {
+  const items: OfferItem[] = [];
+  const errors: string[] = [];
+  const taken = new Set(mainKeys);
+  for (const inp of inputs) {
+    if (inp.remove || taken.has(inp.key)) continue;
+    const mod = MODULE_BY_KEY[inp.key];
+    if (!mod) {
+      errors.push(`непознат модул за сравнение „${inp.key}“`);
+      continue;
+    }
+    if (mod.key === "custom") {
+      errors.push("свободен ред не може да е „за сравнение“ — ползвай раздел (sections)");
+      continue;
+    }
+    const it = itemFromModule(mod, {
+      title: inp.title,
+      subtitle: inp.subtitle,
+      bullets: inp.bullets,
+      outcome: inp.outcome,
+      not_included: inp.not_included,
+      price: inp.price ?? undefined,
+      unit: inp.unit,
+      setup_price: inp.setup_price ?? undefined,
+      setup_label: inp.setup_label,
+      note: inp.note,
+    });
+    if (it.price === null || it.price === undefined) {
+      errors.push(`„${it.title}“ няма цена в каталога — за сравнение влиза само с цена`);
+      continue;
+    }
+    taken.add(mod.key);
+    items.push(it);
+  }
+  return { items, errors };
+}
+
+export interface CompareColumn {
+  key: string;
+  title: string;
+  /** редът е от офертата (препоръчаният), а не „за сравнение“ */
+  recommended: boolean;
+}
+export interface CompareTable {
+  columns: CompareColumn[];
+  rows: { label: string; values: string[] }[];
+}
+
+/**
+ * Таблицата „за сравнение“: колоните са редовете на офертата + алтернативите, които имат факти в каталога
+ * (нивата на програмата), подредени както в каталога. Цената и вноските се взимат от самия ред — ако
+ * продавачът е сменил цената, таблицата показва неговата. Под две колони таблица няма.
+ */
+export function compareTable(main: OfferItem[], alternatives: OfferItem[]): CompareTable | null {
+  const order = (k: string) => MODULES.findIndex((m) => m.key === k);
+  const cols = [
+    ...main.map((it) => ({ it, recommended: true })),
+    ...alternatives.map((it) => ({ it, recommended: false })),
+  ]
+    .filter((c) => MODULE_BY_KEY[c.it.key]?.compare)
+    .sort((a, b) => order(a.it.key) - order(b.it.key));
+  if (cols.length < 2 || !cols.some((c) => !c.recommended)) return null;
+  const rows: CompareTable["rows"] = [];
+  for (const r of COMPARE_ROWS) {
+    const values = cols.map((c) => MODULE_BY_KEY[c.it.key]?.compare?.[r.key] ?? "—");
+    if (values.some((v) => v !== "—")) rows.push({ label: r.label, values });
+  }
+  rows.push({
+    label: "Цена",
+    values: cols.map((c) => {
+      const setup = c.it.setup_price ? ` + ${fmtEur(c.it.setup_price)}` : "";
+      return `${withUnit(fmtEur(c.it.price), c.it.unit === "/мес" ? "/мес" : "")}${setup}`;
+    }),
+  });
+  if (cols.some((c) => c.it.installments && c.it.installments.length > 0)) {
+    rows.push({
+      label: "На вноски през TBI Bank",
+      values: cols.map((c) => {
+        const inst = c.it.installments ?? [];
+        const last = inst[inst.length - 1];
+        return last ? `от ${fmtEur(last.monthly)}/мес (${last.term.replace(/\s*мес\.?/, "")} мес.)` : "—";
+      }),
+    });
+  }
+  return { columns: cols.map((c) => ({ key: c.it.key, title: c.it.title, recommended: c.recommended })), rows };
+}
+
+/** „Трите нива — за сравнение“ / „Другите варианти — за сравнение“. */
+export function compareTitle(main: OfferItem[], alternatives: OfferItem[]): string {
+  const all = [...main, ...alternatives];
+  if (all.length > 0 && all.every((i) => i.key.startsWith("nivo-"))) {
+    const word = ["", "", "Двете", "Трите", "Четирите"][all.length];
+    return word ? `${word} нива — за сравнение` : "Нивата — за сравнение";
+  }
+  return "Другите варианти — за сравнение";
+}
+
+/** Изречението над сравнението, когато продавачът не е дал свое. */
+export function compareNote(main: OfferItem[], form: GreetingForm): string {
+  const what = main.map((i) => `„${i.title}“`).join(" + ");
+  return form === "vie"
+    ? `Препоръчваме Ви ${what} — това е офертата по-горе. Ето и другите варианти, за да изберете спокойно: избира се един, цените не се събират.`
+    : `Препоръчваме ти ${what} — това е офертата по-горе. Ето и другите варианти, за да избереш спокойно: избира се един, цените не се събират.`;
+}
+
+/** Свободните раздели: без празни (раздел без заглавие или без текст и точки отпада). */
+export function cleanSections(sections: OfferSection[] | null | undefined): OfferSection[] {
+  const out: OfferSection[] = [];
+  for (const sec of sections ?? []) {
+    const title = (sec?.title ?? "").trim();
+    const text = (sec?.text ?? "").trim();
+    const bullets = (sec?.bullets ?? []).map((b) => String(b ?? "").trim()).filter(Boolean);
+    if (!title || (!text && bullets.length === 0)) continue;
+    out.push({ title, ...(text ? { text } : {}), ...(bullets.length > 0 ? { bullets } : {}) });
+  }
+  return out;
+}
+
+/**
  * Името, както се пише в документ: „даниел вучев“ / „ДАНИЕЛ ВУЧЕВ“ → „Даниел Вучев“ (09.11.2026).
  * Лийдовете от Meta често са с малки букви; смесено изписване („МакДоналд“) се оставя както е.
  */
@@ -308,6 +433,12 @@ export function fillAll(
     ps: f(content.ps),
     next_steps: (content.next_steps ?? []).map((s) => fill(s, ctx)),
     terms: (content.terms ?? []).map((s) => fill(s, ctx)),
+    alternatives_note: f(content.alternatives_note),
+    sections: content.sections?.map((sec) => ({
+      title: fill(sec.title, ctx),
+      ...(sec.text ? { text: fill(sec.text, ctx) } : {}),
+      ...(sec.bullets ? { bullets: sec.bullets.map((b) => fill(b, ctx)) } : {}),
+    })),
   };
 }
 

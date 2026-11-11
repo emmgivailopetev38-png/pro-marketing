@@ -6,6 +6,7 @@
  * автоматизация по мярка, сайт), тя се дава от Ивайло за конкретния човек.
  */
 import { LEVELS, DOWNSELL } from "@/components/admin/skript/pricing-data";
+import { redSChisla } from "@/lib/site/otzivi";
 
 export type OfferUnit = "еднократно" | "/мес";
 export type VatMode = "incl" | "excl" | "none";
@@ -16,6 +17,24 @@ export type ModuleGroup = "programa" | "sistema" | "softuer" | "uslugi" | "custo
 export interface Installment {
   term: string;
   monthly: number;
+}
+
+/** Редовете на таблицата „за сравнение“ — едни и същи за всички модули, които имат `compare`. */
+export const COMPARE_ROWS = [
+  { key: "srok", label: "Продължителност" },
+  { key: "grupovi", label: "Живи групови обучения" },
+  { key: "lichni", label: "Лични срещи с Ивайло" },
+  { key: "softuer", label: "Petev.ai и Академията" },
+  { key: "marketing", label: "Маркетинг, продажби и SEO с AI" },
+  { key: "viber", label: "Директен Viber с Ивайло" },
+] as const;
+export type CompareKey = (typeof COMPARE_ROWS)[number]["key"];
+
+/** Свободен раздел в офертата (11.11.2026): заглавие + текст и/или точки — за всичко, което не се побира в другите полета. */
+export interface OfferSection {
+  title: string;
+  text?: string;
+  bullets?: string[];
 }
 
 export interface OfferModule {
@@ -37,6 +56,8 @@ export interface OfferModule {
   badge?: string;
   /** за продавача и асистента — НЕ отива към клиента */
   za_prodavacha?: string;
+  /** фактите за таблицата „за сравнение“ (11.11.2026) — по ключовете от COMPARE_ROWS; цената и вноските се взимат от реда */
+  compare?: Partial<Record<CompareKey, string>>;
 }
 
 /** Ред в офертата — снимка на модула към момента на създаване + поправките за човека. */
@@ -73,6 +94,17 @@ export interface OfferContent {
   next_steps: string[];
   terms: string[];
   ps?: string;
+  /**
+   * Модули „за сравнение“ (11.11.2026) — показват се с цената и съдържанието си, но НЕ влизат в сумата.
+   * За човек, който иска да види и другите нива: препоръчаното е редът на офертата, тези са алтернативите.
+   */
+  alternatives?: OfferItem[];
+  /** изречението над сравнението; без него се сглобява само */
+  alternatives_note?: string;
+  /** раздел „Кой е Ивайло Петев“ — стандартният текст (ABOUT): пътят му, числата от CRM-а, линкове към успехите и видеата */
+  about?: boolean;
+  /** свободни раздели — заглавие + текст/точки */
+  sections?: OfferSection[];
 }
 
 export interface OfferTemplate {
@@ -128,6 +160,28 @@ export const VAT_MODE_LABEL: Record<VatMode, string> = {
   none: "",
 };
 
+/**
+ * „Кой е Ивайло Петев“ (11.11.2026) — разделът за доверие в офертата, когато човекът пита кой стои зад това.
+ * Текстът е от началната страница на promarketing.pw (секцията „Запознай се с експерта“), в трето лице;
+ * числата идват от lib/site/otzivi.ts (нашият CRM, с дата) — сменят се там, не тук. Нищо ново не се твърди.
+ */
+export const ABOUT = {
+  title: "Кой е Ивайло Петев",
+  paragraphs: [
+    "Ивайло Петев е основател на ProMarketing. Изгражда AI системи и автоматизации за български бизнеси, които искат да правят повече с по-малко хора.",
+    "Започва в маркетинга — платени реклами, имейл кампании и CRM системи. Когато AI промени играта през 2023–2024 г., е сред първите, които започват да правят реални AI агенти за бизнеси — не „чатбот на сайта“, а системи, които поемат рутината вместо хората.",
+    "Създател е на Petev.ai и на Академията към него (62 курса · 463 урока · 70 видео). Работи лично с всеки клиент — без посредници.",
+  ],
+  proof_label: "В числа — от нашия CRM",
+  proof: redSChisla(),
+  links_label: "Вижте сами",
+  links: [
+    { label: "Резултати, клиенти и случаи", url: `${SITE}/uspehi` },
+    { label: "Видеа — системата в действие и Ивайло зад кадър", url: `${SITE}/uspehi#videa` },
+    { label: "Отзиви от клиенти — реални съобщения", url: `${SITE}/uspehi#otzivi` },
+  ],
+} as const;
+
 const eur = (s: string): number => Number(s.replace(/[^\d]/g, "")) || 0;
 const level = (numeral: "I" | "II" | "III") => LEVELS.find((l) => l.numeral === numeral)!;
 const inst = (numeral: "I" | "II" | "III"): Installment[] =>
@@ -151,6 +205,14 @@ export const MODULES: OfferModule[] = [
     outcome: "Своя CRM, автоматичен follow-up на всяко запитване и първите 3 процеса, които вървят без теб — направени от теб, в твоето темпо.",
     installments: [{"term":"12 мес.","monthly":187}],
     za_prodavacha: "Даунселът от 3 900 — „искам курса, не срещи“. Котвата: само Petev.ai за година е 2 388 €. Георги може до 2 500 €.",
+    compare: {
+      srok: "12 месеца, в твоето темпо",
+      grupovi: "24 срещи — по 2 на месец (въпроси и разбор)",
+      lichni: "—",
+      softuer: "Petev.ai и Академията за 12 месеца",
+      marketing: "—",
+      viber: "—",
+    },
   },
   {
     key: "nivo-1",
@@ -170,6 +232,14 @@ export const MODULES: OfferModule[] = [
     outcome: "CRM + автоматичен follow-up на всяко запитване (съобщения, имейли, телефон) до минути + 3 свои процеса, които вървят без теб — и умението да ги променяш сам.",
     installments: inst("I"),
     za_prodavacha: "Само обучение + автоматизации — за този, на когото маркетингът (още) не трябва. Стойността в числа: Petev.ai 1 596 € + 32 живи обучения + 4 лични срещи + онбординг.",
+    compare: {
+      srok: "4 месеца (16 седмици)",
+      grupovi: "32 — по 2 всяка седмица",
+      lichni: "4 — по 1 на месец",
+      softuer: "най-високият план + Академията, включени за 4-те месеца",
+      marketing: "—",
+      viber: "—",
+    },
   },
   {
     key: "nivo-2",
@@ -189,6 +259,14 @@ export const MODULES: OfferModule[] = [
     outcome: "Машина за клиенти: реклама + съдържание + follow-up, които вървят сами — построена от теб, с цена на запитване и срещи, които виждаш всеки ден.",
     installments: inst("II"),
     za_prodavacha: "ОСНОВНАТА оферта — „не пускам реклами и нямам клиенти“. Разликата с Ниво I (3 000 €) е маркетингът и продажбите — това, което иначе се плаща на агенция всеки месец.",
+    compare: {
+      srok: "4 месеца (16 седмици)",
+      grupovi: "32 — по 2 всяка седмица",
+      lichni: "8 — по 2 на месец",
+      softuer: "най-високият план + Академията, включени за 4-те месеца",
+      marketing: "да — реклами, съдържание, фунии, продажби и SEO",
+      viber: "—",
+    },
   },
   {
     key: "nivo-3",
@@ -208,6 +286,14 @@ export const MODULES: OfferModule[] = [
     outcome: "Работеща машина за клиенти и първите клиенти от нея — построени заедно с Ивайло, за 4 месеца вместо за година сам.",
     installments: inst("III"),
     za_prodavacha: "Ъпселът след Ниво II — за този, който вече иска повече Ивайло. За 3 000 € отгоре: +8 лични срещи и директен Viber.",
+    compare: {
+      srok: "4 месеца (16 седмици)",
+      grupovi: "32 — по 2 всяка седмица",
+      lichni: "16 — всяка седмица",
+      softuer: "най-високият план + Академията, включени за 4-те месеца",
+      marketing: "да — реклами, съдържание, фунии, продажби и SEO",
+      viber: "да + приоритет при всичко",
+    },
   },
   {
     key: "komanden",

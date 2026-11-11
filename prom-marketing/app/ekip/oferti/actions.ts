@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { requireTeamActor } from "@/lib/team/session";
-import { buildSchema } from "@/lib/oferti/schema";
+import { buildSchema, describeIssues } from "@/lib/oferti/schema";
 import { buildOffer, sendOffer } from "@/lib/oferti/repository";
 import { SELLERS, type SellerKey } from "@/lib/oferti/katalog";
 import { shortSummary } from "@/lib/oferti/view";
@@ -22,7 +22,7 @@ export async function ekipBuildOfferAction(_prev: BuilderState, formData: FormDa
     raw = null;
   }
   const parsed = buildSchema.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: `Невалидни данни — ${parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")}` };
+  if (!parsed.success) return { ok: false, error: `Невалидни данни — ${describeIssues(parsed.error.issues, raw).join("; ")}` };
   const seller = sellerOf(actor);
   const input = actor.kind === "owner" ? parsed.data : { ...parsed.data, discount: undefined, discount_note: undefined, vat_mode: undefined, seller };
   const r = await buildOffer(
