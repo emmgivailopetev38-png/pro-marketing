@@ -49,7 +49,7 @@ export function offerEmail(v: OfferView, opts: { subject?: string; text?: string
   }
   if (v.about) {
     const uspehi = v.about.links[0];
-    inside.push(`Накрая има и кратко представяне на Ивайло Петев — пътят му, резултатите ни в числа и видеа. Всичко е и тук: ${uspehi.url}`);
+    inside.push(`Накрая има и кратко представяне на Ивайло Петев — пътят му, какво сме направили при клиенти, резултатите ни в числа и видеа. Всичко е и тук: ${uspehi.url}`);
   }
 
   const text = [

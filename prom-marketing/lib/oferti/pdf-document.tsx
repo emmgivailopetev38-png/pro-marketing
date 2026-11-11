@@ -340,6 +340,12 @@ export function OfferPdf({ v }: { v: OfferView }) {
                     {para}
                   </Text>
                 ))}
+                {v.about.cases.length > 0 ? (
+                  <View>
+                    <Text style={s.aboutLabel}>{v.about.cases_label}</Text>
+                    <Bullets items={v.about.cases} />
+                  </View>
+                ) : null}
                 <Text style={s.aboutLabel}>{v.about.proof_label}</Text>
                 <Text style={s.aboutProof}>{v.about.proof}</Text>
                 <Text style={s.aboutLabel}>{v.about.links_label}</Text>

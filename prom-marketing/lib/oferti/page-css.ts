@@ -60,8 +60,9 @@ html:has(.of-doc),body:has(.of-doc){background:#f4f6f8;color-scheme:light}
 .of-doc .about p{margin:0 0 10px;font-size:16.5px}
 .of-doc .about small{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);font-weight:700;margin:12px 0 4px}
 .of-doc .about .proof{font-weight:700}
-.of-doc .about ul{margin:0;padding-left:20px;font-size:15.5px}
-.of-doc .about li{margin:4px 0}
+.of-doc .about ul.links{margin:0;padding-left:20px;font-size:15.5px}
+.of-doc .about ul.links li{margin:4px 0}
+.of-doc .about ul.pts li{font-size:15.5px}
 .of-doc .about a{color:var(--cyan)}
 .of-doc ol.steps{margin:0;padding:0;list-style:none;counter-reset:s}
 .of-doc ol.steps li{counter-increment:s;position:relative;padding-left:44px;margin:0 0 12px;font-size:16.5px}

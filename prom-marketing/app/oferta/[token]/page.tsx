@@ -256,10 +256,20 @@ export default async function OfertaPage({ params }: Params) {
               {v.about.paragraphs.map((para, i) => (
                 <p key={i}>{para}</p>
               ))}
+              {v.about.cases.length > 0 && (
+                <>
+                  <small>{v.about.cases_label}</small>
+                  <ul className="pts">
+                    {v.about.cases.map((c, i) => (
+                      <li key={i}>{c}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
               <small>{v.about.proof_label}</small>
               <p className="proof">{v.about.proof}</p>
               <small>{v.about.links_label}</small>
-              <ul>
+              <ul className="links">
                 {v.about.links.map((l, i) => (
                   <li key={i}>
                     {l.label}: <a href={l.url}>{l.url.replace(/^https?:\/\//, "")}</a>
