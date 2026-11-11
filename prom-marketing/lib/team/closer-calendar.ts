@@ -173,12 +173,20 @@ ${
 <p style="margin-top:16px;">📇 <a href="${d.card}">Картонът в /ekip</a>${
     add ? ` · ➕ <a href="${escapeHtml(add)}">Добави в Google Календар</a> (ако не я виждаш в календара си)` : ""
   }</p>
+${
+  args.kind === "cancelled"
+    ? ""
+    : `<p style="color:#777;font-size:13px;">Само първия път: ако Gmail покаже отгоре „This event isn’t in your calendar yet“, натисни <strong>Add to calendar</strong>. Google иска това веднъж за нов подател — следващите срещи влизат в календара сами.</p>`
+}
 </div>`;
   const text = [
     `${head} · ${d.name} · ${d.when} (София)`,
     lead,
     d.details,
     add ? `Добави в Google Календар: ${add}` : null,
+    add
+      ? "Само първия път: ако Gmail покаже „This event isn’t in your calendar yet“, натисни „Add to calendar“ — следващите срещи влизат сами."
+      : null,
   ]
     .filter(Boolean)
     .join("\n\n");

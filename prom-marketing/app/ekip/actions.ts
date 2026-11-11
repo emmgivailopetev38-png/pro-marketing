@@ -277,8 +277,8 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
           const mine = actor.member?.id === closer.id;
           if (inv.ok) {
             inviteNote += mine
-              ? " 📅 При теб срещата влезе в календара — поканата е на имейла ти."
-              : ` 📅 Срещата влезе в календара на ${closer.full_name} (покана на имейла му).`;
+              ? " 📅 Поканата за календара ти е на имейла ти — първия път натисни „Add to calendar“ в писмото, после срещите влизат сами."
+              : ` 📅 ${closer.full_name} получи поканата за календара си на имейла.`;
             calendarLine = `📅 Календар: покана направо към ${closer.full_name}${calWhy ? ` — Cal.com отказа: ${calWhy}` : ""}`;
           } else {
             inviteNote += ` ⚠️ Срещата НЕ стигна до календара на ${mine ? "теб" : closer.full_name} (${inv.error ?? "грешка"}) — добави я на ръка.`;
