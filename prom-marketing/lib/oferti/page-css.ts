@@ -1,4 +1,8 @@
-/** Стиловете на /oferta/<код> — светла страница, чете се на телефон и се печата чисто. */
+/**
+ * Стиловете на /oferta/<код> — светла страница, чете се на телефон и се печата чисто.
+ * Таблицата „за сравнение“ на телефон: без колоната с етикетите — етикетът е лента над реда,
+ * а нивата делят ширината по равно (--cols), за да се вижда и препоръчаното без плъзгане встрани.
+ */
 export const OFFER_CSS = `
 html:has(.of-doc),body:has(.of-doc){background:#f4f6f8;color-scheme:light}
 .of-doc{--ink:#0b1220;--soft:#475569;--faint:#94a3b8;--cyan:#0e7490;--cyan-bg:#ecfeff;--amber:#b45309;--amber-bg:#fffbeb;--violet:#6d28d9;--line:#e2e8f0;--panel:#f8fafc;
@@ -81,5 +85,6 @@ html:has(.of-doc),body:has(.of-doc){background:#f4f6f8;color-scheme:light}
 .of-doc .sign .right{text-align:right;color:var(--soft);font-size:14px}
 .of-doc .foot{margin:40px 0 0;color:var(--faint);font-size:12.5px;text-align:center}
 @media (max-width:640px){.of-doc .head{flex-direction:column;align-items:flex-start}.of-doc .meta{text-align:left}.of-doc .card .top{flex-direction:column}.of-doc .price{text-align:left}.of-doc .sign .right{text-align:left}}
+@media (max-width:640px){.of-doc .cmp-scroll{overflow-x:visible}.of-doc table.cmp{min-width:0;display:block}.of-doc table.cmp thead,.of-doc table.cmp tbody{display:block}.of-doc table.cmp tr{display:grid;grid-template-columns:repeat(var(--cols,3),minmax(0,1fr))}.of-doc table.cmp th:first-child{display:none}.of-doc table.cmp th{font-size:13px;padding:10px 8px;overflow-wrap:anywhere}.of-doc table.cmp th:nth-child(2){border-left:0}.of-doc table.cmp td{font-size:13.5px;padding:8px;overflow-wrap:anywhere}.of-doc table.cmp td.lbl{grid-column:1/-1;background:var(--panel);color:var(--soft);font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:6px 8px;border-bottom:0}.of-doc table.cmp td.lbl+td{border-left:0}.of-doc table.cmp tr.cena td:not(.lbl){font-size:15px}}
 @media print{.of-doc{background:#fff}.of-doc .cta{display:none}.of-doc .card,.of-doc .about,.of-doc table.cmp{break-inside:avoid;box-shadow:none}}
 `;
