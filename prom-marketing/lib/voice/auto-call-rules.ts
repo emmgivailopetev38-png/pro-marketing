@@ -476,6 +476,16 @@ export function zayavkaFrom(lead: AcAct | undefined): string {
 }
 
 /**
+ * Форми на спряна програма. Ивайло, 11.11.2026: „срещите са отменени заради тази
+ * програма… ако искат реално да им помогнем с обучение или инсталация, няма как
+ * да е по проект“ → по „AI обучение, платено от държавата“ (АЗ) вече не работим
+ * и Ели не звъни на лийдовете му — нито от Meta формата, нито от /obuchenie-az.
+ * Иначе на другата сутрин пак щеше да обещава програмата и да записва часове.
+ */
+export const SPRYANI_FORMI: ReadonlySet<string> = new Set(["2625101691244588", OBUCHENIE_AZ_WEB_FORM]);
+export const SPRYANA_PROGRAMA = "евро програмата (АЗ) е спряна — Ели не звъни";
+
+/**
  * Преценката за един човек. `acts` са всичките му активности (без значение
  * от реда), `hasFutureBooking` — записан час напред (по имейл или телефон).
  */
@@ -505,6 +515,9 @@ export function decide(
     (a) => a.activity_type === "note" && meta(a).kind === "noshow" && nowMs - ms(a.occurred_at) <= opts.noshowMaxAgeDays * 86_400_000
   );
   const lead = past.find((a) => LEAD_TYPES.has(a.activity_type));
+  // Последната заявка е за спряната програма → никакъв повод не важи (нито „нов“, нито „неявил се“).
+  const lastFormId = lead && meta(lead).form_id != null ? String(meta(lead).form_id) : null;
+  if (lastFormId && SPRYANI_FORMI.has(lastFormId)) return { skip: SPRYANA_PROGRAMA };
   let reason: AutoReason;
   let trigger: AcAct;
   if (noshow) {
