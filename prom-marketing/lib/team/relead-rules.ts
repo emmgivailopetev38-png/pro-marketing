@@ -36,6 +36,11 @@ export interface ReLeadInput {
   attempts: number;
   /** човек на Ивайло по ivailo-rules.ts */
   ivailo: boolean;
+  /**
+   * „🚫 махнат от звъненето на екипа“ (ivailo-rules.ts) — картонът НЕ е в „🆕 Нови“,
+   * макар да е пресен и без опит. Новата заявка е нов повод и го връща при екипа.
+   */
+  taken?: boolean;
   now: Date;
 }
 
@@ -52,7 +57,7 @@ export function reLeadVerdict(i: ReLeadInput): ReLeadVerdict {
   if (!i.hasPhone) return { give: false, why: "no_phone" };
   const created = i.createdAt ? new Date(i.createdAt).getTime() : NaN;
   const inWindow = Number.isFinite(created) && i.now.getTime() - created <= FRESH_WINDOW_DAYS * 86_400_000;
-  if (stage === "lead" && i.attempts === 0 && inWindow) return { give: false, why: "already_fresh" };
+  if (stage === "lead" && i.attempts === 0 && inWindow && !i.taken) return { give: false, why: "already_fresh" };
   return { give: true };
 }
 

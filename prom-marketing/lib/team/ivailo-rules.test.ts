@@ -6,7 +6,10 @@ import {
   isAkademiaMessage,
   isAkademiaSignal,
   isIvailoTalk,
+  isManualGive,
+  isTakenFromTeam,
   ivailoClaim,
+  takenMark,
   type BookingRef,
   type ContactRef,
   type SignalRow,
@@ -173,5 +176,50 @@ describe("„пак остави данни“ (relead) не отнема чов
     // за сравнение: изричното даване от Ивайло след разговора го прави на екипа
     const given = act("team_assigned", "2026-10-06T10:00:00Z", "🤝 Дадено на Димитър", { created_by: "Ивайло", metadata: { kind: "given" } });
     expect(ivailoClaim(person, [talk, given], [], { now: NOW })).toBeNull();
+  });
+});
+
+describe("🚫 махнат от звъненето на екипа (евро програмата, 11.11.2026)", () => {
+  const taken = act("team_assigned", "2026-11-11T10:00:00Z", "🚫 Махнат от звъненето на Георги · евро програмата (АЗ)", {
+    created_by: "claude",
+    metadata: takenMark("Евро програмата (АЗ) — не е за звънене от екипа"),
+  });
+  const NOW2 = new Date("2026-11-11T12:00:00Z");
+
+  it("следата е знак — картонът излиза от опашката на екипа, надписът казва защо", () => {
+    expect(isTakenFromTeam(taken)).toBe(true);
+    const c = ivailoClaim(person, [taken], [], { now: NOW2 });
+    expect(c?.why).toBe("taken");
+    expect(c?.label).toBe("🚫 Махнат от звъненето на екипа — човек на Ивайло. Не му звъни.");
+  });
+
+  it("не се чете като „🤝 даден на екипа“ и обикновеният „продавач“ не е знак", () => {
+    expect(isManualGive(taken)).toBe(false);
+    const sales = act("team_assigned", "2026-11-09T07:43:00Z", "🎯 Обаждането → Джордж го води", { metadata: { kind: "sales", to_member_id: "m1" } });
+    expect(isTakenFromTeam(sales)).toBe(false);
+    expect(ivailoClaim(person, [sales], [], { now: NOW2 })).toBeNull();
+  });
+
+  it("важи и за напомнянията, макар да е от днес (`before`)", () => {
+    expect(ivailoClaim(person, [taken], [], { now: NOW2, before: new Date("2026-11-11T00:00:00Z") })?.why).toBe("taken");
+  });
+
+  it("Ивайло го дава пак на екипа СЛЕД това — на екипа е; дадено ПРЕДИ — остава махнат", () => {
+    const after = act("team_assigned", "2026-11-12T09:00:00Z", "🤝 Дадено на Георги", { created_by: "Ивайло", metadata: { kind: "given" } });
+    const before = act("team_assigned", "2026-11-09T09:00:00Z", "🤝 Дадено на Георги", { created_by: "Ивайло", metadata: { kind: "given" } });
+    expect(ivailoClaim(person, [taken, after], [], { now: NOW2 })).toBeNull();
+    expect(ivailoClaim(person, [before, taken], [], { now: NOW2 })?.why).toBe("taken");
+  });
+
+  it("нова заявка от друга реклама (relead) СЛЕД това — пак е за звънене; relead ПРЕДИ това не го връща", () => {
+    const relead = (at: string) => act("team_assigned", at, "🔁 Пак остави данни", { created_by: "meta_webhook", metadata: { kind: "relead" } });
+    expect(ivailoClaim(person, [taken, relead("2026-11-13T08:00:00Z")], [], { now: new Date("2026-11-13T12:00:00Z") })).toBeNull();
+    expect(ivailoClaim(person, [relead("2026-11-10T08:00:00Z"), taken], [], { now: NOW2 })?.why).toBe("taken");
+  });
+
+  it("върнат на екипа и после говорил с Ивайло — надписът е за разговора, не за старото махане", () => {
+    const give = act("team_assigned", "2026-11-12T09:00:00Z", "🤝 Дадено на Георги", { created_by: "Ивайло", metadata: { kind: "given" } });
+    const talk = act("call", "2026-11-13T10:00:00Z", "📞 Разговор с Ивайло · Говорихме", { created_by: "ivailo" });
+    expect(ivailoClaim(person, [taken, give, talk], [], { now: new Date("2026-11-14T12:00:00Z") })?.why).toBe("talked");
   });
 });

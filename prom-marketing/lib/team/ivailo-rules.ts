@@ -19,6 +19,10 @@
  *      Отменената преди часа не се брои: тя не е стояла в календара, а за нея
  *      е „❌ Отказаха срещата“ — Димитър я мести.
  *
+ *   🚫 махнат от звъненето — Ивайло изрично е казал „този не е за звънене от
+ *      екипа“ (11.11.2026: лийдовете от евро програмата на АЗ). Следата е
+ *      `team_assigned` с `taken: true` (виж isTakenFromTeam).
+ *
  * Изключението е едно: Ивайло сам е дал картона на екипа („🤝 Дай на екипа“)
  * СЛЕД последния от тези знаци. Това е изрично негово решение.
  *
@@ -70,7 +74,7 @@ export interface ContactRef {
   created_at?: string | null;
 }
 
-export type IvailoWhy = "akademia" | "talked" | "meeting";
+export type IvailoWhy = "akademia" | "talked" | "meeting" | "taken";
 
 export interface IvailoClaim {
   why: IvailoWhy;
@@ -139,6 +143,22 @@ export function isManualGive(row: Pick<SignalRow, "activity_type" | "metadata">)
   return kind !== "sales" && kind !== "cancelled" && kind !== "noshow" && kind !== "relead";
 }
 
+/**
+ * „🚫 Махнат от звъненето на екипа“ — изрично решение на Ивайло за този човек
+ * (11.11.2026: „лийдовете от евро програмата да се махнат от Георги за звънене“).
+ * Следата е `team_assigned` с `taken: true`. Видът ѝ е „sales“, за да не я чете
+ * опашката като „🤝 даден на екипа“ (summarizeAttempts пропуска „sales“) и да
+ * не се брои за изрично даване. Важи, докато Ивайло не го даде пак на екипа.
+ */
+export function isTakenFromTeam(row: Pick<SignalRow, "activity_type" | "metadata">): boolean {
+  return row.activity_type === "team_assigned" && row.metadata?.taken === true;
+}
+
+/** metadata на следата „махнат от звъненето“ — едно място, за да я пишат еднакво входът на лийда и ръчните корекции. */
+export function takenMark(reason: string): Record<string, unknown> {
+  return { kind: "sales", to_member_id: null, to_name: "Ивайло", taken: true, reason };
+}
+
 function ms(iso: string | null | undefined): number {
   const t = iso ? new Date(iso).getTime() : NaN;
   return Number.isFinite(t) ? t : NaN;
@@ -154,6 +174,7 @@ function knownAt(a: string, b?: string | null): string {
 }
 
 export function claimReason(why: IvailoWhy, meetingAt: string | null, now: Date): string {
+  if (why === "taken") return "🚫 махнат от звъненето на екипа";
   if (why === "akademia") return "🎓 в Академията е";
   if (why === "talked") return "🤝 говорил е с Ивайло";
   if (meetingAt && ms(meetingAt) > now.getTime()) return `📅 има среща с Ивайло · ${fmtSofia(meetingAt)}`;
@@ -166,7 +187,7 @@ export function claimLabel(reason: string): string {
   return `${capital} — човек на Ивайло. Не му звъни.`;
 }
 
-const PRIORITY: Record<IvailoWhy, number> = { akademia: 3, talked: 2, meeting: 1 };
+const PRIORITY: Record<IvailoWhy, number> = { taken: 4, akademia: 3, talked: 2, meeting: 1 };
 
 /** Ключовете, по които срещата намира човека си: истински имейл и последните 9 цифри от телефона. */
 export function personKeys(p: { email?: string | null; phone?: string | null }): string[] {
@@ -226,9 +247,19 @@ export function ivailoClaim(
 
   const teamBookingIds = new Set<string>();
   let manualGiveAt = NaN;
+  let reLeadAt = NaN;
   for (const r of rows) {
     if (isManualGive(r)) {
       manualGiveAt = Math.max(Number.isFinite(manualGiveAt) ? manualGiveAt : -Infinity, ms(r.occurred_at));
+      continue;
+    }
+    if (r.activity_type === "team_assigned" && r.metadata?.kind === "relead") {
+      reLeadAt = Math.max(Number.isFinite(reLeadAt) ? reLeadAt : -Infinity, ms(r.occurred_at));
+      continue;
+    }
+    // Изричното „не е за звънене от екипа“ важи винаги — и за напомнянията (без `before`).
+    if (isTakenFromTeam(r)) {
+      marks.push({ why: "taken", at: r.occurred_at, meetingAt: null });
       continue;
     }
     if (isAkademiaSignal(r)) {
@@ -253,6 +284,13 @@ export function ivailoClaim(
     marks.push({ why: "meeting", at: knownAt(b.scheduled_at, b.created_at), meetingAt: b.scheduled_at });
   }
 
+  // „Махнат от звъненето“ важи за заявката, заради която е сложено. Отменя го
+  // по-късно „🤝 Дай на екипа“ или нова заявка от рекламата (relead, виж relead.ts):
+  // тя е нов повод и човекът пак е за звънене. Другите знаци relead не пипа.
+  const backAt = Math.max(Number.isFinite(manualGiveAt) ? manualGiveAt : -Infinity, Number.isFinite(reLeadAt) ? reLeadAt : -Infinity);
+  for (let i = marks.length - 1; i >= 0; i--) {
+    if (marks[i].why === "taken" && backAt > ms(marks[i].at)) marks.splice(i, 1);
+  }
   if (marks.length === 0) return null;
   const latest = marks.reduce((a, b) => (ms(b.at) > ms(a.at) ? b : a));
   // Ивайло го е дал на екипа СЛЕД последния знак — неговото решение важи.

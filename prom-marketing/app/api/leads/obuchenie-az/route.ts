@@ -21,6 +21,8 @@ import { sendEmail } from "@/lib/email/resend";
 import { escapeHtml } from "@/lib/email/escape";
 import { notifyTeamNewLead } from "@/lib/team/notify";
 import { routeNewLead } from "@/lib/team/routing";
+import { ASSIGN_TYPE } from "@/lib/team/queue-rules";
+import { takenMark } from "@/lib/team/ivailo-rules";
 import { phoneVariants } from "@/lib/contacts/repository";
 import { isCapiConfigured, sendCapiEvent } from "@/lib/meta/conversions-api";
 import {
@@ -160,6 +162,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Не успяхме да запишем заявката. Звънни ни на 0876 447 159." }, { status: 500 });
     }
     contactId = created.id;
+    // 11.11.2026 (Ивайло): лийдовете от евро програмата не са за звънене от екипа.
+    // Следата маха новия картон от опашката в /ekip и от писмото „нов човек за
+    // звънене“ (виж isTakenFromTeam). Ели го набира както досега; запише ли си
+    // час, срещата я води клоузърът. Стар картон не се пипа — той си има човек.
+    await supabase
+      .from("contact_activities")
+      .insert({
+        contact_id: contactId,
+        activity_type: ASSIGN_TYPE,
+        title: "🚫 Евро програмата (АЗ) · не е за звънене от екипа",
+        body: "Нов лийд от promarketing.pw/obuchenie-az. По решение на Ивайло (11.11.2026) тези лийдове не влизат в звъненето на екипа — набира ги Ели.",
+        created_by: "website",
+        metadata: { ...takenMark("Евро програмата (АЗ) — не е за звънене от екипа (Ивайло, 11.11.2026)"), auto: true },
+      })
+      .then(() => null, () => null);
   }
 
   const { error: actErr } = await supabase.from("contact_activities").insert({

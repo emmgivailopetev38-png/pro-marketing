@@ -26,6 +26,10 @@ describe("пак остави данни — кога картонът се вр
     expect(reLeadVerdict({ ...base, attempts: 0, createdAt: daysAgo(0) })).toEqual({ give: false, why: "already_fresh" });
   });
 
+  it("🚫 махнат от звъненето (евро програмата, 11.11) и попълва ДРУГА реклама — да: не е в „🆕 Нови“, макар да е пресен", () => {
+    expect(reLeadVerdict({ ...base, attempts: 0, createdAt: daysAgo(2), taken: true })).toEqual({ give: true });
+  });
+
   it("клиент, при продавач, човек на Ивайло, в тръбата му, без телефон — не", () => {
     expect(reLeadVerdict({ ...base, stage: "won" })).toEqual({ give: false, why: "won" });
     expect(reLeadVerdict({ ...base, ownerId: "m2" })).toEqual({ give: false, why: "owner" });
