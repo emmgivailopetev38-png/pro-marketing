@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ABOUT, COMPARE_ROWS, MODULES, MODULE_BY_KEY, DEFAULT_TEMPLATES } from "./katalog";
 import { buildSchema, describeIssues } from "./schema";
+import { CLIENT_CASES, SHOW_CLIENT_NAMES } from "@/lib/site/clients";
 import {
   buildAlternatives,
   buildItems,
@@ -252,7 +253,10 @@ describe("свободните раздели и „Кой е Ивайло Пе�
   });
   it("разделът за Ивайло носи числата от CRM-а с дата и линкове към сайта", () => {
     expect(ABOUT.proof).toMatch(/клиента · \d+ проведени срещи от август · \d+ активни месечни услуги · към \d{2}\.\d{2}\.\d{4}/);
-    for (const l of ABOUT.links) expect(l.url.startsWith("https://promarketing.pw/")).toBe(true);
+    for (const l of ABOUT.links) expect(/^https:\/\/(promarketing\.pw|youtu\.be|www\.youtube\.com)\//.test(l.url)).toBe(true);
+    // случаите са тези от сайта; имената на фирмите излизат само с изричното „да“ (SHOW_CLIENT_NAMES)
+    expect(ABOUT.cases).toHaveLength(CLIENT_CASES.length);
+    if (!SHOW_CLIENT_NAMES) for (const c of CLIENT_CASES) expect(ABOUT.cases.join(" ")).not.toContain(c.name);
     // нашето съдържание — без емоджита (NotoSans няма глифове) и без обещания
     expect(ABOUT.paragraphs.join(" ")).not.toMatch(/гарантир|№\s*1|най-добр/i);
   });

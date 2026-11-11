@@ -7,6 +7,7 @@
  */
 import { LEVELS, DOWNSELL } from "@/components/admin/skript/pricing-data";
 import { redSChisla } from "@/lib/site/otzivi";
+import { CLIENT_CASES, SHOW_CLIENT_NAMES } from "@/lib/site/clients";
 
 export type OfferUnit = "еднократно" | "/мес";
 export type VatMode = "incl" | "excl" | "none";
@@ -163,7 +164,9 @@ export const VAT_MODE_LABEL: Record<VatMode, string> = {
 /**
  * „Кой е Ивайло Петев“ (11.11.2026) — разделът за доверие в офертата, когато човекът пита кой стои зад това.
  * Текстът е от началната страница на promarketing.pw (секцията „Запознай се с експерта“), в трето лице;
- * числата идват от lib/site/otzivi.ts (нашият CRM, с дата) — сменят се там, не тук. Нищо ново не се твърди.
+ * числата идват от lib/site/otzivi.ts (нашият CRM, с дата), случаите — от lib/site/clients.ts (секцията
+ * „Направено при истински клиенти“; имената излизат само ако SHOW_CLIENT_NAMES е true). Сменят се там, не тук.
+ * Филмът е публичен в YouTube канала на Ивайло от 08.10.2026. Нищо ново не се твърди.
  */
 export const ABOUT = {
   title: "Кой е Ивайло Петев",
@@ -172,6 +175,8 @@ export const ABOUT = {
     "Започва в маркетинга — платени реклами, имейл кампании и CRM системи. Когато AI промени играта през 2023–2024 г., е сред първите, които започват да правят реални AI агенти за бизнеси — не „чатбот на сайта“, а системи, които поемат рутината вместо хората.",
     "Създател е на Petev.ai и на Академията към него (62 курса · 463 урока · 70 видео). Работи лично с всеки клиент — без посредници.",
   ],
+  cases_label: "Направено при истински клиенти",
+  cases: CLIENT_CASES.map((c) => `${SHOW_CLIENT_NAMES ? c.name : c.branch}${c.city ? ` · ${c.city}` : ""}: ${c.built}`),
   proof_label: "В числа — от нашия CRM",
   proof: redSChisla(),
   links_label: "Вижте сами",
@@ -179,8 +184,10 @@ export const ABOUT = {
     { label: "Резултати, клиенти и случаи", url: `${SITE}/uspehi` },
     { label: "Видеа — системата в действие и Ивайло зад кадър", url: `${SITE}/uspehi#videa` },
     { label: "Отзиви от клиенти — реални съобщения", url: `${SITE}/uspehi#otzivi` },
+    { label: "Филмът „Направих фирма с AI служители. Ето какво стана.“ (11 мин)", url: "https://youtu.be/hLuPHM0EE7A" },
+    { label: "YouTube каналът на Ивайло", url: "https://www.youtube.com/@promarketingbg" },
   ],
-} as const;
+};
 
 const eur = (s: string): number => Number(s.replace(/[^\d]/g, "")) || 0;
 const level = (numeral: "I" | "II" | "III") => LEVELS.find((l) => l.numeral === numeral)!;
