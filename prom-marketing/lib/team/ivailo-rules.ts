@@ -23,6 +23,11 @@
  *   📅 среща в календара му — предстояща или минала (проведена, „не се яви“).
  *      Отменената преди часа не се брои: тя не е стояла в календара, а за нея
  *      е „❌ Отказаха срещата“ — Димитър я мести.
+ *      ⚠️ НЕ и срещата, която екипът е записал в /ekip от 23.10.2026 нататък:
+ *      тогава води клоузърът (Георги) и срещата е НЕГОВА, не на Ивайло. Поводът
+ *      (12.11.2026): Георги записа Иван Радославов за пт 13.11, 18:00, а картата
+ *      му каза „📅 Има среща с Ивайло — човек на Ивайло. Не му звъни.“ Срещите,
+ *      записани от Димитър (сетър, до 21.10), си остават срещи с Ивайло.
  *
  *   🚫 махнат от звъненето — Ивайло изрично е казал „този не е за звънене от
  *      екипа“ (11.11.2026: лийдовете от евро програмата на АЗ). Следата е
@@ -45,6 +50,12 @@ export const AD_LEAD_SOURCE = "meta_lead";
 
 /** Заявка в Академията до толкова след формата от рекламата = част от рекламата, не „човек на Ивайло“. */
 export const AD_AKADEMIA_WINDOW_MS = 48 * 3600_000;
+
+/** Срещите, записани в /ekip, са с клоузъра от този момент (Георги от 23.10.2026, 00:00 в София). */
+export const CLOSER_MEETINGS_FROM = "2026-10-22T21:00:00Z";
+
+/** Откъде е срещата в CRM-а: /ekip пише `raw_payload.source = "ekip"`. */
+export const EKIP_BOOKING_SOURCE = "ekip";
 
 /**
  * Кога човекът е оставил данни от рекламата: създаването на картона (източник meta_lead)
@@ -93,6 +104,8 @@ export interface BookingRef {
   created_at?: string | null;
   attendee_email: string | null;
   attendee_phone: string | null;
+  /** `raw_payload.source` — „ekip“ = записана от екипа в /ekip */
+  source?: string | null;
 }
 
 export interface ContactRef {
@@ -159,6 +172,18 @@ const OFF_CALENDAR = new Set(["cancelled", "rejected"]);
 
 export function wasInCalendar(b: Pick<BookingRef, "status">): boolean {
   return !OFF_CALENDAR.has(String(b.status ?? ""));
+}
+
+/**
+ * Срещата е на клоузъра, не на Ивайло: записана от екипа в /ekip, откакто води
+ * клоузърът (23.10.2026). /ekip слага клоузъра в срещата за всеки час — като гост
+ * в Cal.com или с покана направо към него. Срещите на Димитър отпреди това бяха
+ * в календара на Ивайло и си остават знак.
+ */
+export function isCloserBooking(b: Pick<BookingRef, "source" | "created_at" | "scheduled_at">): boolean {
+  if (b.source !== EKIP_BOOKING_SOURCE) return false;
+  const at = ms(b.created_at ?? b.scheduled_at);
+  return Number.isFinite(at) && at >= ms(CLOSER_MEETINGS_FROM);
 }
 
 /**
@@ -321,6 +346,8 @@ export function ivailoClaim(
   }
   for (const b of mine.values()) {
     if (b.id === opts.ignoreBookingId || !wasInCalendar(b) || ms(b.scheduled_at) >= cut) continue;
+    // Срещата на клоузъра не прави човека „на Ивайло“ (Иван Радославов, 12.11.2026).
+    if (isCloserBooking(b)) continue;
     marks.push({ why: "meeting", at: knownAt(b.scheduled_at, b.created_at), meetingAt: b.scheduled_at });
   }
 

@@ -96,7 +96,8 @@ export async function loadAkademiaIds(ids: string[], sb: Sb = createServiceClien
 async function loadBookingIndex(sb: Sb): Promise<BookingIndex> {
   const { data, error } = await sb
     .from("bookings")
-    .select("id, status, scheduled_at, created_at, attendee_email, attendee_phone")
+    // source = откъде е срещата: „ekip“ от 23.10 е на клоузъра, не на Ивайло (isCloserBooking).
+    .select("id, status, scheduled_at, created_at, attendee_email, attendee_phone, source:raw_payload->>source")
     .not("status", "in", "(cancelled,rejected)")
     .order("scheduled_at", { ascending: false })
     .limit(1000);
