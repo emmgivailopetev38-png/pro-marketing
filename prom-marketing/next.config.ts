@@ -93,7 +93,7 @@ const nextConfig: NextConfig = {
       },
       {
         // Картинките и видеата се сменят рядко — нека кешът работи.
-        source: "/:path(videa|images|ads)/:file*",
+        source: "/:path(videa|images|ads|vsl)/:file*",
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
     ];
