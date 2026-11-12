@@ -40,7 +40,10 @@ export async function POST(request: Request) {
   const answers = Object.fromEntries(Object.entries(d.answers).filter(([k, v]) => allowed.has(k) && v.trim()));
 
   const res = await deliverVslAnswers({ c, name: d.name, phone: d.phone, answers, toIvailo: d.ot === "ivailo" }).catch(
-    () => ({ ok: false, contactId: null })
+    (e: unknown) => {
+      console.error("[vsl/vaprosi] deliver", e instanceof Error ? e.message : e);
+      return { ok: false, contactId: null };
+    }
   );
   if (!res.ok) return NextResponse.json({ ok: false, error: "Не успяхме да ги изпратим. Опитай пак след малко." }, { status: 500 });
   return NextResponse.json({ ok: true });
