@@ -187,6 +187,39 @@ describe("среща в календара на Ивайло", () => {
   });
 });
 
+describe("срещата на клоузъра (/ekip от 23.10.2026) не е среща с Ивайло", () => {
+  const NOW12 = new Date("2026-11-12T13:35:00Z");
+  const georgi = { team: true, team_member_id: "g1", outcome: "meeting", booking_id: "b-ivan" };
+
+  it("Георги записа Иван Радославов за пт 13.11, 18:00 — картата не казва „Има среща с Ивайло“", () => {
+    const rows = [
+      act("meeting", "2026-11-13T16:00:00Z", "Среща · пт 13.11, 18:00 · записа Джордж Мандаджиев", {
+        created_by: "Джордж Мандаджиев",
+        created_at: "2026-11-12T12:39:27Z",
+        metadata: georgi,
+      }),
+    ];
+    const b = { ...booking("b-ivan", "2026-11-13T16:00:00Z", "accepted", { email: "ivan@abv.bg" }, "2026-11-12T12:39:27Z"), source: "ekip" };
+    expect(ivailoClaim(person, rows, indexBookings([b]), { now: NOW12 })).toBeNull();
+  });
+
+  it("и след срещата (проведена или „не се яви“) човекът си остава на екипа", () => {
+    const b = { ...booking("b1", "2026-11-05T12:00:00Z", "no_show", { phone: "0888111222" }, "2026-11-04T12:29:49Z"), source: "ekip" };
+    expect(ivailoClaim(person, [], [b], { now: NOW12 })).toBeNull();
+  });
+
+  it("срещата, записана от Димитър (до 21.10), си остава среща с Ивайло", () => {
+    const b = { ...booking("b1", "2026-10-08T13:15:00Z", "completed", { email: "ivan@abv.bg" }, "2026-10-05T18:00:00Z"), source: "ekip" };
+    expect(ivailoClaim(person, [], [b], { now: NOW12 })?.why).toBe("meeting");
+  });
+
+  it("среща в календара на Ивайло (Хермес, Cal.com) до срещата на клоузъра — пак е на Ивайло", () => {
+    const closer = { ...booking("b1", "2026-11-13T16:00:00Z", "accepted", { email: "ivan@abv.bg" }, "2026-11-12T12:39:27Z"), source: "ekip" };
+    const ivailos = { ...booking("b2", "2026-11-16T13:00:00Z", "accepted", { email: "ivan@abv.bg" }, "2026-11-12T11:00:00Z"), source: "hermes" };
+    expect(ivailoClaim(person, [], [closer, ivailos], { now: NOW12 })).toMatchObject({ why: "meeting", meetingAt: "2026-11-16T13:00:00Z" });
+  });
+});
+
 describe("надписът", () => {
   it("Академията е по-силна от срещата; надписът е за Димитър", () => {
     const b = booking("b1", "2026-10-08T13:15:00Z", "accepted", { email: "ivan@abv.bg" });
