@@ -1,6 +1,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 import { allRows } from "@/lib/supabase/all-rows";
+import { chunks } from "@/lib/array";
 import { sendTelegram } from "@/lib/notifications/telegram";
 import { checkAgentCredits } from "./credits";
 import { outboundApiKey, placeOutboundCall } from "./outbound";
@@ -282,6 +283,19 @@ export async function findCandidates(now: Date, opts: AcOptions): Promise<{ call
   }
 
   const batches = await batchAttempts(now.getTime() - opts.noshowMaxAgeDays * 86_400_000);
+
+  // 50/50: кои от тях са на Ивайло — Ели им казва „консултация с Ивайло“ (split-rules.ts).
+  const ivailoIds = new Set<string>();
+  for (const part of chunks(ids, 100)) {
+    const { data: marks } = await sb
+      .from("contact_activities")
+      .select("contact_id")
+      .in("contact_id", part)
+      .eq("activity_type", "team_assigned")
+      .eq("metadata->>split", "true");
+    for (const m of marks ?? []) ivailoIds.add(String(m.contact_id));
+  }
+  opts = { ...opts, ivailoIds };
 
   const calls: AcCall[] = [];
   const skipped: { id: string; name: string | null; why: string }[] = [];
