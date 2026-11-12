@@ -13,6 +13,11 @@
  *
  * Човекът е на Ивайло, ако има поне едно от:
  *   🎓 Академията — заявка или регистрация в akademia.promarketing.pw;
+ *      ⚠️ НЕ и когато заявката е дошла до 48 ч след формата от рекламата (Ивайло,
+ *      12.11.2026: „заявка от Академията след реклама → при Георги“). Поводът: Иван
+ *      Радославов — форма „Покрай работата“, минута по-късно заявка в Академията →
+ *      „не му звъни“, а с Ивайло не са говорили. Стар клиент, който се регистрира
+ *      седмици след рекламата (Денис Коев), си остава на Ивайло;
  *   🤝 разговор с Ивайло — обаждане, записано от Ивайло, Хермес или Клод
  *      (телефонът на Ивайло); „не вдигна“, „изключен“, „пропуснато“ не са разговор;
  *   📅 среща в календара му — предстояща или минала (проведена, „не се яви“).
@@ -34,6 +39,30 @@ import { fmtSofia } from "./time";
 
 /** Източникът на картон, създаден от заявка в Академията. */
 export const AKADEMIA_SOURCE = "akademia";
+
+/** Картон, създаден от формата на рекламата. */
+export const AD_LEAD_SOURCE = "meta_lead";
+
+/** Заявка в Академията до толкова след формата от рекламата = част от рекламата, не „човек на Ивайло“. */
+export const AD_AKADEMIA_WINDOW_MS = 48 * 3600_000;
+
+/**
+ * Кога човекът е оставил данни от рекламата: създаването на картона (източник meta_lead)
+ * и всяка активност meta_lead (и повторните заявки). За ivailoClaim.
+ */
+export function adArrivals(contact: Pick<ContactRef, "source" | "created_at">, rows: Pick<SignalRow, "activity_type" | "occurred_at">[]): number[] {
+  const out: number[] = [];
+  if (contact.source === AD_LEAD_SOURCE && contact.created_at) out.push(ms(contact.created_at));
+  for (const r of rows) if (r.activity_type === "meta_lead") out.push(ms(r.occurred_at));
+  return out.filter(Number.isFinite);
+}
+
+/** Знакът от Академията идва ли до 48 ч след форма от рекламата (или до 10 мин преди нея — часовниците се разминават). */
+export function isAdFunnelAkademia(at: string, arrivals: number[]): boolean {
+  const t = ms(at);
+  if (!Number.isFinite(t)) return false;
+  return arrivals.some((a) => t >= a - 10 * 60_000 && t - a <= AD_AKADEMIA_WINDOW_MS);
+}
 
 /** Академията праща заявките през формата на сайта със съобщение „Академия · …“ (виж akademia/lib/crm.ts). */
 export const AKADEMIA_PREFIX = "Академия · ";
@@ -250,6 +279,7 @@ export function ivailoClaim(
   const idx = Array.isArray(bookings) ? indexBookings(bookings) : bookings;
   const cut = opts.before ? opts.before.getTime() : Infinity;
   const marks: Array<{ why: IvailoWhy; at: string; meetingAt: string | null; sticky?: boolean }> = [];
+  const arrivals = adArrivals(contact, rows);
   if (contact.source === AKADEMIA_SOURCE) {
     marks.push({ why: "akademia", at: contact.created_at ?? new Date(0).toISOString(), meetingAt: null });
   }
@@ -272,7 +302,8 @@ export function ivailoClaim(
       continue;
     }
     if (isAkademiaSignal(r)) {
-      marks.push({ why: "akademia", at: knownAt(r.occurred_at, r.created_at), meetingAt: null });
+      // Заявка от Академията веднага след рекламата → на екипа е (12.11.2026).
+      if (!isAdFunnelAkademia(r.occurred_at, arrivals)) marks.push({ why: "akademia", at: knownAt(r.occurred_at, r.created_at), meetingAt: null });
       continue;
     }
     if (ms(r.occurred_at) >= cut) continue;

@@ -61,6 +61,41 @@ describe("Академията", () => {
   });
 });
 
+describe("Академията веднага след рекламата → на екипа (12.11.2026)", () => {
+  const form = (at: string) =>
+    act("website_form", at, "🎓 Заявка от Академията", {
+      created_by: "website",
+      body: "Фирма/дейност: Наказателно право\nСъобщение: Академия · Заявка за достъп\nИван Радославов…: Чака отключване",
+    });
+  const note = (at: string) => act("note", at, "🎓 Академия · регистрира се — чака отключване", { created_by: "claude" });
+
+  it("форма от рекламата и минута по-късно заявка в Академията — не е на Ивайло (Иван Радославов)", () => {
+    const ivan: ContactRef = { ...person, source: "meta_lead", created_at: "2026-11-09T12:17:51Z" };
+    expect(ivailoClaim(ivan, [form("2026-11-09T12:18:37Z"), note("2026-11-10T06:30:00Z")], [], { now: NOW })).toBeNull();
+  });
+
+  it("повторна форма от рекламата (meta_lead) отваря прозореца и за стар картон (Валерия Стоева)", () => {
+    const old: ContactRef = { ...person, source: "meta_lead", created_at: "2026-09-17T11:25:17Z" };
+    const relead = act("meta_lead", "2026-11-09T15:11:06Z", "Meta lead · ПОКРАЙ РАБОТАТА", { created_by: "meta_webhook" });
+    expect(ivailoClaim(old, [relead, form("2026-11-09T15:12:00Z")], [], { now: NOW })).toBeNull();
+  });
+
+  it("регистрация седмици след рекламата — пак е на Ивайло (Денис Коев)", () => {
+    const denis: ContactRef = { ...person, source: "meta_lead", created_at: "2026-09-19T13:58:06Z" };
+    expect(ivailoClaim(denis, [note("2026-10-07T08:00:00Z")], [], { now: NOW })?.why).toBe("akademia");
+  });
+
+  it("картон, създаден от самата Академия, си остава на Ивайло", () => {
+    expect(ivailoClaim({ ...person, source: AKADEMIA_SOURCE, created_at: "2026-11-09T12:17:51Z" }, [], [], { now: NOW })?.why).toBe("akademia");
+  });
+
+  it("разговор с Ивайло след рекламата пак го прави негов", () => {
+    const ivan: ContactRef = { ...person, source: "meta_lead", created_at: "2026-11-09T12:17:51Z" };
+    const talk = act("call", "2026-11-10T10:00:00Z", "📞 Разговор с Ивайло · Говорихме", { created_by: "ivailo" });
+    expect(ivailoClaim(ivan, [form("2026-11-09T12:18:37Z"), talk], [], { now: new Date("2026-11-12T12:00:00Z") })?.why).toBe("talked");
+  });
+});
+
 describe("разговор с Ивайло", () => {
   it("записаният разговор е знак, „нямаше разговор“ не е", () => {
     expect(isIvailoTalk(act("call", "2026-09-10T12:23:00Z", "📞 Разговор с Ивайло · Говорихме · 10.09.2026", { created_by: "ivailo" }))).toBe(true);

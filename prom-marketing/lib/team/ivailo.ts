@@ -44,6 +44,8 @@ async function loadSignalRows(sb: Sb, ids: string[]): Promise<SignalRow[]> {
         sb.from("contact_activities").select(COLS).in("contact_id", part).eq("created_by", "akademia").limit(1000),
         // Бележка на Ивайло или Клод за Академията („Регистрира се в Академията…“).
         sb.from("contact_activities").select(COLS).in("contact_id", part).eq("activity_type", "note").ilike("title", "%Академи%").limit(1000),
+        // Формите от рекламата — заявка в Академията веднага след тях не е „човек на Ивайло“ (12.11.2026).
+        sb.from("contact_activities").select(COLS).in("contact_id", part).eq("activity_type", "meta_lead").limit(1000),
       ])
     )
   );
