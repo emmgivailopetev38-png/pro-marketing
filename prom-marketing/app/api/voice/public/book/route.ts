@@ -13,6 +13,7 @@ import { checkBookingAllowed } from "@/lib/voice/booking-guard";
 import { escapeHtml as esc } from "@/lib/text/escape";
 import { assignMeetingToCloser, closerForMeeting } from "@/lib/team/closer";
 import { findContactByEmailOrPhone } from "@/lib/team/cancelled";
+import { ivailoEventSlug } from "@/lib/team/split-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -136,7 +137,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const cal = await fetchSlots({ days: 21 });
+    // Чия е срещата: първата е на клоузъра — той влиза в поканата още сега, а
+    // картонът става негов (иначе не го вижда в „Продажби“). Фолоуъп или оферта
+    // от Ивайло, или лийд на Ивайло по 50/50 → неговият календар (пон–чт 12–18).
+    // Картонът се търси и по телефон: Ели не пита за имейл (03.11.2026).
+    const known = await findContactByEmailOrPhone(email, telefon).catch(() => null);
+    const closer = await closerForMeeting(known?.id ?? null).catch(() => null);
+    const eventSlug = closer ? undefined : ivailoEventSlug();
+
+    const cal = await fetchSlots({ days: 21, eventSlug });
     if (!cal.ok) {
       // Календарът мълчи. По-добре честно, отколкото обещан час, който после
       // го няма — човекът ще дойде.
@@ -173,12 +182,6 @@ export async function POST(request: Request) {
 
     const notes = [d.tema, d.deynost ? `Дейност: ${d.deynost}` : null].filter(Boolean).join(" · ") || null;
 
-    // Чия е срещата: първата е на клоузъра — той влиза в поканата още сега, а
-    // картонът става негов (иначе не го вижда в „Продажби“). Фолоуъп или оферта
-    // от Ивайло → остава при Ивайло. Картонът се търси и по телефон: Ели не пита
-    // за имейл, а търсенето само по имейл не намираше никого (03.11.2026).
-    const known = await findContactByEmailOrPhone(email, telefon).catch(() => null);
-    const closer = await closerForMeeting(known?.id ?? null).catch(() => null);
 
     // Календарът пръв: ако той откаже, в CRM-а не бива да остане среща,
     // за която Ивайло мисли, че е потвърдена.
@@ -200,6 +203,7 @@ export async function POST(request: Request) {
         startISO: start.toISOString(),
         phone: telefon,
         notes,
+        eventSlug,
         guests: closer?.email ? [closer.email] : [],
       });
       inCalendar = res.ok;

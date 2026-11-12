@@ -2,15 +2,24 @@ import type { Metadata } from "next";
 import { BookingEmbed } from "@/components/booking/BookingEmbed";
 import { ConversionSeoBlock } from "@/components/seo/ConversionSeoBlock";
 import { AGENT_PHONE_DISPLAY, AGENT_PHONE_LINE, AGENT_PHONE_TEL } from "@/lib/site/agent-phone";
+import { ivailoEventSlug, ivailoShare } from "@/lib/team/split-rules";
+
+// 50/50 (lib/team/split-rules.ts): половината посетители виждат календара на
+// Ивайло (пон–чт 12–18), другата — на Георги. Затова страницата не се кешира.
+export const dynamic = "force-dynamic";
+const GEORGI_SLUG = "konsultacia-georgi";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/booking" },
   title: "Резервирай разговор",
   description:
-    "Запази 60-минутен разговор с Георги от екипа на Ивайло Петев — обсъждаме процесите ви и какво AI автоматизация може да направи за бизнеса ви.",
+    "Запази разговор с екипа на Ивайло Петев — обсъждаме процесите ви и какво AI автоматизация може да направи за бизнеса ви.",
 };
 
 export default function BookingPage() {
+  const toIvailo = Math.random() < ivailoShare();
+  const slug = toIvailo ? ivailoEventSlug() : GEORGI_SLUG;
+  const minutes = toIvailo ? 45 : 60;
   return (
     <>
     <main className="relative min-h-screen overflow-hidden bg-[#030308] text-[#f5f7ff]">
@@ -39,7 +48,7 @@ export default function BookingPage() {
             Резервация
           </p>
           <h1 className="font-display text-[clamp(36px,7vw,72px)] font-extrabold leading-[0.95]">
-            Запази <span className="text-cyan-300">60 мин</span> разговор
+            Запази <span className="text-cyan-300">{minutes} мин</span> разговор
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-[#a5b0c8] md:text-lg">
             Без презентации. Без обещания на калпак. Обсъждаме процесите ви, болезнените места и
@@ -48,7 +57,11 @@ export default function BookingPage() {
         </div>
 
         <div className="rounded-2xl border border-cyan-500/15 bg-[#0a0a1f]/60 p-2 md:p-4">
-          <BookingEmbed guests={["george.mandadzhiev@gmail.com"]} />
+          {toIvailo ? (
+            <BookingEmbed calLink={`promarketing/${slug}`} />
+          ) : (
+            <BookingEmbed calLink={`promarketing/${slug}`} guests={["george.mandadzhiev@gmail.com"]} />
+          )}
         </div>
 
         {/* Телефонът на гласовия агент: екранът след лийд формата в Meta води
@@ -70,7 +83,7 @@ export default function BookingPage() {
         {/* Fallback — ако вграденият календар не се зареди (блокери, бавна мрежа) */}
         <div className="mt-4 text-center">
           <a
-            href="https://cal.com/promarketing/konsultacia-georgi"
+            href={`https://cal.com/promarketing/${slug}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-full border border-cyan-400/40 px-6 py-3 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-400/10"

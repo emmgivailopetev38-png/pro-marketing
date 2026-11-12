@@ -10,6 +10,7 @@ import {
   isTakenFromTeam,
   ivailoClaim,
   takenMark,
+  isSplitToIvailo,
   type BookingRef,
   type ContactRef,
   type SignalRow,
@@ -221,5 +222,29 @@ describe("🚫 махнат от звъненето на екипа (евро п
     const give = act("team_assigned", "2026-11-12T09:00:00Z", "🤝 Дадено на Георги", { created_by: "Ивайло", metadata: { kind: "given" } });
     const talk = act("call", "2026-11-13T10:00:00Z", "📞 Разговор с Ивайло · Говорихме", { created_by: "ivailo" });
     expect(ivailoClaim(person, [taken, give, talk], [], { now: new Date("2026-11-14T12:00:00Z") })?.why).toBe("talked");
+  });
+});
+
+describe("👤 50/50 — лийдът е на Ивайло (12.11.2026)", () => {
+  const split = act("team_assigned", "2026-11-12T10:00:00Z", "👤 Води: Ивайло", {
+    created_by: "система",
+    metadata: takenMark("Нов лийд от рекламата · 50/50 → води Ивайло", { split: true }),
+  });
+  const NOW3 = new Date("2026-11-12T12:00:00Z");
+
+  it("екипът не го вижда, а нова заявка от рекламата (relead) НЕ го връща на екипа", () => {
+    expect(isSplitToIvailo(split)).toBe(true);
+    expect(ivailoClaim(person, [split], [], { now: NOW3 })?.why).toBe("taken");
+    const relead = act("team_assigned", "2026-11-13T08:00:00Z", "🔁 Пак остави данни", { created_by: "meta_webhook", metadata: { kind: "relead" } });
+    expect(ivailoClaim(person, [split, relead], [], { now: new Date("2026-11-13T12:00:00Z") })?.why).toBe("taken");
+  });
+
+  it("само изричното „🤝 Дай на екипа“ от Ивайло го дава на Георги", () => {
+    const give = act("team_assigned", "2026-11-13T09:00:00Z", "🤝 Дадено на Георги", { created_by: "Ивайло", metadata: { kind: "given" } });
+    expect(ivailoClaim(person, [split, give], [], { now: new Date("2026-11-13T12:00:00Z") })).toBeNull();
+  });
+
+  it("обикновеното махане не е 50/50", () => {
+    expect(isSplitToIvailo(act("team_assigned", "2026-11-11T10:00:00Z", "🚫", { metadata: takenMark("евро") }))).toBe(false);
   });
 });

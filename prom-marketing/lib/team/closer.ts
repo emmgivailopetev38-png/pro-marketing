@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { ASSIGN_TYPE } from "./queue-rules";
 import { FOLLOWUP_ACTIVITY_TYPES, isFirstMeeting } from "./closer-rules";
 import { listMembers } from "./repository";
+import { isManualGive, isSplitToIvailo } from "./ivailo-rules";
 import type { TeamMember } from "./types";
 
 /**
@@ -31,6 +32,8 @@ export async function closerForMeeting(contactId: string | null): Promise<TeamMe
   const { data: c } = await sb.from("contacts").select("owner_id, stage").eq("id", contactId).maybeSingle();
   if (!c) return closer;
   if (c.owner_id) return c.owner_id === closer.id ? closer : null;
+  // 50/50 (split-rules.ts): лийдът е на Ивайло → срещата е при него, клоузърът не се кани.
+  if (await isIvailoSplitLead(contactId)) return null;
   // Само първата среща е за клоузъра (Ивайло, 01.11.2026): фолоуъп → остава при Ивайло.
   // Има ли оферта или среща с Ивайло — човекът е негов (Ивайло, 03.11.2026), клоузърът не го получава.
   const [{ data: prior }, { count: offers }] = await Promise.all([
@@ -81,4 +84,32 @@ export async function assignMeetingToCloser(args: {
     created_by: args.createdBy ?? "система",
   });
   return closer;
+}
+
+/**
+ * Лийд на Ивайло по 50/50 (тихата следа от routeNewLead), който Ивайло не е
+ * дал после на екипа. Ели и записването питат това, за да сложат срещата в
+ * НЕГОВИЯ календар. При грешка — false (както досега: срещата е на клоузъра).
+ */
+export async function isIvailoSplitLead(contactId: string | null | undefined): Promise<boolean> {
+  if (!contactId) return false;
+  try {
+    const sb = createServiceClient();
+    const { data } = await sb
+      .from("contact_activities")
+      .select("metadata, occurred_at")
+      .eq("contact_id", contactId)
+      .eq("activity_type", ASSIGN_TYPE)
+      .order("occurred_at", { ascending: false })
+      .limit(50);
+    const rows = (data ?? []) as { metadata: Record<string, unknown> | null; occurred_at: string }[];
+    const split = rows.find((r) => isSplitToIvailo({ activity_type: ASSIGN_TYPE, metadata: r.metadata }));
+    if (!split) return false;
+    // „🤝 Дай на екипа“ от Ивайло след това — вече е на екипа.
+    return !rows.some(
+      (r) => r.occurred_at > split.occurred_at && isManualGive({ activity_type: ASSIGN_TYPE, metadata: r.metadata })
+    );
+  } catch {
+    return false;
+  }
 }

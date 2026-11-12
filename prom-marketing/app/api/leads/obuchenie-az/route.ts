@@ -241,7 +241,7 @@ export async function POST(request: Request) {
       if (r.error) console.error("[leads/obuchenie-az] admin notification failed:", r.error);
     }
 
-    await routeNewLead(contactId).catch(() => null);
+    await routeNewLead(contactId, { split: false }).catch(() => null);
     await notifyTeamNewLead({
       contactId,
       fullName: lead.full_name,

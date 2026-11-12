@@ -49,6 +49,8 @@ export type CalBookingInput = {
   email: string;
   /** Начало в UTC (ISO). Cal.com иска UTC, не местно време. */
   startISO: string;
+  /** друг тип събитие — напр. календарът на Ивайло при 50/50 (lib/team/split-rules.ts) */
+  eventSlug?: string;
   durationMinutes?: number;
   phone?: string | null;
   notes?: string | null;
@@ -92,7 +94,7 @@ export function toE164(raw: string | null | undefined): string | null {
 export function buildCalPayload(input: CalBookingInput): Record<string, unknown> {
   const body: Record<string, unknown> = {
     start: new Date(input.startISO).toISOString(),
-    eventTypeSlug: eventSlug(),
+    eventTypeSlug: input.eventSlug?.trim() || eventSlug(),
     username: username(),
     attendee: {
       name: input.name.trim(),
