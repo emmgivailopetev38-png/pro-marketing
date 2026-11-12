@@ -131,6 +131,14 @@ export default async function AdminDashboard() {
   // „Пари · равносметка“ — кредитите, падежите и тегленото в брой (по банката).
   // Тръгва заедно с останалото; ако таблиците ги няма, таблото не пада.
   const pariPromise = loadPari(3).catch(() => null);
+  // „🆕 Моите нови“ (50/50, lib/team/split-rules.ts) — колко нови лийда са дошли при Ивайло за 7 дни.
+  const moiNoviPromise = supabase
+    .from("contact_activities")
+    .select("id", { count: "exact", head: true })
+    .eq("activity_type", "team_assigned")
+    .eq("metadata->>split", "true")
+    .gte("occurred_at", new Date(Date.now() - 7 * 86_400_000).toISOString())
+    .then((r) => r.count ?? 0, () => 0);
 
   const [contactsRes, activitiesRes, bookingsRes, metaLeadsRes, invoicesRes, manualReviewRes, paymentsRes, expensesRes, metaReportsRes, gpsRes, recurringRes, offersRes, projectsRes] = await Promise.all([
     // Беше select("*") — теглеше и `notes` (свободен текст, може да е дълъг),
@@ -183,6 +191,7 @@ export default async function AdminDashboard() {
   ]);
 
   const pari = await pariPromise;
+  const moiNovi = await moiNoviPromise;
   const pariSoon = pari ? pari.upcoming.filter((u) => u.daysLeft <= 7).reduce((s, u) => s + u.amount, 0) : 0;
   const pariFocus = pari ? ([...pari.summaries].reverse().find((s) => s.clientIncome > 0 || s.out > 0) ?? null) : null;
 
@@ -553,6 +562,18 @@ export default async function AdminDashboard() {
             </Link>
           </div>
         </section>
+
+        {/* ─── 🆕 Моите нови (50/50) ─────────────────────────────────────── */}
+        <Link
+          href="/admin/moi-novi"
+          className="flex items-center justify-between gap-4 rounded-xl border-2 border-[#f97316]/50 bg-[#f97316]/10 px-5 py-4 transition hover:bg-[#f97316]/15"
+        >
+          <div>
+            <p className="font-display text-xl font-bold text-[#f97316]">🆕 Моите нови лийдове</p>
+            <p className="text-xs text-[var(--color-text-secondary)]">Твоята половина от рекламата · кого Ели не записа · кого да звъннеш</p>
+          </div>
+          <span className="text-3xl font-bold text-[#f97316]">{moiNovi}</span>
+        </Link>
 
         {/* ─── Daily focus ─────────────────────────────────────────────── */}
         <section>
