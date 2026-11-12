@@ -36,6 +36,7 @@ const COMMANDS: Cmd[] = [
   { href: "/admin", label: "Преглед", group: "Команден център", icon: LayoutDashboard, kw: "dashboard home nachalo pregled" },
   { href: "/admin/new-leads", label: "Нови лидове", group: "Команден център", icon: Sparkles, kw: "new leads novi" },
   { href: "/admin/clients", label: "Клиенти", group: "CRM", icon: Users, kw: "clients klienti contacts kontakti" },
+  { href: "/admin/moi-novi", label: "🆕 Моите нови", group: "CRM", icon: Target, kw: "moi novi liidove 50 split" },
   { href: "/admin/follow-up", label: "Follow-up", group: "CRM", icon: Target, kw: "followup proslejavane" },
   { href: "/admin/zvanene", label: "Звънене", group: "CRM", icon: PhoneCall, kw: "zvanene obazhdaniya call telefon wispr" },
   { href: "/admin/bookings", label: "Срещи", group: "CRM", icon: Calendar, kw: "bookings meetings srehti calendar" },

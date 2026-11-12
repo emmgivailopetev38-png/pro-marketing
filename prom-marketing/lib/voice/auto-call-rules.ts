@@ -82,6 +82,11 @@ export interface AcOptions {
    * тях ги звъни човек — Георги). Живата стойност: VOICE_AUTO_SKIP_FORMS.
    */
   skipForms?: Set<string>;
+  /**
+   * Лийдовете на Ивайло по 50/50 (lib/team/split-rules.ts) — за тях Ели казва
+   * „консултация с Ивайло“ ({{domakin}}), не „с Георги“.
+   */
+  ivailoIds?: Set<string>;
 }
 
 export const DEFAULT_OPTIONS: Omit<AcOptions, "eliAgentId" | "skipPhones"> = {
@@ -592,6 +597,8 @@ export function decide(
     telefon: toNumber,
     sesia: "",
     minuti: "",
+    // С кого е консултацията — промптът на Ели чете {{domakin}} (50/50, 12.11.2026).
+    domakin: opts.ivailoIds?.has(c.id) ? "Ивайло" : "Георги",
   };
   let variables: Record<string, string>;
   if (reason === "nov") {
