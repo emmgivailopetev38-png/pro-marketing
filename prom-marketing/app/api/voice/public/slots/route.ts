@@ -3,6 +3,10 @@ import { z } from "zod";
 import { isPublicVoiceEnabled } from "@/lib/voice/public-auth";
 import { fetchSlots, speakSlots, speakDay, speakTime } from "@/lib/cal/slots";
 import { parseWhen } from "@/lib/voice/when";
+import { identityForSessionKey } from "@/lib/voice/quota";
+import { findContactByEmailOrPhone } from "@/lib/team/cancelled";
+import { activeCloser, closerForMeeting } from "@/lib/team/closer";
+import { ivailoEventSlug } from "@/lib/team/split-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +35,9 @@ export function wholeWeek(koga: string): boolean {
 const schema = z.object({
   /** „другата седмица", „четвъртък", „следобед" — както го е казал човекът. */
   koga: z.string().trim().max(80).optional(),
+  /** Телефонът / ключът на разговора — за да се видят часовете на правилния човек (50/50, split-rules.ts). */
+  telefon: z.string().trim().max(40).optional(),
+  sesia: z.string().trim().max(80).optional(),
 });
 
 export async function POST(request: Request) {
@@ -55,7 +62,7 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(body ?? {});
   const koga = parsed.success ? parsed.data.koga : undefined;
 
-  const res = await fetchSlots({ days: 14 });
+  const res = await fetchSlots({ days: 14, eventSlug: await whoseSlots(parsed.success ? parsed.data : {}) });
   if (!res.ok) {
     console.error("[voice/public/slots]", res.error);
     return NextResponse.json(
@@ -108,4 +115,24 @@ export async function POST(request: Request) {
     slots: res.slots.slice(0, 8),
     spoken: speakSlots(res.slots),
   });
+}
+
+/**
+ * Чий календар да покаже: човек на Ивайло (50/50, фолоуъп, оферта) → неговият
+ * (пон–чт 12–18), иначе на клоузъра. Без телефон — на клоузъра, както досега;
+ * записването после пак сверява и при нужда предлага най-близкия свободен час.
+ */
+async function whoseSlots(d: { telefon?: string; sesia?: string }): Promise<string | undefined> {
+  try {
+    const bound = await identityForSessionKey(d.sesia);
+    const phone = bound?.phone ?? d.telefon ?? null;
+    const email = bound?.email ?? null;
+    if (!phone && !email) return undefined;
+    const known = await findContactByEmailOrPhone(email, phone);
+    if (!known) return undefined;
+    if (!(await activeCloser())) return undefined;
+    return (await closerForMeeting(known.id)) ? undefined : ivailoEventSlug();
+  } catch {
+    return undefined;
+  }
 }

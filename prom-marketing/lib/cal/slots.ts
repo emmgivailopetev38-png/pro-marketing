@@ -91,7 +91,12 @@ export function speakTime(d: Date): string {
  * Свободните часове напред. `days` е колко дни да гледа — 14 покрива
  * „другата седмица", без да товари отговора със стотици слотове.
  */
-export async function fetchSlots(opts?: { days?: number; from?: Date }): Promise<
+export async function fetchSlots(opts?: {
+  days?: number;
+  from?: Date;
+  /** друг тип събитие — напр. календарът на Ивайло при 50/50 (lib/team/split-rules.ts) */
+  eventSlug?: string;
+}): Promise<
   { ok: true; slots: Slot[] } | { ok: false; error: string }
 > {
   const from = opts?.from ?? new Date();
@@ -99,7 +104,7 @@ export async function fetchSlots(opts?: { days?: number; from?: Date }): Promise
   const to = new Date(from.getTime() + days * 86400_000);
 
   const qs = new URLSearchParams({
-    eventTypeSlug: eventSlug(),
+    eventTypeSlug: opts?.eventSlug?.trim() || eventSlug(),
     username: username(),
     start: from.toISOString().slice(0, 10),
     end: to.toISOString().slice(0, 10),

@@ -155,8 +155,17 @@ export function isTakenFromTeam(row: Pick<SignalRow, "activity_type" | "metadata
 }
 
 /** metadata на следата „махнат от звъненето“ — едно място, за да я пишат еднакво входът на лийда и ръчните корекции. */
-export function takenMark(reason: string): Record<string, unknown> {
-  return { kind: "sales", to_member_id: null, to_name: "Ивайло", taken: true, reason };
+export function takenMark(reason: string, opts?: { split?: boolean }): Record<string, unknown> {
+  return { kind: "sales", to_member_id: null, to_name: "Ивайло", taken: true, reason, ...(opts?.split ? { split: true } : {}) };
+}
+
+/**
+ * Лийдът е на Ивайло по разделянето 50/50 (split-rules.ts, 12.11.2026). За
+ * разлика от обикновеното „махнат“ нова заявка от рекламата (relead) НЕ го
+ * връща на екипа — човекът си остава при Ивайло, докато той сам не го даде.
+ */
+export function isSplitToIvailo(row: Pick<SignalRow, "activity_type" | "metadata">): boolean {
+  return isTakenFromTeam(row) && row.metadata?.split === true;
 }
 
 function ms(iso: string | null | undefined): number {
@@ -240,7 +249,7 @@ export function ivailoClaim(
 ): IvailoClaim | null {
   const idx = Array.isArray(bookings) ? indexBookings(bookings) : bookings;
   const cut = opts.before ? opts.before.getTime() : Infinity;
-  const marks: Array<{ why: IvailoWhy; at: string; meetingAt: string | null }> = [];
+  const marks: Array<{ why: IvailoWhy; at: string; meetingAt: string | null; sticky?: boolean }> = [];
   if (contact.source === AKADEMIA_SOURCE) {
     marks.push({ why: "akademia", at: contact.created_at ?? new Date(0).toISOString(), meetingAt: null });
   }
@@ -259,7 +268,7 @@ export function ivailoClaim(
     }
     // Изричното „не е за звънене от екипа“ важи винаги — и за напомнянията (без `before`).
     if (isTakenFromTeam(r)) {
-      marks.push({ why: "taken", at: r.occurred_at, meetingAt: null });
+      marks.push({ why: "taken", at: r.occurred_at, meetingAt: null, sticky: isSplitToIvailo(r) });
       continue;
     }
     if (isAkademiaSignal(r)) {
@@ -289,7 +298,8 @@ export function ivailoClaim(
   // тя е нов повод и човекът пак е за звънене. Другите знаци relead не пипа.
   const backAt = Math.max(Number.isFinite(manualGiveAt) ? manualGiveAt : -Infinity, Number.isFinite(reLeadAt) ? reLeadAt : -Infinity);
   for (let i = marks.length - 1; i >= 0; i--) {
-    if (marks[i].why === "taken" && backAt > ms(marks[i].at)) marks.splice(i, 1);
+    const back = marks[i].sticky ? manualGiveAt : backAt;
+    if (marks[i].why === "taken" && Number.isFinite(back) && back > ms(marks[i].at)) marks.splice(i, 1);
   }
   if (marks.length === 0) return null;
   const latest = marks.reduce((a, b) => (ms(b.at) > ms(a.at) ? b : a));

@@ -1644,6 +1644,8 @@ export async function upsertBooking(input: {
   source?: string;
   /** `false`, когато извикващият сам записва по-богата активност `meeting` в картона. */
   log_activity?: boolean;
+  /** „ivailo“ = срещата е в календара на Ивайло (Cal.com consultation, 50/50) — клоузърът не я получава. */
+  vodi?: "ivailo";
 }): Promise<{ id: string | null; created: boolean; error: string | null }> {
   const sb = createServiceClient();
 
@@ -1726,7 +1728,22 @@ export async function upsertBooking(input: {
 
   // Срещата е на клоузъра: картонът отива в неговите „Продажби · моите хора“
   // (lib/team/closer.ts). Важи за всички входове — Cal.com синхрон, екипа, гласовия агент.
-  if (contact) {
+  if (contact && input.vodi === "ivailo") {
+    // Срещата е при Ивайло (50/50, lib/team/split-rules.ts) — тиха следа, екипът не вижда човека.
+    const { isIvailoSplitLead } = await import("@/lib/team/closer");
+    if (!(await isIvailoSplitLead(contact.id).catch(() => false))) {
+      const { takenMark } = await import("@/lib/team/ivailo-rules");
+      const reason = "Среща в календара на Ивайло (сайта) · 50/50 → води Ивайло";
+      await sb.from("contact_activities").insert({
+        contact_id: contact.id,
+        activity_type: "team_assigned",
+        title: "👤 Води: Ивайло",
+        body: reason,
+        metadata: takenMark(reason, { split: true }),
+        created_by: "система",
+      });
+    }
+  } else if (contact) {
     const { assignMeetingToCloser } = await import("@/lib/team/closer");
     await assignMeetingToCloser({
       contactId: contact.id,

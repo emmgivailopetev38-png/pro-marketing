@@ -63,6 +63,8 @@ const bookingInput = z.object({
   meeting_url: z.string().trim().optional(),
   services_interested: z.unknown().optional(),
   notes: z.string().optional(),
+  /** „ivailo“ = в календара на Ивайло (Cal.com consultation) — 50/50, клоузърът не я получава */
+  vodi: z.enum(["ivailo"]).optional(),
 });
 
 /**
