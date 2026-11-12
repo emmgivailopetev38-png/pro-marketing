@@ -41,7 +41,7 @@ export function VslPlayer({
   // До първото пускане: корицата + един голям бутон (контролите на браузъра
   // в Viber/Android показват само въртележка, докато зареждат).
   const [started, setStarted] = useState(false);
-  // Накрая видеото казва „линкът за записване е под видеото“ — даваме го
+  // Накрая видеото говори за подготовката за срещата — даваме я
   // точно там, върху последния кадър.
   const [ended, setEnded] = useState(false);
 
@@ -100,7 +100,7 @@ export function VslPlayer({
         <button
           type="button"
           onClick={() => void ref.current?.play().catch(() => {})}
-          className="group absolute inset-0 flex flex-col items-center justify-end bg-gradient-to-t from-black/70 via-transparent to-transparent pb-[30%]"
+          className="group absolute inset-0 flex flex-col items-center justify-end bg-gradient-to-t from-black/70 via-transparent to-transparent pb-[55%]"
           aria-label="Пусни видеото"
         >
           <span className="grid h-20 w-20 place-items-center rounded-full bg-[#facc15] shadow-[0_0_0_10px_rgba(250,204,21,0.25)] transition group-hover:scale-105">
@@ -188,8 +188,8 @@ export function VslChapters({ chapters, duration }: { chapters: VslChapter[]; du
 }
 
 /**
- * Лентата „Запиши си час“ отдолу на телефона — показва се, щом видеото излезе
- * от екрана, и се крие, когато календарът е вече видим.
+ * Лентата „Подготви се за срещата“ отдолу на телефона — показва се, щом видеото излезе
+ * от екрана, и се крие, когато въпросите са вече видими.
  */
 export function VslStickyCta({ label, target }: { label: string; target: string }) {
   const [videoOut, setVideoOut] = useState(false);
