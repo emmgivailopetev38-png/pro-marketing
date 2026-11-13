@@ -39,6 +39,16 @@ for f in glob.glob(os.path.join(ROOT, "app/**/page.tsx"), recursive=True):
         rel = re.sub(r"\([^)]*\)/?", "", rel).strip("/")
         REDIRECTS.add("/" + rel if rel else "/")
 
+# Пренасочванията от next.config.ts. Те не са страници в билда, но НЕ са
+# и счупени връзки — адресът отговаря, само че с 301/307. Без този списък
+# всяка връзка към /rabota (307 към igra.promarketing.pw) се брои за
+# счупена и вдига фалшив „високо" на всеки цикъл.
+CONFIG_REDIRECTS = set()
+_cfg = os.path.join(ROOT, "next.config.ts")
+if os.path.exists(_cfg):
+    _src = open(_cfg, encoding="utf-8", errors="replace").read()
+    CONFIG_REDIRECTS = {m for m in re.findall(r'source:\s*"(/[^"]*)"', _src)}
+
 pages = {}
 for f in glob.glob(os.path.join(APP, "**/*.html"), recursive=True):
     rel = os.path.relpath(f, APP)[:-5]
@@ -143,7 +153,7 @@ for p, n in sorted(links.items()):
     if p in known or dynamic_ok.match(p): continue
     if p.startswith("/_next") or p.startswith("/videa") or p.startswith("/images"): continue
     if p in ("/manifest.webmanifest","/sitemap.xml","/robots.txt","/llms.txt"): continue
-    if p in REDIRECTS: continue
+    if p in REDIRECTS or p in CONFIG_REDIRECTS: continue
     if os.path.exists(os.path.join(ROOT, "public", p.lstrip("/"))): continue
     bad("високо","връзки", f"счупена вътрешна връзка към {p} (от {len(targets[p])} страници)")
 
