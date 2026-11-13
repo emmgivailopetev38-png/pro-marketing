@@ -104,6 +104,8 @@ export function autoOptions(): AcOptions {
     newDelayMin: intEnv("VOICE_AUTO_NEW_DELAY_MIN", DEFAULT_OPTIONS.newDelayMin),
     maxAttempts: intEnv("VOICE_AUTO_MAX_ATTEMPTS", DEFAULT_OPTIONS.maxAttempts),
     noshowMaxAttempts: intEnv("VOICE_AUTO_NOSHOW_MAX_ATTEMPTS", DEFAULT_OPTIONS.noshowMaxAttempts),
+    // 13.11.2026 (Ивайло: „Ели да звъни на всички“) — колко дни назад е „нов лийд“; смяна през env + redeploy.
+    newMaxAgeDays: intEnv("VOICE_AUTO_NEW_MAX_DAYS", DEFAULT_OPTIONS.newMaxAgeDays),
     skipPhones: skipPhones(),
     skipForms: new Set((process.env.VOICE_AUTO_SKIP_FORMS ?? "").split(/[,\s]+/).map((s) => s.trim()).filter(Boolean)),
   };
