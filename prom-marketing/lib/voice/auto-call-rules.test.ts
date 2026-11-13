@@ -144,12 +144,16 @@ describe("нов лийд", () => {
     expect(formProfileFor("1443268750632089")).toBeNull();
   });
 
-  it("форма „AI обучение АЗ“ (2625101691244588): програмата е спряна на 11.11 — Ели НЕ звъни; профилът и ключовете остават за старите картони", () => {
+  it("форма „AI обучение АЗ“ (2625101691244588): от 13.11 Ели пак звъни — с директния път, без да обещава програмата", () => {
     const now = new Date("2026-11-12T09:00:00+02:00");
     const lead = { activity_type: "meta_lead", title: "Meta lead · AI обучение АЗ", occurred_at: "2026-11-11T18:40:00+02:00", created_by: "meta_webhook", metadata: { form_id: "2625101691244588", meta_lead_id: "777" } };
-    expect(decide(contact(), [lead], false, now, opts)).toEqual({ skip: SPRYANA_PROGRAMA });
+    expect(SPRYANA_PROGRAMA).toBeTruthy();
+    expect("call" in decide(contact(), [lead], false, now, opts)).toBe(true);
     expect(formProfileFor("2625101691244588")?.kanal).toBe("az_obuchenie");
     const prof = formProfileFor("2625101691244588")!;
+    expect(prof.profil).toMatch(/НЕ работим/);
+    expect(prof.profil).toMatch(/Никога не обещавай държавно финансиране/);
+    expect(prof.povod).not.toMatch(/шестнайсети/);
     expect(formAnswersSummary(prof, [{ name: "sluzhiteli", values: ["s2_5"] }, { name: "sfera", values: ["horeca"] }, { name: "kep", values: ["neznam"] }]))
       .toBe("Служители на трудов договор: 2–5 души на трудов договор; Сфера: ресторант / хотел / туризъм; КЕП: не знае — счетоводителят");
   });
@@ -169,10 +173,11 @@ describe("нов лийд", () => {
     expect(formOtseyan(prof, null)).toBeNull();
   });
 
-  it("форма от сайта /obuchenie-az: програмата е спряна — Ели НЕ звъни; друга, по-нова заявка пак е повод", () => {
+  it("форма от сайта /obuchenie-az: от 13.11 Ели пак звъни; друга, по-нова заявка също е повод", () => {
     const now = new Date("2026-11-12T09:00:00+02:00");
     const az = { activity_type: "website_form", title: "🎓 AI обучение АЗ · заявка от сайта", occurred_at: "2026-11-11T18:40:00+02:00", created_by: "website", metadata: { form_id: "sait-obuchenie-az", answers_summary: "Служители на трудов договор: 6–15" } };
-    expect(decide(contact(), [az], false, now, opts)).toEqual({ skip: SPRYANA_PROGRAMA });
+    expect("call" in decide(contact(), [az], false, now, opts)).toBe(true);
+    expect(formProfileFor("sait-obuchenie-az")?.profil).toMatch(/НЕ работим/);
     expect(formProfileFor("sait-obuchenie-az")?.kanal).toBe("az_obuchenie");
     const nova = { activity_type: "meta_lead", title: "Meta lead · AI одит", occurred_at: "2026-11-12T08:30:00+02:00", created_by: "meta_webhook", metadata: { form_id: "2053185948719591", meta_lead_id: "888" } };
     expect("call" in decide(contact(), [az, nova], false, now, opts)).toBe(true);
