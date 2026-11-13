@@ -111,8 +111,11 @@ for m in red_bad:
     print("     ✗", m)
 
 # ── 3. Каноничният адрес сочи към себе си, не към началната ───────────
+# Само адреси, които се обслужват направо. Адрес от REDIRECTS тук дава
+# фалшива тревога: fetch() следва пренасочването и вижда каноничния адрес
+# на целевата страница, който е верен.
 canon_bad = []
-for p in ["/magazin", "/demo", "/kurs", "/booking", "/ai-avtomatizacia", "/rakovodstva"]:
+for p in ["/ai-reshenia", "/demo", "/kurs", "/booking", "/ai-avtomatizacia", "/rakovodstva"]:
     st, html = fetch(p, want_text=True)
     if st != 200:
         continue
