@@ -48,8 +48,8 @@ import { track } from "@/lib/analytics/track";
 // /rabota → играта остава в next.config.ts за линковете, които вече са пратени.
 const NAV: { href: string; label: string; isNew?: boolean; soon?: boolean }[] = [
   { href: "/ai-avtomatizacia", label: "Услуги" },
-  { href: "/#klienti", label: "Клиенти" },
-  { href: "/uspehi", label: "Успехи", isNew: true },
+  { href: "/portfolio", label: "Портфолио", isNew: true },
+  { href: "/uspehi", label: "Успехи" },
   { href: "https://petevai.com", label: "Petev.ai", isNew: true },
   { href: "/rakovodstva", label: "Ръководства" },
   { href: "/#kontakti", label: "Контакти" },

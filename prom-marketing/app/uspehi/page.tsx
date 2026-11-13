@@ -49,7 +49,8 @@ export default function UspehiPage() {
               Не обещания. <span className="v2-grad">Резултати, които се виждат.</span>
             </h1>
             <p className="mt-4 max-w-[60ch] text-[16px] leading-relaxed" style={{ color: "var(--v2-muted)" }}>
-              Числата са от нашия CRM и рекламния ни акаунт. Видеата са заснети от мен, с истинските екрани и гласовете на системата. Кадрите са зад кадър — от колата, на път, между срещите.
+              Числата са от нашия CRM и рекламния ни акаунт. Видеата са заснети от мен, с истинските екрани и гласовете на системата. Кадрите са зад кадър — от колата, на път, между срещите. Работата ни за клиенти —{" "}
+              <Link href="/portfolio" className="text-[var(--v2-cyan)] underline decoration-[var(--v2-cyan)]/40 underline-offset-4">в портфолиото</Link>.
             </p>
             <div className="mt-8"><ChislaRed /></div>
             <p className="v2-mono mt-3 text-[11px]" style={{ color: "var(--v2-faint)" }}>{redChisla()}</p>
