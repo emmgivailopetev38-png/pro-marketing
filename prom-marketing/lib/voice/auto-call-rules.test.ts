@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SPRYANA_PROGRAMA,
+import { SPRYANA_PROGRAMA, SREShTA_IMA,
   AUTO_LOG_TYPE,
   DEFAULT_OPTIONS,
   formAnswersSummary,
@@ -178,6 +178,13 @@ describe("нов лийд", () => {
     const az = { activity_type: "website_form", title: "🎓 AI обучение АЗ · заявка от сайта", occurred_at: "2026-11-11T18:40:00+02:00", created_by: "website", metadata: { form_id: "sait-obuchenie-az", answers_summary: "Служители на трудов договор: 6–15" } };
     expect("call" in decide(contact(), [az], false, now, opts)).toBe(true);
     expect(formProfileFor("sait-obuchenie-az")?.profil).toMatch(/НЕ работим/);
+    // 13.11 (Ивайло): който има среща — дори отменена от нас — не му звъним.
+    const otmenena = { activity_type: "meeting", title: "Среща · 2026-11-12", occurred_at: "2026-11-12T05:00:00Z", created_by: "hermes", metadata: { booking_id: "b1" } };
+    expect("skip" in decide(contact(), [az, otmenena], false, now, opts)).toBe(true);
+    const bezGovor = { ...otmenena, created_by: "cal_webhook", title: "Среща · отменена" };
+    const d = decide(contact(), [az, bezGovor], false, now, opts);
+    expect("skip" in d).toBe(true);
+    if ("skip" in d) expect([SREShTA_IMA, "Ивайло вече е говорил с него"]).toContain(d.skip);
     expect(formProfileFor("sait-obuchenie-az")?.kanal).toBe("az_obuchenie");
     const nova = { activity_type: "meta_lead", title: "Meta lead · AI одит", occurred_at: "2026-11-12T08:30:00+02:00", created_by: "meta_webhook", metadata: { form_id: "2053185948719591", meta_lead_id: "888" } };
     expect("call" in decide(contact(), [az, nova], false, now, opts)).toBe(true);

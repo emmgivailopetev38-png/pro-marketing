@@ -494,6 +494,8 @@ export function zayavkaFrom(lead: AcAct | undefined): string {
  */
 export const SPRYANI_FORMI: ReadonlySet<string> = new Set<string>([]);
 export const SPRYANA_PROGRAMA = "евро програмата (АЗ) е спряна — Ели не звъни";
+/** 13.11.2026 — човек с записана (или отменена от нас) среща: Ели не му звъни като на нов лийд. */
+export const SREShTA_IMA = "има или е имал записана среща — не звъним";
 
 /**
  * Преценката за един човек. `acts` са всичките му активности (без значение
@@ -552,6 +554,10 @@ export function decide(
   // записва при резервацията) — тя не е проведена и не спира обаждането
   // (Стоян, 04.11.2026: Ели изобщо не му звънна заради този запис).
   if (reason === "nov" && past.some(isHumanTalk)) return { skip: "Ивайло вече е говорил с него" };
+  // 13.11.2026 (Ивайло): „който има среща — да не му звъним; звъним само на тези, които нямат среща“ —
+  // и на тези, чиито срещи ние отменихме (евро програмата, 11.11). Записаният час стои в картона като `meeting`.
+  // Неявилите се (Георги натиска 🙈) си остават повод — там Ели звъни, за да запише нов час.
+  if (reason === "nov" && acts.some((a) => a.activity_type === "meeting")) return { skip: SREShTA_IMA };
   if (reason === "noshow") {
     const missedMs = ms(missedAt);
     if (past.some((a) => ms(a.occurred_at) > triggerMs && isHumanTalk(a))) return { skip: "говорили след пропуснатия час" };
