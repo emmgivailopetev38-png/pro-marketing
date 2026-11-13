@@ -12,14 +12,14 @@ import Link from "next/link";
 import { NavbarV2 } from "@/components/landing/v2/NavbarV2";
 import { PortfolioGrid } from "@/components/portfolio/PortfolioGrid";
 import { VideoKarta } from "@/components/uspehi/VideoKarta";
-import { BRANSHOVE, KAM_DATA, SISTEMI, VIDEA } from "@/lib/site/portfolio";
+import { BRANSHOVE, KAM_DATA, REZULTATI, REZULTATI_KAM, SISTEMI, VIDEA } from "@/lib/site/portfolio";
 import { VIDEA as SISTEMA_V_DEISTVIE } from "@/lib/site/uspehi";
 
 const FooterV2 = dynamic(() => import("@/components/landing/v2/FooterV2").then((m) => ({ default: m.FooterV2 })));
 
 export const metadata: Metadata = {
   title: "Портфолио — видеа, реклами и AI системи за клиенти",
-  description: `${VIDEA.length} видеа и реклами за фирми от ${BRANSHOVE.length} бранша, пробни видеа преди първата среща и ${SISTEMI.length} системи — CRM, AI агенти, отчети. Без имена и лични данни.`,
+  description: `≈ 28 000 € рекламен бюджет в Meta, 1 974 запитвания, 25 клиента, 28 работещи автоматизации. ${VIDEA.length} видеа и реклами от ${BRANSHOVE.length} бранша и ${SISTEMI.length} системи — без имена и лични данни.`,
   alternates: { canonical: "/portfolio" },
   openGraph: {
     title: "Портфолио · ProMarketing",
@@ -29,12 +29,6 @@ export const metadata: Metadata = {
 };
 
 export default function PortfolioPage() {
-  const chisla = [
-    { stoinost: String(VIDEA.length), tekst: "видеа и реклами на тази страница" },
-    { stoinost: String(BRANSHOVE.length), tekst: "бранша — от строителство до парфюми" },
-    { stoinost: String(SISTEMI.length), tekst: "системи — CRM, AI агенти, отчети" },
-    { stoinost: "0", tekst: "лични данни — имена на хора, телефони, лица" },
-  ];
   const vDeistvie = SISTEMA_V_DEISTVIE.filter((v) => ["eli-zvani", "komanden-centar", "palen-otchet"].includes(v.slug));
 
   return (
@@ -50,14 +44,21 @@ export default function PortfolioPage() {
             <p className="mt-4 max-w-[62ch] text-[16px] leading-relaxed" style={{ color: "var(--v2-muted)" }}>
               Видеа, реклами и системи, които направихме за клиенти — плюс пробни видеа преди първата среща. Без имената на клиентите, без телефони и лица — показваме работата, не хората. Клиентите ни се доверяват и с това.
             </p>
-            <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-              {chisla.map((c) => (
-                <div key={c.tekst} className="v2-card flex flex-col gap-1 p-5">
-                  <span className="v2-grad text-[clamp(2rem,4.5vw,3rem)] font-extrabold leading-none tracking-tight">{c.stoinost}</span>
-                  <span className="text-[14px] font-semibold leading-snug" style={{ color: "var(--v2-ink)" }}>{c.tekst}</span>
+            <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+              {REZULTATI.map((c) => (
+                <div key={c.tekst} className="v2-card flex flex-col gap-1 p-4 sm:p-5">
+                  <span className="v2-grad text-[clamp(1.6rem,4.2vw,2.8rem)] font-extrabold leading-none tracking-tight">{c.stoinost}</span>
+                  <span className="text-[13.5px] font-semibold leading-snug sm:text-[14px]" style={{ color: "var(--v2-ink)" }}>{c.tekst}</span>
+                  <span className="v2-mono mt-1 text-[10px] uppercase tracking-[0.14em]" style={{ color: "var(--v2-faint)" }}>{c.iztochnik}</span>
                 </div>
               ))}
             </div>
+            <p className="v2-mono mt-4 text-[11px] leading-relaxed" style={{ color: "var(--v2-faint)" }}>
+              Данни от Meta Ads Manager и нашия CRM · към {REZULTATI_KAM} · доларите по курса на ЕЦБ · в клиентските акаунти броим само времето, откакто ги водим
+            </p>
+            <p className="mt-6 text-[14px] font-semibold" style={{ color: "var(--v2-muted)" }}>
+              На тази страница: {VIDEA.length} видеа · {BRANSHOVE.length} бранша · {SISTEMI.length} системи · 0 лични данни
+            </p>
             <p className="v2-mono mt-4 text-[11px] leading-relaxed" style={{ color: "var(--v2-faint)" }}>
               🤖 AI съдържанието е обозначено в самото видео (EU AI Act, чл. 50) · клиповете са съкратени и без звук · екраните на системите са с демо данни
             </p>
