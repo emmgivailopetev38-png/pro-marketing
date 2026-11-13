@@ -59,9 +59,10 @@ describe("откъде е дошъл лийдът", () => {
 });
 
 describe("материалът на лийд магнита", () => {
-  it("нов картон — първото писмо на поредицата (общ ключ, за да не тръгне отгоре и демотата)", () => {
+  it("нов картон — в слота на демотата (общ ключ, за да не тръгне отгоре и демотата)", () => {
     const step = magnetStepFor(NARACHNIK_FORM, true);
-    expect(step?.key).toBe(LEAD_SEQUENCE[0].key);
+    expect(step?.key).toBe("s1_lichno");
+    expect(LEAD_SEQUENCE.some((s) => s.key === step?.key)).toBe(true);
     expect(step?.variant).toBe("narachnik");
   });
 
