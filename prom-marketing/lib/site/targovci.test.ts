@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PRIMER, USLUGI, evro, komisiona, smetka } from "./targovci";
+import { PRIMER, USLUGI, evro, komisiona, procentZaSdelka, smetka } from "./targovci";
 
 describe("комисионната на търговеца", () => {
   it("10 % от цената, до цента", () => {
@@ -19,8 +19,8 @@ describe("комисионната на търговеца", () => {
   it("примерът: обучение + сайт + Ели + маркетинг", () => {
     const r = smetka(PRIMER, 6);
     expect(r.ednokratno).toBe(890); // 690 + 150 + 50
-    expect(r.mesechnoNaMesec).toBe(78); // 30 + 48
-    expect(r.prezMesec).toBe(890 + 78 * 6);
+    expect(r.mesechnoNaMesec).toBe(82.9); // 30 + 48 + 4,90 от поддръжката на сайта
+    expect(r.prezMesec).toBe(Math.round((890 + 82.9 * 6) * 100) / 100);
   });
 
   it("празно и отрицателно не носят пари", () => {
@@ -30,5 +30,19 @@ describe("комисионната на търговеца", () => {
 
   it("всяка услуга има цена или месечна такса", () => {
     for (const u of USLUGI) expect(u.cena + u.mesechno).toBeGreaterThan(0);
+  });
+
+  it("от 5-ата платена сделка — 12 %", () => {
+    expect(procentZaSdelka(1)).toBe(0.1);
+    expect(procentZaSdelka(4)).toBe(0.1);
+    expect(procentZaSdelka(5)).toBe(0.12);
+    expect(komisiona(4900, procentZaSdelka(5))).toBe(588);
+  });
+
+  it("автоматизация не под 4 500 €, минимумът не е над цената", () => {
+    const crm = USLUGI.find((u) => u.id === "crm");
+    expect(crm?.cena).toBe(4900);
+    expect(crm?.minimum).toBe(4500);
+    for (const u of USLUGI) if (u.minimum) expect(u.minimum).toBeLessThanOrEqual(u.cena);
   });
 });
