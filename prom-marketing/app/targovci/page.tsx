@@ -96,7 +96,7 @@ export default function TargovciPage() {
             </div>
             <div className="mt-10 grid grid-cols-2 gap-4 lg:grid-cols-4">
               {[
-                ["10 %", "от всяка сделка, без таван"],
+                ["10 %", "от всяка сделка · от 5-ата — 12 %"],
                 [evro(komisiona(7900)), "от един Команден център"],
                 [evro(komisiona(6900)), "от едно обучение по маркетинг"],
                 ["0 €", "за да започнеш — никакви такси"],
@@ -118,12 +118,12 @@ export default function TargovciPage() {
           eyebrow="Какво продаваш"
           title={
             <>
-              Осем услуги. <span className="v2-grad">Всяка фирма има нужда поне от една.</span>
+              Девет услуги. <span className="v2-grad">Всяка фирма има нужда поне от една.</span>
             </>
           }
-          sub="Цените са тези, които казваме на клиентите. До всяка — колко получаваш ти."
+          sub="Цените са без ДДС — така ги казваме на фирмите. Нагоре ги определяш ти, надолу — до минимума. До всяка — колко получаваш ти."
         >
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {USLUGI.map((u) => (
               <article key={u.id} className="v2-card flex min-w-0 flex-col gap-3 p-5">
                 <h3 className="text-lg font-bold text-[var(--v2-ink)]" style={{ fontFamily: "var(--v2-font-display)" }}>
@@ -133,14 +133,22 @@ export default function TargovciPage() {
                 <p className="text-[13px] leading-snug text-[var(--v2-faint)]">За кого: {u.zaKogo}</p>
                 <div className="mt-auto border-t border-[var(--v2-line)] pt-3">
                   <p className="v2-mono text-[11px] uppercase tracking-[0.16em] text-[var(--v2-faint)]">
-                    {u.primer ? "по оферта, напр. " : "цена "}
+                    {u.primer ? "по оферта, напр. " : u.ot ? "цена от " : "цена "}
                     {[u.cena ? evro(u.cena) : null, u.mesechno ? `${evro(u.mesechno)}/мес` : null].filter(Boolean).join(" + ")}
                   </p>
+                  {u.sledGodina || (u.minimum && u.minimum < u.cena) ? (
+                    <p className="v2-mono mt-0.5 text-[11px] tracking-[0.04em] text-[var(--v2-faint)]">
+                      {u.sledGodina
+                        ? `1-ва год. поддръжка включена · после ${evro(u.sledGodina)}/мес`
+                        : `минимум ${evro(u.minimum ?? 0)}`}
+                    </p>
+                  ) : null}
                   <p className="mt-1 text-[17px] font-extrabold" style={{ color: "var(--v2-mint)" }}>
                     твоите{" "}
                     {[u.cena ? evro(komisiona(u.cena)) : null, u.mesechno ? `${evro(komisiona(u.mesechno))}/мес` : null]
                       .filter(Boolean)
                       .join(" + ")}
+                    {u.sledGodina ? ` + ${evro(komisiona(u.sledGodina))}/мес от 2-ра год.` : ""}
                   </p>
                 </div>
               </article>
