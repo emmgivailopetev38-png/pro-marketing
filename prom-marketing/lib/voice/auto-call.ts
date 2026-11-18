@@ -440,7 +440,9 @@ export async function runAutoCalls(args: { now?: Date; dryRun?: boolean; force?:
           call.attempt < call.maxAttempts
             ? call.reason === "noshow"
               ? `Не вдигне ли — Ели пробва пак (до ${call.maxAttempts} опита за ${opts.noshowMaxAgeDays} дни), докато запише нов час.`
-              : "Не вдигне ли — още един опит в следващ работен ден."
+              : call.attempt === 1
+                ? "Не вдигне ли — пак на следващия работен ден, после последен опит два дни по-късно (ден 0 → 1 → 3)."
+                : "Не вдигне ли — последен опит два дни по-късно (ден 3)."
             : "Това е последният автоматичен опит."
         }`,
         occurred_at: new Date().toISOString(),

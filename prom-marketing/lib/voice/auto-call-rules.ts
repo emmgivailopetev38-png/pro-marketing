@@ -8,8 +8,9 @@
  *   🙈 неявил се на среща — за нов час.
  * Кой НЕ влиза: говорил с Ивайло (разговор, среща, оферта), писал ни сам
  * (Viber/WhatsApp/имейл — там вече тече разговор), отказал, с бъдеща среща,
- * клиент, вдигнал на Ели (тогава поема Ивайло по резюмето). Най-много два
- * опита на човек, в различни дни.
+ * клиент, вдигнал на Ели (тогава поема Ивайло по резюмето). Нов лийд — до три
+ * опита: ден 0 → ден 1 → ден 3 (Георги, 18.11.2026: „един път единия ден, един път
+ * втория, после след третия още един път — да не остават лийдове назад“).
  *
  * Часовете (Ивайло, 28.10.2026 следобед): „след като влезе нов лийд, да му
  * звъни веднага за записване на срещата, докато са максимално топли… от девет
@@ -67,6 +68,11 @@ export interface AcOptions {
   /** Опити при нов лийд — в различни дни. */
   maxAttempts: number;
   /**
+   * Нов лийд: календарни дни между втория и третия опит (Георги, 18.11.2026 —
+   * ден 0 → ден 1 → ден 3). Първите два са в два поредни работни дни.
+   */
+  newGapDays: number;
+  /**
    * Опити при неявил се (Ивайло, 06.11.2026: „които не се явят — Георги ги
    * отбелязва и Ели пак им звъни, да не ги пуска“): веднага, на другия ден и
    * после през `noshowGapDays`, докато запише час или човекът каже „не“.
@@ -93,7 +99,8 @@ export const DEFAULT_OPTIONS: Omit<AcOptions, "eliAgentId" | "skipPhones"> = {
   newDelayMin: 2,
   newMaxAgeDays: 5,
   noshowMaxAgeDays: 7,
-  maxAttempts: 2,
+  maxAttempts: 3,
+  newGapDays: 2,
   noshowMaxAttempts: 4,
   noshowGapDays: 2,
 };
@@ -308,6 +315,11 @@ function sofiaParts(at: Date): { day: string; weekday: string; hour: number; min
 
 export function sofiaDay(at: Date | string): string {
   return sofiaParts(typeof at === "string" ? new Date(at) : at).day;
+}
+
+/** Колко календарни дни (по София) има между два момента — „вчера“ = 1. */
+export function sofiaDaysBetween(from: Date | string, to: Date | string): number {
+  return Math.round((Date.parse(sofiaDay(to)) - Date.parse(sofiaDay(from))) / 86_400_000);
 }
 
 export interface CallWindow {
@@ -593,6 +605,10 @@ export function decide(
   if (attempts >= maxAttempts) return { skip: `${attempts} опита — стига` };
   const lastTry = [...dials, ...eliCalls].map((a) => a.occurred_at).sort().pop();
   if (lastTry && sofiaDay(lastTry) === sofiaDay(now)) return { skip: "днес вече е звъняно" };
+  // Нов лийд: ден 0 → ден 1 → ден 3 — третият опит чак два календарни дни след втория (Георги, 18.11.2026).
+  if (reason === "nov" && attempts >= 2 && lastTry && sofiaDaysBetween(lastTry, now) < opts.newGapDays) {
+    return { skip: `третият опит е ${opts.newGapDays} дни след втория` };
+  }
   // Неявил се: веднага и на другия ден; оттам нататък през два дни, за да не е тормоз.
   if (reason === "noshow" && attempts >= 2 && lastTry && nowMs - ms(lastTry) < gapMs) {
     return { skip: `пауза ${opts.noshowGapDays} дни между опитите` };
@@ -626,7 +642,13 @@ export function decide(
       // Първото изречение на Ели е шаблон: „{{pozdrav}} Ели съм, от Про Маркетинг — {{povod}}. … {{vhod}}“.
       povod: prof ? prof.povod : `по заявката ви за ${zayavka}`,
       vhod: prof ? prof.vhod : "Един бърз въпрос и ви намирам удобен час — става ли?",
-      istoriya: `Нова заявка от ${when}.${prof ? ` ${prof.profil}` : ""}${webAnswers ? ` Отговори във формата — ${webAnswers}.` : ""}${attempts ? " Втори опит — първия път не вдигна." : ""}`,
+      istoriya: `Нова заявка от ${when}.${prof ? ` ${prof.profil}` : ""}${webAnswers ? ` Отговори във формата — ${webAnswers}.` : ""}${
+        attempts === 1
+          ? " Втори опит — първия път не вдигна."
+          : attempts >= 2
+            ? " Трети, последен опит — два пъти не вдигна. Без упрек и без „търсих ви няколко пъти“ — топло и кратко, към час."
+            : ""
+      }`,
       kanal: prof ? prof.kanal : "izhodyasht",
     };
   } else {
