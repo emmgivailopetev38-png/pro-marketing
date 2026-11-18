@@ -232,16 +232,44 @@ describe("опитите", () => {
     expect("call" in d && d.call.attempt).toBe(2);
   });
 
-  it("най-много два опита", () => {
+  // Георги, 18.11.2026: ден 0 → ден 1 → ден 3.
+  it("третият опит — чак два дни след втория (ден 3)", () => {
+    const l = lead("2026-10-26T07:00:00Z"); // пон
+    const two = [l, dial("2026-10-26T08:00:00Z"), dial("2026-10-27T08:00:00Z")]; // пон + вт
+    expect(decide(contact(), two, false, NOW, opts)).toEqual({ skip: "третият опит е 2 дни след втория" }); // ср
+    const thu = new Date("2026-10-29T07:00:00Z"); // чт 09:00 — ден 3
+    const d = decide(contact(), two, false, thu, opts);
+    if (!("call" in d)) throw new Error("очаквах трети опит");
+    expect(d.call.attempt).toBe(3);
+    expect(d.call.maxAttempts).toBe(3);
+    expect(d.call.variables.istoriya).toMatch(/Трети, последен опит/);
+  });
+
+  it("втори опит носи „първия път не вдигна“", () => {
+    const l = lead("2026-10-27T07:00:00Z");
+    const d = decide(contact(), [l, dial("2026-10-27T08:30:00Z")], false, NOW, opts);
+    if (!("call" in d)) throw new Error("очаквах втори опит");
+    expect(d.call.variables.istoriya).toMatch(/Втори опит — първия път не вдигна/);
+  });
+
+  it("най-много три опита", () => {
     const l = lead("2026-10-26T07:00:00Z");
-    expect(decide(contact(), [l, dial("2026-10-26T08:00:00Z"), dial("2026-10-27T08:00:00Z")], false, NOW, opts)).toEqual({
-      skip: "2 опита — стига",
-    });
+    const fri = new Date("2026-10-30T07:00:00Z");
+    const three = [l, dial("2026-10-26T08:00:00Z"), dial("2026-10-27T08:00:00Z"), dial("2026-10-29T08:00:00Z")];
+    expect(decide(contact(), three, false, fri, opts)).toEqual({ skip: "3 опита — стига" });
   });
 
   it("разговорите на Ели от ръчната партида също се броят", () => {
     const l = lead("2026-10-26T07:00:00Z");
-    expect(decide(contact(), [l, eli("2026-10-26T08:00:00Z", 5), eli("2026-10-27T08:00:00Z", 4)], false, NOW, opts)).toEqual({
+    const fri = new Date("2026-10-30T07:00:00Z");
+    const calls = [l, eli("2026-10-26T08:00:00Z", 5), eli("2026-10-27T08:00:00Z", 4), eli("2026-10-29T08:00:00Z", 3)];
+    expect(decide(contact(), calls, false, fri, opts)).toEqual({ skip: "3 опита — стига" });
+  });
+
+  it("стария таван (2) пак може да се върне през env", () => {
+    const l = lead("2026-10-26T07:00:00Z");
+    const o2 = { ...opts, maxAttempts: 2 };
+    expect(decide(contact(), [l, dial("2026-10-26T08:00:00Z"), dial("2026-10-27T08:00:00Z")], false, NOW, o2)).toEqual({
       skip: "2 опита — стига",
     });
   });
@@ -263,7 +291,7 @@ describe("опитите", () => {
     if (!("call" in d)) throw new Error("очаквах обаждане");
     expect(d.call.variables.povod).toBe("по заявката ви за безплатен AI одит");
     expect(d.call.variables.vhod).toMatch(/^Един бърз въпрос/);
-    expect(d.call.maxAttempts).toBe(2);
+    expect(d.call.maxAttempts).toBe(3);
   });
 });
 
