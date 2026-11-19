@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check, Clock, Quote, AlertTriangle } from "lucide-react";
 import { SERVICES, TARGET_MIX, PRICE_RULES } from "./pricing-data";
 import { PriceLadder } from "@/components/ekip/PriceLadder";
+import { OneOffer } from "@/components/ekip/OneOffer";
 
 export function Pricing() {
   const [active, setActive] = useState(SERVICES[0].id);
@@ -11,7 +12,16 @@ export function Pricing() {
 
   return (
     <div className="space-y-8">
-      <PriceLadder />
+      <OneOffer />
+
+      <details className="rounded-2xl border border-white/10 bg-white/[0.02] p-3">
+        <summary className="cursor-pointer select-none text-sm font-semibold text-[var(--color-text-secondary)]">
+          Старата стълба — само за вече започнати разговори
+        </summary>
+        <div className="mt-4">
+          <PriceLadder />
+        </div>
+      </details>
 
       {/* ---- целта ---- */}
       <div className="cc-panel overflow-hidden">
