@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/resend";
 import { escapeHtml } from "@/lib/email/escape";
+import { confirmationAllowed, isOwnOrigin, safeForMail } from "@/lib/security/form-guard";
 import { WEBINAR, GIFT, GIFT2, webinarDateLabel } from "@/lib/webinar/config";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,10 @@ const schema = z.object({
 const SITE = "https://promarketing.pw";
 
 export async function POST(request: Request) {
+  // Само от нашия сайт — голата заявка от бот не минава (виж lib/security/form-guard.ts).
+  if (!isOwnOrigin(request)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   let body: unknown;
   try {
     body = await request.json();
@@ -98,11 +103,14 @@ export async function POST(request: Request) {
   // (Webinar Flow, стъпка reminder_1h). Така никой не влиза предварително.
   const zoomLine = `<p>🔗 <strong>Zoom линкът пристига на този имейл 1 час преди старта.</strong> Пази пощата си в деня на обучението.</p>`;
 
-  sendEmail({
+  // Към непознат адрес: веднъж на денонощие, с таван на час и без връзки от заявката.
+  const greetName = safeForMail(full_name, 60, "приятелю");
+  const mayConfirm = await confirmationAllowed(supabase, "webinar_registration", email);
+  if (mayConfirm) sendEmail({
     to: email,
     subject: `✅ Записан си: ${WEBINAR.title} (+ подаръкът ти е вътре)`,
     html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.65;color:#0d1221;max-width:560px;">
-<p>Здравей, ${escapeHtml(full_name)},</p>
+<p>Здравей, ${escapeHtml(greetName)},</p>
 <p>Мястото ти за безплатното онлайн обучение <strong>„${WEBINAR.title}”</strong> е запазено. 🎉</p>
 ${dateLine}
 ${zoomLine}
@@ -118,7 +126,7 @@ ${zoomLine}
 </div>
 <p>До скоро на живо,<br/><strong>${WEBINAR.host.name}</strong><br/>${WEBINAR.host.role}</p>
 </div>`,
-    text: `Здравей, ${full_name},
+    text: `Здравей, ${greetName},
 
 Мястото ти за „${WEBINAR.title}” е запазено.
 ${webinarDateLabel() ? `Дата: ${webinarDateLabel()} (Zoom). Линкът пристига 1 час преди старта.` : "Датата се обявява скоро — ще я получиш първи на този имейл."}
