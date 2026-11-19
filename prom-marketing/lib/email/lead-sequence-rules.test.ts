@@ -12,21 +12,24 @@ describe("кое писмо е дължимо в крона", () => {
     expect(step?.subject).toContain("наръчника");
   });
 
-  it("друга форма или без форма — демотата, както досега", () => {
+  it("друга форма или без форма — филмът-уебинар (от 22.10.2026)", () => {
+    expect(LEAD_SEQUENCE[0].key).toBe("uebinar_valnata");
     expect(dueSequenceStep({ source: "meta_lead", ageDays: 0.4, formId: "4166605913635626" })).toBe(LEAD_SEQUENCE[0]);
     expect(dueSequenceStep({ source: "meta_lead", ageDays: 0.4 })).toBe(LEAD_SEQUENCE[0]);
     expect(dueSequenceStep({ source: "website_form", ageDays: 0.4, formId: NARACHNIK_FORM })).toBe(LEAD_SEQUENCE[0]);
     expect(dueSequenceStep({ source: "voice_web", ageDays: 0.4 })).toBe(VOICE_LEAD_SEQUENCE[0]);
   });
 
-  it("от ден 2 нататък стъпките са общите — и за наръчника", () => {
-    expect(dueSequenceStep({ source: "meta_lead", ageDays: 2.1, formId: NARACHNIK_FORM })?.key).toBe("s2_smetkata");
-    expect(dueSequenceStep({ source: "meta_lead", ageDays: 5.5, formId: NARACHNIK_FORM })?.key).toBe("s3_demota");
+  it("наръчникът заема слота на демотата — на ден 2 идва филмът-уебинар, после общите", () => {
+    expect(dueSequenceStep({ source: "meta_lead", ageDays: 2.1, formId: NARACHNIK_FORM })?.key).toBe("uebinar_valnata");
+    expect(dueSequenceStep({ source: "meta_lead", ageDays: 2.1 })?.key).toBe("s1_lichno");
+    expect(dueSequenceStep({ source: "meta_lead", ageDays: 4.1, formId: NARACHNIK_FORM })?.key).toBe("s2_smetkata");
+    expect(dueSequenceStep({ source: "meta_lead", ageDays: 7.5, formId: NARACHNIK_FORM })?.key).toBe("s3_demota");
     expect(dueSequenceStep({ source: "meta_lead", ageDays: 12, formId: NARACHNIK_FORM })?.key).toBe("s4_posledno");
   });
 
   it("третото писмо не твърди, че сме му пратили демота — лийдът на наръчника не е получавал", () => {
-    const s3 = dueSequenceStep({ source: "meta_lead", ageDays: 5.5, formId: NARACHNIK_FORM });
+    const s3 = dueSequenceStep({ source: "meta_lead", ageDays: 7.5, formId: NARACHNIK_FORM });
     const { html, text } = s3!.build("Иван", { contactId: "c1" });
     expect(html).not.toContain("които ти пратих");
     expect(text).not.toContain("които ти пратих");

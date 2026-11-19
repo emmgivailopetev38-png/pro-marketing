@@ -10,6 +10,7 @@ import {
 } from "./lead-steps";
 import { ALL_WARM_STEPS } from "./warm-steps";
 import { VOICE_URL } from "./sequence-layout";
+import { UEBINAR_KEY } from "./uebinar-step";
 
 describe("студената поредица — кой какво получава", () => {
   it("лийдът от гласовата реклама влиза в поредицата — дотогава не получаваше нищо", () => {
@@ -27,14 +28,21 @@ describe("студената поредица — кой какво получа
     expect(html).toContain("наложен платеж");
   });
 
-  it("лийдът от Meta получава демотата", () => {
-    expect(leadSequenceFor("meta_lead")[0].key).toBe("s1_lichno");
-    expect(leadSequenceFor("website_form")[0].key).toBe("s1_lichno");
-    expect(leadSequenceFor(null)[0].key).toBe("s1_lichno");
+  it("лийдът от Meta и от сайта получава първо филма-уебинар, демотата — на ден 2", () => {
+    for (const src of ["meta_lead", "website_form", null]) {
+      expect(leadSequenceFor(src)[0].key).toBe(UEBINAR_KEY);
+      expect(leadSequenceFor(src)[1].key).toBe("s1_lichno");
+    }
+    expect(firstStepForForm("4166605913635626").key).toBe(UEBINAR_KEY);
   });
 
-  it("след първото писмо двете поредици са едни и същи — само входът е различен", () => {
-    expect(VOICE_LEAD_SEQUENCE.slice(1).map((s) => s.key)).toEqual(LEAD_SEQUENCE.slice(1).map((s) => s.key));
+  it("и лийдът от гласовата реклама получава филма — на следващия ден", () => {
+    expect(VOICE_LEAD_SEQUENCE[1].key).toBe(UEBINAR_KEY);
+    expect(VOICE_LEAD_SEQUENCE[1].afterDays).toBe(1);
+  });
+
+  it("от сметката нататък двете поредици са едни и същи — само входът е различен", () => {
+    expect(VOICE_LEAD_SEQUENCE.slice(2).map((s) => s.key)).toEqual(LEAD_SEQUENCE.slice(2).map((s) => s.key));
   });
 
   it("сроковете растат — всяко следващо писмо е по-късно от предното", () => {
@@ -50,9 +58,10 @@ describe("текстовете на студената поредица", () => 
   it("ключовете са уникални и не се бъркат с топлия кръг", () => {
     const cold = ALL_COLD.map((s) => s.key);
     expect(new Set(cold).size).toBe(cold.length);
-    expect(cold.every((k) => k.startsWith("s"))).toBe(true);
+    expect(cold.every((k) => k.startsWith("s") || k === UEBINAR_KEY)).toBe(true);
+    // Единственият общ ключ е филмът-уебинар — нарочно: получен като лийд, не идва пак в топлия кръг.
     const warm = new Set(ALL_WARM_STEPS.map((s) => s.key));
-    expect(cold.some((k) => warm.has(k))).toBe(false);
+    expect(cold.filter((k) => warm.has(k))).toEqual([UEBINAR_KEY]);
   });
 
   it("никъде няма гонене, извинения и самопринизяване", () => {
@@ -101,8 +110,9 @@ describe("лийд магнитът — AI наръчникът", () => {
     expect(firstStepForForm(undefined)).toBe(LEAD_SEQUENCE[0]);
   });
 
-  it(`е в същия слот като първото писмо — кронът не праща отгоре и демотата`, () => {
-    expect(step.key).toBe(LEAD_SEQUENCE[0].key);
+  it(`е в слота на демотата — кронът не праща отгоре и демотата`, () => {
+    expect(step.key).toBe("s1_lichno");
+    expect(LEAD_SEQUENCE.some((s) => s.key === step.key)).toBe(true);
     expect(step.afterDays).toBe(0);
   });
 
@@ -138,8 +148,9 @@ describe("лийд магнитът — безплатният видео кур
     expect(firstStepForForm(null)).toBe(LEAD_SEQUENCE[0]);
   });
 
-  it(`е в същия слот като първото писмо — кронът не праща отгоре и демотата`, () => {
-    expect(step.key).toBe(LEAD_SEQUENCE[0].key);
+  it(`е в слота на демотата — кронът не праща отгоре и демотата`, () => {
+    expect(step.key).toBe("s1_lichno");
+    expect(LEAD_SEQUENCE.some((s) => s.key === step.key)).toBe(true);
     expect(step.afterDays).toBe(0);
   });
 
