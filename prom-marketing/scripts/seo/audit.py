@@ -32,6 +32,22 @@ def text_of(h):
     return re.sub(r'\s+', ' ', html.unescape(t)).strip()
 
 REDIRECTS = set()
+
+# Пренасочванията от next.config.ts. Без тях всеки нарочен redirect
+# („/rabota" към играта, „/uslugi" към услугите) излизаше като счупена
+# връзка — високо ниво, всеки цикъл. Фалшивата тревога е по-опасна от
+# липсващата: свикваш да я подминаваш и някой ден подминаваш истинската.
+_cfg = ""
+for _name in ("next.config.ts", "next.config.js", "next.config.mjs"):
+    _path = os.path.join(ROOT, _name)
+    if os.path.exists(_path):
+        _cfg = open(_path, encoding="utf-8", errors="replace").read()
+        break
+for _src in re.findall(r'source:\s*"([^"]+)"', _cfg):
+    if ":" in _src or "*" in _src:  # шаблони като „/:path*" не са адрес
+        continue
+    REDIRECTS.add("/" + _src.strip("/") if _src.strip("/") else "/")
+
 for f in glob.glob(os.path.join(ROOT, "app/**/page.tsx"), recursive=True):
     src = open(f, encoding="utf-8", errors="replace").read()
     if re.search(r'redirect\("/"\)', src):
