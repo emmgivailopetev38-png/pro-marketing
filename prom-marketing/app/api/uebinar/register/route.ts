@@ -1,0 +1,151 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { createServiceClient } from "@/lib/supabase/service";
+import { phoneVariants } from "@/lib/contacts/repository";
+import { normalizeBgPhone } from "@/lib/leads/obuchenie-az";
+import { sendEmail } from "@/lib/email/resend";
+import { ownerEmail } from "@/lib/team/notify";
+import { escapeHtml } from "@/lib/text/escape";
+import { NA_ZHIVO } from "@/lib/uebinar/na-zhivo";
+
+export const dynamic = "force-dynamic";
+
+const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://promarketing.pw").replace(/\/$/, "");
+const SOURCE = `uebinar-${NA_ZHIVO.slug}`;
+const BOT_UA = /bot|crawl|spider|slurp|headless|lighthouse/i;
+
+const utm = z.string().trim().max(200).optional();
+
+const schema = z.object({
+  name: z.string().trim().min(2).max(80),
+  phone: z.string().trim().min(6).max(30),
+  email: z.string().trim().toLowerCase().email().max(200),
+  // Съгласието за напомняния по Viber, SMS и имейл е задължително.
+  consent: z.literal(true),
+  utm_source: utm,
+  utm_medium: utm,
+  utm_campaign: utm,
+  utm_content: utm,
+  utm_term: utm,
+  fbclid: z.string().trim().max(500).optional(),
+  // Капан за ботове: скрито поле, човек не го вижда и не го пълни.
+  website: z.string().max(200).optional(),
+});
+
+/**
+ * POST /api/uebinar/register — записване за обучението на живо от /na-zhivo.
+ * Публичен. Прави (или намира) картона, записва действието и известява Ивайло.
+ * Към записалия се НЕ тръгва автоматично писмо: напомнянията (Viber, SMS,
+ * имейл) се пишат отделно и се пускат, след като Ивайло ги одобри.
+ */
+export async function POST(request: Request) {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  }
+  const d = parsed.data;
+
+  // Бот: отговаряме „ок“, нищо не записваме.
+  if (d.website || BOT_UA.test(request.headers.get("user-agent") ?? "")) {
+    return NextResponse.json({ ok: true });
+  }
+
+  const phone = normalizeBgPhone(d.phone);
+  if (!phone) {
+    return NextResponse.json({ error: "Invalid phone" }, { status: 400 });
+  }
+
+  const supabase = createServiceClient();
+
+  // Един човек = един картон: първо по имейл, после по телефон във всичките му записи.
+  let existing: { id: string; full_name: string | null; phone: string | null; email: string | null } | null = null;
+  {
+    const { data } = await supabase
+      .from("contacts")
+      .select("id, full_name, phone, email")
+      .eq("email", d.email)
+      .limit(1)
+      .maybeSingle();
+    existing = data;
+  }
+  if (!existing) {
+    const { data } = await supabase
+      .from("contacts")
+      .select("id, full_name, phone, email")
+      .in("phone", phoneVariants(phone))
+      .limit(1)
+      .maybeSingle();
+    existing = data;
+  }
+
+  let contactId: string;
+  if (existing) {
+    contactId = existing.id;
+    const patch: { full_name?: string; phone?: string; email?: string } = {};
+    if (!existing.full_name) patch.full_name = d.name;
+    if (!existing.phone) patch.phone = phone;
+    if (!existing.email) patch.email = d.email;
+    if (Object.keys(patch).length > 0) {
+      await supabase.from("contacts").update(patch).eq("id", contactId);
+    }
+  } else {
+    const { data: created, error } = await supabase
+      .from("contacts")
+      .insert({
+        full_name: d.name,
+        email: d.email,
+        phone,
+        stage: "lead",
+        source: SOURCE,
+        notes: `Записа се за обучението на живо „${NA_ZHIVO.name}“ (${NA_ZHIVO.dateLabel})`,
+      })
+      .select("id")
+      .single();
+    if (error || !created) {
+      console.error("[uebinar/register] contact insert", error?.message);
+      return NextResponse.json({ error: "Could not create contact" }, { status: 500 });
+    }
+    contactId = created.id;
+  }
+
+  const { error: actError } = await supabase.from("contact_activities").insert({
+    contact_id: contactId,
+    activity_type: "uebinar_registration",
+    title: `Записа се за обучението на живо „${NA_ZHIVO.name}“`,
+    body: `Дата: ${NA_ZHIVO.dateLabel}${NA_ZHIVO.dateConfirmed ? "" : " (предварителна)"} · съгласие за напомняния по Viber, SMS и имейл: да`,
+    created_by: "website",
+    metadata: {
+      uebinar: NA_ZHIVO.slug,
+      date_iso: NA_ZHIVO.dateISO,
+      full_name: d.name,
+      email: d.email,
+      phone,
+      consent_reminders: true,
+      utm_source: d.utm_source ?? null,
+      utm_medium: d.utm_medium ?? null,
+      utm_campaign: d.utm_campaign ?? null,
+      utm_content: d.utm_content ?? null,
+      utm_term: d.utm_term ?? null,
+      fbclid: d.fbclid ?? null,
+    },
+  });
+  if (actError) console.error("[uebinar/register] activity insert", actError.message);
+
+  // Известие към Ивайло (не към записалия се).
+  sendEmail({
+    to: ownerEmail(),
+    subject: `🎓 Записване за „${NA_ZHIVO.name}“ · ${d.name}`,
+    html: `<p><strong>${escapeHtml(d.name)}</strong> се записа за обучението на живо „${escapeHtml(NA_ZHIVO.name)}“ (${escapeHtml(NA_ZHIVO.dateLabel)}).</p>
+<p>Телефон: ${escapeHtml(phone)} · Имейл: ${escapeHtml(d.email)}${d.utm_campaign ? ` · Кампания: ${escapeHtml(d.utm_campaign)}` : ""}</p>
+<p><a href="${SITE}/admin/clients/${contactId}">Виж в CRM-а</a></p>`,
+    text: `${d.name} се записа за „${NA_ZHIVO.name}“ (${NA_ZHIVO.dateLabel}). ${phone} / ${d.email}\nCRM: ${SITE}/admin/clients/${contactId}`,
+  }).catch(() => {});
+
+  return NextResponse.json({ ok: true });
+}

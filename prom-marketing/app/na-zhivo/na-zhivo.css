@@ -1,0 +1,234 @@
+/* /na-zhivo — светла страница за записване. Всичко е под .nz, за да не пипа сайта.
+   Червеното е само за бутоните (Стефчо: „цвят, който се различава“). */
+.nz {
+  --nz-bg: #fffdf9;
+  --nz-soft: #fbf5ea;
+  --nz-ink: #14122b;
+  --nz-mut: #55516b;
+  --nz-line: #e8e1d2;
+  --nz-gold: #b7791f;
+  --nz-mark: #1e3a8a;
+  --nz-red: #e3122a;
+  --nz-red-d: #b90d20;
+  --nz-dark: #14122b;
+  color-scheme: light;
+  background: var(--nz-bg);
+  color: var(--nz-ink);
+  font-family: var(--font-body), system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 17px;
+  line-height: 1.55;
+  min-height: 100vh;
+  padding-bottom: 76px;
+  -webkit-font-smoothing: antialiased;
+}
+.nz *,
+.nz *::before,
+.nz *::after { box-sizing: border-box; }
+.nz p { margin: 0; }
+.nz a { color: inherit; }
+.nz img { display: block; max-width: 100%; height: auto; }
+
+.nz-wrap { width: 100%; max-width: 1040px; margin: 0 auto; padding: 0 18px; }
+.nz-narrow { max-width: 780px; }
+.nz-center { text-align: center; display: flex; flex-direction: column; align-items: center; }
+
+/* Лентата с датата */
+.nz-top {
+  position: sticky; top: 0; z-index: 30;
+  background: var(--nz-dark); color: #fff;
+  text-align: center; font-size: 14.5px; line-height: 1.35;
+  padding: 10px 14px;
+}
+.nz-top strong { color: #ffd98a; font-weight: 700; }
+
+/* Главна част */
+.nz-hero {
+  padding: 30px 0 46px;
+  background:
+    radial-gradient(900px 420px at 50% -80px, #fdeccb 0%, rgba(253, 236, 203, 0) 70%),
+    var(--nz-bg);
+}
+.nz-pill {
+  display: inline-block; max-width: 100%;
+  border: 1px solid var(--nz-line); border-radius: 999px; background: #fff;
+  padding: 7px 16px; font-size: 12.5px; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--nz-ink);
+}
+.nz-pill strong { color: var(--nz-gold); }
+.nz-vnimanie {
+  margin-top: 16px !important; max-width: 760px;
+  background: #fff; border: 1px solid var(--nz-line); border-radius: 14px;
+  box-shadow: 0 6px 22px rgba(20, 18, 43, 0.06);
+  padding: 13px 18px; font-size: 16px; font-weight: 600;
+}
+.nz-vnimanie strong { color: var(--nz-red); letter-spacing: 0.04em; }
+.nz-h1 {
+  margin: 22px 0 0; max-width: 900px;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: clamp(27px, 5.2vw, 46px); line-height: 1.14; font-weight: 800;
+  letter-spacing: -0.015em; color: var(--nz-ink); text-wrap: balance;
+}
+.nz-h1 mark { background: none; color: var(--nz-mark); font-style: italic; }
+.nz-sub {
+  margin-top: 16px !important; max-width: 760px;
+  font-size: clamp(17px, 2.3vw, 20px); color: var(--nz-mut); text-wrap: pretty;
+}
+.nz-bez {
+  list-style: none; margin: 20px 0 22px; padding: 0;
+  display: flex; flex-direction: column; gap: 5px;
+  font-size: 17px; font-weight: 600; text-align: left;
+}
+.nz-bez li span { color: var(--nz-red); font-weight: 800; margin-right: 8px; }
+.nz-under { margin-top: 10px !important; font-size: 14px; color: var(--nz-mut); }
+
+/* Бутонът — яркочервен навсякъде */
+.nz-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 58px; padding: 16px 34px; border: 0; border-radius: 999px;
+  background: var(--nz-red); color: #fff; cursor: pointer;
+  font-family: inherit; font-size: 17px; font-weight: 800; letter-spacing: 0.04em;
+  text-transform: uppercase; text-decoration: none; text-align: center;
+  box-shadow: 0 10px 26px rgba(227, 18, 42, 0.38);
+  transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+}
+.nz-btn:hover { background: var(--nz-red-d); transform: translateY(-1px); box-shadow: 0 14px 30px rgba(227, 18, 42, 0.45); }
+.nz-btn:focus-visible { outline: 3px solid #ffd98a; outline-offset: 3px; }
+.nz-btn:disabled { opacity: 0.7; cursor: progress; transform: none; }
+.nz-btn-full { width: 100%; }
+
+/* Секции */
+.nz-sec { padding: 54px 0; }
+.nz-soft { background: var(--nz-soft); }
+.nz-dark { background: var(--nz-dark); color: #fff; }
+.nz-h2 {
+  margin: 0; font-family: var(--font-body), system-ui, sans-serif;
+  font-size: clamp(25px, 4.2vw, 36px); line-height: 1.18; font-weight: 800;
+  letter-spacing: -0.01em; text-wrap: balance; color: inherit;
+}
+.nz-h2 em { color: var(--nz-gold); font-style: italic; }
+.nz-h2-tail { color: var(--nz-mut); font-weight: 700; }
+.nz-lead { margin-top: 10px !important; max-width: 700px; color: var(--nz-mut); font-size: 17.5px; }
+.nz-dark .nz-lead { color: #c9c5dd; }
+.nz-eyebrow, .nz-kicker {
+  font-size: 13px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--nz-gold); margin-bottom: 8px !important;
+}
+.nz-dark .nz-eyebrow { color: #ffd98a; }
+.nz-kicker { letter-spacing: 0.02em; text-transform: none; font-size: 17px; font-style: italic; }
+.nz-intro { color: var(--nz-mut); font-size: 16px; margin-bottom: 6px !important; }
+.nz-dateline { margin: 18px 0 16px !important; font-size: 15.5px; font-weight: 600; }
+.nz-dark .nz-dateline { color: #ffd98a; }
+
+/* Две колони */
+.nz-two { display: grid; gap: 30px; grid-template-columns: 1fr; align-items: center; }
+.nz-photo { border-radius: 22px; overflow: hidden; box-shadow: 0 18px 44px rgba(20, 18, 43, 0.18); max-width: 380px; margin: 0 auto; width: 100%; }
+.nz-photo img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; object-position: top; }
+.nz-photo-sm { max-width: 320px; }
+@media (min-width: 900px) {
+  .nz-two { grid-template-columns: 380px 1fr; gap: 48px; }
+  .nz-two-rev { grid-template-columns: 1fr 320px; }
+}
+
+/* 3-те тайни */
+.nz-taini { list-style: none; margin: 16px 0 24px; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.nz-taini li {
+  background: #fff; border: 1px solid var(--nz-line); border-left: 4px solid var(--nz-red);
+  border-radius: 12px; padding: 13px 16px; box-shadow: 0 4px 14px rgba(20, 18, 43, 0.05);
+}
+.nz-taina-n { display: block; font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--nz-gold); margin-bottom: 3px; }
+.nz-taini p { font-size: 17px; color: var(--nz-mut); }
+.nz-taini strong { color: var(--nz-ink); }
+
+/* Бонуси */
+.nz-gifts {
+  list-style: none; margin: 26px 0 0; padding: 0; width: 100%; max-width: 860px;
+  display: grid; gap: 12px; grid-template-columns: 1fr; text-align: left;
+}
+@media (min-width: 760px) { .nz-gifts { grid-template-columns: 1fr 1fr; } .nz-gifts li:last-child { grid-column: 1 / -1; } }
+.nz-gifts li {
+  display: flex; gap: 14px; align-items: flex-start;
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px; padding: 15px 16px;
+}
+.nz-gift-ico { font-size: 28px; line-height: 1; }
+.nz-gift-kind { font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #ffd98a; }
+.nz-gift-name { font-size: 18px; font-weight: 800; color: #fff; }
+.nz-gift-body { font-size: 15.5px; color: #c9c5dd; }
+.nz-total { margin-top: 22px !important; font-size: 18px; font-weight: 800; color: #fff; }
+
+/* Доказателство */
+.nz-otzivi { margin: 26px 0 26px; width: 100%; display: grid; gap: 16px; grid-template-columns: 1fr; text-align: left; }
+@media (min-width: 900px) { .nz-otzivi { grid-template-columns: 1fr 1fr; } }
+.nz-otzivi figure { margin: 0; background: #fff; border: 1px solid var(--nz-line); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.nz-otzivi img { width: 100%; border-radius: 10px; border: 1px solid var(--nz-line); }
+.nz-otzivi figcaption { margin-top: auto; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 14px; }
+.nz-otzivi figcaption span { color: var(--nz-mut); }
+
+/* Авторитет */
+.nz-bio { margin-top: 12px !important; font-size: 17.5px; color: var(--nz-mut); }
+.nz-trofei { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.nz-trofei li { display: flex; gap: 10px; align-items: flex-start; font-size: 17px; }
+.nz-trofei p { color: var(--nz-mut); }
+.nz-trofei strong { color: var(--nz-ink); }
+.nz-kam { margin-top: 10px !important; font-size: 13px; color: var(--nz-mut); }
+
+/* Въпроси */
+.nz-faq { margin-top: 22px; display: flex; flex-direction: column; gap: 10px; }
+.nz-faq details { background: #fff; border: 1px solid var(--nz-line); border-radius: 12px; padding: 0 16px; }
+.nz-faq summary { cursor: pointer; list-style: none; padding: 15px 28px 15px 0; font-weight: 700; font-size: 17px; position: relative; }
+.nz-faq summary::-webkit-details-marker { display: none; }
+.nz-faq summary::after { content: "+"; position: absolute; right: 2px; top: 11px; font-size: 24px; font-weight: 500; color: var(--nz-gold); }
+.nz-faq details[open] summary::after { content: "–"; }
+.nz-faq details p { padding: 0 0 15px; color: var(--nz-mut); }
+
+.nz-final { padding: 60px 0; }
+
+/* Долу */
+.nz-foot { padding: 26px 0 30px; font-size: 13px; color: var(--nz-mut); background: var(--nz-bg); }
+.nz-foot p { max-width: 760px; margin: 0 auto 8px; }
+.nz-foot a { text-decoration: underline; }
+.nz-sign { opacity: 0.75; }
+
+/* Лепкав бутон на телефон */
+.nz-sticky {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(255, 253, 249, 0.94); backdrop-filter: blur(8px);
+  border-top: 1px solid var(--nz-line); display: flex; justify-content: center;
+}
+.nz-sticky .nz-btn { width: 100%; max-width: 460px; min-height: 52px; padding: 13px 20px; font-size: 15.5px; }
+@media (min-width: 900px) { .nz { padding-bottom: 0; } .nz-sticky { display: none; } }
+
+/* Прозорецът с формата */
+.nz-dialog {
+  color-scheme: light; margin: auto;
+  border: 0; padding: 0; border-radius: 20px; width: min(460px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px); overflow: auto;
+  background: #fff; color: var(--nz-ink, #14122b);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+}
+.nz-dialog::backdrop { background: rgba(12, 10, 28, 0.66); backdrop-filter: blur(3px); }
+.nz-dialog-in { position: relative; padding: 26px 22px 22px; }
+.nz-dialog h2 { margin: 0 34px 6px 0; font-family: var(--font-body), system-ui, sans-serif; font-size: 23px; line-height: 1.2; font-weight: 800; color: #14122b; }
+.nz-x { position: absolute; top: 10px; right: 12px; width: 38px; height: 38px; border: 0; border-radius: 50%; background: #f3efe6; color: #14122b; font-size: 24px; line-height: 1; cursor: pointer; }
+.nz-form-date, .nz-done-date { font-size: 14.5px; font-weight: 700; color: #b7791f; margin-bottom: 14px !important; }
+.nz-field { display: block; margin-bottom: 11px; }
+.nz-field span { display: block; font-size: 13.5px; font-weight: 700; margin-bottom: 4px; color: #14122b; }
+.nz-field input {
+  width: 100%; min-height: 50px; padding: 12px 14px; border: 1.5px solid #d9d2c2; border-radius: 12px;
+  background: #fff; color: #14122b; font: inherit; font-size: 17px; outline: none;
+}
+.nz-field input::placeholder { color: #a39d90; }
+.nz-field input:focus { border-color: #1e3a8a; box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.15); }
+.nz-hp { position: absolute !important; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.nz-consent { display: flex; gap: 10px; align-items: flex-start; margin: 6px 0 14px; font-size: 13.5px; line-height: 1.4; color: #55516b; cursor: pointer; }
+.nz-consent input { margin-top: 2px; width: 20px; height: 20px; flex: none; accent-color: #e3122a; }
+.nz-consent a { text-decoration: underline; }
+.nz-error { margin: 0 0 12px !important; padding: 9px 12px; border-radius: 10px; background: #fdecee; color: #a10f20; font-size: 14.5px; font-weight: 600; }
+.nz-form-foot { margin-top: 10px !important; text-align: center; font-size: 13px; color: #55516b; }
+.nz-done { text-align: center; }
+.nz-done-ico { font-size: 44px; line-height: 1; margin-bottom: 8px !important; }
+.nz-done h2 { margin: 0 0 8px; }
+.nz-done p { color: #55516b; margin-bottom: 16px !important; }
+
+@media (prefers-reduced-motion: reduce) { .nz-btn { transition: none; } .nz-btn:hover { transform: none; } }
