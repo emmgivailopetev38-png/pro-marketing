@@ -122,7 +122,7 @@ export function ZapisForm({
             </p>
             <h2 id="nz-form-title">
               {doneTitle}
-              {name ? ` ${name.split(" ")[0]}, ще се видим на живо.` : ""}
+              {name.trim() ? ` ${name.trim().split(" ")[0]}, ще се видим на живо.` : ""}
             </h2>
             <p className="nz-done-date">📣 {dateLabel}</p>
             <p>{doneBody}</p>
