@@ -1,5 +1,6 @@
 /* ---------------------------------------------------------------------------
-   NaZhivoLanding — страницата за записване за обучението на живо „Покажи, не продавай“.
+   NaZhivoLanding — страницата за записване за обучението на живо „Допълнителен доход
+   с AI“ (ivailopetev.com). Текстът е в lib/uebinar/na-zhivo.ts.
 
    Редът на секциите е от срещата със Стефчо (21.11.2026) и примерната страница,
    която той показа: лента с датата → внимание (аудиторията) → заглавие →
@@ -57,13 +58,7 @@ export function NaZhivoLanding() {
 
             <p className="nz-sub">{c.sub}</p>
 
-            <ul className="nz-bez" aria-label="Какво не се иска от теб">
-              {c.bez.map((b) => (
-                <li key={b}>
-                  <span aria-hidden>✕</span> {b}
-                </li>
-              ))}
-            </ul>
+            <p className="nz-bez">{c.bez}</p>
 
             <Cta place="hero" />
             <p className="nz-under">Безплатно · на живо · {c.dayShort}</p>
@@ -143,7 +138,7 @@ export function NaZhivoLanding() {
             <p className="nz-lead">{c.dokazatelstvo.note}</p>
 
             <div className="nz-otzivi">
-              {OTZIVI.map((o) => (
+              {OTZIVI.filter((o) => (c.dokazatelstvo.otziviIds as readonly string[]).includes(o.id)).map((o) => (
                 <figure key={o.id}>
                   <Image
                     src={o.snimka.src}

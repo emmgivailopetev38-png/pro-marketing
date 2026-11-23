@@ -73,12 +73,12 @@
   margin-top: 16px !important; max-width: 760px;
   font-size: clamp(17px, 2.3vw, 20px); color: var(--nz-mut); text-wrap: pretty;
 }
+/* „Без“ частта — един ред текст (Стефчо, 23.11.2026), не списък */
 .nz-bez {
-  list-style: none; margin: 20px 0 22px; padding: 0;
-  display: flex; flex-direction: column; gap: 5px;
-  font-size: 17px; font-weight: 600; text-align: left;
+  margin: 18px 0 22px !important; max-width: 720px;
+  font-size: clamp(16px, 2.1vw, 18px); font-weight: 700; line-height: 1.5;
+  color: var(--nz-ink); text-wrap: balance;
 }
-.nz-bez li span { color: var(--nz-red); font-weight: 800; margin-right: 8px; }
 .nz-under { margin-top: 10px !important; font-size: 14px; color: var(--nz-mut); }
 
 /* Бутонът — яркочервен навсякъде */
@@ -95,6 +95,9 @@
 .nz-btn:focus-visible { outline: 3px solid #ffd98a; outline-offset: 3px; }
 .nz-btn:disabled { opacity: 0.7; cursor: progress; transform: none; }
 .nz-btn-full { width: 100%; }
+/* Текстът на бутона винаги на един ред — и на най-тесния телефон */
+.nz-btn { white-space: nowrap; }
+@media (max-width: 400px) { .nz-btn { padding: 16px 20px; font-size: 15px; letter-spacing: 0.02em; } }
 
 /* Секции */
 .nz-sec { padding: 54px 0; }
