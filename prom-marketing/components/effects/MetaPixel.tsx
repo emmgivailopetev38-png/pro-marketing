@@ -2,6 +2,7 @@
 import Script from "next/script";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { UEBINAR_HOSTS, UEBINAR_PATH, UEBINAR_PIXEL_ID } from "@/lib/uebinar/domen";
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
 
@@ -11,6 +12,11 @@ const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
  *
  * Disabled cleanly when NEXT_PUBLIC_META_PIXEL_ID is not set — useful for
  * local dev so we don't poison the real pixel with localhost events.
+ *
+ * Уебинарът има свой, чисто нов пиксел (23.11.2026): на ivailopetev.com и на
+ * /na-zhivo се зарежда САМО той, навсякъде другаде — само основният. Кой от
+ * двата, решава скриптът в браузъра (страницата е статична и не знае хоста),
+ * така че PageView и CompleteRegistration от лендинга учат само новия пиксел.
  */
 export function MetaPixel() {
   const pathname = usePathname();
@@ -35,7 +41,8 @@ export function MetaPixel() {
             t=b.createElement(e);t.async=!0;t.src=v;
             s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s);
           }(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
-          fbq('init', '${PIXEL_ID}');
+          var pmUebinar = ${JSON.stringify(UEBINAR_HOSTS)}.indexOf(location.hostname) !== -1 || location.pathname === '${UEBINAR_PATH}';
+          fbq('init', pmUebinar ? '${UEBINAR_PIXEL_ID}' : '${PIXEL_ID}');
           fbq('track', 'PageView');
         `}
       </Script>
