@@ -1,0 +1,335 @@
+/* Подаръците от обучението (ivailopetev.com/podaraci). Всичко е под .pd и
+   ползва цветовете на .nz (лендинга) — един стил от рекламата до подаръка. */
+.pd { padding-bottom: 0; }
+.pd { --pd-card: #ffffff; --pd-ink-2: #2b2747; --pd-gold-2: #ffd98a; --pd-violet: #6d4aff; }
+/* Заглавията — със шрифта на лендинга (глобалните h1–h4 на сайта са Unbounded).
+   Unbounded остава само за числата. */
+.pd h1, .pd h2, .pd h3 { font-family: var(--font-body), system-ui, -apple-system, "Segoe UI", sans-serif; letter-spacing: -0.01em; }
+
+/* Горна лента */
+.pd-top {
+  position: sticky; top: 0; z-index: 30;
+  background: rgba(20, 18, 43, 0.96); backdrop-filter: blur(8px); color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.pd-top-in { max-width: 1040px; margin: 0 auto; padding: 11px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14.5px; }
+.pd-top a { color: #fff; text-decoration: none; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; }
+.pd-top a:hover { color: var(--pd-gold-2); }
+.pd-top-label { color: var(--pd-gold-2); font-weight: 700; letter-spacing: 0.04em; white-space: nowrap; }
+@media (max-width: 520px) { .pd-top-home ~ .pd-top-label { display: none; } }
+
+/* Тъмно начало */
+.pd-hero {
+  position: relative; overflow: hidden; color: #fff; text-align: center;
+  background:
+    radial-gradient(700px 360px at 15% -10%, rgba(255, 217, 138, 0.22), rgba(255, 217, 138, 0) 70%),
+    radial-gradient(640px 380px at 90% 10%, rgba(109, 74, 255, 0.28), rgba(109, 74, 255, 0) 70%),
+    linear-gradient(180deg, #14122b 0%, #1c1840 100%);
+  padding: 54px 0 62px;
+}
+.pd-hero::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 22px 22px; mask-image: linear-gradient(180deg, #000 0%, transparent 85%);
+}
+.pd-hero > * { position: relative; z-index: 1; }
+.pd-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(255, 217, 138, 0.35);
+  background: rgba(255, 217, 138, 0.08); color: var(--pd-gold-2); border-radius: 999px;
+  padding: 6px 14px; font-size: 12.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+}
+.pd-h1 {
+  margin: 16px auto 0; max-width: 820px;
+  font-family: var(--font-body), system-ui, sans-serif; font-weight: 800;
+  font-size: clamp(30px, 5.4vw, 50px); line-height: 1.1; letter-spacing: -0.02em; text-wrap: balance;
+}
+.pd-h1 em { font-style: normal; color: var(--pd-gold-2); }
+.pd-hero-sub { margin: 14px auto 0 !important; max-width: 640px; color: #d6d2ea; font-size: clamp(16.5px, 2.2vw, 19px); text-wrap: pretty; }
+.pd-hero-meta { margin-top: 18px !important; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 16px; color: #bdb7da; font-size: 14px; font-weight: 600; }
+
+/* Картите с подаръците — цялата карта е линк (бутонът се разпъва върху нея) */
+.pd-grid { list-style: none; margin: -34px auto 0; padding: 0 18px; max-width: 1040px; display: grid; gap: 16px; grid-template-columns: 1fr; position: relative; z-index: 2; }
+@media (min-width: 820px) { .pd-grid { grid-template-columns: 1fr 1fr; gap: 18px; } .pd-grid > li:first-child { grid-column: 1 / -1; } }
+.pd-card {
+  position: relative; height: 100%; background: var(--pd-card); border: 1px solid var(--nz-line); border-radius: 22px;
+  box-shadow: 0 18px 50px rgba(20, 18, 43, 0.12); padding: 20px 20px 22px;
+  display: grid; grid-template-columns: 56px 1fr; column-gap: 14px; row-gap: 2px; align-items: center; align-content: start;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.pd-card:has(.pd-stretch):hover { transform: translateY(-3px); box-shadow: 0 26px 60px rgba(20, 18, 43, 0.17); border-color: #ecd3a2; }
+.pd-ico {
+  grid-row: 1 / span 2; width: 56px; height: 56px; border-radius: 17px; display: grid; place-items: center; font-size: 29px;
+  background: linear-gradient(160deg, #fff6e2, #fde6b8); box-shadow: inset 0 0 0 1px rgba(183, 121, 31, 0.18);
+}
+.pd-kind { grid-column: 2; align-self: end; font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--nz-gold); }
+.pd-kind b { color: var(--nz-ink); }
+.pd-name { grid-column: 2; align-self: start; margin: 2px 0 0; font-size: clamp(19px, 2.6vw, 23px); line-height: 1.2; font-weight: 800; color: var(--nz-ink); text-wrap: balance; }
+.pd-body { grid-column: 1 / -1; margin-top: 12px !important; color: var(--nz-mut); font-size: 16px; text-wrap: pretty; }
+.pd-card .nz-btn, .pd-card .nz-btn:hover { grid-column: 1 / -1; justify-self: start; margin-top: 16px; transform: none; }
+.pd-card:has(.pd-stretch):hover .nz-btn { background: var(--nz-red-d); box-shadow: 0 14px 30px rgba(227, 18, 42, 0.45); }
+.pd-stretch::after { content: ""; position: absolute; inset: 0; border-radius: 22px; }
+.pd-card-feature { border: 1.5px solid #f1d39a; background: linear-gradient(180deg, #fffdf8, #fff); }
+.pd-card-feature .pd-kind { color: var(--nz-red); }
+@media (min-width: 820px) {
+  .pd-card { padding: 24px 24px 24px; }
+  .pd-card-feature { grid-template-columns: 88px 1fr auto; column-gap: 24px; padding: 30px 32px; }
+  .pd-card-feature .pd-ico { grid-row: 1 / span 3; width: 88px; height: 88px; font-size: 46px; border-radius: 26px; }
+  .pd-card-feature .pd-body { grid-column: 2; margin-top: 6px !important; max-width: 560px; }
+  .pd-card-feature .nz-btn { grid-column: 3; grid-row: 1 / span 3; align-self: center; margin-top: 0; }
+}
+.pd-card-ticket {
+  background:
+    radial-gradient(circle at 0 50%, var(--nz-bg) 13px, transparent 14px),
+    radial-gradient(circle at 100% 50%, var(--nz-bg) 13px, transparent 14px),
+    linear-gradient(160deg, #1b1740, #2a2160);
+  color: #fff; border: 0; outline: 1.5px dashed rgba(255, 217, 138, 0.28); outline-offset: -11px;
+}
+.pd-card-ticket .pd-name { color: #fff; }
+.pd-card-ticket .pd-body { color: #d6d2ea; }
+.pd-card-ticket .pd-kind { color: var(--pd-gold-2); }
+.pd-card-ticket .pd-ico { background: rgba(255, 217, 138, 0.14); box-shadow: inset 0 0 0 1px rgba(255, 217, 138, 0.35); }
+.pd-live { display: inline-flex; align-items: center; gap: 9px; margin-top: 16px; grid-column: 1 / -1; justify-self: start; padding: 8px 14px; border-radius: 999px; background: rgba(255, 77, 94, 0.12); font-size: 14px; font-weight: 800; color: #ffd0d5; }
+.pd-live i { width: 9px; height: 9px; border-radius: 50%; background: #ff4d5e; box-shadow: 0 0 0 0 rgba(255, 77, 94, 0.6); animation: pd-pulse 1.6s infinite; }
+@keyframes pd-pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 77, 94, 0.55); } 70% { box-shadow: 0 0 0 10px rgba(255, 77, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 77, 94, 0); } }
+.pd-btn-sm { min-height: 48px; padding: 12px 24px; font-size: 15px; }
+
+/* Страниците с материали */
+.pd-doc { max-width: 880px; margin: 0 auto; padding: 0 18px; }
+.pd-sec { padding: 38px 0 6px; }
+.pd-sec:last-child { padding-bottom: 46px; }
+.pd-h2 { margin: 0 0 6px; font-family: var(--font-body), system-ui, sans-serif; font-size: clamp(23px, 3.6vw, 30px); line-height: 1.2; font-weight: 800; letter-spacing: -0.01em; color: var(--nz-ink); text-wrap: balance; }
+.pd-h2 small { display: block; font-size: 12.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--nz-gold); font-weight: 800; margin-bottom: 6px; }
+.pd-p { color: var(--nz-mut); font-size: 17px; max-width: 720px; }
+.pd-box { background: #fff; border: 1px solid var(--nz-line); border-radius: 18px; padding: 18px 18px; box-shadow: 0 8px 26px rgba(20, 18, 43, 0.06); }
+.pd-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 22px; }
+.pd-ghost {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 11px 20px;
+  border-radius: 999px; border: 1.5px solid rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.06);
+  color: #fff; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; text-decoration: none;
+}
+.pd-ghost:hover { background: rgba(255, 255, 255, 0.14); }
+.pd-ghost-dark { border-color: var(--nz-line); background: #fff; color: var(--nz-ink); }
+.pd-ghost-dark:hover { background: #fbf5ea; }
+
+/* Таблица на пазара */
+.pd-pazar { margin-top: 16px; display: grid; gap: 10px; }
+.pd-pazar-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; border-radius: 14px; background: #fff; border: 1px solid var(--nz-line); }
+.pd-pazar-row b { font-family: var(--font-display), var(--font-body), sans-serif; font-size: 17px; white-space: nowrap; color: var(--nz-ink); }
+.pd-src { margin-top: 10px !important; font-size: 13.5px; color: var(--nz-mut); }
+.pd-src a { text-decoration: underline; }
+
+/* Пакетите */
+.pd-paketi { margin-top: 18px; display: grid; gap: 14px; grid-template-columns: 1fr; }
+@media (min-width: 860px) { .pd-paketi { grid-template-columns: repeat(3, 1fr); } }
+.pd-paket { position: relative; background: #fff; border: 1px solid var(--nz-line); border-radius: 20px; padding: 20px 18px 18px; display: flex; flex-direction: column; gap: 8px; }
+.pd-paket-top { border: 2px solid var(--nz-red); box-shadow: 0 18px 40px rgba(227, 18, 42, 0.14); }
+.pd-ribbon { position: absolute; top: -12px; left: 18px; background: var(--nz-red); color: #fff; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; padding: 5px 11px; border-radius: 999px; }
+.pd-paket h3 { margin: 4px 0 0; font-size: 21px; font-weight: 800; color: var(--nz-ink); }
+.pd-paket-za { font-size: 14px; color: var(--nz-mut); }
+.pd-paket-cena { margin-top: 6px !important; font-family: var(--font-display), var(--font-body), sans-serif; font-size: 25px; font-weight: 800; color: var(--nz-ink); line-height: 1.1; }
+.pd-paket-mes { font-size: 15px; font-weight: 700; color: var(--nz-gold); }
+.pd-paket ul { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 15px; color: var(--pd-ink-2); }
+.pd-paket li::before { content: "✓"; color: #16a34a; font-weight: 900; margin-right: 8px; }
+
+/* Списъци с отметки и правила */
+.pd-ticks { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
+.pd-ticks li { display: flex; gap: 10px; align-items: flex-start; font-size: 16.5px; color: var(--pd-ink-2); }
+.pd-ticks li::before { content: "✓"; flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: #e7f8ee; color: #15803d; font-weight: 900; font-size: 14px; margin-top: 1px; }
+.pd-rules { list-style: none; counter-reset: r; margin: 16px 0 0; padding: 0; display: grid; gap: 12px; }
+@media (min-width: 760px) { .pd-rules { grid-template-columns: 1fr 1fr; } }
+.pd-rules li { counter-increment: r; position: relative; background: #fff; border: 1px solid var(--nz-line); border-radius: 16px; padding: 16px 16px 15px 58px; }
+.pd-rules li::before {
+  content: counter(r); position: absolute; left: 14px; top: 14px; width: 32px; height: 32px; border-radius: 10px;
+  display: grid; place-items: center; background: var(--nz-dark); color: var(--pd-gold-2); font-family: var(--font-display), sans-serif; font-weight: 800; font-size: 15px;
+}
+.pd-rules b { display: block; color: var(--nz-ink); font-size: 16.5px; }
+.pd-rules span { display: block; margin-top: 3px; color: var(--nz-mut); font-size: 15px; }
+
+/* Балонче като във Viber + бутон „Копирай“ */
+.pd-bubble-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.pd-bubble {
+  max-width: 560px; background: linear-gradient(160deg, #7b5cff, #6142ee); color: #fff; border-radius: 20px 20px 6px 20px;
+  padding: 13px 16px; font-size: 16px; line-height: 1.5; box-shadow: 0 10px 24px rgba(97, 66, 238, 0.25); white-space: pre-wrap;
+}
+.pd-copy {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 38px; padding: 8px 14px; border-radius: 999px;
+  border: 1px solid var(--nz-line); background: #fff; color: var(--nz-ink); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.pd-copy:hover { background: #fbf5ea; }
+.pd-copy[data-done="1"] { background: #e7f8ee; border-color: #a7e3bf; color: #15803d; }
+
+/* Калкулатор */
+.pd-calc { margin-top: 16px; display: grid; gap: 16px; grid-template-columns: 1fr; }
+@media (min-width: 820px) { .pd-calc { grid-template-columns: 1.1fr 1fr; align-items: stretch; } }
+.pd-calc-in { display: grid; gap: 16px; }
+.pd-range label { display: flex; justify-content: space-between; gap: 10px; font-weight: 700; font-size: 15.5px; color: var(--nz-ink); }
+.pd-range label output { font-family: var(--font-display), sans-serif; color: var(--nz-red); }
+.pd-range input[type="range"] { width: 100%; margin-top: 8px; accent-color: var(--nz-red); height: 28px; }
+.pd-calc-out { background: var(--nz-dark); color: #fff; border-radius: 20px; padding: 20px; display: grid; gap: 14px; align-content: center; }
+.pd-calc-out p { color: #c9c5dd; font-size: 14.5px; }
+.pd-calc-out b { display: block; font-family: var(--font-display), sans-serif; font-size: clamp(24px, 3.4vw, 32px); color: #fff; line-height: 1.15; margin-top: 2px; }
+.pd-calc-out b.gold { color: var(--pd-gold-2); }
+.pd-calc-note { font-size: 12.5px !important; color: #a39fc0 !important; }
+
+/* Отговорите */
+.pd-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.pd-chips a { text-decoration: none; padding: 8px 13px; border-radius: 999px; background: #fff; border: 1px solid var(--nz-line); font-size: 14px; font-weight: 700; color: var(--nz-ink); }
+.pd-chips a:hover { border-color: var(--nz-gold); color: var(--nz-gold); }
+.pd-objs { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 14px; }
+.pd-obj { scroll-margin-top: 80px; background: #fff; border: 1px solid var(--nz-line); border-radius: 20px; padding: 18px; display: grid; gap: 12px; }
+.pd-obj-q { display: flex; gap: 12px; align-items: flex-start; }
+.pd-obj-n { flex: none; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: #fdecee; color: var(--nz-red); font-family: var(--font-display), sans-serif; font-weight: 800; font-size: 15px; }
+.pd-obj-q h3 { margin: 4px 0 0; font-size: 19px; font-weight: 800; color: var(--nz-ink); }
+.pd-obj-q p { margin-top: 2px !important; font-size: 14.5px; color: var(--nz-mut); }
+
+/* Данъците */
+.pd-note { margin-top: 18px; display: flex; gap: 12px; align-items: flex-start; background: #fff8e6; border: 1px solid #f3d699; border-radius: 16px; padding: 14px 16px; color: #6b4b10; font-size: 15px; }
+.pd-note b { color: #4a3208; }
+.pd-nums { margin-top: 18px; display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+@media (min-width: 820px) { .pd-nums { grid-template-columns: repeat(3, 1fr); } }
+.pd-num { background: #fff; border: 1px solid var(--nz-line); border-radius: 18px; padding: 16px; }
+.pd-num b { display: block; font-family: var(--font-display), sans-serif; font-size: clamp(20px, 3vw, 26px); color: var(--nz-ink); line-height: 1.1; }
+.pd-num span { display: block; margin-top: 6px; font-size: 14px; color: var(--nz-mut); line-height: 1.4; }
+.pd-paths { margin-top: 18px; display: grid; gap: 14px; grid-template-columns: 1fr; }
+@media (min-width: 860px) { .pd-paths { grid-template-columns: repeat(3, 1fr); } }
+.pd-path { position: relative; background: #fff; border: 1px solid var(--nz-line); border-radius: 20px; padding: 20px 18px 18px; display: flex; flex-direction: column; gap: 8px; }
+.pd-path h3 { margin: 4px 0 0; font-size: 20px; font-weight: 800; color: var(--nz-ink); }
+.pd-path-koga { font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--nz-gold); }
+.pd-path p { font-size: 15px; color: var(--pd-ink-2); }
+.pd-path .plus, .pd-path .minus { font-size: 14.5px; }
+.pd-path .plus::before { content: "＋ "; color: #15803d; font-weight: 900; }
+.pd-path .minus::before { content: "– "; color: var(--nz-red); font-weight: 900; }
+.pd-check { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 10px; }
+.pd-check li label { display: flex; gap: 14px; align-items: flex-start; background: #fff; border: 1px solid var(--nz-line); border-radius: 16px; padding: 14px 16px; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease; }
+.pd-check input { position: absolute; opacity: 0; pointer-events: none; }
+.pd-box-tick { flex: none; width: 26px; height: 26px; border-radius: 8px; border: 2px solid #cfc7b5; display: grid; place-items: center; color: transparent; font-weight: 900; font-size: 16px; margin-top: 1px; transition: all 0.15s ease; }
+.pd-check input:checked + .pd-box-tick { background: #16a34a; border-color: #16a34a; color: #fff; }
+.pd-check input:focus-visible + .pd-box-tick { outline: 3px solid #ffd98a; outline-offset: 2px; }
+.pd-check li.done label { background: #f3fbf6; border-color: #bfe8cf; }
+.pd-check b { display: block; color: var(--nz-ink); font-size: 16.5px; }
+.pd-check span.d { display: block; margin-top: 2px; color: var(--nz-mut); font-size: 15px; }
+.pd-progress { margin-top: 16px; display: flex; align-items: center; gap: 12px; font-size: 14.5px; font-weight: 700; color: var(--nz-ink); }
+.pd-progress-bar { flex: 1; height: 10px; border-radius: 999px; background: #efe8d9; overflow: hidden; }
+.pd-progress-bar i { display: block; height: 100%; background: linear-gradient(90deg, #f0b542, #16a34a); border-radius: 999px; transition: width 0.35s ease; }
+.pd-sources { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; font-size: 14.5px; }
+.pd-sources a { color: var(--nz-mark); text-decoration: underline; }
+
+/* Следващ подарък */
+.pd-next { margin: 34px 0 10px; }
+.pd-next a {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; text-decoration: none;
+  background: var(--nz-dark); color: #fff; border-radius: 20px; padding: 18px 20px;
+}
+.pd-next a:hover { background: #221d4d; }
+.pd-next small { display: block; color: var(--pd-gold-2); font-size: 12.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+.pd-next b { display: block; font-size: 18px; margin-top: 2px; }
+.pd-next span.ar { font-size: 26px; color: var(--pd-gold-2); }
+
+/* Тестът */
+.pd-test { max-width: 720px; margin: -36px auto 0; padding: 0 18px; position: relative; z-index: 2; }
+.pd-test-card { background: #fff; border: 1px solid var(--nz-line); border-radius: 26px; box-shadow: 0 24px 60px rgba(20, 18, 43, 0.14); padding: 26px 22px 22px; }
+@media (min-width: 700px) { .pd-test-card { padding: 34px 34px 28px; } }
+.pd-prog { display: flex; align-items: center; gap: 12px; font-size: 13.5px; font-weight: 800; color: var(--nz-mut); letter-spacing: 0.04em; }
+.pd-prog-bar { flex: 1; height: 8px; border-radius: 999px; background: #f1ebdd; overflow: hidden; }
+.pd-prog-bar i { display: block; height: 100%; background: linear-gradient(90deg, #e3122a, #ff7a45); border-radius: 999px; transition: width 0.35s ease; }
+.pd-q { margin: 20px 0 0; font-size: clamp(21px, 3.2vw, 27px); line-height: 1.25; font-weight: 800; color: var(--nz-ink); text-wrap: balance; animation: pd-in 0.32s ease both; }
+.pd-opts { margin-top: 18px; display: grid; gap: 10px; }
+.pd-opt {
+  display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; min-height: 58px;
+  padding: 12px 16px; border-radius: 16px; border: 1.5px solid var(--nz-line); background: #fffdf9;
+  font: inherit; font-size: 16.5px; font-weight: 600; color: var(--nz-ink); cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease, transform 0.12s ease; animation: pd-in 0.32s ease both;
+}
+.pd-opt:hover { border-color: #e9b85c; background: #fff8ea; transform: translateY(-1px); }
+.pd-opt:focus-visible { outline: 3px solid #ffd98a; outline-offset: 2px; }
+.pd-opt[aria-pressed="true"] { border-color: var(--nz-red); background: #fff1f2; }
+.pd-opt-k { flex: none; width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: var(--nz-dark); color: var(--pd-gold-2); font-family: var(--font-display), sans-serif; font-size: 14px; font-weight: 800; }
+.pd-opt[aria-pressed="true"] .pd-opt-k { background: var(--nz-red); color: #fff; }
+.pd-test-foot { margin-top: 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13.5px; color: var(--nz-mut); }
+.pd-back { border: 0; background: none; font: inherit; font-weight: 700; color: var(--nz-mut); cursor: pointer; padding: 6px 0; }
+.pd-back:disabled { opacity: 0.35; cursor: default; }
+.pd-start { text-align: center; }
+.pd-start .pd-q { margin-top: 6px; }
+.pd-start ul { list-style: none; margin: 16px 0 22px; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.pd-start li { padding: 7px 13px; border-radius: 999px; background: #fbf5ea; border: 1px solid var(--nz-line); font-size: 14px; font-weight: 700; }
+@keyframes pd-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* Резултатът */
+.pd-res { text-align: center; animation: pd-in 0.4s ease both; }
+.pd-gauge { width: 220px; height: 220px; margin: 4px auto 0; position: relative; }
+.pd-gauge svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.pd-gauge .track { stroke: #f1ebdd; }
+.pd-gauge .bar { transition: stroke-dashoffset 1.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.pd-gauge-in { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; }
+.pd-gauge-in b { font-family: var(--font-display), sans-serif; font-size: 48px; line-height: 1; color: var(--nz-ink); }
+.pd-gauge-in span { margin-top: 6px; font-size: 13px; font-weight: 700; color: var(--nz-mut); max-width: 150px; line-height: 1.3; }
+.pd-band { display: inline-block; margin-top: 10px; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+.pd-band-nisko { background: #e7f8ee; color: #15803d; }
+.pd-band-sredno { background: #fff4dc; color: #a16207; }
+.pd-band-visoko { background: #fdecee; color: #be123c; }
+.pd-res h2 { margin: 12px 0 0; font-size: clamp(23px, 3.6vw, 30px); line-height: 1.2; font-weight: 800; color: var(--nz-ink); text-wrap: balance; }
+.pd .pd-res-txt { margin: 10px auto 0; max-width: 560px; color: var(--nz-mut); font-size: 17px; }
+.pd-res-sec { margin-top: 22px; text-align: left; background: #fffdf9; border: 1px solid var(--nz-line); border-radius: 18px; padding: 16px; }
+.pd-res-sec h3 { margin: 0 0 8px; font-size: 15px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--nz-gold); }
+.pd-res-sec ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+.pd-res-sec li { display: flex; gap: 10px; align-items: flex-start; font-size: 15.5px; color: var(--pd-ink-2); }
+.pd-res-sec li b { color: var(--nz-ink); }
+.pd-res-sec li .k { flex: none; width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: var(--nz-dark); color: var(--pd-gold-2); font-size: 13px; font-weight: 800; font-family: var(--font-display), sans-serif; }
+.pd-res-ready { margin-top: 16px !important; padding: 14px 16px; border-radius: 16px; background: linear-gradient(160deg, #1b1740, #2a2160); color: #fff; font-size: 16px; text-align: left; }
+.pd-fine { margin-top: 16px !important; font-size: 12.5px; color: var(--nz-mut); text-align: center; }
+
+/* От кого — снимката в началото */
+.pd-top-home { font-weight: 800; display: inline-flex; align-items: center; gap: 8px; }
+.pd-from {
+  margin-top: 24px; display: inline-flex; align-items: center; gap: 12px; text-align: left;
+  padding: 6px 18px 6px 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.pd .pd-ava { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; object-position: 50% 18%; border: 2px solid rgba(255, 217, 138, 0.7); }
+.pd-from b { display: block; font-size: 15px; color: #fff; line-height: 1.2; }
+.pd-from small { display: block; font-size: 12.5px; color: #bdb7da; }
+
+/* Писмото накрая */
+.pd-letter {
+  position: relative; max-width: 640px; margin: 0 auto; background: #fff; border: 1px solid var(--nz-line); border-radius: 22px;
+  padding: 26px 24px 22px; box-shadow: 0 12px 34px rgba(20, 18, 43, 0.07);
+}
+.pd-letter::before { content: "✉️"; position: absolute; top: -18px; left: 22px; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 12px; background: var(--nz-dark); font-size: 17px; }
+.pd .pd-letter p { margin-top: 10px; font-size: 17px; color: var(--pd-ink-2); }
+.pd .pd-letter .pd-letter-h { margin-top: 0; font-size: 12.5px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--nz-gold); }
+.pd .pd-letter .pd-letter-sig { margin-top: 16px; font-size: 17px; color: var(--nz-ink); }
+
+/* Местата за смяна в готовите съобщения */
+.pd-ph { background: rgba(255, 217, 138, 0.26); color: #fff4cf; border-radius: 6px; padding: 0 4px; box-shadow: inset 0 0 0 1px rgba(255, 217, 138, 0.45); }
+.pd-obj-lbl { display: inline-block; margin-right: 6px; padding: 1px 8px; border-radius: 999px; background: #f6f1e6; color: var(--nz-gold); font-size: 11.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; vertical-align: 1px; }
+.pd-path-top { border: 2px solid var(--nz-red); box-shadow: 0 18px 40px rgba(227, 18, 42, 0.12); }
+
+/* Тестът — фокус, клавиши, котви */
+.pd-q:focus, .pd-res h2:focus { outline: none; }
+.pd-test-card, .pd-sec { scroll-margin-top: 64px; }
+.pd-keys kbd { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 6px; border: 1px solid var(--nz-line); border-bottom-width: 2px; background: #fff; font: 700 12px/1 var(--font-mono), monospace; color: var(--nz-ink); }
+@media (hover: none), (max-width: 600px) { .pd-keys { display: none; } }
+
+/* Долу */
+.pd-foot { padding: 26px 0 34px; font-size: 13px; color: var(--nz-mut); text-align: center; }
+.pd-foot p { max-width: 760px; margin: 0 auto 6px; }
+
+/* Печат / PDF */
+@media print {
+  .pd-top, .pd-noprint, .pd-next, .pd-copy, .pd-actions, .pd-chips, .pd-foot a { display: none !important; }
+  .nz, .pd { background: #fff !important; }
+  .pd-hero { background: #fff !important; color: #14122b !important; padding: 0 0 12px; text-align: left; }
+  .pd-hero::after { display: none; }
+  .pd-hero-sub, .pd-hero-meta { color: #333 !important; }
+  .pd-eyebrow { border-color: #ccc; color: #8a5a12; background: none; }
+  .pd-h1 em { color: #8a5a12; }
+  .pd-box, .pd-paket, .pd-rules li, .pd-obj, .pd-path, .pd-num, .pd-check li label, .pd-pazar-row { box-shadow: none !important; break-inside: avoid; }
+  .pd-bubble { background: #f2efff !important; color: #1b1740 !important; box-shadow: none; }
+  .pd-calc-out { background: #f5f3ff !important; color: #14122b !important; }
+  .pd-calc-out b, .pd-calc-out p { color: #14122b !important; }
+  .pd-sec { padding-top: 16px; }
+  a { text-decoration: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pd-card, .pd-opt, .pd-q, .pd-res, .pd-gauge .bar, .pd-live i { transition: none !important; animation: none !important; }
+}

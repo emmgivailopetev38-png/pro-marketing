@@ -18,6 +18,19 @@ export const GLAVEN_ORIGIN = "https://promarketing.pw";
 export const UEBINAR_PATH = "/na-zhivo";
 
 /**
+ * Подаръците за останалите до края (ivailopetev.com/podaraci). В приложението
+ * живеят под /na-zhivo/podaraci — чистият адрес се пренаписва натам.
+ */
+export const PODARACI_PATH = "/podaraci";
+
+/** /podaraci и /podaraci/… → вътрешният път /na-zhivo/podaraci… (иначе null). */
+export function podaraciRewrite(pathname: string, search = ""): string | null {
+  if (pathname !== PODARACI_PATH && !pathname.startsWith(`${PODARACI_PATH}/`)) return null;
+  const p = pathname.replace(/\/+$/, "") || PODARACI_PATH;
+  return `${UEBINAR_PATH}${p}${search}`;
+}
+
+/**
  * Meta пиксел „Ивайло Петев AI · уебинар (ivailopetev.com)“ — набор от данни
  * 29198929629764170 в портфолиото Top Helper, вързан към IVO 1AD.
  * Идентификаторът е публичен (вижда се в кода на всяка страница с пиксел).
@@ -41,7 +54,9 @@ export type UebinarHostAction =
  * Какво става със заявка, дошла на домейна на уебинара.
  *   www.…            → без www (308)
  *   /                → показва лендинга (rewrite към /na-zhivo), адресът остава чист
+ *   /podaraci…       → подаръците (rewrite към /na-zhivo/podaraci…)
  *   /na-zhivo        → / (един адрес за една страница)
+ *   /na-zhivo/podaraci… → /podaraci… (чистият адрес)
  *   /api/…, /_next/… → минават (формата записва през /api/uebinar/register)
  *   всичко друго     → същият път на основния сайт
  * `search` е с въпросителната (както го дава `nextUrl.search`) — UTM и fbclid се пазят.
@@ -52,8 +67,15 @@ export function uebinarHostAction(host: string, pathname: string, search = ""): 
     return { kind: "redirect", to: `${UEBINAR_ORIGIN}${pathname}${search}`, status: 308 };
   }
   if (pathname === "/") return { kind: "rewrite", to: `${UEBINAR_PATH}${search}` };
+  const podaraci = podaraciRewrite(pathname, search);
+  if (podaraci) return { kind: "rewrite", to: podaraci };
   if (pathname === UEBINAR_PATH || pathname === `${UEBINAR_PATH}/`) {
     return { kind: "redirect", to: `${UEBINAR_ORIGIN}/${search}`, status: 307 };
+  }
+  const vatreshen = `${UEBINAR_PATH}${PODARACI_PATH}`;
+  if (pathname === vatreshen || pathname.startsWith(`${vatreshen}/`)) {
+    const chist = pathname.slice(UEBINAR_PATH.length).replace(/\/+$/, "");
+    return { kind: "redirect", to: `${UEBINAR_ORIGIN}${chist}${search}`, status: 307 };
   }
   if (pathname.startsWith("/api/") || pathname.startsWith("/_next/")) return { kind: "next" };
   return { kind: "redirect", to: `${GLAVEN_ORIGIN}${pathname}${search}`, status: 307 };

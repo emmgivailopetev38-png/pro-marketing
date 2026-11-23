@@ -4,6 +4,7 @@ import {
   UEBINAR_ORIGIN,
   UEBINAR_PIXEL_ID,
   isUebinarHost,
+  podaraciRewrite,
   uebinarHostAction,
 } from "./domen";
 
@@ -54,6 +55,39 @@ describe("ivailopetev.com — домейнът на уебинара", () => {
       to: `${GLAVEN_ORIGIN}/privacy?q=1`,
       status: 307,
     });
+  });
+
+  it("подаръците са на ivailopetev.com/podaraci (вътре — /na-zhivo/podaraci)", () => {
+    expect(uebinarHostAction("ivailopetev.com", "/podaraci")).toEqual({ kind: "rewrite", to: "/na-zhivo/podaraci" });
+    expect(uebinarHostAction("ivailopetev.com", "/podaraci/", "?utm_source=zoom")).toEqual({
+      kind: "rewrite",
+      to: "/na-zhivo/podaraci?utm_source=zoom",
+    });
+    expect(uebinarHostAction("ivailopetev.com", "/podaraci/test")).toEqual({ kind: "rewrite", to: "/na-zhivo/podaraci/test" });
+    expect(uebinarHostAction("ivailopetev.com", "/na-zhivo/podaraci/ceni", "?a=1")).toEqual({
+      kind: "redirect",
+      to: `${UEBINAR_ORIGIN}/podaraci/ceni?a=1`,
+      status: 307,
+    });
+    expect(uebinarHostAction("ivailopetev.com", "/na-zhivo/podaraci")).toEqual({
+      kind: "redirect",
+      to: `${UEBINAR_ORIGIN}/podaraci`,
+      status: 307,
+    });
+    // Само точният път — /podaracix не е подарък.
+    expect(uebinarHostAction("ivailopetev.com", "/podaracix")).toEqual({
+      kind: "redirect",
+      to: `${GLAVEN_ORIGIN}/podaracix`,
+      status: 307,
+    });
+  });
+
+  it("на другите адреси /podaraci… също води до подаръците", () => {
+    expect(podaraciRewrite("/podaraci")).toBe("/na-zhivo/podaraci");
+    expect(podaraciRewrite("/podaraci/danaci", "?x=1")).toBe("/na-zhivo/podaraci/danaci?x=1");
+    expect(podaraciRewrite("/")).toBeNull();
+    expect(podaraciRewrite("/na-zhivo/podaraci")).toBeNull();
+    expect(podaraciRewrite("/podaracix")).toBeNull();
   });
 
   it("пикселът на уебинара е само цифри (влиза в скрипт на страницата)", () => {
