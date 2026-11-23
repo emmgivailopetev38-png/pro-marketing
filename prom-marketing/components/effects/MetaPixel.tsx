@@ -2,7 +2,7 @@
 import Script from "next/script";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { UEBINAR_HOSTS, UEBINAR_PATH, UEBINAR_PIXEL_ID } from "@/lib/uebinar/domen";
+import { PODARACI_PATH, UEBINAR_HOSTS, UEBINAR_PATH, UEBINAR_PIXEL_ID } from "@/lib/uebinar/domen";
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
 
@@ -41,7 +41,7 @@ export function MetaPixel() {
             t=b.createElement(e);t.async=!0;t.src=v;
             s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s);
           }(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
-          var pmUebinar = ${JSON.stringify(UEBINAR_HOSTS)}.indexOf(location.hostname) !== -1 || location.pathname === '${UEBINAR_PATH}';
+          var pmUebinar = ${JSON.stringify(UEBINAR_HOSTS)}.indexOf(location.hostname) !== -1 || location.pathname.indexOf('${UEBINAR_PATH}') === 0 || location.pathname.indexOf('${PODARACI_PATH}') === 0;
           fbq('init', pmUebinar ? '${UEBINAR_PIXEL_ID}' : '${PIXEL_ID}');
           fbq('track', 'PageView');
         `}
