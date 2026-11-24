@@ -27,7 +27,19 @@ export type BusyMeeting = {
   minutes: number | null;
   email?: string | null;
   phone?: string | null;
+  /** кой води срещата — клоузърът на картона; null = Ивайло или неизвестен */
+  leaderId?: string | null;
 };
+
+/**
+ * Срещите, които пречат на ТОЗИ водещ (24.11.2026 — двама клоузъри): двама души
+ * водят срещи по едно и също време, затова новата среща се блъска само в срещите
+ * на своя водещ. Среща без клоузър (на Ивайло) пречи само на Ивайло.
+ */
+export function busyFor(busy: BusyMeeting[], leaderId: string | null | undefined, closerIds: ReadonlySet<string>): BusyMeeting[] {
+  if (!leaderId) return busy.filter((b) => !b.leaderId || !closerIds.has(b.leaderId));
+  return busy.filter((b) => b.leaderId === leaderId);
+}
 
 export type Person = { email?: string | null; phone?: string | null };
 
@@ -141,13 +153,13 @@ function sofiaMinuteOfDay(d: Date): number {
 const hhmm = (d: Date | string) => isoToSofiaLocal(d).slice(11);
 
 /** Текстът за човека от екипа: с кого е застъпването и кои часове остават. */
-export function clashMessage(clash: BusyMeeting, before: Date | null, after: Date): string {
+export function clashMessage(clash: BusyMeeting, before: Date | null, after: Date, leaderName: string = "Ивайло"): string {
   const end = new Date(endMs(clash));
   const options = [before ? `в ${hhmm(before)} (свършва точно преди нея)` : null, `от ${fmtSofia(after)} нататък`]
     .filter(Boolean)
     .join(" или ");
   return (
-    `В този час Ивайло вече има среща — ${clash.name}, ${fmtSofia(clash.startIso)}–${hhmm(end)}. ` +
+    `В този час ${leaderName} вече има среща — ${clash.name}, ${fmtSofia(clash.startIso)}–${hhmm(end)}. ` +
     `Срещите са по ${MEETING_MINUTES} минути и не се застъпват. ` +
     `Предложи ${options} и провери часа в календара (🗓) — там са и другите му ангажименти.`
   );

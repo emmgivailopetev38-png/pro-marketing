@@ -34,7 +34,8 @@ export function monthKey(iso: string): string {
 
 export function monthLabel(key: string): string {
   const [y, m] = key.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, 15)).toLocaleDateString("bg-BG", { month: "long", year: "numeric", timeZone: "UTC" });
+  const s = new Date(Date.UTC(y, m - 1, 15)).toLocaleDateString("bg-BG", { month: "long", year: "numeric", timeZone: "UTC" });
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 /** Делене до стотинка; null при нула. */

@@ -34,6 +34,7 @@ export const TEAM_ROLE_SHORT: Record<TeamRole, string> = {
 export const TEAM_MODULES = [
   "ekipat",
   "biznes",
+  "kalendar",
   "liidove",
   "klasacia",
   "asistent",
@@ -64,6 +65,7 @@ export function orgOf(m: { org?: string | null } | null | undefined): string {
 export const TEAM_MODULE_LABEL: Record<TeamModule, string> = {
   ekipat: "Екипът · хора, срещи и числа (мениджър)",
   biznes: "Бизнесът · реклами, цена на лийд, история (мениджър)",
+  kalendar: "Календар · срещите на екипа",
   liidove: "Всички лийдове · чути и нечути, срещи",
   klasacia: "Сделки и класация",
   asistent: "AI асистент · въпроси и корекции",
@@ -85,6 +87,7 @@ export const TEAM_MODULE_LABEL: Record<TeamModule, string> = {
 export const TEAM_MODULE_HREF: Record<TeamModule, string> = {
   ekipat: "/ekip/ekipat",
   biznes: "/ekip/biznes",
+  kalendar: "/ekip/kalendar",
   liidove: "/ekip/liidove",
   klasacia: "/ekip/klasacia",
   asistent: "/ekip/asistent",

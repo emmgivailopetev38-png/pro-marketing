@@ -232,6 +232,8 @@ export interface BookingByTeam {
   business: string | null;
   note: string | null;
   scheduledAtIso: string;
+  /** срещата вече е пратена на собственика като покана за календара (със същите данни) — без второ писмо */
+  calendarInviteSent?: boolean;
 }
 
 /** Собственикът научава веднага, когато човек от екипа запише среща. */
@@ -249,7 +251,9 @@ export async function notifyOwnerBooking(b: BookingByTeam): Promise<void> {
 
   await Promise.all([
     sendTelegram(lines.join("\n"), { buttons: [{ text: "Картонът в CRM-а", url: card }] }).catch(() => false),
-    sendEmail({
+    b.calendarInviteSent
+      ? Promise.resolve({ id: null, error: null })
+      : sendEmail({
       to: ownerEmail(),
       subject: `📅 ${b.actorName} записа среща · ${b.contactName} · ${when}`,
       html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#0d1221;">

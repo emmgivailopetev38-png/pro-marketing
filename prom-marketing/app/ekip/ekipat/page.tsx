@@ -9,7 +9,7 @@ import { TEAM_ORG_LABEL, TEAM_ROLE_SHORT } from "@/lib/team/types";
 import { fmtSofia } from "@/lib/team/time";
 import { EkipHeader } from "@/components/ekip/EkipHeader";
 import { PROGRAM_PRICE_EUR, TEAM_PAY_LINKS } from "@/lib/stripe/team-links";
-import { PERIODS, parsePeriod, periodLabel } from "@/lib/team/napredak-rules";
+import { PERIODS, humanMinutes, parsePeriod, periodLabel } from "@/lib/team/napredak-rules";
 import { TbiBox } from "@/components/ekip/TbiBox";
 
 export const dynamic = "force-dynamic";
@@ -68,6 +68,9 @@ export default async function EkipatPage({ searchParams }: { searchParams: Promi
         </div>
 
         <nav className="flex flex-wrap gap-2 text-xs">
+          <Link href="/ekip/kalendar" className="rounded-full border border-white/15 px-3 py-1.5 font-semibold text-[var(--color-text-secondary)] hover:text-white">
+            📅 Календар на срещите
+          </Link>
           <Link href="/ekip/liidove" className="rounded-full border border-white/15 px-3 py-1.5 font-semibold text-[var(--color-text-secondary)] hover:text-white">
             📋 Всички лийдове
           </Link>
@@ -151,7 +154,7 @@ export default async function EkipatPage({ searchParams }: { searchParams: Promi
                         {p.dqPct !== null ? <span className="block text-[11px] text-[var(--color-text-tertiary)]">{pct(p.dqPct)} от вдигн.</span> : null}
                         {p.meetingDq ? <span className="block text-[11px] text-[var(--color-text-tertiary)]">{p.meetingDq} на среща</span> : null}
                       </td>
-                      <td className={td}>{p.medianMinutes === null ? "—" : `${Math.round(p.medianMinutes)} мин`}</td>
+                      <td className={td}>{humanMinutes(p.medianMinutes === null ? null : Math.round(p.medianMinutes))}</td>
                       <td className={td}>{p.queue}</td>
                       <td className={td}>{p.people}</td>
                       <td className={td}>{p.offers}</td>

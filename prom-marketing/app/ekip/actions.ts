@@ -10,19 +10,22 @@ import { upsertBooking } from "@/lib/crm/repository";
 import { MEETING_MINUTES } from "@/lib/cal/types";
 import { createCalBooking, isCalWriteConfigured } from "@/lib/cal/create-booking";
 import { assignContactToCloser, closerForBookingBy, closerForMeeting, meetUrlFor } from "@/lib/team/closer";
-import { sendCloserInvite, sendLeadInvite } from "@/lib/team/closer-calendar";
+import { sendCloserInvite, sendLeadInvite, sendOwnerInvite } from "@/lib/team/closer-calendar";
 import { calRefusalReason } from "@/lib/team/closer-calendar-rules";
 import {
   FREE_STATUSES,
   LOOKAHEAD_MINUTES,
   LOOKBACK_MINUTES,
+  busyFor,
   clashMessage,
   findOverlap,
   freeAround,
+  last9,
+  realEmail,
   tooEarly,
   type BusyMeeting,
-  type Person,
 } from "@/lib/team/sreshti-zastapvane";
+import { allRows } from "@/lib/supabase/all-rows";
 import { notifyOwnerBooking, notifyOwnerHandoff, notifyOwnerMeetingDropped } from "@/lib/team/notify";
 import { closeUpcomingMeetings } from "@/lib/team/sreshti";
 import { sameInstant } from "@/lib/crm/booking-status";
@@ -38,30 +41,51 @@ function str(fd: FormData, key: string): string {
   return String(fd.get(key) ?? "").trim();
 }
 
-/** Застъпва ли се нова среща с чужда среща в CRM-а — текстът за човека или null. */
-async function meetingClash(
+/**
+ * Срещите около този час, всяка с водещия си (клоузърът на картона, по телефон
+ * или имейл). От 24.11.2026 клоузърите са двама и водят срещи по едно и също
+ * време — затова новата среща се сравнява само със срещите на своя водещ.
+ */
+async function loadBusyMeetings(
   sb: ReturnType<typeof createServiceClient>,
   startIso: string,
-  who: Person
-): Promise<string | null> {
+  closerIds: string[]
+): Promise<BusyMeeting[]> {
   const startMs = new Date(startIso).getTime();
-  const { data } = await sb
-    .from("bookings")
-    .select("attendee_name, attendee_email, attendee_phone, scheduled_at, duration_minutes")
-    .not("status", "in", `(${FREE_STATUSES.join(",")})`)
-    .gt("scheduled_at", new Date(startMs - LOOKBACK_MINUTES * 60_000).toISOString())
-    .lt("scheduled_at", new Date(startMs + LOOKAHEAD_MINUTES * 60_000).toISOString());
-  const busy: BusyMeeting[] = (data ?? []).map((b) => ({
-    name: b.attendee_name ?? "без име",
-    startIso: b.scheduled_at,
-    minutes: b.duration_minutes,
-    email: b.attendee_email,
-    phone: b.attendee_phone,
-  }));
-  const hit = findOverlap(startIso, busy, who);
-  if (!hit) return null;
-  const { before, after } = freeAround(startIso, busy, who);
-  return clashMessage(hit, before, after);
+  const [{ data }, owned] = await Promise.all([
+    sb
+      .from("bookings")
+      .select("attendee_name, attendee_email, attendee_phone, scheduled_at, duration_minutes")
+      .not("status", "in", `(${FREE_STATUSES.join(",")})`)
+      .gt("scheduled_at", new Date(startMs - LOOKBACK_MINUTES * 60_000).toISOString())
+      .lt("scheduled_at", new Date(startMs + LOOKAHEAD_MINUTES * 60_000).toISOString()),
+    closerIds.length
+      ? allRows<{ phone: string | null; email: string | null; owner_id: string | null }>((from, to) =>
+          sb.from("contacts").select("phone, email, owner_id").in("owner_id", closerIds).order("id", { ascending: true }).range(from, to)
+        )
+      : Promise.resolve({ rows: [] as Array<{ phone: string | null; email: string | null; owner_id: string | null }>, error: null }),
+  ]);
+  const byPhone = new Map<string, string>();
+  const byEmail = new Map<string, string>();
+  for (const c of owned.rows) {
+    if (!c.owner_id) continue;
+    const k = last9(c.phone);
+    if (k) byPhone.set(k, c.owner_id);
+    const e = realEmail(c.email);
+    if (e) byEmail.set(e, c.owner_id);
+  }
+  return (data ?? []).map((b) => {
+    const k = last9(b.attendee_phone);
+    const e = realEmail(b.attendee_email);
+    return {
+      name: b.attendee_name ?? "без име",
+      startIso: b.scheduled_at,
+      minutes: b.duration_minutes,
+      email: b.attendee_email,
+      phone: b.attendee_phone,
+      leaderId: (k ? byPhone.get(k) : undefined) ?? (e ? byEmail.get(e) : undefined) ?? null,
+    };
+  });
 }
 
 function revalidateAll(contactId: string) {
@@ -95,7 +119,7 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
   const sb = createServiceClient();
   const { data: c } = await sb
     .from("contacts")
-    .select("id, full_name, email, phone, stage, business")
+    .select("id, full_name, email, phone, stage, business, owner_id")
     .eq("id", contactId)
     .maybeSingle();
   if (!c) return { ok: false, error: "Картонът не е намерен" };
@@ -204,12 +228,6 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         if (!c.email && email) patch.email = email;
         const name = c.full_name ?? c.phone ?? "Без име";
 
-        // Срещите са по 45 минути и не се застъпват — проверката е тук, а не само
-        // в Cal.com, защото срещата без имейл не влиза в календара и Cal.com не я
-        // вижда. Преди поканата: иначе човекът получава покана за зает час.
-        const clash = await meetingClash(sb, meetingIso, { email, phone: c.phone });
-        if (clash) return { ok: false, error: clash };
-
         // Покана с Meet линк — през Cal.com, който държи календара.
         // Първо Cal.com, после CRM-ът със същия ключ (uid): така webhook-ът
         // на Cal.com попада в същия ред, а не прави втора среща.
@@ -221,14 +239,45 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         // без нея я няма в календара му и в Meet той чака да го пуснат (04.11, Благой).
         // При двама клоузъри: картон с клоузър остава при него; иначе — който записва (ако е клоузър),
         // изборът на сетъра или честното редуване (lib/team/closer-rules.ts).
-        const { closer, closers } = await closerForBookingBy({
+        const picked = await closerForBookingBy({
           contactId,
           actorMemberId: actor.member?.id ?? null,
           wantedId: str(formData, "closer_id") || null,
-        }).catch(() => ({ closer: null, closers: [] }));
+        }).catch(() => ({ closer: null, closers: [] as Awaited<ReturnType<typeof closerForBookingBy>>["closers"] }));
+        const closers = picked.closers;
+        let closer = picked.closer;
+
+        // Срещите са по 45 минути и не се застъпват — но само при ЕДИН и същи водещ:
+        // двамата клоузъри водят срещи по едно и също време (24.11.2026). Проверката е
+        // тук, а не само в Cal.com, защото срещата без имейл не влиза в календара.
+        // Преди поканата: иначе човекът получава покана за зает час.
+        const who = { email, phone: c.phone };
+        const closerIdSet = new Set(closers.map((m) => m.id));
+        const busyAll = await loadBusyMeetings(sb, meetingIso, [...closerIdSet]);
+        // Срещата е за клоузър само ако е първа среща и човекът не е на Ивайло (closerForMeeting);
+        // иначе я води Ивайло и се сравнява с неговите срещи.
+        const forCloser = closer ? !!(await closerForMeeting(contactId).catch(() => null)) : false;
+        let mineBusy = busyFor(busyAll, forCloser ? closer?.id ?? null : null, closerIdSet);
+        let hit = findOverlap(meetingIso, mineBusy, who);
+        // Клоузърът е избран по ред (не е на картона, не записва самият той, сетърът не го е посочил)
+        // и е зает точно тогава → срещата отива при свободния клоузър, вместо да се отказва.
+        const fixedCloser =
+          !!str(formData, "closer_id") || (!!c.owner_id && closerIdSet.has(c.owner_id)) || (!!actor.member && closerIdSet.has(actor.member.id));
+        if (hit && closer && forCloser && !fixedCloser) {
+          const free = closers.find((m) => m.id !== closer!.id && !findOverlap(meetingIso, busyFor(busyAll, m.id, closerIdSet), who));
+          if (free) {
+            closer = free;
+            mineBusy = busyFor(busyAll, free.id, closerIdSet);
+            hit = null;
+          }
+        }
+        if (hit) {
+          const { before, after } = freeAround(meetingIso, mineBusy, who);
+          return { ok: false, error: clashMessage(hit, before, after, forCloser ? closer?.full_name ?? "Ивайло" : "Ивайло") };
+        }
         // Картонът става негов ПРЕДИ срещата да се запише — иначе записът я дава на клоузъра по подразбиране.
         // Само когато срещата изобщо е за клоузър (първа среща, не човек на Ивайло).
-        if (closer && closers.length > 1 && (await closerForMeeting(contactId).catch(() => null))) {
+        if (closer && closers.length > 1 && forCloser) {
           await assignContactToCloser({
             contactId,
             closer,
@@ -298,8 +347,9 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         if (!calUid && closer?.email && booking.id) {
           const inv = await sendCloserInvite({ bookingId: booking.id, why: calWhy, recipient: { name: closer.full_name, email: closer.email } });
           // Човекът получава покана с Meet линка в календара си (24.11.2026) — без Cal.com досега не получаваше нищо.
-          const leadInv = await sendLeadInvite(booking.id);
-          if (leadInv.ok) inviteNote += " ✉️ Човекът получи покана с линка в календара си.";
+          // Само ако записващият е оставил отметката за покана и човекът има имейл.
+          const leadInv = wantInvite ? await sendLeadInvite(booking.id) : { ok: false, error: "без покана" };
+          if (leadInv.ok) inviteNote = " ✉️ Човекът получи покана с Meet линка на имейла си; готовото съобщение за Viber е в „Съобщения за срещите“.";
           const mine = actor.member?.id === closer.id;
           if (inv.ok) {
             inviteNote += mine
@@ -310,6 +360,14 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
             inviteNote += ` ⚠️ Срещата НЕ стигна до календара на ${mine ? "теб" : closer.full_name} (${inv.error ?? "грешка"}) — добави я на ръка.`;
             calendarLine = `📅 Календар: поканата към ${closer.full_name} не тръгна (${inv.error ?? "грешка"})`;
           }
+        }
+
+        // Срещата на екипа влиза и в календара на Ивайло (свободно време — не блокира часове):
+        // оттам неговият Fathom влиза в срещата и я записва. Важи и за срещите през Cal.com.
+        let ownerInvited = false;
+        if (closer && forCloser && booking.id) {
+          const own = await sendOwnerInvite(booking.id, { closerName: closer.full_name, bookedBy: actor.name });
+          ownerInvited = own.ok;
         }
 
         // Нов час за човек, който вече има предстояща среща = преместване. Старата
@@ -361,6 +419,7 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
           business,
           note: [note || null, meetingUrl ? `Meet: ${meetingUrl}` : null, calendarLine, movedNote].filter(Boolean).join("\n") || null,
           scheduledAtIso: meetingIso,
+          calendarInviteSent: ownerInvited,
         }).catch(() => {});
         break;
       }

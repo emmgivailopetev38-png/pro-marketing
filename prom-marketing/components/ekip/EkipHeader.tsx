@@ -12,6 +12,7 @@ export interface EkipNavItem {
 const SHORT: Record<string, string> = {
   ekipat: "👥 Екипът",
   biznes: "📊 Бизнесът",
+  kalendar: "📅 Календар",
   liidove: "📋 Лийдове",
   klasacia: "🏆 Сделки и класация",
   asistent: "🤖 AI асистент",
@@ -32,7 +33,7 @@ const SHORT: Record<string, string> = {
 
 /** Групите в менюто вляво — като в истински CRM: работата горе, числата, продажбата, помощта. */
 const GROUPS: Array<{ title: string; modules: string[] }> = [
-  { title: "Работа", modules: ["zvanene", "prodazhbi", "liidove", "zadachi", "saobshtenia"] },
+  { title: "Работа", modules: ["zvanene", "prodazhbi", "kalendar", "liidove", "zadachi", "saobshtenia"] },
   { title: "Числа", modules: ["napredak", "klasacia", "ekipat", "biznes"] },
   { title: "Продажба", modules: ["ceni", "oferti", "uebinar", "demo", "materiali", "proekti", "komisioni"] },
   { title: "Помощ", modules: ["asistent", "belezhki"] },

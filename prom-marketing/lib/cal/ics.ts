@@ -37,6 +37,11 @@ export interface IcsInviteInput {
   attendee: IcsPerson;
   /** Напомняне N минути преди (само при REQUEST). */
   alarmMinutes?: number;
+  /**
+   * „Свободно“ време (TRANSP:TRANSPARENT): събитието се вижда в календара, но не
+   * блокира часа — за копието на собственика, за да не затваря слотовете в Cal.com.
+   */
+  transparent?: boolean;
   /** За тестовете — „сега“ в DTSTAMP. */
   now?: Date;
 }
@@ -116,7 +121,7 @@ export function buildInviteIcs(input: IcsInviteInput): string {
       input.attendee.name
     )}:mailto:${input.attendee.email.trim().toLowerCase()}`,
     `STATUS:${cancel ? "CANCELLED" : "CONFIRMED"}`,
-    "TRANSP:OPAQUE"
+    input.transparent ? "TRANSP:TRANSPARENT" : "TRANSP:OPAQUE"
   );
   if (!cancel && input.alarmMinutes && input.alarmMinutes > 0) {
     lines.push(
@@ -152,4 +157,46 @@ export function googleCalendarTemplateUrl(args: {
   if (args.details?.trim()) p.set("details", args.details.trim().slice(0, 1500));
   if (args.location?.trim()) p.set("location", args.location.trim());
   return `https://calendar.google.com/calendar/render?${p.toString()}`;
+}
+
+export interface IcsFeedEvent {
+  uid: string;
+  startISO: string;
+  minutes: number;
+  summary: string;
+  description?: string | null;
+  location?: string | null;
+  url?: string | null;
+  cancelled?: boolean;
+}
+
+/**
+ * Календар за абонамент (METHOD:PUBLISH) — човекът го добавя веднъж по линк в
+ * Google / Apple / Outlook и срещите му се обновяват сами. Без поканени: това е
+ * изглед, не покана.
+ */
+export function buildFeedIcs(name: string, events: IcsFeedEvent[], now: Date = new Date()): string {
+  const lines: string[] = [
+    "BEGIN:VCALENDAR",
+    "PRODID:-//ProMarketing//CRM//BG",
+    "VERSION:2.0",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    `X-WR-CALNAME:${icsEscape(name)}`,
+    "X-WR-TIMEZONE:Europe/Sofia",
+    "REFRESH-INTERVAL;VALUE=DURATION:PT15M",
+    "X-PUBLISHED-TTL:PT15M",
+  ];
+  for (const e of events) {
+    const start = new Date(e.startISO);
+    if (Number.isNaN(start.getTime())) continue;
+    const end = new Date(start.getTime() + Math.max(1, e.minutes) * 60_000);
+    lines.push("BEGIN:VEVENT", `UID:${e.uid}`, `DTSTAMP:${icsDate(now)}`, `DTSTART:${icsDate(start)}`, `DTEND:${icsDate(end)}`, `SUMMARY:${icsEscape(e.summary)}`);
+    if (e.description?.trim()) lines.push(`DESCRIPTION:${icsEscape(e.description.trim())}`);
+    if (e.location?.trim()) lines.push(`LOCATION:${icsEscape(e.location.trim())}`);
+    if (e.url?.trim()) lines.push(`URL:${e.url.trim()}`);
+    lines.push(`STATUS:${e.cancelled ? "CANCELLED" : "CONFIRMED"}`, "END:VEVENT");
+  }
+  lines.push("END:VCALENDAR");
+  return lines.map(foldIcsLine).join("\r\n") + "\r\n";
 }
