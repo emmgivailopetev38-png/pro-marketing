@@ -8,6 +8,7 @@ import { dealSplit, feeInstallment, type Viewer } from "@/lib/team/manager-rules
 import { TEAM_ORG_LABEL, TEAM_ROLE_SHORT } from "@/lib/team/types";
 import { fmtSofia } from "@/lib/team/time";
 import { EkipHeader } from "@/components/ekip/EkipHeader";
+import { PROGRAM_PRICE_EUR, TEAM_PAY_LINKS } from "@/lib/stripe/team-links";
 
 export const dynamic = "force-dynamic";
 
@@ -254,13 +255,34 @@ export default async function EkipatPage({ searchParams }: { searchParams: Promi
         )}
 
         <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">💳 Линкове за плащане · „Пари с AI“ {eur(PROGRAM_PRICE_EUR)} с ДДС</h2>
+          <ul className="mt-2 divide-y divide-white/5">
+            {TEAM_PAY_LINKS.map((l) => (
+              <li key={l.key} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2 text-sm">
+                <span>
+                  <b>{l.label}</b> · {eur(l.amountEur)}
+                  {l.restEur > 0 ? <span className="text-[var(--color-text-tertiary)]"> · остават {eur(l.restEur)}</span> : null}
+                </span>
+                <a href={l.url} target="_blank" rel="noreferrer" className="break-all font-mono text-xs text-[var(--color-accent-cyan)] underline">
+                  {l.url}
+                </a>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[11px] text-[var(--color-text-tertiary)]">
+            Клоузърът копира линка от картата на човека („💳 Линк за плащане“) — там имейлът е попълнен и плащането се познава по картона. Плащане с карта
+            през Stripe; разсрочено — през TBI.
+          </p>
+        </section>
+
+        <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
           <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">🧭 Как върви един лийд</h2>
           <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-sm text-[var(--color-text-secondary)]">
             <li>Нов лийд от рекламата или уебинара влиза при сетъра и той звъни пръв — колкото по-бързо, толкова по-добре.</li>
             <li>Сетърът записва срещата от картата — „Записах среща“. Системата я дава на клоузър по ред (поравно между клоузърите) или на избрания.</li>
             <li>Картонът става на клоузъра: вижда го в „Продажби“, получава срещата в календара си и готовите съобщения за напомняне.</li>
             <li>След срещата клоузърът отбелязва изхода и слага линка към записа. Среща без запис излиза тук с ⚠️. „Не се яви“ връща човека при сетъра за нов час.</li>
-            <li>„Спечелен“ в картона = сделка: влиза в таблицата по договора със сметката си.</li>
+            <li>Клиентът плаща през линка от картата (пълна сума, 75 %, 50 % или депозит 25 %). „Спечелен“ в картона = сделка: влиза в таблицата по договора със сметката си.</li>
           </ol>
         </section>
       </main>

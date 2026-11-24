@@ -10,6 +10,7 @@ import type { SalesRow } from "@/lib/team/sales";
 import type { EkipActionResult } from "@/lib/team/types";
 import { ago } from "@/lib/team/time";
 import { briefLines, type BriefSegment } from "@/lib/team/brief-rules";
+import { PayLinks } from "./PayLinks";
 
 /**
  * Един картон в таблото на продавача. Отгоре кой е и докъде е, после
@@ -145,6 +146,8 @@ export function SalesCard({ row, mode, isOwner = false }: { row: SalesRow; mode:
           </a>
         )}
       </div>
+
+      {mode !== "won" && mode !== "lost" && <PayLinks contactId={row.id} email={row.email} />}
 
       <div className="mt-2 space-y-1 text-xs text-[var(--color-text-secondary)]">
         {row.next_followup_at && (

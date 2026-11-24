@@ -7,6 +7,7 @@ import { escapeHtml } from "@/lib/email/escape";
 import { CHECKOUT_PRODUCTS, isCheckoutProductId } from "@/lib/stripe/products";
 import { findPayLinkOffer } from "@/lib/stripe/pay-link-offer";
 import { setOfferStatus } from "@/lib/crm/repository";
+import { contactFromTeamRef } from "@/lib/stripe/team-links";
 
 export const dynamic = "force-dynamic";
 
@@ -52,8 +53,11 @@ export async function POST(request: Request) {
   const email = (session.customer_details?.email ?? session.customer_email ?? "").toLowerCase();
   const fullName = session.customer_details?.name ?? "Stripe клиент";
   // Checkout от ключа носи metadata; Payment Link носи само client_reference_id.
-  const payLinkId = session.metadata?.pay_link_id ?? session.client_reference_id ?? null;
-  const viaVoice = session.metadata?.source === "voice_agent" || Boolean(session.client_reference_id);
+  // Линкът на екипа по продажбите носи картона на човека (`ekip_<id>`, lib/stripe/team-links.ts) —
+  // не е линк на гласовия агент и зад него няма оферта.
+  const teamContactId = contactFromTeamRef(session.client_reference_id);
+  const payLinkId = teamContactId ? null : (session.metadata?.pay_link_id ?? session.client_reference_id ?? null);
+  const viaVoice = !teamContactId && (session.metadata?.source === "voice_agent" || Boolean(session.client_reference_id));
   const productId = session.metadata?.product ?? "";
   const product = isCheckoutProductId(productId) ? CHECKOUT_PRODUCTS[productId] : null;
   // При Payment Link продуктът не е в metadata — името идва от офертата зад линка.
@@ -67,7 +71,7 @@ export async function POST(request: Request) {
   // Контакт по имейл (checkout-ът винаги събира имейл). Линкът от гласовия
   // агент носи и картона в metadata — той печели, ако човекът е платил от
   // друг имейл, отколкото е оставил на формата.
-  let contactId: string | null = session.metadata?.contact_id ?? linkedOffer?.contact_id ?? null;
+  let contactId: string | null = teamContactId ?? session.metadata?.contact_id ?? linkedOffer?.contact_id ?? null;
   if (contactId) {
     const { data: known } = await supabase.from("contacts").select("id").eq("id", contactId).maybeSingle();
     if (known) await supabase.from("contacts").update({ stage: "client" }).eq("id", contactId);
