@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       try {
         const signal = AbortSignal.timeout(Math.min(left, i === 0 ? 20_000 : 15_000));
         const mislene = i === 0 && quick ? "minimal" : "low";
-        answer = (await cyal({ system, user, model, maxTokens: 1500, mislene, signal }))
+        answer = (await cyal({ system, user, model, maxTokens: quick ? 600 : 1500, mislene, signal }))
           // Балончето показва чист текст — остатъците от Markdown се махат.
           .replace(/^#{1,6}\s*/gm, "")
           .replace(/\*\*(.+?)\*\*/g, "$1")
