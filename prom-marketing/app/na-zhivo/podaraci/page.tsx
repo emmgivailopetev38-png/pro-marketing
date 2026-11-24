@@ -5,11 +5,11 @@ import { PODARACI, PODARACI_BASE, PODARACI_ORIGIN } from "@/lib/uebinar/podaraci
 import { GiftFoot, GiftTop } from "@/components/uebinar/podaraci/GiftShell";
 
 export const metadata: Metadata = {
-  title: { absolute: "Твоите 5 подаръка · Допълнителен доход с AI" },
+  title: { absolute: `Твоите ${PODARACI.length} подаръка · Допълнителен доход с AI` },
   alternates: { canonical: `${PODARACI_ORIGIN}${PODARACI_BASE}` },
 };
 
-/** ivailopetev.com/podaraci — петте подаръка на едно място. */
+/** ivailopetev.com/podaraci — подаръците на едно място. */
 export default function Page() {
   return (
     <>
@@ -20,11 +20,11 @@ export default function Page() {
             <span aria-hidden>🎁</span> Само за останалите до края
           </p>
           <h1 className="pd-h1">
-            Ти остана до края. <em>Ето твоите 5 подаръка.</em>
+            Ти остана до края. <em>Ето твоите {PODARACI.length} подаръка.</em>
           </h1>
           <p className="pd-hero-sub">
-            Благодаря ти, че беше с мен на обучението „Допълнителен доход с AI“. Започни от теста — отнема 3 минути. Другите са
-            твои и ги отваряш, когато ти потрябват.
+            Благодаря ти, че беше с мен на обучението „Допълнителен доход с AI“. Започни от теста — отнема 3 минути. После
+            пусни видеото и го направи при теб. Другите ги отваряш, когато ти потрябват.
           </p>
           <div className="pd-from">
             <Image src="/images/ivailo/IMG_7318.jpeg" alt="" width={88} height={88} sizes="44px" className="pd-ava" />
@@ -69,8 +69,8 @@ export default function Page() {
           <div className="pd-letter">
             <p className="pd-letter-h">Едно последно нещо</p>
             <p>
-              Подаръците работят само ако ги ползваш. Направи теста още тази вечер. Утре отвори наръчника и сметни какво ти носят
-              петима клиенти.
+              Подаръците работят само ако ги ползваш. Направи теста още тази вечер. Утре пусни видеото и направи първия сайт
+              заедно с него.
             </p>
             <p>Първият клиент е най-трудният. После става навик.</p>
             <p className="pd-letter-sig">
