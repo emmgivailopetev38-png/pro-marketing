@@ -55,9 +55,11 @@ export async function meetingOutcomeAction(_prev: EkipActionResult | null, formD
   let message: string;
   if (outcome === "no_show") {
     const n = await handleNoShowBooking({ bookingId, by: actor.name });
-    message = n.contactId
-      ? "Записано: не се яви. Ели му звъни за нов час до минути — и пак на другия ден, до 4 опита за 7 дни. Запише ли час, ще го видиш тук."
-      : "Записано: не се яви. ⚠️ Картон с телефон в CRM-а няма — Ели няма на кого да звъни.";
+    message = !n.contactId
+      ? "Записано: не се яви. ⚠️ Картон с телефон в CRM-а няма — няма на кого да се звъни."
+      : n.eli === false
+        ? `Записано: не се яви. Излезе в „🙈 Не се яви“ в опашката за звънене${n.callerName ? ` на ${n.callerName}` : ""} — звъни се за нов час. Запише ли час, ще го видиш тук.`
+        : "Записано: не се яви. Ели му звъни за нов час до минути — и пак на другия ден, до 4 опита за 7 дни. Запише ли час, ще го видиш тук.";
   } else {
     if (contact) {
       await sb.from("contact_activities").insert({

@@ -687,6 +687,10 @@ export interface NoShowBooking {
   by: string;
   /** човекът от екипа, който води срещата (клоузърът); null = Ивайло */
   memberName: string | null;
+  /** звъни ли Ели сама; false = звъни човек от екипа (без подаване — както досега, Ели) */
+  eli?: boolean;
+  /** при изключена Ели: в чия опашка за звънене е човекът */
+  callerName?: string | null;
 }
 
 /**
@@ -702,9 +706,11 @@ export async function notifyNoShowBooking(n: NoShowBooking): Promise<void> {
     `${escapeHtml(n.name)} · ${escapeHtml(when)} · с ${escapeHtml(who)}`,
     n.phone ? `📞 ${escapeHtml(n.phone)}` : null,
     `Отбеляза: ${escapeHtml(n.by)}`,
-    n.contactId
-      ? `→ Ели му звъни за нов час до минути (до 4 опита за 7 дни). Няма ли час — утре в 10:00 е в списъка на ${escapeHtml(who)}. Ако сте говорили по телефона, оправи срещата на „проведена“.`
-      : `⚠️ Няма картон в CRM-а — Ели няма на кого да звъни.`,
+    !n.contactId
+      ? `⚠️ Няма картон в CRM-а — няма на кого да се звъни.`
+      : n.eli === false
+        ? `→ В опашката за звънене${n.callerName ? ` на ${escapeHtml(n.callerName)}` : ""} („🙈 Не се яви“) — звъни се за нов час. Няма ли час — утре в 10:00 е и в списъка на ${escapeHtml(who)}. Ако сте говорили по телефона, оправи срещата на „проведена“.`
+        : `→ Ели му звъни за нов час до минути (до 4 опита за 7 дни). Няма ли час — утре в 10:00 е в списъка на ${escapeHtml(who)}. Ако сте говорили по телефона, оправи срещата на „проведена“.`,
   ].filter(Boolean) as string[];
 
   await sendTelegram(lines.join("\n"), { buttons: [{ text: "Картонът в CRM-а", url: card }] }).catch(() => false);
