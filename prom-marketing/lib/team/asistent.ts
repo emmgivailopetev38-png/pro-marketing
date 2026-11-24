@@ -8,6 +8,7 @@ import { STRATEGIA, UEBINAR } from "./uebinar-strategia";
 import { tbiTable } from "@/lib/tbi";
 import { TEAM_ROLE_SHORT } from "./types";
 import type { TeamActor } from "./session";
+import { wantsNumbers } from "./asistent-rules";
 
 /**
  * AI асистентът в /ekip (24.11.2026, Ивайло: „направи им и на тях AI агент
@@ -105,7 +106,8 @@ export interface ChatTurn {
 
 export async function asistentPrompt(actor: TeamActor, turns: ChatTurn[]): Promise<{ system: string; user: string }> {
   const last = turns.filter((t) => t.role === "user").at(-1)?.text ?? "";
-  const [nums, lead] = await Promise.all([myNumbers(actor), lookupLeads(last).catch(() => null)]);
+  // Числата се четат от CRM-а (няколко секунди) само когато въпросът е за тях.
+  const [nums, lead] = await Promise.all([wantsNumbers(last) ? myNumbers(actor) : "", lookupLeads(last).catch(() => null)]);
   const who = actor.kind === "member" ? `${actor.member.full_name} (${TEAM_ROLE_SHORT[actor.member.role]})` : "Ивайло (собственикът)";
   const system = [
     `Ти си AI асистентът в CRM-а на ProMarketing (Ивайло Петев, AI маркетинг и автоматизации). Говориш с ${who} от екипа по продажбите.`,
