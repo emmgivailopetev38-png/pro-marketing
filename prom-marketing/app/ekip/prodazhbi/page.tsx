@@ -11,6 +11,7 @@ import { SalesCard } from "@/components/ekip/SalesCard";
 import { MeetingOutcome } from "@/components/ekip/MeetingOutcome";
 import { MeetingRecording } from "@/components/ekip/MeetingRecording";
 import { NapredakStrip } from "@/components/ekip/NapredakStrip";
+import { readSwitch } from "@/lib/voice/auto-call";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,9 @@ export default async function ProdazhbiPage() {
   if (!actor) redirect("/ekip/login");
   if (!allowed(actor, "prodazhbi")) redirect(homeFor(actor.member));
 
-  const [board, nav] = await Promise.all([loadSalesBoard(actor), ekipNav(actor)]);
+  const [board, nav, sw] = await Promise.all([loadSalesBoard(actor), ekipNav(actor), readSwitch().catch(() => ({ on: true }))]);
+  // Ели изключена → неявилите се излизат в опашката за звънене на екипа (lib/team/noshow.ts).
+  const eli = sw.on;
   const isOwner = actor.kind === "owner";
   const s = board.score;
   // Минали срещи без резултат чакат „проведена“ / „не се яви“ от водещия (06.11.2026).
@@ -114,8 +117,9 @@ export default async function ProdazhbiPage() {
           <section className="space-y-2">
             <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-rose-300">🧾 Минали срещи · какъв е резултатът? · {pastOpen.length}</h2>
             <p className="-mt-1 text-xs text-[var(--color-text-tertiary)]">
-              Веднага след срещата: ✅ проведена или 🙈 не се яви. При „не се яви“ Ели му звъни за нов час още до минути и пак в следващите дни (до 4
-              опита). Не го отбелязвай „Загубен“ — така Ели спира.
+              {eli
+                ? "Веднага след срещата: ✅ проведена или 🙈 не се яви. При „не се яви“ Ели му звъни за нов час още до минути и пак в следващите дни (до 4 опита). Не го отбелязвай „Загубен“ — така Ели спира."
+                : "Веднага след срещата: ✅ проведена или 🙈 не се яви. При „не се яви“ човекът излиза в опашката за звънене — за нов час. Не го отбелязвай „Загубен“ — така никой няма да му звънне."}
             </p>
             <ul className="divide-y divide-white/5 rounded-2xl border border-rose-400/20">
               {pastOpen.map((m) => (
@@ -131,7 +135,7 @@ export default async function ProdazhbiPage() {
                     </span>
                     <span className="text-[var(--color-text-secondary)]">{fmtSofia(m.at)}</span>
                   </div>
-                  <MeetingOutcome bookingId={m.id} name={m.name} when={fmtSofia(m.at)} />
+                  <MeetingOutcome bookingId={m.id} name={m.name} when={fmtSofia(m.at)} eli={eli} />
                   <MeetingRecording bookingId={m.id} url={m.recording_url} />
                 </li>
               ))}
@@ -183,7 +187,7 @@ export default async function ProdazhbiPage() {
                   <div className="flex flex-wrap items-baseline justify-between gap-x-3">
                     <span>{m.name}</span>
                     <span className="text-xs text-[var(--color-text-secondary)]">
-                      {fmtSofia(m.at)} · {m.status === "completed" ? "✅ проведена" : m.status === "no_show" ? "🙈 не се яви · Ели звъни" : m.status}
+                      {fmtSofia(m.at)} · {m.status === "completed" ? "✅ проведена" : m.status === "no_show" ? (eli ? "🙈 не се яви · Ели звъни" : "🙈 не се яви · за нов час") : m.status}
                     </span>
                   </div>
                   {m.status !== "no_show" && <MeetingRecording bookingId={m.id} url={m.recording_url} />}

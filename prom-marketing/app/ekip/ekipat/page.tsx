@@ -100,7 +100,7 @@ export default async function EkipatPage({ searchParams }: { searchParams: Promi
                         <p className="text-[11px] text-[var(--color-text-tertiary)]">
                           {TEAM_ROLE_SHORT[p.role]} · {TEAM_ORG_LABEL[p.org] ?? p.org}
                           {p.intake && p.role === "setter" ? " · поема новите лийдове" : ""}
-                          {p.defaultCloser ? " · тук записва и Ели" : ""}
+                          {p.defaultCloser ? " · тук записва и сайтът" : ""}
                         </p>
                         <p className="text-[11px] text-[var(--color-text-tertiary)]">
                           {p.lastLogin ? `вход ${fmtSofia(p.lastLogin)}` : "без вход досега"}
@@ -256,10 +256,10 @@ export default async function EkipatPage({ searchParams }: { searchParams: Promi
         <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
           <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">🧭 Как върви един лийд</h2>
           <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-sm text-[var(--color-text-secondary)]">
-            <li>Нов лийд от рекламата влиза при сетъра. Ели (гласовият агент) звъни първа до минути; сетърът поема всеки, който не е записал час.</li>
+            <li>Нов лийд от рекламата или уебинара влиза при сетъра и той звъни пръв — колкото по-бързо, толкова по-добре.</li>
             <li>Сетърът записва срещата от картата — „Записах среща“. Системата я дава на клоузър по ред (поравно между клоузърите) или на избрания.</li>
             <li>Картонът става на клоузъра: вижда го в „Продажби“, получава срещата в календара си и готовите съобщения за напомняне.</li>
-            <li>След срещата клоузърът отбелязва изхода и слага линка към записа. Среща без запис излиза тук с ⚠️.</li>
+            <li>След срещата клоузърът отбелязва изхода и слага линка към записа. Среща без запис излиза тук с ⚠️. „Не се яви“ връща човека при сетъра за нов час.</li>
             <li>„Спечелен“ в картона = сделка: влиза в таблицата по договора със сметката си.</li>
           </ol>
         </section>

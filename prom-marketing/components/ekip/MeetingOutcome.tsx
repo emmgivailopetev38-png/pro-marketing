@@ -9,7 +9,7 @@ import type { EkipActionResult } from "@/lib/team/types";
  * 🙈 не се яви. „Не се яви“ пуска Ели за нов час (до 4 опита за 7 дни) — затова
  * не се отбелязва „Загубен“: така Ели спира.
  */
-export function MeetingOutcome({ bookingId, name, when }: { bookingId: string; name: string; when: string }) {
+export function MeetingOutcome({ bookingId, name, when, eli = true }: { bookingId: string; name: string; when: string; /** звъни ли Ели сама на неявилите се */ eli?: boolean }) {
   const [state, action] = useActionState<EkipActionResult | null, FormData>(meetingOutcomeAction, null);
   if (state?.ok) {
     return (
@@ -25,9 +25,13 @@ export function MeetingOutcome({ bookingId, name, when }: { bookingId: string; n
       <OutcomeBtn
         value="no_show"
         cls="border-rose-400/40 text-rose-200"
-        confirmText={`${name || "Човекът"} не се яви на срещата (${when})? Ели ще му звъни за нов час — веднага и в следващите дни.`}
+        confirmText={
+          eli
+            ? `${name || "Човекът"} не се яви на срещата (${when})? Ели ще му звъни за нов час — веднага и в следващите дни.`
+            : `${name || "Човекът"} не се яви на срещата (${when})? Излиза в опашката за звънене — за нов час.`
+        }
       >
-        🙈 Не се яви — Ели да звъни
+        {eli ? "🙈 Не се яви — Ели да звъни" : "🙈 Не се яви — за нов час"}
       </OutcomeBtn>
       {state?.error && <span className="rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">{state.error}</span>}
     </form>
