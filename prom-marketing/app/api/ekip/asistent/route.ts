@@ -20,13 +20,18 @@ export async function POST(request: Request) {
   if (!turns.length || turns.at(-1)?.role !== "user") return NextResponse.json({ error: "Напиши въпрос." }, { status: 400 });
   try {
     const { system, user } = await asistentPrompt(actor, turns);
-    // Моделът понякога е претоварен (503 на 24.11.2026) — тогава следващият по ред, не грешка към човека.
-    const models = [...new Set([DALBOK_MODEL, BARZ_MODEL, "gemini-flash-latest", "gemini-2.5-flash"])];
+    // Бързият модел е първи: човекът чака отговор по време на разговор. Всеки опит има
+    // таван (на 24.11.2026 претовареният модел държа 45 s) — след него следващият по ред.
+    const models = [...new Set([BARZ_MODEL, DALBOK_MODEL, "gemini-flash-latest", "gemini-2.5-flash"])];
+    const deadline = Date.now() + 50_000;
     let answer = "";
     let last: unknown = null;
-    for (const model of models) {
+    for (const [i, model] of models.entries()) {
+      const left = deadline - Date.now();
+      if (left < 4_000) break;
       try {
-        answer = (await cyal({ system, user, model, maxTokens: 1500, mislene: "low" }))
+        const signal = AbortSignal.timeout(Math.min(left, i === 0 ? 20_000 : 15_000));
+        answer = (await cyal({ system, user, model, maxTokens: 1500, mislene: "low", signal }))
           // Балончето показва чист текст — остатъците от Markdown се махат.
           .replace(/^#{1,6}\s*/gm, "")
           .replace(/\*\*(.+?)\*\*/g, "$1")

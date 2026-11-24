@@ -9,6 +9,7 @@ import { EkipHeader } from "@/components/ekip/EkipHeader";
 import { MaterialsList } from "@/components/ekip/MaterialsList";
 import { ClientLinks } from "@/components/ekip/ClientLinks";
 import { VideoFeedback } from "@/components/ekip/VideoFeedback";
+import { obuchenieVideoUrl } from "@/lib/team/obuchenie-video";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export default async function MaterialiPage() {
   if (!actor) redirect("/ekip/login");
   if (!allowed(actor, "materiali")) redirect(homeFor(actor.member));
 
-  const nav = await ekipNav(actor);
+  const [nav, videoUrl] = await Promise.all([ekipNav(actor), obuchenieVideoUrl()]);
   const role = actor.kind === "owner" ? "owner" : actor.member.role;
   const member = actor.kind === "owner" ? { role: "owner" as const, permissions: null } : actor.member;
   const { mine, other } = materialsFor(role, (m) => canSee(member, m));
@@ -34,6 +35,14 @@ export default async function MaterialiPage() {
       <main className="space-y-6 px-4 py-4">
         <section className={card}>
           <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">🧭 Как работи системата · за 5 минути</h2>
+          {videoUrl && (
+            <div className="mt-3">
+              <video controls preload="metadata" playsInline src={videoUrl} className="aspect-video w-full rounded-xl border border-white/10 bg-black" />
+              <p className="mt-1.5 text-xs text-[var(--color-text-tertiary)]">
+                🎬 Цялата система за 4 минути — кое къде е и какво се натиска. 🤖 Гласът е генериран с AI, екраните са истински.
+              </p>
+            </div>
+          )}
           <div className="mt-2 space-y-2">
             {SYSTEM_GUIDE.map((s) => (
               <details key={s.title} className="rounded-xl border border-white/10 px-3 py-2">
