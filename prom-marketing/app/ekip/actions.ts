@@ -420,6 +420,28 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         }
         break;
       }
+      case "dq": {
+        // Неквалифициран (DQ, метриката на Рей, 24.11.2026): вдигна, говорихме, но не е
+        // за програмата — няма бюджет, не решава, търси работа… Затваря се като „не се
+        // интересува“, но се брои отделно, за да се види колко точна е рекламата.
+        patch.last_heard_from_at = nowIso;
+        patch.followup_status = "not_interested";
+        patch.next_followup_at = null;
+        patch.stage = alignStage(stage, "not_interested");
+        meta.dq = true;
+        activity = { type: "call", title: "🚫 Неквалифициран (DQ)", body: note || null };
+        message = "Отбелязано като неквалифициран (DQ) — влиза в DQ процента. Ако знаеш защо (бюджет, не решава…), пиши го в бележката следващия път.";
+        const droppedDq = await closeUpcomingMeetings({
+          who: { email: c.email, phone: c.phone },
+          why: "not_interested",
+          by: actor.name,
+        });
+        if (droppedDq.length) {
+          meta.cancelled_meetings = droppedDq.map((m) => ({ booking_id: m.id, at: m.whenIso }));
+          message += ` Срещата му (${droppedDq.map((m) => fmtSofia(m.whenIso)).join(", ")}) е отменена.`;
+        }
+        break;
+      }
       case "wrong_number": {
         patch.followup_status = "not_interested";
         patch.next_followup_at = null;

@@ -1,5 +1,6 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
+import { allRows } from "@/lib/supabase/all-rows";
 import { decodeFormAnswers } from "@/lib/leads/form-labels";
 import { offerFor, offerLabel } from "@/lib/leads/lead-offers";
 import { magnetVariantFor } from "@/lib/leads/meta-lead-rules";
@@ -113,13 +114,19 @@ export interface SetterQueue {
 
 async function loadAttempts(sb: Sb, ids: string[]): Promise<Map<string, AttemptSummary>> {
   if (ids.length === 0) return new Map();
-  const { data } = await sb
-    .from("contact_activities")
-    .select("contact_id, activity_type, title, occurred_at, created_by, metadata")
-    .in("contact_id", ids)
-    .in("activity_type", [...ATTEMPT_TYPES, ASSIGN_TYPE, ESCALATED_TYPE])
-    .order("occurred_at", { ascending: false });
-  return summarizeAttempts((data ?? []) as AttemptRow[]);
+  // По страници: без тях PostgREST връща само 1 000 реда и опитите на част от
+  // хората изчезваха — картата излизаше като „нов, нечут“, макар да е звънено.
+  const { rows } = await allRows<AttemptRow>((from, to) =>
+    sb
+      .from("contact_activities")
+      .select("contact_id, activity_type, title, occurred_at, created_by, metadata")
+      .in("contact_id", ids)
+      .in("activity_type", [...ATTEMPT_TYPES, ASSIGN_TYPE, ESCALATED_TYPE])
+      .order("occurred_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, to)
+  );
+  return summarizeAttempts(rows);
 }
 
 /**
@@ -132,38 +139,47 @@ async function loadAttempts(sb: Sb, ids: string[]): Promise<Map<string, AttemptS
  */
 async function loadEli(sb: Sb, ids: string[]): Promise<Map<string, EliInfo>> {
   if (ids.length === 0) return new Map();
-  const { data } = await sb
-    .from("contact_activities")
-    .select("contact_id, activity_type, occurred_at, metadata")
-    .in("contact_id", ids)
-    .in("activity_type", [...ELI_TYPES])
-    .order("occurred_at", { ascending: false })
-    .limit(2000);
-  return summarizeEli((data ?? []) as EliRow[]);
+  const { rows } = await allRows<EliRow>((from, to) =>
+    sb
+      .from("contact_activities")
+      .select("contact_id, activity_type, occurred_at, metadata")
+      .in("contact_id", ids)
+      .in("activity_type", [...ELI_TYPES])
+      .order("occurred_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, to)
+  );
+  return summarizeEli(rows);
 }
 
 async function loadNotes(sb: Sb, ids: string[]): Promise<Map<string, CardNote[]>> {
   if (ids.length === 0) return new Map();
   const cols = "contact_id, activity_type, title, body, occurred_at, created_by, metadata";
-  const [{ data: plain }, { data: withExit }] = await Promise.all([
-    sb
-      .from("contact_activities")
-      .select(cols)
-      .in("contact_id", ids)
-      .eq("activity_type", "note")
-      .order("occurred_at", { ascending: false })
-      .limit(2000),
-    sb
-      .from("contact_activities")
-      .select(cols)
-      .in("contact_id", ids)
-      .in("activity_type", ["call", "meeting"])
-      .eq("metadata->>team", "true")
-      .not("body", "is", null)
-      .order("occurred_at", { ascending: false })
-      .limit(2000),
+  const [{ rows: plain }, { rows: withExit }] = await Promise.all([
+    allRows<NoteRow>((from, to) =>
+      sb
+        .from("contact_activities")
+        .select(cols)
+        .in("contact_id", ids)
+        .eq("activity_type", "note")
+        .order("occurred_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, to)
+    ),
+    allRows<NoteRow>((from, to) =>
+      sb
+        .from("contact_activities")
+        .select(cols)
+        .in("contact_id", ids)
+        .in("activity_type", ["call", "meeting"])
+        .eq("metadata->>team", "true")
+        .not("body", "is", null)
+        .order("occurred_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, to)
+    ),
   ]);
-  const rows = [...((plain ?? []) as NoteRow[]), ...((withExit ?? []) as NoteRow[])].sort((a, b) =>
+  const rows = [...plain, ...withExit].sort((a, b) =>
     b.occurred_at.localeCompare(a.occurred_at)
   );
   return notesByContact(rows);
@@ -418,7 +434,7 @@ export async function searchLeads(raw: string): Promise<QueueLead[]> {
     loadForms(sb, found),
     loadNotes(sb, ids),
     // Търсачката показва всеки — но човекът на Ивайло излиза с надпис защо не се звъни.
-    loadIvailoClaims(found, { now: new Date() }, sb).catch(() => new Map<string, IvailoClaim>()),,
+    loadIvailoClaims(found, { now: new Date() }, sb).catch(() => new Map<string, IvailoClaim>()),
     loadEli(sb, ids),
   ]);
   return found.map((c) => toLead(c, attempts, forms, notes, claims, eli));

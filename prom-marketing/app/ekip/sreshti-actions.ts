@@ -11,8 +11,10 @@ import { fmtSofia } from "@/lib/team/time";
 import { MEETING_MSG_KINDS, type MeetingMsgKind } from "@/lib/team/sreshta-saobshtenia";
 import type { EkipActionResult } from "@/lib/team/types";
 import { saveRecording } from "@/lib/team/zapisi";
+import { alignStage } from "@/lib/contacts/followup";
 
-const OUTCOMES = new Set(["completed", "no_show"]);
+/** „dq“ = проведена, но човекът не е за програмата (неквалифициран) — метриката DQ на Рей. */
+const OUTCOMES = new Set(["completed", "no_show", "dq"]);
 
 /**
  * Резултатът от минала среща, от водещия ѝ (Ивайло, 06.11.2026: „които не се
@@ -49,11 +51,30 @@ export async function meetingOutcomeAction(_prev: EkipActionResult | null, formD
     }
   }
 
-  const r = await updateBooking({ id: bookingId, status: outcome });
+  const r = await updateBooking({ id: bookingId, status: outcome === "dq" ? "completed" : outcome });
   if (r.error) return { ok: false, error: `Не се записа: ${r.error}` };
 
   let message: string;
-  if (outcome === "no_show") {
+  if (outcome === "dq") {
+    if (contact) {
+      const { data: cs } = await sb.from("contacts").select("stage").eq("id", contact.id).maybeSingle();
+      const stage = String((cs as { stage?: string | null } | null)?.stage ?? "lead");
+      await sb
+        .from("contacts")
+        .update({ stage: alignStage(stage as Parameters<typeof alignStage>[0], "not_interested"), followup_status: "not_interested", next_followup_at: null })
+        .eq("id", contact.id);
+      await sb.from("contact_activities").insert({
+        contact_id: contact.id,
+        activity_type: "meeting_outcome",
+        title: `🚫 Срещата се проведе · неквалифициран (DQ) · ${fmtSofia(String(b.scheduled_at))}`,
+        body: null,
+        occurred_at: new Date().toISOString(),
+        created_by: actor.name,
+        metadata: { team: true, team_member_id: actor.member?.id ?? null, booking_id: bookingId, outcome: "dq", dq: true },
+      });
+    }
+    message = "Записано: проведена, неквалифициран (DQ). Картонът е затворен и влиза в DQ процента на срещите.";
+  } else if (outcome === "no_show") {
     const n = await handleNoShowBooking({ bookingId, by: actor.name });
     message = !n.contactId
       ? "Записано: не се яви. ⚠️ Картон с телефон в CRM-а няма — няма на кого да се звъни."

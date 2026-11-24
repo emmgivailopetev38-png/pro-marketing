@@ -60,12 +60,14 @@ export async function deliverVslAnswers(args: {
 
   const { data, error: findError } = await sb
     .from("contacts")
-    .select("id, full_name, company")
+    .select("id, full_name, company, owner_id")
     .in("phone", phoneVariants(args.phone))
     .order("updated_at", { ascending: false })
     .limit(1);
   if (findError) console.error("[vsl/vaprosi] търсене по телефон", findError.message);
-  const contact = ((data ?? []) as Array<{ id: string; full_name: string | null; company: string | null }>)[0] ?? null;
+  const contact = ((data ?? []) as Array<{ id: string; full_name: string | null; company: string | null; owner_id: string | null }>)[0] ?? null;
+  // Картонът е на друг клоузър (напр. Теодор от RevStream) → известието отива при него, не при Георги.
+  const closerKey = contact?.owner_id ?? null;
   const who = contact?.full_name?.trim() || contact?.company?.trim() || args.name;
 
   if (args.toIvailo || !georgiKey) {
@@ -107,7 +109,7 @@ export async function deliverVslAnswers(args: {
     const key = `contact:${contact.id}`;
     const res = await postMessage({ key, authorKey: `client:${contact.id}`, authorName: who, body, fromClient: true });
     await notifyMessage({
-      recipientKeys: [georgiKey],
+      recipientKeys: [closerKey ?? georgiKey],
       authorName: who,
       body,
       threadTitle: `👤 ${who} · въпроси преди срещата`,

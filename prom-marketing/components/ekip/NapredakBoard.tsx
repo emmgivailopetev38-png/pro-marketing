@@ -2,6 +2,7 @@ import Link from "next/link";
 import { TEAM_ROLE_SHORT } from "@/lib/team/types";
 import {
   PERIODS,
+  periodLabel,
   fmtNum,
   humanMinutes,
   isWeekend,
@@ -119,7 +120,7 @@ export function NapredakBoard({ data, tone, basePath, who = null, switcher = fal
           <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-tertiary)]">Напредък · {TEAM_ROLE_SHORT[role]}</p>
           <h1 className="text-xl font-bold">{me.person.name}</h1>
           <p className="text-[11px] text-[var(--color-text-tertiary)]">
-            последните {data.days} дни · {data.workdays} работни · сравнено с предходните {data.days}
+            {data.days === 1 ? "днес, от полунощ · сравнено с вчера" : `последните ${data.days} дни · ${data.workdays} работни · сравнено с предходните ${data.days}`}
           </p>
         </div>
         <div className="flex gap-1.5">
@@ -135,7 +136,7 @@ export function NapredakBoard({ data, tone, basePath, who = null, switcher = fal
                     : "border-white/10 text-[var(--color-text-secondary)]"
                 }`}
               >
-                {p} дни
+                {periodLabel(p)}
               </Link>
             );
           })}
@@ -202,6 +203,7 @@ export function NapredakBoard({ data, tone, basePath, who = null, switcher = fal
                   [
                     ["говорихме", v.talked, C.green],
                     ["не се интересува", v.notInterested, C.amber],
+                    ["DQ · неквалифициран", v.dq, C.rose],
                     ["не вдигна", v.noAnswer, C.muted],
                     ["грешен номер", v.wrongNumber, C.rose],
                     ["без изход", v.unknown, "rgba(255,255,255,0.12)"],
@@ -213,6 +215,7 @@ export function NapredakBoard({ data, tone, basePath, who = null, switcher = fal
               <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[var(--color-text-secondary)]">
                 <span style={{ color: C.green }}>● говорихме {v.talked}</span>
                 <span style={{ color: C.amber }}>● не се интересува {v.notInterested}</span>
+                {v.dq > 0 && <span style={{ color: C.rose }}>● DQ {v.dq}{me.cur.dqPct !== null ? ` (${me.cur.dqPct}% от вдигналите)` : ""}</span>}
                 <span className="text-[var(--color-text-tertiary)]">● не вдигна {v.noAnswer}</span>
                 <span style={{ color: C.rose }}>● грешен номер {v.wrongNumber}</span>
                 {v.unknown > 0 && <span className="text-[var(--color-text-tertiary)]">● без изход {v.unknown}</span>}
@@ -254,6 +257,15 @@ export function NapredakBoard({ data, tone, basePath, who = null, switcher = fal
               }
             />
           </div>
+          {(me.cur.closer.scheduled > 0 || me.cur.closer.upcoming > 0) && (
+            <p className="mt-3 text-xs text-[var(--color-text-secondary)]">
+              <b>Срещите, които водиш</b> (по часа им): дошли {me.cur.closer.held} · не дошли {me.cur.closer.noShow}
+              {me.cur.closer.showRate !== null ? ` · явяване ${me.cur.closer.showRate}%` : ""}
+              {me.cur.closer.pastUnmarked > 0 ? ` · ⚠️ ${me.cur.closer.pastUnmarked} без отбелязан изход` : ""}
+              {me.cur.closer.upcoming > 0 ? ` · предстоят ${me.cur.closer.upcoming}` : ""}
+              {v.meetingDq > 0 ? ` · DQ на срещата ${v.meetingDq}` : ""}
+            </p>
+          )}
           {me.cur.meetings.pastUnmarked > 0 && (
             <p className="mt-3 text-[11px] text-[var(--color-text-tertiary)]">
               {me.cur.meetings.pastUnmarked} минали без отбелязан изход — не влизат в явяемостта, докато някой не отбележи „проведена“ или „не се яви“.

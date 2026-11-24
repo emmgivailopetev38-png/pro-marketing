@@ -22,6 +22,11 @@ const rowSchema = z.object({
   campaign_id: z.string().min(1),
   campaign_name: z.string().nullish(),
   objective: z.string().nullish(),
+  // само при level = "ad" (разбивката по реклама, от 24.11.2026)
+  adset_id: z.string().nullish(),
+  adset_name: z.string().nullish(),
+  ad_id: z.string().nullish(),
+  ad_name: z.string().nullish(),
   spend: z.coerce.number().min(0),
   impressions: z.coerce.number().int().min(0).default(0),
   clicks: z.coerce.number().int().min(0).default(0),
@@ -33,7 +38,9 @@ const payloadSchema = z.object({
   account_id: z.string().min(1),
   currency: z.string().default("USD"),
   usd_per_eur: z.coerce.number().positive().default(USD_PER_EUR),
-  rows: z.array(rowSchema).max(2000),
+  /** "campaign" (подразбиране) → ad_spend_daily · "ad" → ad_spend_ads_daily */
+  level: z.enum(["campaign", "ad"]).default("campaign"),
+  rows: z.array(rowSchema).max(5000),
 });
 
 export async function POST(request: Request) {
@@ -45,12 +52,49 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid payload", issues: parsed.error.issues }, { status: 400 });
   }
-  const { platform, account_id, currency, usd_per_eur, rows } = parsed.data;
+  const { platform, account_id, currency, usd_per_eur, rows, level } = parsed.data;
   if (rows.length === 0) {
     return NextResponse.json({ ok: true, written: 0, note: "няма редове" });
   }
 
   const now = new Date().toISOString();
+  if (level === "ad") {
+    const adRecords = rows
+      .filter((r) => r.ad_id)
+      .map((r) => {
+        const { spend_eur, fx_rate, fx_source } = toEur(r.spend, currency, usd_per_eur);
+        return {
+          day: r.day,
+          platform,
+          account_id,
+          campaign_id: r.campaign_id,
+          campaign_name: r.campaign_name ?? null,
+          adset_id: r.adset_id ?? null,
+          adset_name: r.adset_name ?? null,
+          ad_id: r.ad_id as string,
+          ad_name: r.ad_name ?? null,
+          purpose: classifyCampaign(r.campaign_name),
+          spend: r.spend,
+          currency: currency.toUpperCase(),
+          spend_eur,
+          fx_rate,
+          fx_source,
+          impressions: r.impressions,
+          clicks: r.clicks,
+          leads: r.leads,
+          synced_at: now,
+        };
+      });
+    const sbAd = createServiceClient();
+    const { error: adError } = await sbAd.from("ad_spend_ads_daily").upsert(adRecords, { onConflict: "platform,account_id,ad_id,day" });
+    if (adError) return NextResponse.json({ ok: false, error: adError.message }, { status: 500 });
+    return NextResponse.json({
+      ok: true,
+      level,
+      written: adRecords.length,
+      eur: Math.round(adRecords.reduce((s, r) => s + r.spend_eur, 0) * 100) / 100,
+    });
+  }
   const records = rows.map((r) => {
     const { spend_eur, fx_rate, fx_source } = toEur(r.spend, currency, usd_per_eur);
     return {

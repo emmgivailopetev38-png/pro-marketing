@@ -19,11 +19,12 @@ import {
 
 const DEFAULTS: Record<TeamRole, TeamModule[]> = {
   owner: [...TEAM_MODULES],
-  // Мениджърът на продажбите (от 24.11.2026, RevStream): вижда хората, срещите и числата на екипа
-  // по продажбите. Без цени, оферти, проекти и демо — те не са за външен човек.
-  manager: ["ekipat", "zadachi", "saobshtenia", "materiali", "belezhki"],
-  setter: ["zvanene", "zadachi", "saobshtenia", "materiali", "napredak", "belezhki"],
-  sales: ["prodazhbi", "zadachi", "saobshtenia", "materiali", "ceni", "oferti", "komisioni", "napredak", "belezhki"],
+  // Мениджърът на продажбите (от 24.11.2026, RevStream): хората, срещите и числата на екипа,
+  // всички лийдове, бизнесът (реклами, цена на лийд), материалите и цените. Не звъни —
+  // затова няма „Звънене“ и никога не влиза в разпределението на лийдовете.
+  manager: ["ekipat", "biznes", "liidove", "napredak", "materiali", "ceni", "demo", "zadachi", "saobshtenia", "belezhki"],
+  setter: ["zvanene", "liidove", "zadachi", "saobshtenia", "materiali", "napredak", "belezhki"],
+  sales: ["prodazhbi", "liidove", "zadachi", "saobshtenia", "materiali", "ceni", "oferti", "komisioni", "napredak", "belezhki"],
   delivery: ["proekti", "zadachi", "saobshtenia", "materiali", "napredak", "belezhki"],
   marketing: ["proekti", "zadachi", "saobshtenia", "materiali", "napredak", "belezhki"],
 };
@@ -42,6 +43,8 @@ export function canSee(
   if (member.role === "owner") return true;
   // Таблото на екипа е ниво, не отметка: само мениджър (и собственикът). Отметка не го дава на сетър или клоузър.
   if (module === "ekipat") return member.role === "manager";
+  // „Бизнесът“ (рекламите, цената на лийд, парите на бизнеса) — същото ниво: мениджър и собственик.
+  if (module === "biznes") return member.role === "manager";
   const override = member.permissions?.modules?.[module];
   if (typeof override === "boolean") return override;
   return DEFAULTS[member.role]?.includes(module) ?? false;
@@ -58,7 +61,7 @@ export function visibleModules(member: Pick<TeamMember, "role" | "permissions"> 
  */
 export function homeFor(member: Pick<TeamMember, "role" | "permissions"> | null | undefined): string {
   if (!member || member.role === "owner") return "/ekip";
-  const order: TeamModule[] = ["ekipat", "zvanene", "prodazhbi", "proekti", "zadachi", "saobshtenia", "materiali"];
+  const order: TeamModule[] = ["ekipat", "zvanene", "prodazhbi", "liidove", "proekti", "zadachi", "saobshtenia", "materiali"];
   const first = order.find((m) => canSee(member, m));
   return first ? TEAM_MODULE_HREF[first] : "/ekip/zadachi";
 }

@@ -33,6 +33,8 @@ export const TEAM_ROLE_SHORT: Record<TeamRole, string> = {
  */
 export const TEAM_MODULES = [
   "ekipat",
+  "biznes",
+  "liidove",
   "zvanene",
   "prodazhbi",
   "proekti",
@@ -58,6 +60,8 @@ export function orgOf(m: { org?: string | null } | null | undefined): string {
 
 export const TEAM_MODULE_LABEL: Record<TeamModule, string> = {
   ekipat: "Екипът · хора, срещи и числа (мениджър)",
+  biznes: "Бизнесът · реклами, цена на лийд, история (мениджър)",
+  liidove: "Всички лийдове · чути и нечути, срещи",
   zvanene: "Звънене · опашка",
   prodazhbi: "Продажби · моите хора",
   proekti: "Проекти · изпълнение",
@@ -74,6 +78,8 @@ export const TEAM_MODULE_LABEL: Record<TeamModule, string> = {
 
 export const TEAM_MODULE_HREF: Record<TeamModule, string> = {
   ekipat: "/ekip/ekipat",
+  biznes: "/ekip/biznes",
+  liidove: "/ekip/liidove",
   zvanene: "/ekip",
   prodazhbi: "/ekip/prodazhbi",
   proekti: "/ekip/proekti",
@@ -226,6 +232,7 @@ export const EKIP_ACTIONS = [
   "meeting",
   "handoff",
   "not_interested",
+  "dq",
   "wrong_number",
   "give_up",
   "note",

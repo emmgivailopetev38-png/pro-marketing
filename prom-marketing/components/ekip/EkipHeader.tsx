@@ -11,6 +11,9 @@ export interface EkipNavItem {
 
 const SHORT: Record<string, string> = {
   ekipat: "👥 Екипът",
+  biznes: "📊 Бизнесът",
+  liidove: "📋 Лийдове",
+  oferti: "📄 Оферти",
   zvanene: "📞 Звънене",
   prodazhbi: "💼 Продажби",
   proekti: "🛠 Проекти",

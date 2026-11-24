@@ -72,6 +72,8 @@ export const MATERIALS: Material[] = [
 
 export function materialsFor(role: TeamRole, canSeeModule: (m: TeamModule) => boolean): { mine: Material[]; other: Material[] } {
   const allowed = MATERIALS.filter((m) => !m.module || canSeeModule(m.module));
+  // Мениджърът води и сетъри, и клоузъри — за него всичко е „негово“.
+  if (role === "manager") return { mine: allowed, other: [] };
   return {
     mine: allowed.filter((m) => m.roles.includes(role)),
     other: allowed.filter((m) => !m.roles.includes(role)),

@@ -1,5 +1,6 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
+import { allRows } from "@/lib/supabase/all-rows";
 import { ATTEMPT_TYPES } from "@/lib/contacts/followup";
 import { rankTopCalls, type TopCallCandidate, type TopCallsResult } from "./top-calls-rules";
 
@@ -26,14 +27,18 @@ export async function loadTopCalls(now: Date = new Date(), limit = 10): Promise<
   const nowIso = now.toISOString();
   for (let i = 0; i < base.length; i += 150) {
     const ids = base.slice(i, i + 150).map((c) => c.id);
-    const { data: acts } = await sb
-      .from("contact_activities")
-      .select("contact_id, activity_type, occurred_at")
-      .in("contact_id", ids)
-      .lte("occurred_at", nowIso)
-      .order("occurred_at", { ascending: false })
-      .limit(6000);
-    for (const a of (acts ?? []) as Array<{ contact_id: string; activity_type: string; occurred_at: string }>) {
+    // По страници — 150 души лесно имат над 1 000 активности, а PostgREST реже тихо.
+    const { rows: acts } = await allRows<{ contact_id: string; activity_type: string; occurred_at: string }>((from, to) =>
+      sb
+        .from("contact_activities")
+        .select("contact_id, activity_type, occurred_at")
+        .in("contact_id", ids)
+        .lte("occurred_at", nowIso)
+        .order("occurred_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, to)
+    );
+    for (const a of acts) {
       if (!lastActivity.has(a.contact_id)) lastActivity.set(a.contact_id, { type: a.activity_type, occurred_at: a.occurred_at });
       if (!lastAttempt.has(a.contact_id) && (ATTEMPT_TYPES as readonly string[]).includes(a.activity_type)) {
         lastAttempt.set(a.contact_id, a.occurred_at);

@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { TEAM_PAY_LINKS, teamPayUrl } from "@/lib/stripe/team-links";
+import { TbiBox } from "./TbiBox";
 
 const eur = (n: number) => `${n.toLocaleString("bg-BG")} €`;
 
@@ -21,6 +22,7 @@ export function PayLinks({ contactId, email }: { contactId: string; email: strin
     }
   }
   return (
+    <>
     <details className="mt-2 rounded-xl border border-emerald-400/25 bg-emerald-400/5 px-3 py-2">
       <summary className="cursor-pointer text-xs font-semibold text-emerald-200">💳 Линк за плащане · „Пари с AI“ 3 900 €</summary>
       <ul className="mt-2 space-y-1.5">
@@ -50,7 +52,10 @@ export function PayLinks({ contactId, email }: { contactId: string; email: strin
       </ul>
       <p className="mt-2 text-[11px] leading-snug text-[var(--color-text-tertiary)]">
         Цената е с ДДС. Линкът е за този човек: имейлът му е попълнен. След плащането отбележи „Спечелен“ със сумата, която е платил.
+        Остатъкът след първата вноска е със същите линкове: 975 € = „депозит 25 %“, 1 950 € = „50 %“, 2 925 € = „75 %“.
       </p>
     </details>
+    <TbiBox />
+    </>
   );
 }

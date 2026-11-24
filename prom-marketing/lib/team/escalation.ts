@@ -1,5 +1,6 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
+import { allRows } from "@/lib/supabase/all-rows";
 import { decodeFormAnswers } from "@/lib/leads/form-labels";
 import { ESCALATED_TYPE, type AttemptRow } from "./queue-rules";
 import { escalationSummary, escalationVerdict } from "./escalation-rules";
@@ -41,15 +42,19 @@ export async function runEscalations(now: Date = new Date()): Promise<Escalation
   const out: EscalationRun = { checked: rows.length, escalated: [] };
   if (rows.length === 0) return out;
 
-  const { data: acts } = await sb
-    .from("contact_activities")
-    .select("contact_id, activity_type, title, occurred_at, created_by, metadata")
-    .in("contact_id", rows.map((c) => c.id))
-    .in("activity_type", ATTEMPT_TYPES)
-    .order("occurred_at", { ascending: false })
-    .limit(8000);
+  // По страници — иначе PostgREST реже на 1 000 реда и част от опитите изчезват.
+  const { rows: acts } = await allRows<AttemptRow>((from, to) =>
+    sb
+      .from("contact_activities")
+      .select("contact_id, activity_type, title, occurred_at, created_by, metadata")
+      .in("contact_id", rows.map((c) => c.id))
+      .in("activity_type", ATTEMPT_TYPES)
+      .order("occurred_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(from, to)
+  );
   const byContact = new Map<string, AttemptRow[]>();
-  for (const a of (acts ?? []) as AttemptRow[]) {
+  for (const a of acts) {
     const list = byContact.get(a.contact_id) ?? [];
     list.push(a);
     byContact.set(a.contact_id, list);

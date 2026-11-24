@@ -19,7 +19,8 @@ export type RotationMember = Pick<TeamMember, "id" | "role" | "permissions" | "a
 /** Хората, между които се редуват новите лийдове, в реда на кръга. */
 export function rotationPool<T extends RotationMember>(members: T[]): T[] {
   return members
-    .filter((m) => m.active && m.role !== "owner" && canSee(m, "zvanene"))
+    // Мениджърът не звъни — дори с отметка „Звънене“ не влиза в разпределението.
+    .filter((m) => m.active && m.role !== "owner" && m.role !== "manager" && canSee(m, "zvanene"))
     .sort((a, b) => (a.created_at ?? "").localeCompare(b.created_at ?? "") || a.id.localeCompare(b.id));
 }
 

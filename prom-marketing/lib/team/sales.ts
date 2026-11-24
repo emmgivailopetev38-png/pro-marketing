@@ -1,5 +1,6 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
+import { allRows } from "@/lib/supabase/all-rows";
 import { openPromisesByContact, type PromiseRow } from "@/lib/contacts/dnevnik-repository";
 import { isLiveBooking } from "@/lib/crm/booking-status";
 import type { TeamActor } from "./session";
@@ -62,21 +63,34 @@ export async function loadSalesBoard(actor: TeamActor, now: Date = new Date()): 
   const contacts = (data ?? []) as SalesContact[];
   const ids = contacts.map((c) => c.id);
 
-  const [promises, { data: acts }, { data: briefActs }, { data: bookings }] = await Promise.all([
+  // По страници — PostgREST реже ТИХО на 1 000 реда (така историята на част от хората изчезваше).
+  const [promises, { rows: acts }, { rows: briefActs }, { data: bookings }] = await Promise.all([
     openPromisesByContact(ids),
     ids.length
-      ? sb
-          .from("contact_activities")
-          .select("contact_id, activity_type, title, occurred_at, created_by, metadata")
-          .in("contact_id", ids)
-          .gte("occurred_at", since)
-          .order("occurred_at", { ascending: false })
-          .limit(3000)
-      : Promise.resolve({ data: [] }),
+      ? allRows<Record<string, unknown>>((from, to) =>
+          sb
+            .from("contact_activities")
+            .select("contact_id, activity_type, title, occurred_at, created_by, metadata")
+            .in("contact_id", ids)
+            .gte("occurred_at", since)
+            .order("occurred_at", { ascending: false })
+            .order("id", { ascending: true })
+            .range(from, to)
+        )
+      : Promise.resolve({ rows: [] as Array<Record<string, unknown>>, error: null }),
     // брифовете са дълги — теглят се отделно, само тях (без срок: брифът не изтича)
     ids.length
-      ? sb.from("contact_activities").select("contact_id, title, body, occurred_at").in("contact_id", ids).like("title", `${BRIEF_PREFIX}%`).order("occurred_at", { ascending: false }).limit(1200)
-      : Promise.resolve({ data: [] }),
+      ? allRows<Record<string, unknown>>((from, to) =>
+          sb
+            .from("contact_activities")
+            .select("contact_id, title, body, occurred_at")
+            .in("contact_id", ids)
+            .like("title", `${BRIEF_PREFIX}%`)
+            .order("occurred_at", { ascending: false })
+            .order("id", { ascending: true })
+            .range(from, to)
+        )
+      : Promise.resolve({ rows: [] as Array<Record<string, unknown>>, error: null }),
     sb
       .from("bookings")
       .select("id, attendee_name, attendee_email, attendee_phone, scheduled_at, status, business, automation_goal, timeline, meeting_url, raw_payload, recording_url")

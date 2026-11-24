@@ -1,5 +1,6 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
+import { allRows } from "@/lib/supabase/all-rows";
 import { phoneVariants } from "@/lib/contacts/repository";
 import type { ContactStage, FollowupStatus } from "@/lib/contacts/types";
 import { upsertOffer } from "./repository";
@@ -57,24 +58,32 @@ export async function runCrmConsistency(opts: { dry?: boolean } = {}): Promise<C
     errors: [],
   };
 
-  const { data: contactsRaw, error: cErr } = await sb
-    .from("contacts")
-    .select("id, full_name, email, phone, company, stage, followup_status, next_followup_at, last_heard_from_at, deal_value_eur")
-    .order("created_at", { ascending: true })
-    .limit(2000);
+  const { rows: contactsRaw, error: cErr } = await allRows<ContactLike>((from, to) =>
+    sb
+      .from("contacts")
+      .select("id, full_name, email, phone, company, stage, followup_status, next_followup_at, last_heard_from_at, deal_value_eur")
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to)
+  );
   if (cErr) {
-    out.errors.push(`contacts: ${cErr.message}`);
+    out.errors.push(`contacts: ${cErr}`);
     return out;
   }
-  const contacts = (contactsRaw ?? []) as ContactLike[];
+  const contacts = contactsRaw;
   if (contacts.length === 0) return out;
 
-  const [{ data: actsRaw }, { data: offersRaw }, { data: invoicesRaw }] = await Promise.all([
-    sb
-      .from("contact_activities")
-      .select("id, contact_id, activity_type, title, body, occurred_at, metadata")
-      .order("occurred_at", { ascending: true })
-      .limit(20000),
+  // ⚠️ `.limit(20000)` не помага — PostgREST връща най-много 1 000 реда, тоест
+  // проверката гледаше само най-старите действия. Сега — по страници.
+  const [{ rows: actsRaw }, { data: offersRaw }, { data: invoicesRaw }] = await Promise.all([
+    allRows<ActivityLike & { contact_id: string }>((from, to) =>
+      sb
+        .from("contact_activities")
+        .select("id, contact_id, activity_type, title, body, occurred_at, metadata")
+        .order("occurred_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to)
+    ),
     sb.from("offers").select("contact_id, amount_gross, amount_net, created_at"),
     sb.from("invoices").select("contact_id, amount_gross, amount_net, status, invoice_type"),
   ]);
