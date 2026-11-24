@@ -454,7 +454,7 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-2">
                 <label className="text-[11px] text-emerald-200/80">
-                  📅 Среща с Ивайло ({MEETING_MINUTES} мин) на
+                  📅 Среща ({MEETING_MINUTES} мин) на
                   <input
                     type="datetime-local"
                     name="meeting_at"
