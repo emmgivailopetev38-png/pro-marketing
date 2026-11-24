@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
   title: {
     template: "%s · Подаръци · Допълнителен доход с AI",
-    default: "Твоите 5 подаръка · Допълнителен доход с AI",
+    default: "Твоите подаръци · Допълнителен доход с AI",
   },
   description: "Подаръците за участниците, останали до края на обучението „Допълнителен доход с AI“ с Ивайло Петев.",
 };

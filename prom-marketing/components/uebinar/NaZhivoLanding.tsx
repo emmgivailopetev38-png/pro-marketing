@@ -4,7 +4,7 @@
 
    Редът на секциите е от срещата със Стефчо (21.11.2026) и примерната страница,
    която той показа: лента с датата → внимание (аудиторията) → заглавие →
-   подзаглавие → „без“ частта като текст → бутон → 3-те тайни → бонуси →
+   подзаглавие → „без“ частта като текст → бутон → тайните → бонуси →
    доказателство → кой е водещият → въпроси → последна секция.
    Бутоните са яркочервени и са навсякъде. Без видео на страницата.
    Сървърен компонент; единственият клиентски остров е формата (ZapisForm).
@@ -55,6 +55,7 @@ export function NaZhivoLanding() {
               <mark>{c.headline.mark}</mark>
               {c.headline.after}
             </h1>
+            <p className="nz-fomo">{c.fomo}</p>
 
             <p className="nz-sub">{c.sub}</p>
 
@@ -65,7 +66,7 @@ export function NaZhivoLanding() {
           </div>
         </section>
 
-        {/* 2 · Какво ще научиш — 3-те тайни */}
+        {/* 2 · Какво ще научиш — тайните („По време на обучението ще ти разкрия“) */}
         <section className="nz-sec">
           <div className="nz-wrap nz-two">
             <div className="nz-photo">
@@ -80,15 +81,14 @@ export function NaZhivoLanding() {
             </div>
             <div>
               <p className="nz-intro">{c.tainiIntro}</p>
-              <h2 className="nz-h2">
-                3-те <em>тайни</em>
-              </h2>
+              <h2 className="nz-h2">{c.tainiTitle}</h2>
               <ol className="nz-taini">
                 {c.taini.map((t) => (
                   <li key={t.n}>
                     <span className="nz-taina-n">{t.n}</span>
                     <p>
-                      <strong>{t.title}</strong> {t.body}
+                      <strong>{t.title}</strong>
+                      {t.body}
                     </p>
                   </li>
                 ))}

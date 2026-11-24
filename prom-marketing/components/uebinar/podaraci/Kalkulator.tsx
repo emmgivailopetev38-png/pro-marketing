@@ -5,7 +5,7 @@ import { useId, useState } from "react";
 /** 3000 → „3 000 €“ — с интервал на хилядите като в текстовете (bg-BG не слага при 4 цифри). */
 const eur = (n: number) => `${String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} €`;
 
-/** „Сметни сам“ — колко носят N клиента с твоите цени. Числата са на човека, не обещание. */
+/** „Сметни си го“ — колко носят N клиента с твоите цени. Числата са на човека, не обещание. */
 export function Kalkulator({ klienti: k0, naprava: n0, mesechno: m0 }: { klienti: number; naprava: number; mesechno: number }) {
   const [klienti, setKlienti] = useState(k0);
   const [naprava, setNaprava] = useState(n0);

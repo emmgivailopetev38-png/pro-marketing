@@ -26,11 +26,15 @@ describe("/na-zhivo — текстът и датата", () => {
     expect(u.searchParams.get("dates")).toMatch(/^\d{8}T\d{6}Z\/\d{8}T\d{6}Z$/);
   });
 
-  it("структурата е тази от срещата: 3–5 тайни, 4–5 подаръка, „без“ частта е един ред", () => {
+  it("структурата е тази от срещата: 3–5 тайни, 4–6 подаръка, „без“ частта е един ред", () => {
     expect(NA_ZHIVO.taini.length).toBeGreaterThanOrEqual(3);
     expect(NA_ZHIVO.taini.length).toBeLessThanOrEqual(5);
     expect(NA_ZHIVO.bonusi.items.length).toBeGreaterThanOrEqual(4);
-    expect(NA_ZHIVO.bonusi.items.length).toBeLessThanOrEqual(5);
+    expect(NA_ZHIVO.bonusi.items.length).toBeLessThanOrEqual(6);
+    // Числото в заглавието и в последния ред е броят на подаръците.
+    expect(NA_ZHIVO.bonusi.title.startsWith(`${NA_ZHIVO.bonusi.items.length} подаръка`)).toBe(true);
+    expect(NA_ZHIVO.bonusi.total).toContain(`Всичките ${NA_ZHIVO.bonusi.items.length}`);
+    NA_ZHIVO.bonusi.items.forEach((g, i) => expect(g.kind.startsWith(`Подарък №${i + 1} `)).toBe(true));
     expect(typeof NA_ZHIVO.bez).toBe("string");
     expect(NA_ZHIVO.bez.startsWith("Без ")).toBe(true);
     expect(NA_ZHIVO.bez).not.toContain("\n");
@@ -53,7 +57,7 @@ describe("/na-zhivo — текстът и датата", () => {
     expect(NA_ZHIVO.vnimanie).toContain("вече търсиш");
     expect(NA_ZHIVO.vnimanie).not.toMatch(/\bAI\b/);
     // Заглавието е с думите му; подзаглавието казва „бързо и лесно, вместо теб“.
-    expect(NA_ZHIVO.headline.before.startsWith("Ето тайната как да изградиш допълнителен доход")).toBe(true);
+    expect(NA_ZHIVO.headline.before.startsWith("Ето тайната как")).toBe(true);
     expect(NA_ZHIVO.sub).toContain("бързо и лесно");
     // Без безплатен достъп до софтуера и Академията в подаръците.
     const podaraci = JSON.stringify(NA_ZHIVO.bonusi).toLowerCase();
@@ -61,6 +65,32 @@ describe("/na-zhivo — текстът и датата", () => {
     expect(podaraci.includes("достъп до petevai")).toBe(false);
     // Първият подарък е тестът за страха.
     expect(NA_ZHIVO.bonusi.items[0].name).toContain("Ще замени ли AI работата ти");
+  });
+
+  it("пропуснатото от видеото и гласовите от 24.11.2026 е вътре", () => {
+    const zaglavie = `${NA_ZHIVO.headline.before}${NA_ZHIVO.headline.mark}${NA_ZHIVO.headline.after}`;
+    // „работата си със сайтове“ се четеше „работата ми е със сайтове“ — тези две думи не са една до друга.
+    expect(zaglavie).not.toContain("работата си със");
+    expect(zaglavie).toContain("покрай работата си");
+    // Най-голямото възражение е в самото заглавие.
+    expect(zaglavie).toContain("дори да не разбираш нищо от AI");
+    // Страхът да не изпуснеш е опашката на заглавието.
+    expect(NA_ZHIVO.fomo).toContain("някой друг");
+    // Подзаглавието казва четирите стъпки с „персонален“ / „персонално“.
+    expect(NA_ZHIVO.sub).toContain("персонален сайт");
+    expect(NA_ZHIVO.sub).toContain("персонално съобщение");
+    expect(NA_ZHIVO.sub).toContain("Ако им хареса");
+    // „Без“: говориш на AI; дълги разговори; камера — не „без да снимаш“.
+    expect(NA_ZHIVO.bez).toContain("само говориш на AI");
+    expect(NA_ZHIVO.bez).toContain("дълги разговори, за да им продадеш");
+    expect(NA_ZHIVO.bez).toContain("без да се снимаш пред камера");
+    // Над тайните не пише „3-те тайни“.
+    expect(NA_ZHIVO.tainiTitle).toContain("По време на обучението ще ти разкрия");
+    // Вторият подарък е видео демонстрацията, третият — томболата.
+    expect(NA_ZHIVO.bonusi.items[1].kind).toContain("Видео демонстрация");
+    expect(NA_ZHIVO.bonusi.items[2].kind).toContain("Томбола");
+    // Главното послание: AI прави почти всичко, ти само копираш и пращаш.
+    expect(JSON.stringify(NA_ZHIVO.taini)).toContain("Ти само копираш съобщението и го пращаш");
   });
 
   it("отзивите на страницата съществуват в OTZIVI", () => {

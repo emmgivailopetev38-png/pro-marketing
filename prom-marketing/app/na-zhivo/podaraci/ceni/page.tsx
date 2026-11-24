@@ -93,7 +93,7 @@ export default function Page() {
 
         <section className="pd-sec" id="kalkulator">
           <h2 className="pd-h2">
-            <small>4 · Калкулатор</small>Сметни сам
+            <small>4 · Калкулатор</small>Сметни си го
           </h2>
           <p className="pd-p">Мести плъзгачите с твоите числа — колко клиента, колко за сайта и колко на месец.</p>
           <Kalkulator {...CENI.kalkulator} />
