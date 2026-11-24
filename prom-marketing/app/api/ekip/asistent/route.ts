@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getTeamActor } from "@/lib/team/session";
 import { asistentPrompt, type ChatTurn } from "@/lib/team/asistent";
+import { quickQuestion } from "@/lib/team/asistent-rules";
 import { BARZ_MODEL, cyal, DALBOK_MODEL, GeminiGreshka } from "@/lib/suvetnik/gemini";
 
 export const dynamic = "force-dynamic";
@@ -20,8 +21,9 @@ export async function POST(request: Request) {
   if (!turns.length || turns.at(-1)?.role !== "user") return NextResponse.json({ error: "Напиши въпрос." }, { status: 400 });
   try {
     const { system, user } = await asistentPrompt(actor, turns);
-    // Бързият модел е първи: човекът чака отговор по време на разговор. Всеки опит има
-    // таван (на 24.11.2026 претовареният модел държа 45 s) — след него следващият по ред.
+    // Бързият модел е първи: човекът чака отговор по време на разговор. Кратък въпрос върви с
+    // минимално мислене (секунди, не 15 s); всеки опит има таван — след него следващият по ред.
+    const quick = quickQuestion(turns.at(-1)?.text ?? "");
     const models = [...new Set([BARZ_MODEL, DALBOK_MODEL, "gemini-flash-latest", "gemini-2.5-flash"])];
     const deadline = Date.now() + 50_000;
     let answer = "";
@@ -31,7 +33,8 @@ export async function POST(request: Request) {
       if (left < 4_000) break;
       try {
         const signal = AbortSignal.timeout(Math.min(left, i === 0 ? 20_000 : 15_000));
-        answer = (await cyal({ system, user, model, maxTokens: 1500, mislene: "low", signal }))
+        const mislene = i === 0 && quick ? "minimal" : "low";
+        answer = (await cyal({ system, user, model, maxTokens: 1500, mislene, signal }))
           // Балончето показва чист текст — остатъците от Markdown се махат.
           .replace(/^#{1,6}\s*/gm, "")
           .replace(/\*\*(.+?)\*\*/g, "$1")
