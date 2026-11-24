@@ -26,7 +26,8 @@ export default async function BiznesPage() {
   const t = b.totals;
   const k = b.konversii;
   const campaigns = k.campaigns.filter((c) => c.purpose === "leads" || c.leads > 0).sort((x, y) => y.eur - x.eur);
-  const burned = campaigns.filter((c) => c.eur >= 40 && c.meetings === 0);
+  // Само кампании, чиито лийдове са свързани с CRM-а — старите (до 19.08) нямат връзка и „0 срещи“ при тях не е резултат.
+  const burned = campaigns.filter((c) => c.eur >= 40 && c.leads > 0 && c.meetings === 0);
   const cheapest = campaigns.filter((c) => c.cost.meeting !== null && c.meetings >= 2).sort((x, y) => (x.cost.meeting ?? 0) - (y.cost.meeting ?? 0)).slice(0, 5);
   const withClients = campaigns.filter((c) => c.won > 0);
   const f5 = forecast(t, 5);
@@ -70,7 +71,8 @@ export default async function BiznesPage() {
         <section className={card}>
           <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">📅 По месеци</h2>
           <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">
-            Разходът е точно колкото таксува Meta (в долари); еврото е по 1,17 $/€. Лийдовете са новите картони от реклами в CRM-а; срещите — по часа им.
+            Разходът е точно колкото таксува Meta (в долари); еврото е по 1,17 $/€. Лийдовете са новите картони от реклами в CRM-а; срещите — по часа им; клиентите — в
+            месеца, в който са дошли като лийд.
           </p>
           <div className="mt-2 overflow-x-auto">
             <table className="w-full min-w-[900px] border-collapse">
@@ -86,14 +88,14 @@ export default async function BiznesPage() {
                   <th className={th}>Не дошли</th>
                   <th className={th}>Явяване</th>
                   <th className={th}>€ / проведена</th>
-                  <th className={th}>Клиенти</th>
+                  <th className={th} title="лийдовете от този месец, които са станали клиенти">Клиенти</th>
                   <th className={th}>Сделки €</th>
                 </tr>
               </thead>
               <tbody>
                 {b.months.map((m) => (
                   <tr key={m.month} className="border-b border-white/5">
-                    <td className="px-2 py-1.5 text-sm capitalize">{monthLabel(m.month)}</td>
+                    <td className="px-2 py-1.5 text-sm">{monthLabel(m.month)}</td>
                     <td className={td}>{money(m.usd, "$")}</td>
                     <td className={td}>{money(m.eur)}</td>
                     <td className={td}>{int(m.leads)}</td>
@@ -141,8 +143,8 @@ export default async function BiznesPage() {
                   <th className={th}>€ / лийд</th>
                   <th className={th}>Звънени</th>
                   <th className={th}>Говорили</th>
-                  <th className={th}>Срещи</th>
-                  <th className={th}>€ / среща</th>
+                  <th className={th}>Записани срещи</th>
+                  <th className={th}>€ / записана</th>
                   <th className={th}>Клиенти</th>
                   <th className={th}>€ / клиент</th>
                 </tr>
@@ -223,7 +225,7 @@ export default async function BiznesPage() {
             <ul className="mt-2 list-disc space-y-1.5 pl-5 text-sm text-[var(--color-text-secondary)]">
               {cheapest.length > 0 && (
                 <li>
-                  <b>Най-евтина среща</b>:{" "}
+                  <b>Най-евтина записана среща</b>:{" "}
                   {cheapest.map((c) => `${c.name.slice(0, 70)} — ${money(c.cost.meeting)} (${c.meetings} срещи)`).join("; ")}.
                 </li>
               )}
@@ -234,7 +236,7 @@ export default async function BiznesPage() {
               )}
               {burned.length > 0 && (
                 <li>
-                  <b>Изгорели пари (≥ 40 €, нито една среща)</b>: {burned.map((c) => `${c.name.slice(0, 60)} — ${money(c.eur)}`).join("; ")}.
+                  <b>Изгорели пари (≥ 40 €, нито една записана среща)</b>: {burned.map((c) => `${c.name.slice(0, 60)} — ${money(c.eur)}`).join("; ")}.
                 </li>
               )}
               <li>

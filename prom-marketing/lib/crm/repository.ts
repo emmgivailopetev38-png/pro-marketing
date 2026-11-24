@@ -1825,7 +1825,7 @@ export async function updateBooking(args: {
 
   // Срещата е в календара на клоузъра от наша покана (lib/team/closer-calendar.ts) →
   // нов час или отмяна стигат и до календара му. Само за такива срещи — другите ги води Cal.com.
-  if ((args.status || args.scheduled_at) && rawNow.closer_invite) {
+  if ((args.status || args.scheduled_at) && (rawNow.closer_invite || rawNow.lead_invite || rawNow.owner_invite)) {
     const { syncCloserInvite } = await import("@/lib/team/closer-calendar");
     await syncCloserInvite(args.id).catch(() => {});
   }

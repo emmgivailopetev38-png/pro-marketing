@@ -82,10 +82,11 @@ export async function loadBiznes(now: Date = new Date()): Promise<BiznesData> {
     if (c.email) byEmail.set(c.email.trim().toLowerCase(), c.id);
     const m = month(c.created_at);
     m.leads += 1;
+    // Клиентът се брои в месеца, в който е ДОШЪЛ като лийд — updated_at се мести при всяка
+    // редакция на картона и на 24.11.2026 показваше всичките 9 клиента в ноември.
     if (c.stage === "won") {
-      const w = month(c.updated_at);
-      w.won += 1;
-      w.wonValue += Number(c.deal_value_eur) || 0;
+      m.won += 1;
+      m.wonValue += Number(c.deal_value_eur) || 0;
     }
   }
   const heldBy = new Map<string, number>();

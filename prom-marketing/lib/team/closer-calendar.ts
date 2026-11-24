@@ -328,13 +328,11 @@ export async function syncCloserInvite(bookingId: string, now: Date = new Date()
     const b = await loadBooking(bookingId);
     if (!b) return;
     const step = nextInviteStep({ state: readInviteState(b.raw_payload), status: b.status, scheduledIso: b.scheduled_at, now });
-    if (step.kind === "cancel") {
-      await cancelCloserInvite({ bookingId });
-      await cancelLeadInvite(bookingId);
-    } else if (step.kind === "move") {
-      await sendCloserInvite({ bookingId });
-      await sendLeadInvite(bookingId);
-    }
+    if (step.kind === "cancel") await cancelCloserInvite({ bookingId });
+    else if (step.kind === "move") await sendCloserInvite({ bookingId });
+    // Поканите на клиента и на собственика следват срещата и без покана към клоузъра.
+    const fresh = (await loadBooking(bookingId)) ?? b;
+    await syncParties(fresh, now);
   } catch (e) {
     console.error("[closer-calendar] sync:", e instanceof Error ? e.message : e);
   }
@@ -404,36 +402,113 @@ export async function markMirrored(bookingId: string, gcalEventId: string): Prom
   return { ok: !error, error: error?.message ?? null };
 }
 
-// ── Поканата към КЛИЕНТА (24.11.2026) ──────────────────────────────────────
-// Срещите извън Cal.com (вторият клоузър — Теодор) до днес не стигаха до човека
-// автоматично: сетърът пращаше линка ръчно. Сега човекът получава покана с
-// Meet линка в календара си; при нов час — обновена, при отмяна — махната.
+// ── Поканите към КЛИЕНТА и към собственика (24.11.2026) ────────────────────
+// Клиентът: срещите извън Cal.com (вторият клоузър) не стигаха до човека
+// автоматично — сетърът пращаше линка ръчно. Сега получава покана с Meet линка.
+// Собственикът: всяка среща на екипа влиза и в календара на Ивайло като
+// „свободно“ време (не блокира часовете в Cal.com) — оттам неговият Fathom
+// влиза в срещата и я записва. При нов час поканите се обновяват, при отмяна — махат.
 
-interface LeadInviteState {
+type PartyKind = "lead" | "owner";
+const PARTY_KEY: Record<PartyKind, string> = { lead: "lead_invite", owner: "owner_invite" };
+
+interface PartyInviteState {
   uid: string;
   seq: number;
   to: string;
   start: string;
   sent_at: string;
   cancelled_at: string | null;
+  /** само за копието на собственика: кой води и кой записа — за текста при местене */
+  closer?: string | null;
+  booked_by?: string | null;
 }
 
-function readLeadInvite(raw: Record<string, unknown> | null): LeadInviteState | null {
-  const s = (raw ?? {}).lead_invite as LeadInviteState | undefined;
+function readParty(raw: Record<string, unknown> | null, kind: PartyKind): PartyInviteState | null {
+  const s = (raw ?? {})[PARTY_KEY[kind]] as PartyInviteState | undefined;
   return s && typeof s.uid === "string" && typeof s.seq === "number" ? s : null;
 }
 
-async function saveLeadInvite(id: string, state: LeadInviteState): Promise<void> {
+async function saveParty(id: string, kind: PartyKind, state: PartyInviteState): Promise<void> {
   const sb = createServiceClient();
   const { data } = await sb.from("bookings").select("raw_payload").eq("id", id).maybeSingle();
   const raw = ((data?.raw_payload ?? {}) as Record<string, unknown>) ?? {};
-  await sb.from("bookings").update({ raw_payload: { ...raw, lead_invite: state } }).eq("id", id);
+  await sb.from("bookings").update({ raw_payload: { ...raw, [PARTY_KEY[kind]]: state } }).eq("id", id);
 }
 
-async function deliverLead(b: BookingRow, method: IcsMethod, state: LeadInviteState, kind: "new" | "moved" | "cancelled") {
+/** Имейлът на собственика за календара — същият, на който идват известията. */
+function ownerCalendarEmail(): string {
+  return (
+    process.env.EMAIL_REPLY_TO?.trim() ||
+    (process.env.ALLOWED_ADMIN_EMAILS ?? "").split(",").map((x) => x.trim()).filter(Boolean)[0] ||
+    "emmgivailopetev38@gmail.com"
+  );
+}
+
+async function deliverParty(b: BookingRow, kind: PartyKind, method: IcsMethod, state: PartyInviteState, mode: "new" | "moved" | "cancelled") {
   const name = (b.attendee_name ?? "").trim() || "";
   const meet = (b.meeting_url ?? "").trim() || closerMeetUrl();
   const when = fmtSofia(state.start);
+  const cancelled = mode === "cancelled";
+  const attach = (ics: string) => [
+    {
+      filename: method === "CANCEL" ? "otmyana.ics" : "sreshta.ics",
+      content: Buffer.from(ics, "utf8").toString("base64"),
+      contentType: `text/calendar; charset=utf-8; method=${method}`,
+    },
+  ];
+
+  if (kind === "owner") {
+    const d = describe(b, state.start, null, meet);
+    const leads = state.closer ? ` · води ${state.closer}` : "";
+    const summary = `🎥 Екип · ${d.name}${leads}`;
+    const details = [
+      state.closer ? `Води: ${state.closer}` : null,
+      state.booked_by ? `Записа: ${state.booked_by}` : null,
+      d.details,
+      "Копие за календара на собственика — отбелязано като свободно време. Fathom влиза в срещата от този линк и я записва.",
+    ]
+      .filter(Boolean)
+      .join("\n");
+    const ics = buildInviteIcs({
+      uid: state.uid,
+      sequence: state.seq,
+      method,
+      startISO: state.start,
+      minutes: CLOSER_MEETING_MINUTES,
+      summary,
+      description: details,
+      location: d.meet,
+      url: d.card,
+      organizer: inviteOrganizer(),
+      attendee: { name: "Ивайло", email: state.to },
+      transparent: true,
+    });
+    const head = cancelled ? "❌ Отпадна среща на екипа" : mode === "moved" ? "🔁 Преместена среща на екипа" : "📅 Нова среща на екипа";
+    const row = (k: string, v: string) => `<tr><td style="padding:4px 12px 4px 0;color:#777;vertical-align:top;">${k}</td><td>${v}</td></tr>`;
+    const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#0d1221;">
+<p><strong>${head} · ${escapeHtml(d.name)} · ${escapeHtml(when)}</strong></p>
+<table style="border-collapse:collapse;">
+${row("Кой:", `<strong>${escapeHtml(d.name)}</strong>${d.business ? ` · ${escapeHtml(d.business)}` : ""}`)}
+${row("Кога:", `<strong>${escapeHtml(when)}</strong> (София)`)}
+${state.closer ? row("Води:", escapeHtml(state.closer)) : ""}
+${state.booked_by ? row("Записа:", escapeHtml(state.booked_by)) : ""}
+${row("Телефон:", b.attendee_phone ? escapeHtml(b.attendee_phone) : "—")}
+${d.note ? row("Бележка:", escapeHtml(d.note).replace(/\n/g, "<br/>")) : ""}
+${d.meet && !cancelled ? row("Meet:", `<a href="${escapeHtml(d.meet)}">${escapeHtml(d.meet)}</a>`) : ""}
+</table>
+<p style="margin-top:14px;">📇 <a href="${d.card}">Картонът</a> · 📅 <a href="${SITE}/ekip/kalendar">Календарът на екипа</a></p>
+${cancelled ? "" : `<p style="color:#777;font-size:13px;">Срещата влиза в календара ти като свободно време (не блокира часове). Fathom я записва сам — клоузърът пуска „Fathom Notetaker“ в срещата.</p>`}
+</div>`;
+    return sendEmail({
+      to: state.to,
+      subject: `${head} · ${d.name} · ${when}${leads}`,
+      html,
+      text: [`${head} · ${d.name} · ${when} (София)`, details].join("\n\n"),
+      attachments: attach(ics),
+    });
+  }
+
   const summary = "Среща с ProMarketing · Ивайло Петев";
   const description = [
     meet ? `Линк за срещата (Google Meet): ${meet}` : null,
@@ -457,68 +532,105 @@ async function deliverLead(b: BookingRow, method: IcsMethod, state: LeadInviteSt
     alarmMinutes: 30,
   });
   const hello = name ? `Здравейте, ${escapeHtml(name.split(/\s+/)[0])}!` : "Здравейте!";
-  const body =
-    kind === "cancelled"
-      ? `<p>${hello}</p><p>Срещата ни за <strong>${escapeHtml(when)}</strong> отпада — махнахме я и от календара Ви. Ако искате нов час, отговорете на това писмо.</p>`
-      : `<p>${hello}</p><p>${kind === "moved" ? "Срещата ни е с нов час" : "Срещата ни е записана"}: <strong>${escapeHtml(when)}</strong> (българско време), ${CLOSER_MEETING_MINUTES} минути.</p>${
-          meet ? `<p>Линк за срещата: <a href="${escapeHtml(meet)}">${escapeHtml(meet)}</a></p>` : ""
-        }<p>Поканата е прикачена — добавете я в календара си. Помислете какво искате да обсъдим, за да е срещата максимално полезна за Вас.</p>`;
+  const body = cancelled
+    ? `<p>${hello}</p><p>Срещата ни за <strong>${escapeHtml(when)}</strong> отпада — махнахме я и от календара Ви. Ако искате нов час, отговорете на това писмо.</p>`
+    : `<p>${hello}</p><p>${mode === "moved" ? "Срещата ни е с нов час" : "Срещата ни е записана"}: <strong>${escapeHtml(when)}</strong> (българско време), ${CLOSER_MEETING_MINUTES} минути.</p>${
+        meet ? `<p>Линк за срещата: <a href="${escapeHtml(meet)}">${escapeHtml(meet)}</a></p>` : ""
+      }<p>Поканата е прикачена — добавете я в календара си. Помислете какво искате да обсъдим, за да е срещата максимално полезна за Вас.</p>`;
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#0d1221;">${body}<p>Поздрави,<br/>Ивайло Петев · ProMarketing<br/><span style="color:#777">petevai.com · promarketing.pw</span></p></div>`;
-  const subject = kind === "cancelled" ? `Срещата отпада · ${when}` : kind === "moved" ? `Нов час за срещата · ${when}` : `Срещата ни · ${when}`;
+  const subject = cancelled ? `Срещата отпада · ${when}` : mode === "moved" ? `Нов час за срещата · ${when}` : `Срещата ни · ${when}`;
   return sendEmail({
     to: state.to,
     subject,
     html,
     text: html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
-    attachments: [
-      {
-        filename: method === "CANCEL" ? "otmyana.ics" : "sreshta.ics",
-        content: Buffer.from(ics, "utf8").toString("base64"),
-        contentType: `text/calendar; charset=utf-8; method=${method}`,
-      },
-    ],
+    attachments: attach(ics),
   });
 }
 
-/** Покана към човека (клиента) за среща извън Cal.com. Без истински имейл — нищо. Никога не хвърля. */
-export async function sendLeadInvite(bookingId: string): Promise<{ ok: boolean; error: string | null }> {
+async function sendParty(
+  bookingId: string,
+  kind: PartyKind,
+  extra?: { closerName?: string | null; bookedBy?: string | null }
+): Promise<{ ok: boolean; error: string | null }> {
   try {
     const b = await loadBooking(bookingId);
     if (!b) return { ok: false, error: "booking not found" };
-    const email = realEmail(b.attendee_email);
-    if (!email) return { ok: false, error: "няма имейл" };
-    const prev = readLeadInvite(b.raw_payload);
+    const to = kind === "owner" ? ownerCalendarEmail() : realEmail(b.attendee_email);
+    if (!to) return { ok: false, error: "няма имейл" };
+    const prev = readParty(b.raw_payload, kind);
     const start = new Date(b.scheduled_at).toISOString();
     const moved = !!prev && !prev.cancelled_at && prev.start !== start;
     if (prev && !prev.cancelled_at && !moved) return { ok: true, error: null };
-    const state: LeadInviteState = {
-      uid: prev?.uid ?? `klient-${b.id}@promarketing.pw`,
+    const state: PartyInviteState = {
+      uid: prev?.uid ?? `${kind === "owner" ? "ekip" : "klient"}-${b.id}@promarketing.pw`,
       seq: prev ? prev.seq + 1 : 0,
-      to: email,
+      to,
       start,
       sent_at: new Date().toISOString(),
       cancelled_at: null,
+      ...(kind === "owner" ? { closer: extra?.closerName ?? prev?.closer ?? null, booked_by: extra?.bookedBy ?? prev?.booked_by ?? null } : {}),
     };
-    const r = await deliverLead(b, "REQUEST", state, moved ? "moved" : "new");
+    const r = await deliverParty(b, kind, "REQUEST", state, moved ? "moved" : "new");
     if (r.error) return { ok: false, error: r.error };
-    await saveLeadInvite(b.id, state);
+    await saveParty(b.id, kind, state);
     return { ok: true, error: null };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "unknown" };
   }
 }
 
-/** Отменената/преместената среща → поканата на човека се маха от календара му. */
-export async function cancelLeadInvite(bookingId: string): Promise<void> {
+async function cancelParty(bookingId: string, kind: PartyKind): Promise<void> {
   try {
     const b = await loadBooking(bookingId);
     if (!b) return;
-    const prev = readLeadInvite(b.raw_payload);
+    const prev = readParty(b.raw_payload, kind);
     if (!prev || prev.cancelled_at) return;
     const state = { ...prev, seq: prev.seq + 1, cancelled_at: new Date().toISOString() };
-    const r = await deliverLead(b, "CANCEL", state, "cancelled");
-    if (!r.error) await saveLeadInvite(b.id, state);
+    const r = await deliverParty(b, kind, "CANCEL", state, "cancelled");
+    if (!r.error) await saveParty(b.id, kind, state);
   } catch (e) {
-    console.error("[closer-calendar] lead cancel:", e instanceof Error ? e.message : e);
+    console.error(`[closer-calendar] ${kind} cancel:`, e instanceof Error ? e.message : e);
+  }
+}
+
+/** Покана към човека (клиента) за среща извън Cal.com. Без истински имейл — нищо. Никога не хвърля. */
+export async function sendLeadInvite(bookingId: string): Promise<{ ok: boolean; error: string | null }> {
+  return sendParty(bookingId, "lead");
+}
+
+/** Отменената/преместената среща → поканата на човека се маха от календара му. */
+export async function cancelLeadInvite(bookingId: string): Promise<void> {
+  return cancelParty(bookingId, "lead");
+}
+
+/**
+ * Срещата на екипа → и в календара на собственика (свободно време, само той е
+ * поканен — Fathom не праща записа на клиента). Никога не хвърля.
+ */
+export async function sendOwnerInvite(
+  bookingId: string,
+  extra?: { closerName?: string | null; bookedBy?: string | null }
+): Promise<{ ok: boolean; error: string | null }> {
+  return sendParty(bookingId, "owner", extra);
+}
+
+/**
+ * След промяна в среща: поканите на клиента и на собственика я следват — и когато
+ * клоузърът няма наша покана (срещата е минала през Cal.com). Само за срещи, които
+ * вече имат такава покана. Вика се от syncCloserInvite.
+ */
+async function syncParties(b: BookingRow, now: Date): Promise<void> {
+  for (const kind of ["lead", "owner"] as const) {
+    const prev = readParty(b.raw_payload, kind);
+    if (!prev) continue;
+    const step = nextInviteStep({
+      state: { uid: prev.uid, seq: prev.seq, to: prev.to, start: prev.start, sent_at: prev.sent_at, cancelled_at: prev.cancelled_at, why: null },
+      status: b.status,
+      scheduledIso: b.scheduled_at,
+      now,
+    });
+    if (step.kind === "cancel") await cancelParty(b.id, kind);
+    else if (step.kind === "move") await sendParty(b.id, kind);
   }
 }

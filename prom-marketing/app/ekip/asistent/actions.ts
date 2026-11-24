@@ -4,6 +4,7 @@ import { createNote } from "@/lib/team/system-notes";
 import { postMessage } from "@/lib/team/messages";
 import { directKey } from "@/lib/team/messages-rules";
 import { participantKey } from "@/lib/team/roles";
+import { notifyMessage } from "@/lib/team/notify";
 import type { EkipActionResult } from "@/lib/team/types";
 
 /**
@@ -26,7 +27,17 @@ export async function korekciaAction(_prev: EkipActionResult | null, formData: F
   const note = await createNote({ authorKey: me, authorName: actor.name, area, text, page });
   if (note.error) return { ok: false, error: `Не се записа: ${note.error}` };
   if (me !== "owner") {
-    await postMessage({ key: directKey("owner", me), authorKey: me, authorName: actor.name, body: `🛠 Корекция / въпрос\n${text}${page ? `\nЕкран: ${page}` : ""}` }).catch(() => null);
+    const key = directKey("owner", me);
+    const body = `🛠 Корекция / въпрос\n${text}${page ? `\nЕкран: ${page}` : ""}`;
+    await postMessage({ key, authorKey: me, authorName: actor.name, body }).catch(() => null);
+    // Telegram известията на сайта може да мълчат — имейлът стига сигурно.
+    await notifyMessage({
+      recipientKeys: ["owner"],
+      authorName: actor.name,
+      body,
+      threadTitle: "🛠 корекция / въпрос за системата",
+      href: `/ekip/saobshtenia?t=${encodeURIComponent(key)}`,
+    }).catch(() => {});
   }
   return { ok: true, message: "Прието ✅ Ивайло и екипът го оправят до няколко часа — отговорът идва в „Съобщения“ и на имейла ти." };
 }
