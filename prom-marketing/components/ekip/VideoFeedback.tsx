@@ -5,13 +5,15 @@ import { videoFeedbackAction } from "@/app/ekip/materiali/actions";
 import type { EkipActionResult } from "@/lib/team/types";
 
 /** Формата „Предложи корекция или ново видео“ — отива при Ивайло в „Съобщения“. */
-export function VideoFeedback({ videos }: { videos: string[] }) {
+export function VideoFeedback({ videos, topic = "video" }: { videos: string[]; topic?: "video" | "uebinar" }) {
   const [state, action] = useActionState<EkipActionResult | null, FormData>(videoFeedbackAction, null);
   if (state?.ok) {
     return <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">✅ {state.message}</p>;
   }
   return (
     <form action={action} className="space-y-2">
+      <input type="hidden" name="topic" value={topic} />
+      {topic === "video" && (
       <div className="flex flex-wrap gap-3 text-sm">
         <label className="flex items-center gap-1.5">
           <input type="radio" name="kind" value="korekcia" defaultChecked /> Корекция на видео
@@ -20,8 +22,9 @@ export function VideoFeedback({ videos }: { videos: string[] }) {
           <input type="radio" name="kind" value="novo" /> Ново видео, което да направим
         </label>
       </div>
+      )}
       <select name="which" defaultValue="" className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-sm">
-        <option value="">Кое видео (ако е корекция)</option>
+        <option value="">{topic === "uebinar" ? "За кое (по желание)" : "Кое видео (ако е корекция)"}</option>
         {videos.map((v) => (
           <option key={v} value={v}>
             {v}
@@ -32,7 +35,11 @@ export function VideoFeedback({ videos }: { videos: string[] }) {
         name="text"
         rows={4}
         required
-        placeholder="Какво да се промени — или какво видео да направим, за кого и какво да каже. Пример: „видео 3 мин за собственици на автосервиз: как Ели вдига телефона, докато са под колата“."
+        placeholder={
+          topic === "uebinar"
+            ? "Какво бихте направили по-добре — реклами, лендинг, оферта, скрипт, напомняния, самият уебинар."
+            : "Какво да се промени — или какво видео да направим, за кого и какво да каже. Пример: „видео 3 мин за собственици на автосервиз: как Ели вдига телефона, докато са под колата“."
+        }
         className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-sm"
       />
       {state?.error && <p className="text-xs text-red-300">{state.error}</p>}
