@@ -4,11 +4,12 @@
  */
 import type { OfferKey } from "@/lib/leads/lead-offers";
 
-export const TEAM_ROLES = ["owner", "setter", "sales", "delivery", "marketing"] as const;
+export const TEAM_ROLES = ["owner", "manager", "setter", "sales", "delivery", "marketing"] as const;
 export type TeamRole = (typeof TEAM_ROLES)[number];
 
 export const TEAM_ROLE_LABEL: Record<TeamRole, string> = {
   owner: "Собственик",
+  manager: "Мениджър продажби · вижда целия екип по продажбите",
   setter: "Срещи · звъни на лийдовете",
   sales: "Продавач · води разговорите и затваря",
   delivery: "Проекти · изпълнение и CRM системи",
@@ -18,6 +19,7 @@ export const TEAM_ROLE_LABEL: Record<TeamRole, string> = {
 /** Кратък етикет за шапката и списъците. */
 export const TEAM_ROLE_SHORT: Record<TeamRole, string> = {
   owner: "собственик",
+  manager: "мениджър",
   setter: "сетър",
   sales: "продавач",
   delivery: "изпълнение",
@@ -30,6 +32,7 @@ export const TEAM_ROLE_SHORT: Record<TeamRole, string> = {
  * на профили“ без нова роля.
  */
 export const TEAM_MODULES = [
+  "ekipat",
   "zvanene",
   "prodazhbi",
   "proekti",
@@ -45,7 +48,16 @@ export const TEAM_MODULES = [
 ] as const;
 export type TeamModule = (typeof TEAM_MODULES)[number];
 
+/** Партньорите, чиито хора работят в CRM-а. „promarketing“ = нашите. */
+export const TEAM_ORGS = ["promarketing", "revstream"] as const;
+export type TeamOrg = (typeof TEAM_ORGS)[number];
+export const TEAM_ORG_LABEL: Record<string, string> = { promarketing: "ProMarketing", revstream: "RevStream" };
+export function orgOf(m: { org?: string | null } | null | undefined): string {
+  return (m?.org ?? "").trim() || "promarketing";
+}
+
 export const TEAM_MODULE_LABEL: Record<TeamModule, string> = {
+  ekipat: "Екипът · хора, срещи и числа (мениджър)",
   zvanene: "Звънене · опашка",
   prodazhbi: "Продажби · моите хора",
   proekti: "Проекти · изпълнение",
@@ -61,6 +73,7 @@ export const TEAM_MODULE_LABEL: Record<TeamModule, string> = {
 };
 
 export const TEAM_MODULE_HREF: Record<TeamModule, string> = {
+  ekipat: "/ekip/ekipat",
   zvanene: "/ekip",
   prodazhbi: "/ekip/prodazhbi",
   proekti: "/ekip/proekti",
@@ -90,6 +103,12 @@ export interface TeamMember {
   /** длъжност, както се показва на екрана („appointment setter“, „маркетинг“) */
   title?: string | null;
   permissions?: TeamPermissions | null;
+  /** чий човек е: „promarketing“ (наш) или партньорът, който го е довел („revstream“) — от него зависи кой мениджър вижда парите му */
+  org?: string | null;
+  /** получава ли НОВИТЕ лийдове от рекламата и неразпределените стари (сетърът — да; клоузър, който само води срещи — не) */
+  intake?: boolean | null;
+  /** постоянният му Meet линк — той е домакин на срещите си */
+  meet_url?: string | null;
   active: boolean;
   notify_new_leads: boolean;
   notes: string | null;

@@ -2,9 +2,12 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/require-admin";
 import { isChecked } from "@/lib/form-data";
-import { createMember, resetMemberPassword, updateMember } from "@/lib/team/repository";
+import { cleanMeetUrl, createMember, resetMemberPassword, updateMember } from "@/lib/team/repository";
+import { createInvite, revokeInvite } from "@/lib/team/invites";
+import { partnerModules } from "@/lib/team/invite-defaults";
+import { headers } from "next/headers";
 import { modulesFromForm, permissionsFromForm } from "@/lib/team/roles";
-import { TEAM_ROLES, type TeamRole } from "@/lib/team/types";
+import { TEAM_ORGS, TEAM_ROLES, type TeamRole } from "@/lib/team/types";
 
 export interface TeamAdminResult {
   ok: boolean;
@@ -13,6 +16,11 @@ export interface TeamAdminResult {
   password?: string;
   email?: string;
   name?: string;
+}
+
+function orgOfForm(fd: FormData): string {
+  const raw = String(fd.get("org") ?? "").trim();
+  return (TEAM_ORGS as readonly string[]).includes(raw) ? raw : "promarketing";
 }
 
 function roleOf(raw: string): TeamRole {
@@ -72,9 +80,60 @@ export async function updateProfileAction(_prev: TeamAdminResult | null, formDat
     full_name: String(formData.get("full_name") ?? "").trim() || undefined,
     notes: String(formData.get("notes") ?? "").trim() || null,
     permissions: permissionsFromForm(modulesFromForm(formData), role),
+    org: orgOfForm(formData),
+    intake: isChecked(formData, "intake"),
+    meet_url: cleanMeetUrl(String(formData.get("meet_url") ?? "")),
   });
   if (res.error) return { ok: false, error: res.error };
   revalidatePath("/admin/ekip");
   revalidatePath("/ekip");
   return { ok: true, name: String(formData.get("full_name") ?? "") };
+}
+
+export interface InviteAdminResult {
+  ok: boolean;
+  error?: string;
+  /** личният линк — показва се веднага, за да се прати на човека */
+  link?: string;
+  name?: string;
+}
+
+async function siteOrigin(): Promise<string> {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "promarketing.pw";
+  return `https://${host.replace(/^www\./, "")}`;
+}
+
+/**
+ * Покана с личен линк: човекът сам въвежда името, имейла и паролата си.
+ * За човек на партньор (не наш) вътрешните модули — цени, оферти, материали,
+ * съобщения — са изключени по подразбиране; включват се после от профила му.
+ */
+export async function createInviteAction(_prev: InviteAdminResult | null, formData: FormData): Promise<InviteAdminResult> {
+  await requireAdmin();
+  const role = roleOf(String(formData.get("role") ?? "setter"));
+  const org = orgOfForm(formData);
+  const name = String(formData.get("full_name") ?? "").trim();
+  const res = await createInvite({
+    role,
+    org,
+    full_name: name,
+    title: String(formData.get("title") ?? ""),
+    note: String(formData.get("note") ?? ""),
+    modules: partnerModules(role, org),
+    // Клоузърът води срещи; новите лийдове са за сетъра.
+    intake: role === "setter",
+    createdBy: "Ивайло",
+  });
+  if ("error" in res) return { ok: false, error: res.error };
+  revalidatePath("/admin/ekip");
+  return { ok: true, link: `${await siteOrigin()}/ekip/pokana/${res.invite.token}`, name: name || undefined };
+}
+
+export async function revokeInviteAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) throw new Error("Invalid input");
+  await revokeInvite(id);
+  revalidatePath("/admin/ekip");
 }

@@ -14,6 +14,8 @@ import type { QueueLead } from "@/lib/team/types";
 import { loadMeetingMessages } from "@/lib/team/sreshti";
 import { parseZvaneneView, urgentBanner, zvaneneHref, zvaneneTabs } from "@/lib/team/zvanene-vidove";
 import { LeadCard } from "@/components/ekip/LeadCard";
+import { ClosersProvider } from "@/components/ekip/ClosersContext";
+import { listClosers } from "@/lib/team/closer";
 import { ProspectCard } from "@/components/ekip/ProspectCard";
 import { EkipHeader } from "@/components/ekip/EkipHeader";
 import { ZvaneneTabs } from "@/components/ekip/ZvaneneTabs";
@@ -61,13 +63,20 @@ export default async function EkipPage({
   const preview = asId ? await getMemberById(asId).catch(() => null) : null;
   const viewerId = actor.kind === "member" ? actor.member.id : (preview?.id ?? null);
   const callerName = actor.kind === "member" ? actor.name : (preview?.full_name ?? actor.name);
-  const [queue, found, nav, msgs, cold] = await Promise.all([
+  const [queue, found, nav, msgs, cold, allClosers] = await Promise.all([
     loadSetterQueue(new Date(), viewerId),
     q ? searchLeads(q) : Promise.resolve([] as QueueLead[]),
     ekipNav(actor),
     loadMeetingMessages().catch(() => []),
     loadProspectQueue(viewerId).catch(() => ({ due: [], fresh: [], later: 0, freshTotal: 0 })),
+    listClosers().catch(() => []),
   ]);
+  // Изборът „кой води срещата“ излиза само при двама и повече клоузъри и когато записва
+  // не самият клоузър (неговите срещи са си негови).
+  const closerOptions =
+    allClosers.length > 1 && !allClosers.some((c) => c.id === actor.member?.id)
+      ? allClosers.map((c) => ({ id: c.id, name: c.full_name }))
+      : [];
   // „Стари и топли“ се чете само когато изгледът е отворен — другите остават бързи.
   const inQueue = new Set(
     [...queue.fresh, ...queue.given, ...queue.cancelled, ...queue.noshow, ...queue.retry, ...queue.waiting].map((l) => l.id)
@@ -91,6 +100,7 @@ export default async function EkipPage({
   const urgent = urgentBanner(view, counts);
 
   return (
+    <ClosersProvider closers={closerOptions}>
     <div className="mx-auto max-w-2xl pb-24">
       <EkipHeader name={actor.name} isOwner={actor.kind === "owner"} nav={nav.items} section="zvanene" unread={nav.unread} />
 
@@ -351,6 +361,7 @@ export default async function EkipPage({
         )}
       </main>
     </div>
+    </ClosersProvider>
   );
 }
 

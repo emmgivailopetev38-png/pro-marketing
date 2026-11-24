@@ -4,7 +4,7 @@ import { generatePassword, hashPassword } from "./password";
 import { TEAM_ROLES, type TeamMember, type TeamPermissions, type TeamRole } from "./types";
 
 const COLS =
-  "id, slug, full_name, email, phone, role, title, permissions, active, notify_new_leads, notes, last_login_at, created_at";
+  "id, slug, full_name, email, phone, role, title, permissions, org, intake, meet_url, active, notify_new_leads, notes, last_login_at, created_at";
 
 const CYR: Record<string, string> = {
   а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ж: "zh", з: "z", и: "i", й: "y", к: "k", л: "l", м: "m",
@@ -20,6 +20,12 @@ export function slugify(name: string): string {
     .map((ch) => CYR[ch] ?? ch)
     .join("");
   return latin.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "chlen";
+}
+
+/** Само https линк; празно или нещо друго → null. */
+export function cleanMeetUrl(v: string | null | undefined): string | null {
+  const s = (v ?? "").trim();
+  return /^https:\/\/\S+$/.test(s) ? s : null;
 }
 
 function normEmail(email: string): string {
@@ -104,6 +110,11 @@ export async function createMember(input: {
   notes?: string | null;
   notify_new_leads?: boolean;
   permissions?: TeamPermissions;
+  org?: string | null;
+  intake?: boolean;
+  meet_url?: string | null;
+  /** паролата, която човекът сам си е избрал (покана) — иначе се генерира */
+  password?: string;
 }): Promise<{ member: TeamMember; password: string } | { error: string }> {
   const full_name = input.full_name.trim();
   const email = normEmail(input.email);
@@ -119,7 +130,7 @@ export async function createMember(input: {
   let slug = base;
   for (let i = 2; used.has(slug); i++) slug = `${base}-${i}`;
 
-  const password = generatePassword(12);
+  const password = input.password && input.password.length >= 8 ? input.password : generatePassword(12);
   const { data, error } = await sb
     .from("team_members")
     .insert({
@@ -133,6 +144,9 @@ export async function createMember(input: {
       password_hash: hashPassword(password),
       notes: input.notes?.trim() || null,
       notify_new_leads: input.notify_new_leads ?? true,
+      org: (input.org ?? "").trim() || "promarketing",
+      intake: input.intake ?? true,
+      meet_url: cleanMeetUrl(input.meet_url),
     })
     .select(COLS)
     .single();
@@ -156,7 +170,7 @@ export async function resetMemberPassword(id: string): Promise<{ password: strin
 
 export async function updateMember(
   id: string,
-  patch: Partial<Pick<TeamMember, "active" | "notify_new_leads" | "phone" | "notes" | "role" | "full_name" | "title" | "permissions">>
+  patch: Partial<Pick<TeamMember, "active" | "notify_new_leads" | "phone" | "notes" | "role" | "full_name" | "title" | "permissions" | "org" | "intake" | "meet_url">>
 ): Promise<{ error: string | null }> {
   const sb = createServiceClient();
   const { error } = await sb

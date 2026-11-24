@@ -101,3 +101,27 @@ describe("ротацията: кой получава писмото", () => {
     expect(recipientsFor(notify, pool, undefined)).toHaveLength(3);
   });
 });
+
+import { intakePool } from "./routing-rules";
+
+describe("сетърът поема новите · клоузърът пази своите", () => {
+  const georgi = { id: "g", intake: false };
+  const setter = { id: "s", intake: true };
+
+  it("новите са само за хората с intake", () => {
+    expect(intakePool([georgi, setter]).map((m) => m.id)).toEqual(["s"]);
+  });
+
+  it("няма ли никой с intake — целият кръг, както преди", () => {
+    expect(intakePool([georgi]).map((m) => m.id)).toEqual(["g"]);
+  });
+
+  it("ничий лийд е на сетъра, а лийдът на клоузъра си остава при него", () => {
+    expect(leadOwner(null, [georgi, setter])).toBe("s");
+    expect(leadOwner("g", [georgi, setter])).toBe("g");
+    expect(leadOwner("спрян", [georgi, setter])).toBe("s");
+    expect(seesLead("g", null, [georgi, setter])).toBe(false);
+    expect(seesLead("s", null, [georgi, setter])).toBe(true);
+    expect(seesLead("g", "g", [georgi, setter])).toBe(true);
+  });
+});

@@ -154,16 +154,22 @@ export async function salesAction(_prev: EkipActionResult | null, formData: Form
       const creditTo = actor.member?.id ?? s(formData, "credit_member_id") ?? "";
       let commissionNote = "";
       if (creditTo) {
-        const { data: m } = await sb.from("team_members").select("id, role").eq("id", creditTo).maybeSingle();
+        const { data: m } = await sb.from("team_members").select("id, role, org").eq("id", creditTo).maybeSingle();
         if (m) {
-          const c = await commissionForDeal({
-            memberId: m.id as string,
-            memberRole: m.role as string,
-            contactId,
-            serviceType,
-            dealAmount: amount,
-            createdBy: actor.name,
-          });
+          // Човек на партньор (RevStream): парите му са по договора с партньора и се смятат в
+          // таблото на мениджъра (lib/team/manager-rules.ts) — нашите вътрешни правила не важат за него.
+          const partner = String((m as { org?: string | null }).org ?? "promarketing") !== "promarketing";
+          const c = partner
+            ? { amount: null, created: false }
+            : await commissionForDeal({
+                memberId: m.id as string,
+                memberRole: m.role as string,
+                contactId,
+                serviceType,
+                dealAmount: amount,
+                createdBy: actor.name,
+              });
+          if (partner) commissionNote = " Сделката влезе в сметката по договора (таблото на мениджъра).";
           if (c.amount != null) commissionNote = ` Комисионна: ${c.amount} €${c.created ? "" : " (вече беше начислена)"}.`;
           await notifyWon({
             actorName: actor.name,

@@ -1,7 +1,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 import { listActiveMembers } from "./repository";
-import { leadOwner, nextInRotation, rotationPool } from "./routing-rules";
+import { intakePool, leadOwner, nextInRotation, rotationPool } from "./routing-rules";
 import type { TeamMember } from "./types";
 import { ASSIGN_TYPE } from "./queue-rules";
 import { takenMark } from "./ivailo-rules";
@@ -39,7 +39,8 @@ export async function routeNewLead(
       .order("routed_at", { ascending: false, nullsFirst: false })
       .limit(1)
       .maybeSingle();
-    const next = nextInRotation(pool, (last as { routed_to: string | null } | null)?.routed_to ?? null);
+    // Новите са за хората, които поемат нови (сетъра) — клоузър без „нови“ пази само своите.
+    const next = nextInRotation(intakePool(pool), (last as { routed_to: string | null } | null)?.routed_to ?? null);
     if (!next) return null;
     const { error: upErr } = await sb
       .from("contacts")

@@ -48,7 +48,7 @@ describe("профилът в /admin/ekip след „Запази“ (26.09.202
     render(<TeamManager members={[elena]} />);
     fireEvent.click(screen.getByRole("button", { name: /Профил/ }));
     const form = formOf("Запази профила");
-    const role = within(form).getByRole("combobox") as HTMLSelectElement;
+    const role = within(form).getByRole("combobox", { name: /^Роля/ }) as HTMLSelectElement;
     expect(role.value).toBe("sales");
 
     fireEvent.click(within(form).getByRole("button", { name: "Запази профила" }));
@@ -75,7 +75,7 @@ describe("профилът в /admin/ekip след „Запази“ (26.09.202
   it("новият човек: след „Създай“ формата се връща на „Срещи“ заедно с отметките на сетъра", async () => {
     render(<TeamManager members={[]} />);
     const form = formOf("Създай и покажи паролата");
-    const role = within(form).getByRole("combobox") as HTMLSelectElement;
+    const role = within(form).getByRole("combobox", { name: /^Роля/ }) as HTMLSelectElement;
     fireEvent.change(within(form).getByPlaceholderText("Име Фамилия"), { target: { value: "Тест" } });
     fireEvent.change(within(form).getByPlaceholderText("ime@gmail.com"), { target: { value: "test@abv.bg" } });
     fireEvent.change(role, { target: { value: "sales" } });

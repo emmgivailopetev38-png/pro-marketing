@@ -3,7 +3,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email/resend";
 import { buildInviteIcs, googleCalendarTemplateUrl, type IcsMethod, type IcsPerson } from "@/lib/cal/ics";
 import { escapeHtml } from "@/lib/email/escape";
-import { activeCloser } from "./closer";
+import { activeCloser, listClosers, meetUrlFor } from "./closer";
 import { fmtSofia } from "./time";
 import {
   CLOSER_MEETING_MINUTES,
@@ -74,13 +74,24 @@ function noteOf(b: BookingRow): string {
   return String((b.raw_payload ?? {}).notes ?? "").trim();
 }
 
-function describe(b: BookingRow, startIso: string, why: string | null) {
+/**
+ * Meet линкът на получателя на поканата: клоузърът по имейла му (всеки е домакин
+ * на своите срещи). Непознат адрес (проба, старата покана) → линкът по подразбиране.
+ */
+async function meetForRecipient(email: string | null | undefined): Promise<string | null> {
+  const closers = await listClosers().catch(() => []);
+  const e = (email ?? "").trim().toLowerCase();
+  const closer = e ? closers.find((m) => (m.email ?? "").toLowerCase() === e) ?? null : null;
+  return meetUrlFor(closer, closers[0]?.id ?? null);
+}
+
+function describe(b: BookingRow, startIso: string, why: string | null, meetFallback: string | null) {
   const name = (b.attendee_name ?? "").trim() || b.attendee_phone || "Без име";
   const business = (b.business ?? "").trim();
   const email = realEmail(b.attendee_email);
   const key = phoneKey(b.attendee_phone);
   const card = key ? `${SITE}/ekip?q=${key}` : `${SITE}/ekip/prodazhbi`;
-  const meet = (b.meeting_url ?? "").trim() || closerMeetUrl();
+  const meet = (b.meeting_url ?? "").trim() || meetFallback;
   const note = noteOf(b);
   const when = fmtSofia(startIso);
   const title = `👤 Среща · ${name}${business ? ` (${business})` : ""}`;
@@ -120,7 +131,7 @@ async function deliver(args: {
   kind: "new" | "moved" | "cancelled";
   test: boolean;
 }): Promise<{ id: string | null; error: string | null }> {
-  const d = describe(args.b, args.startIso, args.kind === "cancelled" ? null : args.why);
+  const d = describe(args.b, args.startIso, args.kind === "cancelled" ? null : args.why, await meetForRecipient(args.to.email));
   const ics = buildInviteIcs({
     uid: args.uid,
     sequence: args.seq,

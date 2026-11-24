@@ -15,7 +15,8 @@ export async function updateSession(request: NextRequest) {
   const token = request.cookies.get(ADMIN_COOKIE)?.value ?? null;
 
   if (path.startsWith("/ekip")) {
-    if (path === "/ekip/login") return NextResponse.next({ request });
+    // Входът и поканата (личен линк, с който човекът сам си прави входа) са отворени.
+    if (path === "/ekip/login" || path.startsWith("/ekip/pokana/")) return NextResponse.next({ request });
     if (!readSession(token)) {
       url.pathname = "/ekip/login";
       url.search = "";

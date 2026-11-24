@@ -4,6 +4,7 @@ import { allRows } from "@/lib/supabase/all-rows";
 import { ZV_ACTIVITY_TYPES, classify, type ZvAct, type ZvContact, type ZvRow } from "@/lib/zvanene/rules";
 import { loadIvailoClaims } from "./ivailo";
 import { loadLeadCards } from "./queue";
+import { loadRotationPool } from "./routing";
 import { STARI_NA_EKRAN, teamStari, type StariContact, type StariPile } from "./stari-rules";
 import type { QueueLead } from "./types";
 
@@ -14,7 +15,7 @@ import type { QueueLead } from "./types";
  * екипът едни и същи купчини.
  */
 
-type Row = ZvContact & { email: string | null; source: string | null; owner_id: string | null };
+type Row = ZvContact & { email: string | null; source: string | null; owner_id: string | null; routed_to: string | null };
 
 export interface StariPileData {
   total: number;
@@ -45,7 +46,7 @@ export async function loadTeamStari(now: Date, viewerId: string | null, inQueue:
       allRows<Row>((from, to) =>
         sb
           .from("contacts")
-          .select("id, full_name, company, phone, email, source, owner_id, stage, followup_status, next_followup_at, created_at")
+          .select("id, full_name, company, phone, email, source, owner_id, routed_to, stage, followup_status, next_followup_at, created_at")
           .not("stage", "in", "(won,lost)")
           .not("phone", "is", null)
           .or("followup_status.is.null,followup_status.neq.not_interested")
@@ -92,12 +93,13 @@ export async function loadTeamStari(now: Date, viewerId: string | null, inQueue:
     const piles = teamStari({
       rows,
       contacts: new Map<string, StariContact>(
-        contacts.rows.map((c) => [c.id, { id: c.id, owner_id: c.owner_id, next_followup_at: c.next_followup_at }])
+        contacts.rows.map((c) => [c.id, { id: c.id, owner_id: c.owner_id, next_followup_at: c.next_followup_at, routed_to: c.routed_to }])
       ),
       inQueue,
       ivailos: new Set(claims.keys()),
       teamIds: new Set(((members.data ?? []) as Array<{ id: string }>).map((m) => String(m.id))),
       viewerId,
+      pool: viewerId ? await loadRotationPool().catch(() => []) : undefined,
       now,
     });
 

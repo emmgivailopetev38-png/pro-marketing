@@ -9,7 +9,7 @@ import {
   type TeamAdminResult,
 } from "@/app/admin/(protected)/ekip/actions";
 import { canSee, defaultModules } from "@/lib/team/roles";
-import { TEAM_MODULES, TEAM_MODULE_LABEL, TEAM_ROLE_LABEL, TEAM_ROLES, type TeamMember, type TeamModule, type TeamRole } from "@/lib/team/types";
+import { TEAM_MODULES, TEAM_MODULE_LABEL, TEAM_ORGS, TEAM_ORG_LABEL, TEAM_ROLE_LABEL, TEAM_ROLES, type TeamMember, type TeamModule, type TeamRole } from "@/lib/team/types";
 
 function PasswordBox({ r }: { r: TeamAdminResult | null }) {
   if (!r) return null;
@@ -79,7 +79,8 @@ function ModuleToggles({ role, permissions }: { role: TeamRole; permissions: Tea
       </label>
       <p className="mt-2 text-[11px] uppercase tracking-wider text-[var(--color-text-tertiary)]">Какво вижда в /ekip</p>
       <div className="mt-1 grid grid-cols-2 gap-1">
-        {TEAM_MODULES.map((m: TeamModule) => {
+        {/* „Екипът“ е ниво (мениджър), не отметка — затова не е в списъка. */}
+        {TEAM_MODULES.filter((m) => m !== "ekipat").map((m: TeamModule) => {
           const initial = canSee({ role: r, permissions: r === role ? permissions : null }, m);
           return (
             <label key={`${r}-${m}`} className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)]">
@@ -169,6 +170,25 @@ function MemberRow({ m, onReset }: { m: TeamMember; onReset: (fd: FormData) => v
           <label className="block text-xs text-[var(--color-text-tertiary)]">
             Телефон
             <input name="phone" defaultValue={m.phone ?? ""} className={field} />
+          </label>
+          <label className="block text-xs text-[var(--color-text-tertiary)]">
+            Чий човек е (мениджърът вижда парите само на своите)
+            <select name="org" defaultValue={m.org ?? "promarketing"} className={field}>
+              {TEAM_ORGS.map((o) => (
+                <option key={o} value={o}>
+                  {TEAM_ORG_LABEL[o]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-xs text-[var(--color-text-tertiary)] sm:col-span-2">
+            Постоянен Meet линк (за клоузър — той е домакин на срещите си)
+            <input name="meet_url" defaultValue={m.meet_url ?? ""} placeholder="https://meet.google.com/…" className={field} />
+          </label>
+          <label className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)] sm:col-span-2">
+            <input type="hidden" name="intake" value="0" />
+            <input type="checkbox" name="intake" value="1" defaultChecked={m.intake !== false} className="accent-cyan-400" />
+            Поема НОВИТЕ лийдове от рекламата и неразпределените стари (за сетъра; клоузър само със срещи — без отметка)
           </label>
           <label className="block text-xs text-[var(--color-text-tertiary)] sm:col-span-2">
             Уговорката (комисиона, срок, кога започва)

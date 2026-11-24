@@ -9,8 +9,8 @@ import { canGiveUp, isNoAnswer, type AttemptRow } from "@/lib/team/queue-rules";
 import { upsertBooking } from "@/lib/crm/repository";
 import { MEETING_MINUTES } from "@/lib/cal/types";
 import { createCalBooking, isCalWriteConfigured } from "@/lib/cal/create-booking";
-import { activeCloser } from "@/lib/team/closer";
-import { closerMeetUrl, sendCloserInvite } from "@/lib/team/closer-calendar";
+import { assignContactToCloser, closerForBookingBy, closerForMeeting, meetUrlFor } from "@/lib/team/closer";
+import { sendCloserInvite } from "@/lib/team/closer-calendar";
 import { calRefusalReason } from "@/lib/team/closer-calendar-rules";
 import {
   FREE_STATUSES,
@@ -219,10 +219,33 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         let calUid: string | null = null;
         // Клоузърът получава срещата в календара си — и когато сам я записва:
         // без нея я няма в календара му и в Meet той чака да го пуснат (04.11, Благой).
-        const closer = await activeCloser().catch(() => null);
+        // При двама клоузъри: картон с клоузър остава при него; иначе — който записва (ако е клоузър),
+        // изборът на сетъра или честното редуване (lib/team/closer-rules.ts).
+        const { closer, closers } = await closerForBookingBy({
+          contactId,
+          actorMemberId: actor.member?.id ?? null,
+          wantedId: str(formData, "closer_id") || null,
+        }).catch(() => ({ closer: null, closers: [] }));
+        // Картонът става негов ПРЕДИ срещата да се запише — иначе записът я дава на клоузъра по подразбиране.
+        // Само когато срещата изобщо е за клоузър (първа среща, не човек на Ивайло).
+        if (closer && closers.length > 1 && (await closerForMeeting(contactId).catch(() => null))) {
+          await assignContactToCloser({
+            contactId,
+            closer,
+            reason: `Среща на ${fmtSofia(meetingIso)} (записа я ${actor.name})`,
+            byMemberId: actor.member?.id ?? null,
+            createdBy: actor.name,
+          }).catch(() => false);
+        }
         /** Защо часът не е минал през Cal.com — пише се в поканата към клоузъра. */
         let calWhy: string | null = null;
-        if (wantInvite && email && isCalWriteConfigured()) {
+        // Събитието в Cal.com е с Meet линка на клоузъра по подразбиране. Среща при другия клоузър не
+        // минава през него — иначе човекът получава чужд линк; поканата тръгва направо от нас.
+        const viaCal = !closer || closers.length <= 1 || closer.id === closers[0]?.id;
+        if (wantInvite && email && isCalWriteConfigured() && !viaCal) {
+          calWhy = `срещата е при ${closer?.full_name ?? "втория клоузър"} — линкът е неговият`;
+          inviteNote = ` Срещата е при ${closer?.full_name ?? "клоузъра"}: прати на човека неговия Meet линк с готовото съобщение от „Съобщения за срещите“.`;
+        } else if (wantInvite && email && isCalWriteConfigured()) {
           const guests = closer && closer.email ? [closer.email] : [];
           const cal = await createCalBooking({
             name,
@@ -250,7 +273,7 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
             : " Без имейл няма покана и Meet линк — Ивайло ще звънне по телефона в уговорения час. Готовото съобщение за Viber е в „Съобщения за срещите“.";
         }
         // Среща без Cal.com няма свой линк — важи постоянният Meet линк на клоузъра (той е домакин).
-        if (!meetingUrl && closer) meetingUrl = closerMeetUrl();
+        if (!meetingUrl && closer) meetingUrl = meetUrlFor(closer, closers[0]?.id ?? null);
 
         const booking = await upsertBooking({
           cal_booking_id: calUid ?? undefined,
@@ -273,7 +296,7 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         // клоузърът я получава направо от нас, за всеки час (lib/team/closer-calendar.ts).
         let calendarLine = calUid ? "📅 Календар: през Cal.com (покана и до човека)" : "📅 Календар: срещата НЕ е в календар";
         if (!calUid && closer?.email && booking.id) {
-          const inv = await sendCloserInvite({ bookingId: booking.id, why: calWhy });
+          const inv = await sendCloserInvite({ bookingId: booking.id, why: calWhy, recipient: { name: closer.full_name, email: closer.email } });
           const mine = actor.member?.id === closer.id;
           if (inv.ok) {
             inviteNote += mine
