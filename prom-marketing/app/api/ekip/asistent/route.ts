@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getTeamActor } from "@/lib/team/session";
 import { asistentPrompt, type ChatTurn } from "@/lib/team/asistent";
-import { quickQuestion } from "@/lib/team/asistent-rules";
+import { hedged, quickQuestion } from "@/lib/team/asistent-rules";
 import { BARZ_MODEL, cyal, DALBOK_MODEL, GeminiGreshka } from "@/lib/suvetnik/gemini";
 
 export const dynamic = "force-dynamic";
@@ -22,32 +22,30 @@ export async function POST(request: Request) {
   try {
     const { system, user } = await asistentPrompt(actor, turns);
     // Бързият модел е първи: човекът чака отговор по време на разговор. Кратък въпрос върви с
-    // минимално мислене (секунди, не 15 s); всеки опит има таван — след него следващият по ред.
+    // минимално мислене. Ако първият не е отговорил до 8 s, тръгва и следващият — без първият
+    // да се спира; печели който отговори пръв (претовареният Gemini на 24.11 бавеше до 45 s).
     const quick = quickQuestion(turns.at(-1)?.text ?? "");
     const models = [...new Set([BARZ_MODEL, DALBOK_MODEL, "gemini-flash-latest", "gemini-2.5-flash"])];
-    const deadline = Date.now() + 50_000;
+    const stop = new AbortController();
     let answer = "";
-    let last: unknown = null;
-    for (const [i, model] of models.entries()) {
-      const left = deadline - Date.now();
-      if (left < 4_000) break;
-      try {
-        const signal = AbortSignal.timeout(Math.min(left, i === 0 ? 20_000 : 15_000));
-        const mislene = i === 0 && quick ? "minimal" : "low";
-        answer = (await cyal({ system, user, model, maxTokens: quick ? 600 : 1500, mislene, signal }))
-          // Балончето показва чист текст — остатъците от Markdown се махат.
-          .replace(/^#{1,6}\s*/gm, "")
-          .replace(/\*\*(.+?)\*\*/g, "$1")
-          .replace(/^>\s?/gm, "")
-          .trim();
-        if (answer) break;
-      } catch (e) {
-        last = e;
-        // Невалиден ключ → няма смисъл от друг модел.
-        if (e instanceof GeminiGreshka && e.status === 503 && /GEMINI_API_KEY/.test(e.message)) break;
-      }
+    try {
+      answer = await hedged(
+        models.length,
+        async (i) => {
+          const text = (await cyal({ system, user, model: models[i], maxTokens: quick ? 600 : 1500, mislene: i === 0 && quick ? "minimal" : "low", signal: stop.signal }))
+            // Балончето показва чист текст — остатъците от Markdown се махат.
+            .replace(/^#{1,6}\s*/gm, "")
+            .replace(/\*\*(.+?)\*\*/g, "$1")
+            .replace(/^>\s?/gm, "")
+            .trim();
+          if (!text) throw new GeminiGreshka("Моделът върна празен отговор.");
+          return text;
+        },
+        { staggerMs: 8_000, budgetMs: 52_000 },
+      );
+    } finally {
+      stop.abort(); // изостаналите заявки се прекратяват
     }
-    if (!answer && last) throw last;
     return NextResponse.json({ answer: answer || "Не успях да отговоря — пробвай пак или натисни „🛠 Корекция / въпрос към Ивайло“." });
   } catch (e) {
     const status = e instanceof GeminiGreshka ? e.status : 500;
