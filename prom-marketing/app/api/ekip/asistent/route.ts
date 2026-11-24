@@ -26,7 +26,12 @@ export async function POST(request: Request) {
     let last: unknown = null;
     for (const model of models) {
       try {
-        answer = (await cyal({ system, user, model, maxTokens: 1500, mislene: "low" })).trim();
+        answer = (await cyal({ system, user, model, maxTokens: 1500, mislene: "low" }))
+          // Балончето показва чист текст — остатъците от Markdown се махат.
+          .replace(/^#{1,6}\s*/gm, "")
+          .replace(/\*\*(.+?)\*\*/g, "$1")
+          .replace(/^>\s?/gm, "")
+          .trim();
         if (answer) break;
       } catch (e) {
         last = e;

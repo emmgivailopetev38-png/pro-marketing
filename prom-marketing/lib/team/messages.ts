@@ -1,6 +1,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
-import { parseThreadKey, summarizeThreads, unreadCount, type MessageLite, type ThreadKind, type ThreadSummary } from "./messages-rules";
+import { parseThreadKey, partnerSeesThread, summarizeThreads, unreadCount, type MessageLite, type ThreadKind, type ThreadSummary } from "./messages-rules";
+import { orgOf } from "./types";
 import { participantKey } from "./roles";
 import type { TeamActor } from "./session";
 
@@ -37,6 +38,30 @@ export async function participants(): Promise<Person[]> {
 
 export function actorKey(actor: TeamActor): string {
   return participantKey(actor.member);
+}
+
+/**
+ * Обхватът на човек на партньор: картоните, които води или са при него за звънене
+ * (мениджърът — тези на всички от неговата фирма). null = нашите и собственикът, без ограничение.
+ */
+export async function partnerContactScope(actor: TeamActor): Promise<Set<string> | null> {
+  if (actor.kind !== "member" || orgOf(actor.member) === "promarketing") return null;
+  const sb = createServiceClient();
+  let ids = [actor.member.id];
+  if (actor.member.role === "manager") {
+    const { data } = await sb.from("team_members").select("id").eq("org", orgOf(actor.member)).eq("active", true);
+    ids = ((data ?? []) as Array<{ id: string }>).map((m) => m.id);
+  }
+  if (ids.length === 0) return new Set();
+  const list = ids.join(",");
+  const { data } = await sb.from("contacts").select("id").or(`owner_id.in.(${list}),routed_to.in.(${list})`).limit(5000);
+  return new Set(((data ?? []) as Array<{ id: string }>).map((c) => c.id));
+}
+
+/** Може ли този човек да отвори/пише в нишката (за партньорите — само своите). */
+export async function threadAllowed(actor: TeamActor, key: string): Promise<boolean> {
+  const scope = await partnerContactScope(actor);
+  return scope === null ? true : partnerSeesThread(key, actorKey(actor), scope);
 }
 
 export async function lastReads(participant: string): Promise<Map<string, string>> {
@@ -78,12 +103,17 @@ async function titleFn(sb: ReturnType<typeof createServiceClient>, keys: string[
 export async function loadThreads(actor: TeamActor): Promise<{ threads: ThreadSummary[]; people: Person[]; me: string }> {
   const sb = createServiceClient();
   const me = actorKey(actor);
-  const [people, reads, { data }] = await Promise.all([
+  const [people, reads, { data }, scope] = await Promise.all([
     participants(),
     lastReads(me),
     sb.from("team_messages").select(COLS).order("created_at", { ascending: false }).limit(1500),
+    partnerContactScope(actor),
   ]);
-  const messages = ((data ?? []) as MessageLite[]).slice().reverse();
+  // Човек на партньор вижда само своите нишки (личните, общата и тези по негови картони).
+  const messages = ((data ?? []) as MessageLite[])
+    .slice()
+    .reverse()
+    .filter((m) => scope === null || partnerSeesThread(m.thread_key, me, scope));
   const keys = [...new Set(messages.map((m) => m.thread_key))];
   const title = await titleFn(sb, keys, people);
   const threads = summarizeThreads(messages, me, reads, title);
@@ -103,6 +133,7 @@ export async function loadThread(key: string, actor: TeamActor): Promise<{ messa
   const t = parseThreadKey(key);
   const me = actorKey(actor);
   if (t.kind === "direct" && !t.participants.includes(me)) return { messages: [], title: "—" };
+  if (!(await threadAllowed(actor, key))) return { messages: [], title: "—" };
   const [people, { data }] = await Promise.all([participants(), sb.from("team_messages").select(COLS).eq("thread_key", key).order("created_at", { ascending: true }).limit(500)]);
   const title = await titleFn(sb, [key], people);
   return { messages: (data ?? []) as MessageLite[], title: title(key) };

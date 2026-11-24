@@ -147,3 +147,21 @@ export function summarizeThreads(
 export function isThreadKind(v: unknown): v is ThreadKind {
   return v === "general" || v === "direct" || v === "contact" || v === "project" || v === "task";
 }
+
+/**
+ * Какво вижда човек на ПАРТНЬОР (не наш служител) в „Съобщения“ (24.11.2026):
+ * общата нишка и личните си нишки; нишка по картон — само за свой човек (води го
+ * или му звъни); проектите и задачите с клиенти не са за него. Нашите виждат всичко.
+ */
+export function partnerSeesThread(key: string, me: string, ownContactIds: ReadonlySet<string>): boolean {
+  let t: ReturnType<typeof parseThreadKey>;
+  try {
+    t = parseThreadKey(key);
+  } catch {
+    return false;
+  }
+  if (t.kind === "general") return true;
+  if (t.kind === "direct") return t.participants.includes(me);
+  if (t.kind === "contact") return !!t.ref && ownContactIds.has(t.ref);
+  return false;
+}

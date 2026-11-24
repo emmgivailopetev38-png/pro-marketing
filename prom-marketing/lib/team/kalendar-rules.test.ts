@@ -89,3 +89,17 @@ describe("ICS", () => {
     expect(ics).toContain("DTSTART:20261125T100000Z");
   });
 });
+
+import { partnerSeesThread } from "./messages-rules";
+describe("съобщенията на партньора", () => {
+  it("вижда общата, личните си и нишките по свои картони — не проектите и чуждите картони", () => {
+    const own = new Set(["c1"]);
+    expect(partnerSeesThread("general", "me", own)).toBe(true);
+    expect(partnerSeesThread("direct:me|owner", "me", own)).toBe(true);
+    expect(partnerSeesThread("direct:a|b", "me", own)).toBe(false);
+    expect(partnerSeesThread("contact:c1", "me", own)).toBe(true);
+    expect(partnerSeesThread("contact:c2", "me", own)).toBe(false);
+    expect(partnerSeesThread("project:p1", "me", own)).toBe(false);
+    expect(partnerSeesThread("task:t1", "me", own)).toBe(false);
+  });
+});

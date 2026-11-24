@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { requireTeamActor, type TeamActor } from "@/lib/team/session";
-import { actorKey, markRead, participants, postMessage, setClientVisible } from "@/lib/team/messages";
+import { actorKey, markRead, participants, postMessage, setClientVisible, threadAllowed } from "@/lib/team/messages";
 import { isThreadKind, parseMentions, parseThreadKey, recipientsOf } from "@/lib/team/messages-rules";
 import { notifyMessage } from "@/lib/team/notify";
 import type { EkipActionResult } from "@/lib/team/types";
@@ -38,6 +38,7 @@ export async function postMessageAction(_prev: EkipActionResult | null, formData
   if (!isThreadKind(parsed.kind)) return { ok: false, error: "Невалидна нишка." };
   const me = actorKey(actor);
   if (parsed.kind === "direct" && !parsed.participants.includes(me)) return { ok: false, error: "Това не е твоя нишка." };
+  if (!(await threadAllowed(actor, key))) return { ok: false, error: "Тази нишка не е за твоя профил." };
 
   const people = await participants();
   const mentions = parseMentions(body, people);
