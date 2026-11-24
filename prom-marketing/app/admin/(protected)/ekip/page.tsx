@@ -2,6 +2,9 @@ import Link from "next/link";
 import { listMembers } from "@/lib/team/repository";
 import { openTaskCounts } from "@/lib/team/tasks";
 import { TeamManager } from "@/components/admin/TeamManager";
+import { TeamInvites, type InviteRow } from "@/components/admin/TeamInvites";
+import { listInvites } from "@/lib/team/invites";
+import { intakePool } from "@/lib/team/routing-rules";
 import { TEAM_MODULE_HREF, TEAM_MODULE_LABEL } from "@/lib/team/types";
 import { navFor } from "@/lib/team/roles";
 import { rotationPool } from "@/lib/team/routing-rules";
@@ -9,10 +12,23 @@ import { rotationPool } from "@/lib/team/routing-rules";
 export const dynamic = "force-dynamic";
 
 export default async function EkipAdminPage() {
-  const [members, taskCounts] = await Promise.all([listMembers(), openTaskCounts()]);
+  const [members, taskCounts, invites] = await Promise.all([listMembers(), openTaskCounts(), listInvites().catch(() => [])]);
+  const nameById = new Map(members.map((m) => [m.id, m.full_name]));
+  const inviteRows: InviteRow[] = invites.map((i) => ({
+    id: i.id,
+    link: `https://promarketing.pw/ekip/pokana/${i.token}`,
+    role: i.role,
+    org: i.org,
+    title: i.title,
+    full_name: i.full_name,
+    state: i.state,
+    expires_at: i.expires_at,
+    used_name: i.used_by ? nameById.get(i.used_by) ?? null : null,
+  }));
   // Кръгът за новите лийдове: всеки активен със „Звънене“, по реда на влизане.
   const pool = rotationPool(members);
   const inPool = new Set(pool.map((m) => m.id));
+  const intake = intakePool(pool);
   return (
     <div className="min-h-screen">
       <div className="cc-content space-y-6 p-5 md:p-10">
@@ -25,11 +41,13 @@ export default async function EkipAdminPage() {
           </p>
           {pool.length > 0 && (
             <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-              🎯 Новите лийдове от рекламите и сайта се редуват: <b>{pool.map((m) => m.full_name).join(" → ")}</b>
-              {pool.length > 1 ? ` → отначало (по ${Math.round(100 / pool.length)}% на човек).` : " (сам — получава всички)."}
+              🎯 Новите лийдове от рекламите и сайта отиват при: <b>{intake.map((m) => m.full_name).join(" → ")}</b>
+              {intake.length > 1 ? ` → отначало (по ${Math.round(100 / intake.length)}% на човек).` : " (получава всички)."}
+              {pool.length > intake.length ? ` Останалите в „Звънене“ пазят само своите хора: ${pool.filter((m) => !intake.includes(m)).map((m) => m.full_name).join(", ")}.` : ""}
             </p>
           )}
           <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            <Link href="/ekip/ekipat" className="cc-btn">👥 Таблото на мениджъра</Link>
             <Link href="/admin/zadachi" className="cc-btn">✅ Задачи по хора</Link>
             <Link href="/admin/saobshtenia" className="cc-btn">💬 Съобщения</Link>
             <Link href="/admin/konversii" className="cc-btn">📈 Конверсии и екип</Link>
@@ -68,6 +86,8 @@ export default async function EkipAdminPage() {
               );
             })}
         </section>
+
+        <TeamInvites invites={inviteRows} />
 
         <TeamManager members={members} />
       </div>

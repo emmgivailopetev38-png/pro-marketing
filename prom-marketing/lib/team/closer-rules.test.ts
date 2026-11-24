@@ -33,3 +33,38 @@ describe("isFirstMeeting — новите срещи са за клоузъра,
     expect(isFirstMeeting({ stage: "contacted", activities: [{ activity_type: "call", occurred_at: "2026-10-26T09:24:00Z" }, { activity_type: "viber_sent", occurred_at: "2026-10-29T06:18:00Z" }], now })).toBe(true);
   });
 });
+
+import { closerForBooking, pickCloser, sortClosers } from "./closer-rules";
+
+describe("двама клоузъри · честното редуване", () => {
+  const georgi = { id: "g", created_at: "2026-10-25T00:00:00Z" };
+  const teodor = { id: "t", created_at: "2026-11-24T00:00:00Z" };
+  const closers = [teodor, georgi];
+
+  it("първият по реда на влизане е клоузърът по подразбиране", () => {
+    expect(sortClosers(closers).map((c) => c.id)).toEqual(["g", "t"]);
+  });
+
+  it("следващата среща е на този с по-малко срещи", () => {
+    expect(pickCloser(closers, new Map([["g", 3], ["t", 1]]))?.id).toBe("t");
+    expect(pickCloser(closers, new Map([["g", 1], ["t", 4]]))?.id).toBe("g");
+  });
+
+  it("при равенство — който не е получил последната", () => {
+    expect(pickCloser(closers, new Map(), null)?.id).toBe("g");
+    expect(pickCloser(closers, new Map([["g", 2], ["t", 2]]), "g")?.id).toBe("t");
+    expect(pickCloser(closers, new Map([["g", 2], ["t", 2]]), "t")?.id).toBe("g");
+  });
+
+  it("картон с клоузър остава при него; после записващият клоузър; после изборът на сетъра", () => {
+    const counts = new Map([["g", 0], ["t", 5]]);
+    expect(closerForBooking({ closers, ownerId: "t", actorId: "g", wantedId: "g", counts })?.id).toBe("t");
+    expect(closerForBooking({ closers, ownerId: null, actorId: "t", wantedId: "g", counts })?.id).toBe("t");
+    expect(closerForBooking({ closers, ownerId: null, actorId: "setter", wantedId: "t", counts })?.id).toBe("t");
+    expect(closerForBooking({ closers, ownerId: null, actorId: "setter", wantedId: null, counts })?.id).toBe("g");
+  });
+
+  it("без клоузъри — никой", () => {
+    expect(pickCloser([], new Map())).toBeNull();
+  });
+});

@@ -32,6 +32,7 @@
  *
  * Чисти правила, без база — тестват се. Базата е в stari.ts.
  */
+import { seesLead } from "./routing-rules";
 import { dayKey } from "@/lib/contacts/followup";
 import type { ZvRow } from "@/lib/zvanene/rules";
 
@@ -63,6 +64,8 @@ export interface StariContact {
   id: string;
   owner_id: string | null;
   next_followup_at: string | null;
+  /** при кого е влязъл лийдът по ротацията (contacts.routed_to) */
+  routed_to?: string | null;
 }
 
 export interface StariInput {
@@ -77,6 +80,12 @@ export interface StariInput {
   teamIds: Set<string>;
   /** чия опашка се гледа; null = собственикът, вижда всички */
   viewerId: string | null;
+  /**
+   * Кръгът за звънене (routing-rules.ts). Подаден ли е, старите без водещ се делят като
+   * новите: всеки вижда само своите (routed_to), а ничиите са на сетъра — иначе сетърът и
+   * клоузърът звънят на едни и същи хора. Без него — както преди: всички виждат всичко.
+   */
+  pool?: Array<{ id: string; intake?: boolean | null }>;
   now: Date;
   /** от кога са „последните“ (ISO); без него — STARI_OT */
   since?: string;
@@ -123,6 +132,7 @@ export function showsInStari(row: Pick<ZvRow, "id" | "lead_at" | "stage" | "ofer
     if (i.ivailos.has(row.id)) return false;
     if (isDeal(row)) return false;
     if (!recentEnough(row.lead_at, i.since)) return false;
+    if (i.pool && i.pool.length > 1 && !seesLead(i.viewerId, c?.routed_to ?? null, i.pool)) return false;
   }
   return !scheduledLater(c?.next_followup_at, i.now);
 }

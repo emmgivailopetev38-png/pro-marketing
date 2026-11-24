@@ -11,6 +11,7 @@ import { meetingMessage } from "@/lib/team/sreshta-saobshtenia";
 import { canGiveUp } from "@/lib/team/queue-rules";
 import { MessageBox } from "./MessageBox";
 import { ago } from "@/lib/team/time";
+import { useClosers } from "./ClosersContext";
 
 const CAL_URL = "https://cal.com/promarketing/consultation";
 
@@ -123,6 +124,7 @@ function useNoteDraft(id: string): [string, (text: string) => void] {
  * след „Не вдигна“ и срещата трябва да се запише от същата карта.
  */
 export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: QueueLead; mode: LeadCardMode; setterName?: string }) {
+  const closers = useClosers();
   const [state, formAction] = useActionState<EkipActionResult | null, FormData>(async (prev, formData) => {
     const res = await ekipAction(prev, formData);
     // Записано — бележката вече е в картона и излиза на картата; черновата се чисти.
@@ -460,6 +462,23 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
                     className="mt-1 w-full rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-sm text-[var(--color-text-primary)]"
                   />
                 </label>
+                {closers.length > 1 && (
+                  <label className="mt-1.5 block text-[11px] text-emerald-200/80">
+                    👤 Кой води срещата
+                    <select
+                      name="closer_id"
+                      defaultValue=""
+                      className="mt-1 w-full rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-sm text-[var(--color-text-primary)]"
+                    >
+                      <option value="">По ред — честно между клоузърите</option>
+                      {closers.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
                 {!lead.email && (
                   <input
                     type="email"

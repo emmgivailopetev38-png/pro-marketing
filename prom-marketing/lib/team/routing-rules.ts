@@ -14,13 +14,24 @@
 import { canSee } from "./roles";
 import type { TeamMember } from "./types";
 
-export type RotationMember = Pick<TeamMember, "id" | "role" | "permissions" | "active" | "created_at">;
+export type RotationMember = Pick<TeamMember, "id" | "role" | "permissions" | "active" | "created_at"> & { intake?: boolean | null };
 
 /** Хората, между които се редуват новите лийдове, в реда на кръга. */
 export function rotationPool<T extends RotationMember>(members: T[]): T[] {
   return members
     .filter((m) => m.active && m.role !== "owner" && canSee(m, "zvanene"))
     .sort((a, b) => (a.created_at ?? "").localeCompare(b.created_at ?? "") || a.id.localeCompare(b.id));
+}
+
+/**
+ * Кой поема НОВИТЕ лийдове и неразпределените стари (24.11.2026, екипът с RevStream):
+ * сетърът звъни, клоузърите водят срещи. Човек с `intake = false` остава в кръга —
+ * пази си опашката и своите хора — но нови не получава. Няма ли нито един с
+ * `intake`, важи целият кръг, както преди (един човек = получава всичко).
+ */
+export function intakePool<T extends { intake?: boolean | null }>(pool: T[]): T[] {
+  const intake = pool.filter((m) => m.intake !== false);
+  return intake.length > 0 ? intake : pool;
 }
 
 /** Следващият в кръга след последния получил; без последен — първият. */
@@ -30,17 +41,20 @@ export function nextInRotation<T extends { id: string }>(pool: T[], lastId: stri
   return pool[(i + 1) % pool.length];
 }
 
-/** Чий е лийдът в екипа: при когото е влязъл, ако той още е в кръга; иначе на първия. */
-export function leadOwner(routedTo: string | null | undefined, pool: Array<{ id: string }>): string | null {
+/**
+ * Чий е лийдът в екипа: при когото е влязъл, ако той още е в кръга; иначе на
+ * първия от хората, които поемат нови (intakePool) — сетъра, не клоузъра.
+ */
+export function leadOwner(routedTo: string | null | undefined, pool: Array<{ id: string; intake?: boolean | null }>): string | null {
   if (routedTo && pool.some((m) => m.id === routedTo)) return routedTo;
-  return pool[0]?.id ?? null;
+  return intakePool(pool)[0]?.id ?? null;
 }
 
 /** Вижда ли човекът картата в опашката си. Собственикът (viewer = null) вижда всичко. */
 export function seesLead(
   viewerId: string | null,
   routedTo: string | null | undefined,
-  pool: Array<{ id: string }>
+  pool: Array<{ id: string; intake?: boolean | null }>
 ): boolean {
   if (!viewerId) return true;
   return leadOwner(routedTo, pool) === viewerId;
@@ -54,7 +68,7 @@ export function seesGiven(
   viewerId: string | null,
   markerTo: string | null | undefined,
   routedTo: string | null | undefined,
-  pool: Array<{ id: string }>
+  pool: Array<{ id: string; intake?: boolean | null }>
 ): boolean {
   if (!viewerId) return true;
   const target = markerTo && pool.some((m) => m.id === markerTo) ? markerTo : leadOwner(routedTo, pool);
