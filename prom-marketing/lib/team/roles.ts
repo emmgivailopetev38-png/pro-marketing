@@ -22,11 +22,11 @@ const DEFAULTS: Record<TeamRole, TeamModule[]> = {
   // Мениджърът на продажбите (от 24.11.2026, RevStream): хората, срещите и числата на екипа,
   // всички лийдове, бизнесът (реклами, цена на лийд), материалите и цените. Не звъни —
   // затова няма „Звънене“ и никога не влиза в разпределението на лийдовете.
-  manager: ["ekipat", "biznes", "liidove", "napredak", "materiali", "ceni", "demo", "zadachi", "saobshtenia", "belezhki"],
-  setter: ["zvanene", "liidove", "zadachi", "saobshtenia", "materiali", "napredak", "belezhki"],
-  sales: ["prodazhbi", "liidove", "zadachi", "saobshtenia", "materiali", "ceni", "oferti", "komisioni", "napredak", "belezhki"],
-  delivery: ["proekti", "zadachi", "saobshtenia", "materiali", "napredak", "belezhki"],
-  marketing: ["proekti", "zadachi", "saobshtenia", "materiali", "napredak", "belezhki"],
+  manager: ["ekipat", "biznes", "liidove", "klasacia", "napredak", "uebinar", "materiali", "ceni", "demo", "asistent", "zadachi", "saobshtenia", "belezhki"],
+  setter: ["zvanene", "liidove", "klasacia", "uebinar", "asistent", "zadachi", "saobshtenia", "materiali", "napredak", "belezhki"],
+  sales: ["prodazhbi", "liidove", "klasacia", "uebinar", "asistent", "zadachi", "saobshtenia", "materiali", "ceni", "oferti", "komisioni", "napredak", "belezhki"],
+  delivery: ["proekti", "asistent", "zadachi", "saobshtenia", "materiali", "napredak", "belezhki"],
+  marketing: ["proekti", "asistent", "zadachi", "saobshtenia", "materiali", "napredak", "belezhki"],
 };
 
 /** Модулите по подразбиране за роля. */

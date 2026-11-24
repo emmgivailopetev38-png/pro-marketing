@@ -51,6 +51,17 @@ export default async function MaterialiPage() {
           </div>
         </section>
 
+        <section className="rounded-2xl border border-violet-400/30 bg-violet-500/[0.06] p-4">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">🎓 Академията — какво точно продаваш</h2>
+          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+            Всички курсове от програмата са отключени за теб. Регистрирай се в{" "}
+            <a href="https://akademia.promarketing.pw" target="_blank" rel="noreferrer" className="font-semibold text-violet-200 underline">
+              akademia.promarketing.pw
+            </a>{" "}
+            със същия имейл, с който влизаш тук — курсовете се отварят сами. Изгледай поне „Започни оттук“ и основите, за да говориш с клиента от първо лице.
+          </p>
+        </section>
+
         <section className={card}>
           <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">🎬 Какво пращаш на клиента</h2>
           <p className="mt-1 mb-3 text-xs text-[var(--color-text-secondary)]">

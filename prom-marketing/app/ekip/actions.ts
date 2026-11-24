@@ -10,7 +10,7 @@ import { upsertBooking } from "@/lib/crm/repository";
 import { MEETING_MINUTES } from "@/lib/cal/types";
 import { createCalBooking, isCalWriteConfigured } from "@/lib/cal/create-booking";
 import { assignContactToCloser, closerForBookingBy, closerForMeeting, meetUrlFor } from "@/lib/team/closer";
-import { sendCloserInvite } from "@/lib/team/closer-calendar";
+import { sendCloserInvite, sendLeadInvite } from "@/lib/team/closer-calendar";
 import { calRefusalReason } from "@/lib/team/closer-calendar-rules";
 import {
   FREE_STATUSES,
@@ -297,6 +297,9 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         let calendarLine = calUid ? "📅 Календар: през Cal.com (покана и до човека)" : "📅 Календар: срещата НЕ е в календар";
         if (!calUid && closer?.email && booking.id) {
           const inv = await sendCloserInvite({ bookingId: booking.id, why: calWhy, recipient: { name: closer.full_name, email: closer.email } });
+          // Човекът получава покана с Meet линка в календара си (24.11.2026) — без Cal.com досега не получаваше нищо.
+          const leadInv = await sendLeadInvite(booking.id);
+          if (leadInv.ok) inviteNote += " ✉️ Човекът получи покана с линка в календара си.";
           const mine = actor.member?.id === closer.id;
           if (inv.ok) {
             inviteNote += mine

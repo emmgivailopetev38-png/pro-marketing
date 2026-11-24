@@ -328,8 +328,13 @@ export async function syncCloserInvite(bookingId: string, now: Date = new Date()
     const b = await loadBooking(bookingId);
     if (!b) return;
     const step = nextInviteStep({ state: readInviteState(b.raw_payload), status: b.status, scheduledIso: b.scheduled_at, now });
-    if (step.kind === "cancel") await cancelCloserInvite({ bookingId });
-    else if (step.kind === "move") await sendCloserInvite({ bookingId });
+    if (step.kind === "cancel") {
+      await cancelCloserInvite({ bookingId });
+      await cancelLeadInvite(bookingId);
+    } else if (step.kind === "move") {
+      await sendCloserInvite({ bookingId });
+      await sendLeadInvite(bookingId);
+    }
   } catch (e) {
     console.error("[closer-calendar] sync:", e instanceof Error ? e.message : e);
   }
@@ -397,4 +402,123 @@ export async function markMirrored(bookingId: string, gcalEventId: string): Prom
     .update({ raw_payload: { ...raw, gcal_event_id: gcalEventId, gcal_added_at: new Date().toISOString() } })
     .eq("id", bookingId);
   return { ok: !error, error: error?.message ?? null };
+}
+
+// ── Поканата към КЛИЕНТА (24.11.2026) ──────────────────────────────────────
+// Срещите извън Cal.com (вторият клоузър — Теодор) до днес не стигаха до човека
+// автоматично: сетърът пращаше линка ръчно. Сега човекът получава покана с
+// Meet линка в календара си; при нов час — обновена, при отмяна — махната.
+
+interface LeadInviteState {
+  uid: string;
+  seq: number;
+  to: string;
+  start: string;
+  sent_at: string;
+  cancelled_at: string | null;
+}
+
+function readLeadInvite(raw: Record<string, unknown> | null): LeadInviteState | null {
+  const s = (raw ?? {}).lead_invite as LeadInviteState | undefined;
+  return s && typeof s.uid === "string" && typeof s.seq === "number" ? s : null;
+}
+
+async function saveLeadInvite(id: string, state: LeadInviteState): Promise<void> {
+  const sb = createServiceClient();
+  const { data } = await sb.from("bookings").select("raw_payload").eq("id", id).maybeSingle();
+  const raw = ((data?.raw_payload ?? {}) as Record<string, unknown>) ?? {};
+  await sb.from("bookings").update({ raw_payload: { ...raw, lead_invite: state } }).eq("id", id);
+}
+
+async function deliverLead(b: BookingRow, method: IcsMethod, state: LeadInviteState, kind: "new" | "moved" | "cancelled") {
+  const name = (b.attendee_name ?? "").trim() || "";
+  const meet = (b.meeting_url ?? "").trim() || closerMeetUrl();
+  const when = fmtSofia(state.start);
+  const summary = "Среща с ProMarketing · Ивайло Петев";
+  const description = [
+    meet ? `Линк за срещата (Google Meet): ${meet}` : null,
+    "Влезте от компютър или телефон 2–3 минути по-рано. Помислете какво искате да обсъдим — така срещата е най-полезна.",
+    "— ProMarketing · petevai.com · promarketing.pw",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const ics = buildInviteIcs({
+    uid: state.uid,
+    sequence: state.seq,
+    method,
+    startISO: state.start,
+    minutes: CLOSER_MEETING_MINUTES,
+    summary,
+    description,
+    location: meet,
+    url: meet ?? SITE,
+    organizer: inviteOrganizer(),
+    attendee: { name: name || state.to, email: state.to },
+    alarmMinutes: 30,
+  });
+  const hello = name ? `Здравейте, ${escapeHtml(name.split(/\s+/)[0])}!` : "Здравейте!";
+  const body =
+    kind === "cancelled"
+      ? `<p>${hello}</p><p>Срещата ни за <strong>${escapeHtml(when)}</strong> отпада — махнахме я и от календара Ви. Ако искате нов час, отговорете на това писмо.</p>`
+      : `<p>${hello}</p><p>${kind === "moved" ? "Срещата ни е с нов час" : "Срещата ни е записана"}: <strong>${escapeHtml(when)}</strong> (българско време), ${CLOSER_MEETING_MINUTES} минути.</p>${
+          meet ? `<p>Линк за срещата: <a href="${escapeHtml(meet)}">${escapeHtml(meet)}</a></p>` : ""
+        }<p>Поканата е прикачена — добавете я в календара си. Помислете какво искате да обсъдим, за да е срещата максимално полезна за Вас.</p>`;
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#0d1221;">${body}<p>Поздрави,<br/>Ивайло Петев · ProMarketing<br/><span style="color:#777">petevai.com · promarketing.pw</span></p></div>`;
+  const subject = kind === "cancelled" ? `Срещата отпада · ${when}` : kind === "moved" ? `Нов час за срещата · ${when}` : `Срещата ни · ${when}`;
+  return sendEmail({
+    to: state.to,
+    subject,
+    html,
+    text: html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
+    attachments: [
+      {
+        filename: method === "CANCEL" ? "otmyana.ics" : "sreshta.ics",
+        content: Buffer.from(ics, "utf8").toString("base64"),
+        contentType: `text/calendar; charset=utf-8; method=${method}`,
+      },
+    ],
+  });
+}
+
+/** Покана към човека (клиента) за среща извън Cal.com. Без истински имейл — нищо. Никога не хвърля. */
+export async function sendLeadInvite(bookingId: string): Promise<{ ok: boolean; error: string | null }> {
+  try {
+    const b = await loadBooking(bookingId);
+    if (!b) return { ok: false, error: "booking not found" };
+    const email = realEmail(b.attendee_email);
+    if (!email) return { ok: false, error: "няма имейл" };
+    const prev = readLeadInvite(b.raw_payload);
+    const start = new Date(b.scheduled_at).toISOString();
+    const moved = !!prev && !prev.cancelled_at && prev.start !== start;
+    if (prev && !prev.cancelled_at && !moved) return { ok: true, error: null };
+    const state: LeadInviteState = {
+      uid: prev?.uid ?? `klient-${b.id}@promarketing.pw`,
+      seq: prev ? prev.seq + 1 : 0,
+      to: email,
+      start,
+      sent_at: new Date().toISOString(),
+      cancelled_at: null,
+    };
+    const r = await deliverLead(b, "REQUEST", state, moved ? "moved" : "new");
+    if (r.error) return { ok: false, error: r.error };
+    await saveLeadInvite(b.id, state);
+    return { ok: true, error: null };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "unknown" };
+  }
+}
+
+/** Отменената/преместената среща → поканата на човека се маха от календара му. */
+export async function cancelLeadInvite(bookingId: string): Promise<void> {
+  try {
+    const b = await loadBooking(bookingId);
+    if (!b) return;
+    const prev = readLeadInvite(b.raw_payload);
+    if (!prev || prev.cancelled_at) return;
+    const state = { ...prev, seq: prev.seq + 1, cancelled_at: new Date().toISOString() };
+    const r = await deliverLead(b, "CANCEL", state, "cancelled");
+    if (!r.error) await saveLeadInvite(b.id, state);
+  } catch (e) {
+    console.error("[closer-calendar] lead cancel:", e instanceof Error ? e.message : e);
+  }
 }

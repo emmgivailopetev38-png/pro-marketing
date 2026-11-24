@@ -19,13 +19,15 @@ export async function videoFeedbackAction(_prev: EkipActionResult | null, formDa
     return { ok: false, error: "Сесията е изтекла — влез отново." };
   }
   const kind = String(formData.get("kind") ?? "") === "novo" ? "novo" : "korekcia";
+  const topic = String(formData.get("topic") ?? "") === "uebinar" ? "uebinar" : "video";
   const which = String(formData.get("which") ?? "").trim().slice(0, 120);
   const text = String(formData.get("text") ?? "").trim().slice(0, 4000);
   if (text.length < 5) return { ok: false, error: "Напиши какво предлагаш — поне едно изречение." };
 
   const me = participantKey(actor.member);
   const key = directKey("owner", me);
-  const body = [`🎬 ${kind === "novo" ? "Предложение за ново видео" : "Корекция на видео"}${which ? ` · ${which}` : ""}`, text].join("\n");
+  const head = topic === "uebinar" ? "💡 Съвет за уебинара" : `🎬 ${kind === "novo" ? "Предложение за ново видео" : "Корекция на видео"}`;
+  const body = [`${head}${which ? ` · ${which}` : ""}`, text].join("\n");
   const res = await postMessage({ key, authorKey: me, authorName: actor.name, body });
   if (res.error) return { ok: false, error: `Не се изпрати: ${res.error}` };
   if (me !== "owner") {
@@ -33,7 +35,7 @@ export async function videoFeedbackAction(_prev: EkipActionResult | null, formDa
       recipientKeys: ["owner"],
       authorName: actor.name,
       body,
-      threadTitle: "🎬 видеата за клиенти",
+      threadTitle: topic === "uebinar" ? "💡 уебинарът" : "🎬 видеата за клиенти",
       href: `/ekip/saobshtenia?t=${encodeURIComponent(key)}`,
     }).catch(() => {});
   }
