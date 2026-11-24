@@ -18,6 +18,7 @@ import {
   type Viewer,
 } from "./manager-rules";
 import { orgOf, type TeamMember } from "./types";
+import { windowsFor, type DailyRow } from "./napredak-rules";
 
 /** Таблото на мениджъра на продажбите (правилата и нивата — manager-rules.ts). */
 
@@ -36,10 +37,29 @@ export interface ManagerPerson {
   hasMeetUrl: boolean;
   calls: number;
   talked: number;
+  /** вдигнали (говорихме + не се интересува + DQ) и % от обажданията с изход */
+  reached: number;
+  reachedPct: number | null;
+  /** записани срещи от човека и booking rate = записани / вдигнали */
   booked: number;
+  bookingRate: number | null;
+  /** от записаните от него: дошли / не дошли */
   completed: number;
   noShow: number;
   showRate: number | null;
+  /** срещите, които ВОДИ (клоузърът на картона), по часа на срещата */
+  held: number;
+  closerNoShow: number;
+  closerShowRate: number | null;
+  closerUnmarked: number;
+  closerUpcoming: number;
+  /** неквалифицирани: на разговора / на срещата и DQ % */
+  dq: number;
+  meetingDq: number;
+  dqPct: number | null;
+  meetingDqPct: number | null;
+  /** последните 10 дни ден по ден — EOD */
+  daily: DailyRow[];
   medianMinutes: number | null;
   /** отворени лийдове в опашката му (routed_to) */
   queue: number;
@@ -84,7 +104,7 @@ function bookedByOf(raw: unknown): string | null {
 
 export async function loadManagerBoard(viewer: Viewer, days = 30, now: Date = new Date()): Promise<ManagerBoard> {
   const sb = createServiceClient();
-  const from = new Date(now.getTime() - days * DAY).toISOString();
+  const from = windowsFor({ days, now }).cur.from.toISOString();
   const [members, napredak] = await Promise.all([listMembers(), loadNapredakAll(days, now)]);
   const team = members.filter(isSalesTeam);
   const teamIds = team.map((m) => m.id);
@@ -158,10 +178,23 @@ export async function loadManagerBoard(viewer: Viewer, days = 30, now: Date = ne
       hasMeetUrl: !!(m.meet_url ?? "").trim(),
       calls: n?.cur.volume.calls ?? 0,
       talked: n?.cur.volume.talked ?? 0,
+      reached: n?.cur.volume.reached ?? 0,
+      reachedPct: n?.cur.reachedPct ?? null,
       booked: n?.cur.meetings.booked ?? 0,
+      bookingRate: n?.cur.bookingRate ?? null,
       completed: n?.cur.meetings.completed ?? 0,
       noShow: n?.cur.meetings.noShow ?? 0,
       showRate: n?.cur.meetings.showRate ?? null,
+      held: n?.cur.closer.held ?? 0,
+      closerNoShow: n?.cur.closer.noShow ?? 0,
+      closerShowRate: n?.cur.closer.showRate ?? null,
+      closerUnmarked: n?.cur.closer.pastUnmarked ?? 0,
+      closerUpcoming: n?.cur.closer.upcoming ?? 0,
+      dq: n?.cur.volume.dq ?? 0,
+      meetingDq: n?.cur.volume.meetingDq ?? 0,
+      dqPct: n?.cur.dqPct ?? null,
+      meetingDqPct: n?.cur.meetingDqPct ?? null,
+      daily: n?.daily ?? [],
       medianMinutes: n?.cur.speed.medianMinutes ?? null,
       queue: queueBy.get(m.id) ?? 0,
       people: mine.filter((c) => OPEN_STAGES.includes(c.stage)).length,

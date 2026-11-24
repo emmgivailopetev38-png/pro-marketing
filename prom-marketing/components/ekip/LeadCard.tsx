@@ -590,6 +590,9 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
               <SubmitBtn action="not_interested" className="border-white/15 text-[var(--color-text-tertiary)]">
                 ✕ Не се интересува
               </SubmitBtn>
+              <SubmitBtn action="dq" className="border-rose-400/40 text-rose-200">
+                🚫 Неквалифициран (DQ)
+              </SubmitBtn>
               <SubmitBtn action="wrong_number" className="border-white/15 text-[var(--color-text-tertiary)]">
                 ⛔ Грешен номер
               </SubmitBtn>

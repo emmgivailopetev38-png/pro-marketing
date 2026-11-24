@@ -33,6 +33,13 @@ export function MeetingOutcome({ bookingId, name, when, eli = true }: { bookingI
       >
         {eli ? "🙈 Не се яви — Ели да звъни" : "🙈 Не се яви — за нов час"}
       </OutcomeBtn>
+      <OutcomeBtn
+        value="dq"
+        cls="border-white/20 text-[var(--color-text-secondary)]"
+        confirmText={`Срещата с ${name || "човека"} се проведе, но не е за програмата (неквалифициран, DQ)? Картонът се затваря.`}
+      >
+        🚫 Проведена · DQ
+      </OutcomeBtn>
       {state?.error && <span className="rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">{state.error}</span>}
     </form>
   );

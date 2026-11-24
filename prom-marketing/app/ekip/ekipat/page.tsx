@@ -9,6 +9,8 @@ import { TEAM_ORG_LABEL, TEAM_ROLE_SHORT } from "@/lib/team/types";
 import { fmtSofia } from "@/lib/team/time";
 import { EkipHeader } from "@/components/ekip/EkipHeader";
 import { PROGRAM_PRICE_EUR, TEAM_PAY_LINKS } from "@/lib/stripe/team-links";
+import { PERIODS, parsePeriod, periodLabel } from "@/lib/team/napredak-rules";
+import { TbiBox } from "@/components/ekip/TbiBox";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +35,7 @@ export default async function EkipatPage({ searchParams }: { searchParams: Promi
   if (!actor) redirect("/ekip/login");
   if (!allowed(actor, "ekipat")) redirect(homeFor(actor.member));
   const sp = await searchParams;
-  const days = sp.d === "7" ? 7 : sp.d === "90" ? 90 : 30;
+  const days = parsePeriod(sp.d, 30);
   const viewer: Viewer = actor.kind === "owner" ? { kind: "owner" } : { kind: "member", member: actor.member };
   const [nav, board] = await Promise.all([ekipNav(actor), loadManagerBoard(viewer, days)]);
   const isOwner = actor.kind === "owner";
@@ -48,36 +50,51 @@ export default async function EkipatPage({ searchParams }: { searchParams: Promi
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="font-display text-2xl font-bold">Екипът по продажбите</h1>
-            <p className="text-sm text-[var(--color-text-secondary)]">Хора, срещи и сделки — последните {board.days} дни.</p>
+            <p className="text-sm text-[var(--color-text-secondary)]">
+              Хора, срещи и сделки — {board.days === 1 ? "днес (от полунощ)" : `последните ${board.days} дни`}. Числата се смятат на живо от CRM-а.
+            </p>
           </div>
           <div className="flex gap-1.5">
-            {[7, 30, 90].map((d) => (
+            {PERIODS.map((d) => (
               <Link
                 key={d}
                 href={`/ekip/ekipat?d=${d}`}
                 className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${d === board.days ? "border-[var(--color-accent-cyan)]/60 bg-[var(--color-accent-cyan)]/15 text-[var(--color-accent-cyan)]" : "border-white/10 text-[var(--color-text-secondary)]"}`}
               >
-                {d} дни
+                {periodLabel(d)}
               </Link>
             ))}
           </div>
         </div>
 
+        <nav className="flex flex-wrap gap-2 text-xs">
+          <Link href="/ekip/liidove" className="rounded-full border border-white/15 px-3 py-1.5 font-semibold text-[var(--color-text-secondary)] hover:text-white">
+            📋 Всички лийдове
+          </Link>
+          <Link href="/ekip/biznes" className="rounded-full border border-white/15 px-3 py-1.5 font-semibold text-[var(--color-text-secondary)] hover:text-white">
+            📊 Бизнесът · реклами и цена на лийд
+          </Link>
+          <Link href="/ekip/materiali" className="rounded-full border border-white/15 px-3 py-1.5 font-semibold text-[var(--color-text-secondary)] hover:text-white">
+            🎬 Видеа, отзиви и как работи системата
+          </Link>
+        </nav>
+
         <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">👥 Хората</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">👥 Хората · {periodLabel(board.days)}</h2>
           {board.people.length === 0 ? (
             <p className="mt-3 text-sm text-[var(--color-text-secondary)]">Още няма сетър или клоузър с вход. Щом приемат поканите си, излизат тук.</p>
           ) : (
             <div className="mt-2 overflow-x-auto">
-              <table className="w-full min-w-[760px] border-collapse">
+              <table className="w-full min-w-[980px] border-collapse">
                 <thead>
                   <tr className="border-b border-white/10">
                     <th className={th}>Човек</th>
-                    <th className={th}>Обаждания</th>
-                    <th className={th}>Говорил</th>
-                    <th className={th}>Записани срещи</th>
-                    <th className={th}>Проведени</th>
-                    <th className={th}>Явяване</th>
+                    <th className={th} title="всяко натискане на изход в картата; „Записах среща“ също">Обаждания</th>
+                    <th className={th} title="говорихме + не се интересува + DQ, % от обажданията с изход">Вдигнали</th>
+                    <th className={th} title="срещи, записани от човека; booking rate = записани / вдигнали">Записа срещи</th>
+                    <th className={th} title="срещите, които ВОДИ (клоузърът на картона), по часа на срещата">Води: дошли · не</th>
+                    <th className={th} title="дошли / (дошли + не дошли) на срещите, които води">Явяване</th>
+                    <th className={th} title="неквалифицирани: на разговора (% от вдигналите) и на срещата">DQ</th>
                     <th className={th}>До лийда</th>
                     <th className={th}>В опашката</th>
                     <th className={th}>Води хора</th>
@@ -109,13 +126,31 @@ export default async function EkipatPage({ searchParams }: { searchParams: Promi
                         </p>
                       </td>
                       <td className={td}>{p.calls}</td>
-                      <td className={td}>{p.talked}</td>
-                      <td className={td}>{p.booked}</td>
                       <td className={td}>
-                        {p.completed}
-                        {p.noShow ? <span className="text-rose-300"> · {p.noShow} не</span> : null}
+                        {p.reached}
+                        <span className="block text-[11px] text-[var(--color-text-tertiary)]">{pct(p.reachedPct)}</span>
                       </td>
-                      <td className={td}>{pct(p.showRate)}</td>
+                      <td className={td}>
+                        {p.booked}
+                        <span className="block text-[11px] text-[var(--color-text-tertiary)]">booking {pct(p.bookingRate)}</span>
+                        {p.completed + p.noShow > 0 ? (
+                          <span className="block text-[11px] text-[var(--color-text-tertiary)]">
+                            дошли {p.completed} · не {p.noShow}
+                          </span>
+                        ) : null}
+                      </td>
+                      <td className={td}>
+                        {p.held}
+                        {p.closerNoShow ? <span className="text-rose-300"> · {p.closerNoShow} не</span> : null}
+                        {p.closerUnmarked ? <span className="block text-[11px] text-amber-300">⚠️ {p.closerUnmarked} без изход</span> : null}
+                        {p.closerUpcoming ? <span className="block text-[11px] text-[var(--color-text-tertiary)]">предстоят {p.closerUpcoming}</span> : null}
+                      </td>
+                      <td className={td}>{pct(p.closerShowRate ?? p.showRate)}</td>
+                      <td className={td}>
+                        {p.dq + p.meetingDq}
+                        {p.dqPct !== null ? <span className="block text-[11px] text-[var(--color-text-tertiary)]">{pct(p.dqPct)} от вдигн.</span> : null}
+                        {p.meetingDq ? <span className="block text-[11px] text-[var(--color-text-tertiary)]">{p.meetingDq} на среща</span> : null}
+                      </td>
                       <td className={td}>{p.medianMinutes === null ? "—" : `${Math.round(p.medianMinutes)} мин`}</td>
                       <td className={td}>{p.queue}</td>
                       <td className={td}>{p.people}</td>
@@ -134,7 +169,67 @@ export default async function EkipatPage({ searchParams }: { searchParams: Promi
             Неразпределени отворени лийдове: <b className="text-[var(--color-text-secondary)]">{board.unrouted.count}</b>
             {board.unrouted.goesTo ? ` — излизат в опашката на ${board.unrouted.goesTo} („Стари и топли“).` : " — още няма сетър, който да ги поеме."}
           </p>
+          <details className="mt-3 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs text-[var(--color-text-secondary)]">
+            <summary className="cursor-pointer font-semibold">ℹ️ Как се смята всяко число</summary>
+            <ul className="mt-2 list-disc space-y-1 pl-4">
+              <li><b>Обаждания</b> — всеки изход, натиснат в картата (не вдигна, говорихме, не се интересува, DQ, грешен номер…). „Записах среща“ също е обаждане.</li>
+              <li><b>Вдигнали</b> — говорихме + не се интересува + DQ. Процентът е от обажданията с отбелязан изход.</li>
+              <li><b>Записа срещи</b> — срещите, които човекът е записал („Записах среща“). <b>Booking rate</b> = записани / вдигнали.</li>
+              <li><b>Води: дошли · не</b> — срещите, които човекът ВОДИ (клоузърът на картона), с час в периода. <b>Явяване</b> = дошли / (дошли + не дошли). Среща без отбелязан изход не влиза — отбележи я.</li>
+              <li><b>DQ</b> — неквалифицирани: бутонът „🚫 Неквалифициран (DQ)“ в картата (на разговора) и в срещата (проведена, но не е за програмата). DQ % = DQ / вдигнали. Целта е DQ да е колкото може по-нисък — значи рекламата води правилните хора.</li>
+              <li><b>Сделки</b> — „Спечелен“ в картона за периода, със сумата.</li>
+            </ul>
+          </details>
         </section>
+
+        {board.people.some((p) => p.daily.some((d) => d.calls + d.booked + d.held + d.noShow > 0)) && (
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">📋 Ден по ден · дневният отчет (EOD)</h2>
+            <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">Последните 10 дни на всеки човек — пише се само, от бутоните в картите. Няма какво да се попълва на ръка.</p>
+            <div className="mt-2 space-y-2">
+              {board.people
+                .filter((p) => p.daily.some((d) => d.calls + d.booked + d.held + d.noShow > 0))
+                .map((p) => (
+                  <details key={p.id} className="rounded-xl border border-white/10 px-3 py-2">
+                    <summary className="cursor-pointer text-sm font-semibold">
+                      {p.name}{" "}
+                      <span className="text-[11px] font-normal text-[var(--color-text-tertiary)]">
+                        · днес {p.daily[0]?.calls ?? 0} обаждания, {p.daily[0]?.booked ?? 0} записани, {p.daily[0]?.held ?? 0} дошли
+                      </span>
+                    </summary>
+                    <div className="mt-2 overflow-x-auto">
+                      <table className="w-full min-w-[520px] border-collapse">
+                        <thead>
+                          <tr className="border-b border-white/10">
+                            <th className={th}>Ден</th>
+                            <th className={th}>Обаждания</th>
+                            <th className={th}>Вдигнали</th>
+                            <th className={th}>Записани</th>
+                            <th className={th}>Дошли</th>
+                            <th className={th}>Не дошли</th>
+                            <th className={th}>DQ</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {p.daily.map((d) => (
+                            <tr key={d.day} className="border-b border-white/5">
+                              <td className="px-2 py-1.5 text-xs">{new Date(`${d.day}T12:00:00Z`).toLocaleDateString("bg-BG", { weekday: "short", day: "2-digit", month: "2-digit" })}</td>
+                              <td className={td}>{d.calls || "·"}</td>
+                              <td className={td}>{d.reached || "·"}</td>
+                              <td className={td}>{d.booked || "·"}</td>
+                              <td className={td}>{d.held || "·"}</td>
+                              <td className={td}>{d.noShow ? <span className="text-rose-300">{d.noShow}</span> : "·"}</td>
+                              <td className={td}>{d.dq || "·"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
+                ))}
+            </div>
+          </section>
+        )}
 
         <section className="grid gap-4 md:grid-cols-2">
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
@@ -271,8 +366,9 @@ export default async function EkipatPage({ searchParams }: { searchParams: Promi
           </ul>
           <p className="mt-2 text-[11px] text-[var(--color-text-tertiary)]">
             Клоузърът копира линка от картата на човека („💳 Линк за плащане“) — там имейлът е попълнен и плащането се познава по картона. Плащане с карта
-            през Stripe; разсрочено — през TBI.
+            през Stripe; на вноски — през TBI (долу).
           </p>
+          <TbiBox />
         </section>
 
         <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">

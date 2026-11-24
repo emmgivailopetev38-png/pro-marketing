@@ -348,6 +348,7 @@ export async function notifyOwnerHandoff(h: HandoffByTeam): Promise<void> {
 // ── Напомняне за недокоснат лийд ────────────────────────────────────────────
 
 import { createServiceClient } from "@/lib/supabase/service";
+import { allRows } from "@/lib/supabase/all-rows";
 import {
   MAX_AGE_MINUTES,
   REMINDER_EVENT_STATUS,
@@ -401,11 +402,19 @@ export async function runLeadReminders(opts: { now?: Date; force?: boolean } = {
   if (fresh.length === 0) return { ok: true, skipped: "nothing_due", reminded: 0, recipients: to.length };
 
   const ids = fresh.map((c) => c.id);
-  const [{ data: touched }, { data: sent }] = await Promise.all([
-    sb.from("contact_activities").select("contact_id").in("contact_id", ids).in("activity_type", ATTEMPT_TYPES),
+  const [{ rows: touched }, { data: sent }] = await Promise.all([
+    allRows<{ contact_id: string }>((from, to) =>
+      sb
+        .from("contact_activities")
+        .select("contact_id")
+        .in("contact_id", ids)
+        .in("activity_type", ATTEMPT_TYPES)
+        .order("id", { ascending: true })
+        .range(from, to)
+    ),
     sb.from("automation_events").select("idempotency_key").eq("event_type", "lead_reminder").gte("created_at", since),
   ]);
-  const touchedIds = new Set(((touched ?? []) as Array<{ contact_id: string }>).map((t) => t.contact_id));
+  const touchedIds = new Set(touched.map((t) => t.contact_id));
   const alreadySent = new Set(
     ((sent ?? []) as Array<{ idempotency_key: string | null }>).map((s) => s.idempotency_key ?? "").filter(Boolean)
   );

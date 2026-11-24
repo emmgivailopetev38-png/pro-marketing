@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { listActiveMembers, slugify } from "./repository";
 import { loadTasksFor } from "./tasks";
 import { napredakOutcome } from "./prospects-rules";
+import { phoneKey9 } from "./manager-rules";
 import type { TeamActor } from "./session";
 import type { TeamMember, TeamRole } from "./types";
 import {
@@ -43,21 +44,55 @@ function actorOf(m: TeamMember): TeamActor {
 
 async function loadPool(days: number, now: Date): Promise<{ pool: NapredakPool; members: TeamMember[] }> {
   const sb = createServiceClient();
-  // Два периода назад: текущият и предходният равен, за делтите.
-  const prevFrom = new Date(now.getTime() - 2 * days * 86_400_000).toISOString();
+  // Два периода назад: текущият и предходният равен, за делтите. Поне 10 дни —
+  // за дневния отчет (EOD) ден по ден.
+  const prevFrom = new Date(now.getTime() - Math.max(2 * days + 1, 11) * 86_400_000).toISOString();
 
-  const [{ data: teamRows }, { data: actRows }, { data: leadRows }, { data: bookingRows }, members, cold] = await Promise.all([
-    sb.from("team_members").select("full_name"),
+  // ⚠️ PostgREST връща най-много 1 000 реда на заявка и реже ТИХО. До 24.11.2026
+  // тук стоеше `.limit(20000)` → за 30 дни се четяха само най-старите 1 000
+  // действия (до 10.10), а всичко ново изчезваше от метриките. Сега — по страници.
+  const [{ data: teamRows }, acts, leadsRes, bookingsRes, ownedRes, members, cold] = await Promise.all([
+    sb.from("team_members").select("id, full_name"),
     // Без горна граница нарочно: срещата, записана днес за утре, стои с
     // утрешна дата — моментът на работата се взима после (actedAt).
-    sb
-      .from("contact_activities")
-      .select("contact_id, activity_type, occurred_at, created_at, created_by, metadata")
-      .gte("occurred_at", prevFrom)
-      .order("occurred_at", { ascending: true })
-      .limit(20000),
-    sb.from("contacts").select("id, created_at").gte("created_at", prevFrom).lte("created_at", now.toISOString()).limit(5000),
-    sb.from("bookings").select("id, status, scheduled_at, created_at, raw_payload").gte("created_at", prevFrom).limit(2000),
+    allRows<NapredakActivity & { id: string }>((from, to) =>
+      sb
+        .from("contact_activities")
+        .select("id, contact_id, activity_type, occurred_at, created_at, created_by, metadata")
+        .gte("occurred_at", prevFrom)
+        .order("occurred_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to)
+    ),
+    allRows<NapredakLead>((from, to) =>
+      sb
+        .from("contacts")
+        .select("id, created_at")
+        .gte("created_at", prevFrom)
+        .lte("created_at", now.toISOString())
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to)
+    ),
+    // Записаните в периода И тези с час в периода (за срещите, които клоузърът води).
+    allRows<Record<string, unknown>>((from, to) =>
+      sb
+        .from("bookings")
+        .select("id, status, scheduled_at, created_at, raw_payload, attendee_phone, attendee_email")
+        .or(`created_at.gte.${prevFrom},scheduled_at.gte.${prevFrom}`)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to)
+    ),
+    // Чий е картонът — за „кой води срещата“.
+    allRows<{ id: string; phone: string | null; email: string | null; owner_id: string | null }>((from, to) =>
+      sb
+        .from("contacts")
+        .select("id, phone, email, owner_id")
+        .not("owner_id", "is", null)
+        .order("id", { ascending: true })
+        .range(from, to)
+    ),
     listActiveMembers(),
     // Студените обаждания без картон („не вдигна“, „не се интересува“…) — те също
     // са обаждания. „Говорихме“ и „среща“ минават през картона, затова не са тук.
@@ -83,21 +118,38 @@ async function loadPool(days: number, now: Date): Promise<{ pool: NapredakPool; 
     })
   );
 
-  const bookings: NapredakBooking[] = ((bookingRows ?? []) as Array<Record<string, unknown>>).map((b) => ({
-    id: String(b.id),
-    status: String(b.status ?? ""),
-    scheduled_at: String(b.scheduled_at),
-    created_at: String(b.created_at),
-    notes: ((b.raw_payload as Record<string, unknown> | null)?.notes as string | null) ?? null,
-    moved: !!(b.raw_payload as Record<string, unknown> | null)?.moved_to,
-  }));
+  const team = (teamRows ?? []) as Array<{ id: string; full_name: string }>;
+  const nameById = new Map(team.map((t) => [t.id, t.full_name]));
+  const ownerByPhone = new Map<string, string>();
+  const ownerByEmail = new Map<string, string>();
+  for (const c of ownedRes.rows) {
+    const name = c.owner_id ? nameById.get(c.owner_id) : undefined;
+    if (!name) continue;
+    const k = phoneKey9(c.phone);
+    if (k) ownerByPhone.set(k, name);
+    if (c.email) ownerByEmail.set(c.email.trim().toLowerCase(), name);
+  }
+
+  const bookings: NapredakBooking[] = bookingsRes.rows.map((b) => {
+    const phone = phoneKey9((b.attendee_phone as string | null) ?? null);
+    const email = String(b.attendee_email ?? "").trim().toLowerCase();
+    return {
+      id: String(b.id),
+      status: String(b.status ?? ""),
+      scheduled_at: String(b.scheduled_at),
+      created_at: String(b.created_at),
+      notes: ((b.raw_payload as Record<string, unknown> | null)?.notes as string | null) ?? null,
+      moved: !!(b.raw_payload as Record<string, unknown> | null)?.moved_to,
+      closer: (phone ? ownerByPhone.get(phone) : undefined) ?? (email ? ownerByEmail.get(email) : undefined) ?? null,
+    };
+  });
 
   return {
     pool: {
-      activities: [...((actRows ?? []) as NapredakActivity[]), ...coldCalls].sort((a, b) => a.occurred_at.localeCompare(b.occurred_at)),
-      leads: (leadRows ?? []) as NapredakLead[],
+      activities: [...(acts.rows as NapredakActivity[]), ...coldCalls].sort((a, b) => a.occurred_at.localeCompare(b.occurred_at)),
+      leads: leadsRes.rows,
       bookings,
-      teamNames: ((teamRows ?? []) as Array<{ full_name: string }>).map((t) => t.full_name),
+      teamNames: team.map((t) => t.full_name),
     },
     members,
   };

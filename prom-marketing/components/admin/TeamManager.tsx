@@ -80,7 +80,7 @@ function ModuleToggles({ role, permissions }: { role: TeamRole; permissions: Tea
       <p className="mt-2 text-[11px] uppercase tracking-wider text-[var(--color-text-tertiary)]">Какво вижда в /ekip</p>
       <div className="mt-1 grid grid-cols-2 gap-1">
         {/* „Екипът“ е ниво (мениджър), не отметка — затова не е в списъка. */}
-        {TEAM_MODULES.filter((m) => m !== "ekipat").map((m: TeamModule) => {
+        {TEAM_MODULES.filter((m) => m !== "ekipat" && m !== "biznes").map((m: TeamModule) => {
           const initial = canSee({ role: r, permissions: r === role ? permissions : null }, m);
           return (
             <label key={`${r}-${m}`} className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)]">

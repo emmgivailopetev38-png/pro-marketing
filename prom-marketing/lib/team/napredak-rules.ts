@@ -47,6 +47,13 @@ export interface NapredakBooking {
   notes: string | null;
   /** преместена на друг час (raw_payload.moved_to) — броят се води от новия ред */
   moved?: boolean;
+  /**
+   * Кой ВОДИ срещата — името на клоузъра, чийто е картонът (owner_id), по
+   * телефона или имейла на записа. Без картон на човек от екипа → null (Ивайло).
+   * До 24.11.2026 проведените/неявилите се се броеше само на този, който е
+   * ЗАПИСАЛ срещата — клоузърът, който я води, виждаше 0 проведени.
+   */
+  closer?: string | null;
 }
 
 export interface NapredakLead {
@@ -80,8 +87,28 @@ export interface NapredakPool {
 
 // ── Периодът ────────────────────────────────────────────────────────────────
 
-export const PERIODS = [7, 30, 90] as const;
+/** 1 = „Днес“ (от полунощ в София) — дневният отчет в края на деня (EOD). */
+export const PERIODS = [1, 7, 30, 90] as const;
 export type Period = (typeof PERIODS)[number];
+
+/** „Днес“ / „7 дни“ — етикетът на бутона за периода. */
+export function periodLabel(days: number): string {
+  return days === 1 ? "Днес" : `${days} дни`;
+}
+
+/** Отместването на София спрямо UTC в минути за този момент (лято 180, зима 120). */
+function sofiaOffsetMinutes(at: Date): number {
+  const asTz = new Date(at.toLocaleString("en-US", { timeZone: "Europe/Sofia" }));
+  const asUtc = new Date(at.toLocaleString("en-US", { timeZone: "UTC" }));
+  return Math.round((asTz.getTime() - asUtc.getTime()) / 60_000);
+}
+
+/** Полунощ в София за деня на `now` — началото на „Днес“. */
+export function sofiaDayStart(now: Date): Date {
+  const key = dayKey(now);
+  const noonUtc = new Date(`${key}T12:00:00Z`);
+  return new Date(new Date(`${key}T00:00:00Z`).getTime() - sofiaOffsetMinutes(noonUtc) * 60_000);
+}
 
 /** `?d=30` → 30; всичко друго → подразбирането. */
 export function parsePeriod(v: string | string[] | undefined | null, fallback: Period = 30): Period {
@@ -158,7 +185,14 @@ export function bookedBy(b: Pick<NapredakBooking, "notes">, teamNames: string[])
 
 // ── Обажданията: какъв е бил изходът ────────────────────────────────────────
 
-export type CallOutcome = "talked" | "no_answer" | "not_interested" | "wrong_number" | "unknown";
+export type CallOutcome = "talked" | "no_answer" | "not_interested" | "wrong_number" | "dq" | "unknown";
+
+/**
+ * DQ — „неквалифициран“ (метриката на Рей, 24.11.2026): човекът вдигна и
+ * говорихте, но не е за програмата (няма бюджет, не решава, търси работа…).
+ * DQ % = DQ / вдигнали — колкото по-нисък, толкова по-точна е рекламата.
+ */
+export const DQ_OUTCOME = "dq";
 
 /** Бутоните от опашката, след които е имало истински разговор, стигнал донякъде. */
 export const TALKED_OUTCOMES = new Set(["callback", "talked", "will_call", "meeting", "handoff"]);
@@ -175,6 +209,7 @@ export function callOutcome(a: Pick<NapredakActivity, "metadata">): CallOutcome 
   if (m.kind === "dnevnik") return "talked";
   const o = typeof m.outcome === "string" ? m.outcome : "";
   if (!o) return "unknown";
+  if (o === DQ_OUTCOME || m.dq === true) return "dq";
   if (TALKED_OUTCOMES.has(o) || o.startsWith("answered") || o.startsWith("callback")) return "talked";
   // „Спираме да звъним“ е последното „не вдигна“ — брои се като такова.
   if (o === "no_answer" || o === "voicemail" || o === "give_up") return "no_answer";
@@ -241,11 +276,17 @@ export interface CallStats {
   calls: number;
   /** callback / talked / handoff / meeting / дневник */
   talked: number;
-  /** вдигнали: говорихме + „не се интересува“ */
+  /** вдигнали: говорихме + „не се интересува“ + неквалифицирани (DQ) */
   reached: number;
   noAnswer: number;
   notInterested: number;
   wrongNumber: number;
+  /** неквалифицирани на разговора (DQ) */
+  dq: number;
+  /** проведени срещи, отбелязани от водещия като неквалифицирани (DQ) */
+  meetingDq: number;
+  /** проведени срещи, отбелязани от водещия („✅ Проведена“ или DQ) */
+  meetingsHeld: number;
   /** обаждания без отбелязан изход */
   unknown: number;
   /** предадени на Ивайло */
@@ -276,6 +317,9 @@ export function emptyCallStats(): CallStats {
     noAnswer: 0,
     notInterested: 0,
     wrongNumber: 0,
+    dq: 0,
+    meetingDq: 0,
+    meetingsHeld: 0,
     unknown: 0,
     handoffs: 0,
     meetingsLogged: 0,
@@ -310,8 +354,16 @@ export function callStats(acts: NapredakActivity[]): CallStats {
         else if (o === "no_answer") s.noAnswer += 1;
         else if (o === "not_interested") s.notInterested += 1;
         else if (o === "wrong_number") s.wrongNumber += 1;
+        else if (o === "dq") s.dq += 1;
         else s.unknown += 1;
         if (isHandoff(a)) s.handoffs += 1;
+        break;
+      }
+      case "meeting_outcome": {
+        // Водещият отбелязва минала среща: ✅ проведена или 🚫 проведена, но неквалифициран.
+        const o = a.metadata?.outcome;
+        if (o === "completed" || o === DQ_OUTCOME) s.meetingsHeld += 1;
+        if (o === DQ_OUTCOME) s.meetingDq += 1;
         break;
       }
       case "meeting": {
@@ -344,7 +396,7 @@ export function callStats(acts: NapredakActivity[]): CallStats {
         break;
     }
   }
-  s.reached = s.talked + s.notInterested;
+  s.reached = s.talked + s.notInterested + s.dq;
   s.people = people.size;
   return s;
 }
@@ -391,6 +443,112 @@ export function meetingStats(bookings: NapredakBooking[], now: Date): MeetingSta
   const decided = s.completed + s.noShow;
   s.showRate = decided === 0 ? null : Math.round((s.completed / decided) * 100);
   return s;
+}
+
+/** Срещите, които човекът ВОДИ (клоузърът на картона) — по часа на срещата, не по записа. */
+export interface CloserStats {
+  /** срещи с час в периода, които води */
+  scheduled: number;
+  held: number;
+  noShow: number;
+  cancelled: number;
+  pastUnmarked: number;
+  /** с час след сега — независимо от периода */
+  upcoming: number;
+  /** дошли / (дошли + не дошли) */
+  showRate: number | null;
+}
+
+export function isCloserOf(b: Pick<NapredakBooking, "closer">, person: PersonRef): boolean {
+  if (person.kind === "owner") return !b.closer;
+  return !!b.closer && b.closer.trim().toLowerCase() === person.name.trim().toLowerCase();
+}
+
+export function closerStats(bookings: NapredakBooking[], person: PersonRef, w: Window, now: Date): CloserStats {
+  const s: CloserStats = { scheduled: 0, held: 0, noShow: 0, cancelled: 0, pastUnmarked: 0, upcoming: 0, showRate: null };
+  const nowMs = now.getTime();
+  for (const b of bookings) {
+    if (b.moved || !isCloserOf(b, person)) continue;
+    const at = ms(b.scheduled_at);
+    const live = !["completed", "no_show", "cancelled", "rejected"].includes(b.status);
+    if (at > nowMs) {
+      if (live) s.upcoming += 1;
+      continue;
+    }
+    if (!inWindow(b.scheduled_at, w)) continue;
+    s.scheduled += 1;
+    if (b.status === "completed") s.held += 1;
+    else if (b.status === "no_show") s.noShow += 1;
+    else if (b.status === "cancelled" || b.status === "rejected") s.cancelled += 1;
+    else s.pastUnmarked += 1;
+  }
+  const decided = s.held + s.noShow;
+  s.showRate = decided === 0 ? null : Math.round((s.held / decided) * 100);
+  return s;
+}
+
+/** Процент, закръглен; null при нула в знаменателя. */
+export function ratePct(part: number, whole: number): number | null {
+  return whole > 0 ? Math.round((part / whole) * 100) : null;
+}
+
+// ── Дневният отчет (EOD) ────────────────────────────────────────────────────
+
+export interface DailyRow {
+  day: string;
+  calls: number;
+  /** вдигнали */
+  reached: number;
+  /** записани срещи (от човека) */
+  booked: number;
+  /** срещи, които води: дошли / не дошли */
+  held: number;
+  noShow: number;
+  /** неквалифицирани — на разговора и на срещата */
+  dq: number;
+}
+
+/**
+ * Последните `days` дни ден по ден (по София), най-новият отгоре — EOD
+ * тракерът, който иска Рей: обаждания, вдигнали, записани, дошли, не дошли, DQ.
+ */
+export function dailyRows(args: {
+  mine: NapredakActivity[];
+  bookings: NapredakBooking[];
+  person: PersonRef;
+  teamNames: string[];
+  now: Date;
+  days?: number;
+}): DailyRow[] {
+  const days = args.days ?? 10;
+  const rows = new Map<string, DailyRow>();
+  const keys: string[] = [];
+  for (let i = 0; i < days; i++) {
+    const k = dayKey(new Date(args.now.getTime() - i * 86_400_000));
+    if (!rows.has(k)) {
+      rows.set(k, { day: k, calls: 0, reached: 0, booked: 0, held: 0, noShow: 0, dq: 0 });
+      keys.push(k);
+    }
+  }
+  for (const a of args.mine) {
+    const r = rows.get(dayKey(actedAt(a)));
+    if (!r) continue;
+    const one = callStats([a]);
+    r.calls += one.calls;
+    r.reached += one.reached;
+    r.dq += one.dq + one.meetingDq;
+  }
+  for (const b of args.bookings) {
+    if (b.moved) continue;
+    const created = rows.get(dayKey(b.created_at));
+    if (created && isBy(bookedBy(b, args.teamNames), args.person)) created.booked += 1;
+    const held = rows.get(dayKey(b.scheduled_at));
+    if (held && isCloserOf(b, args.person)) {
+      if (b.status === "completed") held.held += 1;
+      else if (b.status === "no_show") held.noShow += 1;
+    }
+  }
+  return keys.map((k) => rows.get(k)!);
 }
 
 // ── Задачите ────────────────────────────────────────────────────────────────
@@ -442,12 +600,22 @@ export function ownerTasksOf<T extends NapredakTask>(rows: T[]): T[] {
 export interface PeriodStats {
   volume: CallStats;
   meetings: MeetingStats;
+  /** срещите, които човекът води (клоузърът на картона) */
+  closer: CloserStats;
   speed: SpeedStats;
   tasksDone: number;
   /** говорихме / обаждания с отбелязан изход, в проценти */
   talkedPct: number | null;
   /** колко разговора („говорихме“) за една записана среща */
   perMeeting: number | null;
+  /** вдигнали / обаждания с отбелязан изход */
+  reachedPct: number | null;
+  /** записани срещи / вдигнали — booking rate */
+  bookingRate: number | null;
+  /** DQ на разговора / вдигнали */
+  dqPct: number | null;
+  /** DQ на срещата / проведени (от водещия) */
+  meetingDqPct: number | null;
 }
 
 export type DeltaKey = "calls" | "talked" | "meetings" | "people" | "tasksDone" | "messages" | "projectUpdates";
@@ -459,6 +627,8 @@ export interface PersonNapredak {
   deltas: Record<DeltaKey, number | null>;
   tasks: TaskStats;
   perDay: Array<{ day: string; n: number }>;
+  /** последните 10 дни ден по ден — EOD */
+  daily: DailyRow[];
   insights: string[];
 }
 
@@ -468,6 +638,12 @@ export interface AggregateContext {
 }
 
 export function windowsFor(ctx: AggregateContext): { cur: Window; prev: Window } {
+  if (ctx.days === 1) {
+    // „Днес“ = от полунощ в София до сега; предходният — вчера, цял ден.
+    const from = sofiaDayStart(ctx.now);
+    const prevFrom = sofiaDayStart(new Date(from.getTime() - 3_600_000));
+    return { cur: { from, to: ctx.now }, prev: { from: prevFrom, to: new Date(from.getTime() - 1) } };
+  }
   const from = new Date(ctx.now.getTime() - ctx.days * 86_400_000);
   const prevFrom = new Date(from.getTime() - ctx.days * 86_400_000);
   // Предходният период свършва миг преди да започне текущият.
@@ -513,13 +689,19 @@ function periodStats(args: {
   );
 
   const known = volume.calls - volume.unknown;
+  const closer = closerStats(args.bookings, args.person, w, args.now);
   return {
     volume,
     meetings,
+    closer,
     speed,
     tasksDone: tasksDoneBetween(args.tasks, w),
     talkedPct: known === 0 ? null : Math.round((volume.talked / known) * 100),
     perMeeting: meetings.booked === 0 || volume.talked === 0 ? null : round1(volume.talked / meetings.booked),
+    reachedPct: ratePct(volume.reached, known),
+    bookingRate: ratePct(meetings.booked, volume.reached),
+    dqPct: ratePct(volume.dq, volume.reached),
+    meetingDqPct: ratePct(volume.meetingDq, Math.max(volume.meetingsHeld, closer.held)),
   };
 }
 
@@ -550,6 +732,7 @@ export function personNapredak(pool: NapredakPool, person: PersonRef, mine: Napr
     },
     tasks: taskStats(tasks, ctx.now, cur),
     perDay: perDay(actions, cur.from, cur.to),
+    daily: dailyRows({ mine, bookings: pool.bookings, person, teamNames: pool.teamNames, now: ctx.now }),
     insights: [],
   };
   out.insights = insightsFor(out);
@@ -562,8 +745,16 @@ export interface TeamRow {
   person: PersonRef;
   calls: number;
   talked: number;
+  /** вдигнали (говорихме + не се интересува + DQ) */
+  reached: number;
   meetings: number;
   showRate: number | null;
+  /** срещи, които води: дошли / явяване */
+  held: number;
+  closerShowRate: number | null;
+  /** неквалифицирани (разговор + среща) и DQ % от вдигналите */
+  dq: number;
+  dqPct: number | null;
   medianMinutes: number | null;
   people: number;
   tasksDone: number;
@@ -578,8 +769,13 @@ export function teamRowOf(p: PersonNapredak): TeamRow {
     person: p.person,
     calls: p.cur.volume.calls,
     talked: p.cur.volume.talked,
+    reached: p.cur.volume.reached,
     meetings: p.cur.meetings.booked,
     showRate: p.cur.meetings.showRate,
+    held: p.cur.closer.held,
+    closerShowRate: p.cur.closer.showRate,
+    dq: p.cur.volume.dq + p.cur.volume.meetingDq,
+    dqPct: p.cur.dqPct,
     medianMinutes: p.cur.speed.medianMinutes,
     people: p.cur.volume.people,
     tasksDone: p.cur.tasksDone,
@@ -589,7 +785,7 @@ export function teamRowOf(p: PersonNapredak): TeamRow {
 }
 
 function hasWork(r: TeamRow): boolean {
-  return r.calls + r.meetings + r.tasksDone + r.projectUpdates + r.people > 0;
+  return r.calls + r.meetings + r.held + r.tasksDone + r.projectUpdates + r.people > 0;
 }
 
 /**
@@ -607,8 +803,13 @@ export function teamAverage(rows: TeamRow[]): TeamAverage | null {
   return {
     calls: mean((r) => r.calls) ?? 0,
     talked: mean((r) => r.talked) ?? 0,
+    reached: mean((r) => r.reached) ?? 0,
     meetings: mean((r) => r.meetings) ?? 0,
     showRate: mean((r) => r.showRate),
+    held: mean((r) => r.held) ?? 0,
+    closerShowRate: mean((r) => r.closerShowRate),
+    dq: mean((r) => r.dq) ?? 0,
+    dqPct: mean((r) => r.dqPct),
     medianMinutes: mean((r) => r.medianMinutes),
     people: mean((r) => r.people) ?? 0,
     tasksDone: mean((r) => r.tasksDone) ?? 0,
@@ -701,7 +902,8 @@ export function insightsFor(p: PersonNapredak): string[] {
   const out: string[] = [];
   const { cur, prev, tasks } = p;
   const v = cur.volume;
-  const nothing = v.calls + v.people + cur.meetings.booked + cur.tasksDone + v.projectUpdates + v.notes + v.messages === 0;
+  const nothing =
+    v.calls + v.people + cur.meetings.booked + cur.closer.scheduled + cur.closer.upcoming + cur.tasksDone + v.projectUpdates + v.notes + v.messages === 0;
   if (nothing) {
     out.push("Още няма записани действия за този период.");
     if (tasks.overdue > 0) out.push(`${plural(tasks.overdue, "просрочена задача", "просрочени задачи")}.`);
@@ -738,7 +940,22 @@ export function insightsFor(p: PersonNapredak): string[] {
   }
 
   if (cur.meetings.showRate !== null) {
-    out.push(`Явяемост ${cur.meetings.showRate}% — ${cur.meetings.completed} проведени, ${cur.meetings.noShow} не се явиха.`);
+    out.push(`Явяемост на записаните от теб: ${cur.meetings.showRate}% — ${cur.meetings.completed} проведени, ${cur.meetings.noShow} не се явиха.`);
+  }
+  if (cur.closer.scheduled > 0) {
+    out.push(
+      `Срещи, които водиш: ${cur.closer.held} дошли, ${cur.closer.noShow} не дошли${cur.closer.showRate !== null ? ` (явяване ${cur.closer.showRate}%)` : ""}${
+        cur.closer.pastUnmarked > 0 ? `, ${cur.closer.pastUnmarked} без отбелязан изход` : ""
+      }.`
+    );
+  }
+  if (cur.closer.upcoming > 0) out.push(`Предстоящи срещи, които водиш: ${cur.closer.upcoming}.`);
+  if (v.dq + v.meetingDq > 0) {
+    const parts = [
+      v.dq > 0 ? `${v.dq} на разговора${cur.dqPct !== null ? ` (${cur.dqPct}% от вдигналите)` : ""}` : null,
+      v.meetingDq > 0 ? `${v.meetingDq} на срещата${cur.meetingDqPct !== null ? ` (${cur.meetingDqPct}% от проведените)` : ""}` : null,
+    ].filter(Boolean);
+    out.push(`Неквалифицирани (DQ): ${parts.join(", ")}.`);
   }
   // Предстоящите се виждат в панела „Срещи“; тук само това, което иска действие.
   if (cur.meetings.pastUnmarked > 0) {
