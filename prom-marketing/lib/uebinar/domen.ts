@@ -37,6 +37,13 @@ export function podaraciRewrite(pathname: string, search = ""): string | null {
  */
 export const UEBINAR_PIXEL_ID = "29198929629764170";
 
+/**
+ * Иконите на уебинара (снимката на Ивайло), манифестът и картинката при
+ * споделяне — public/ivailo/. Имената са нови (ikona*), за да не взима
+ * браузърът старата иконка на Pro Marketing от кеша си.
+ */
+export const IVAILO_ASSETS = "/ivailo";
+
 function chistHost(host: string | null | undefined): string {
   return (host ?? "").trim().toLowerCase().replace(/:\d+$/, "");
 }
@@ -78,5 +85,7 @@ export function uebinarHostAction(host: string, pathname: string, search = ""): 
     return { kind: "redirect", to: `${UEBINAR_ORIGIN}${chist}${search}`, status: 307 };
   }
   if (pathname.startsWith("/api/") || pathname.startsWith("/_next/")) return { kind: "next" };
+  // Иконите, манифестът и картинката при споделяне на уебинара (public/ivailo/).
+  if (pathname.startsWith(`${IVAILO_ASSETS}/`)) return { kind: "next" };
   return { kind: "redirect", to: `${GLAVEN_ORIGIN}${pathname}${search}`, status: 307 };
 }

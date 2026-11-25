@@ -45,6 +45,9 @@ describe("ivailopetev.com — домейнът на уебинара", () => {
   it("формата и файловете на Next минават, останалите страници са на основния сайт", () => {
     expect(uebinarHostAction("ivailopetev.com", "/api/uebinar/register")).toEqual({ kind: "next" });
     expect(uebinarHostAction("ivailopetev.com", "/_next/data/x.json")).toEqual({ kind: "next" });
+    // иконите и манифестът на уебинара остават на домейна (не отиват на promarketing.pw)
+    expect(uebinarHostAction("ivailopetev.com", "/ivailo/manifest.webmanifest")).toEqual({ kind: "next" });
+    expect(uebinarHostAction("ivailopetev.com", "/ivailo/ikona.ico")).toEqual({ kind: "next" });
     expect(uebinarHostAction("ivailopetev.com", "/admin")).toEqual({
       kind: "redirect",
       to: `${GLAVEN_ORIGIN}/admin`,
