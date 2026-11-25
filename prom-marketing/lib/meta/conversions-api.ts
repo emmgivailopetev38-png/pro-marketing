@@ -60,9 +60,17 @@ export function isCapiConfigured(): boolean {
 /**
  * Send a single Conversions API event. Hashes PII server-side per Meta's
  * requirements. Returns the API response or an { error } object.
+ *
+ * `target` праща към друг пиксел/токен (напр. пиксела на уебинара);
+ * без него — към основния пиксел с META_CAPI_TOKEN.
  */
-export async function sendCapiEvent(event: ServerEvent): Promise<{ ok: boolean; data?: unknown; error?: string }> {
-  if (!isCapiConfigured()) {
+export async function sendCapiEvent(
+  event: ServerEvent,
+  target?: { pixelId: string; token: string },
+): Promise<{ ok: boolean; data?: unknown; error?: string }> {
+  const pixelId = target?.pixelId ?? PIXEL_ID;
+  const token = target?.token ?? CAPI_TOKEN;
+  if (!pixelId || !token) {
     return { ok: false, error: "Meta CAPI not configured (missing pixel id or token)" };
   }
   const u = event.user_data ?? {};
@@ -102,11 +110,12 @@ export async function sendCapiEvent(event: ServerEvent): Promise<{ ok: boolean; 
 
   try {
     const res = await fetch(
-      `${GRAPH_BASE}/${PIXEL_ID}/events?access_token=${CAPI_TOKEN}`,
+      `${GRAPH_BASE}/${pixelId}/events?access_token=${token}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(8000),
       }
     );
     const data = await res.json();

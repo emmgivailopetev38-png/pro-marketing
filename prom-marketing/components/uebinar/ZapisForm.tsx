@@ -70,6 +70,8 @@ export function ZapisForm({
     setState("sending");
     const q = new URLSearchParams(window.location.search);
     const pick = (k: string) => q.get(k) || undefined;
+    // Един и същ event_id за пиксела в браузъра и за сървъра (Conversions API).
+    const eventId = newEventId();
     try {
       const r = await fetch("/api/uebinar/register", {
         method: "POST",
@@ -85,6 +87,7 @@ export function ZapisForm({
           utm_content: pick("utm_content"),
           utm_term: pick("utm_term"),
           fbclid: pick("fbclid"),
+          event_id: eventId,
           website,
         }),
       });
@@ -92,7 +95,7 @@ export function ZapisForm({
       setState("done");
       track("uebinar_registered", { uebinar: slug });
       pixelTrack("CompleteRegistration", {
-        eventID: newEventId(),
+        eventID: eventId,
         params: { content_name: `uebinar-${slug}`, status: "registered" },
       });
     } catch {

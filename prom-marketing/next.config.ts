@@ -65,13 +65,26 @@ const nextConfig: NextConfig = {
   },
 
   async rewrites() {
-    return [
-      // Самостоятелна статична страница (Велко) — обслужва се от public/velko/index.html.
-      // Скоупната само за /velko; не засяга нито един app/CRM маршрут.
-      { source: "/velko", destination: "/velko/index.html" },
-      // Демото за Арт Сувенири (Бургас) е статична страница — виж /oferta/art-suveniri.
-      { source: "/oferta/art-suveniri/demo", destination: "/oferta/art-suveniri/demo/index.html" },
-    ];
+    // ivailopetev.com (уебинарът): иконката в таба и на телефона е Ивайло,
+    // не логото на Pro Marketing. Адресите в страницата са същите
+    // (/favicon.ico, /icon.png, /apple-icon.png) — сменя се само какво връщат
+    // на този домейн. beforeFiles, защото иначе файловете от app/ печелят.
+    const ivailoIkoni = ["favicon.ico", "icon.png", "apple-icon.png"].map((f) => ({
+      source: `/${f}`,
+      has: [{ type: "host" as const, value: "ivailopetev.com" }],
+      destination: `/ivailo/${f}`,
+    }));
+    return {
+      beforeFiles: ivailoIkoni,
+      afterFiles: [
+        // Самостоятелна статична страница (Велко) — обслужва се от public/velko/index.html.
+        // Скоупната само за /velko; не засяга нито един app/CRM маршрут.
+        { source: "/velko", destination: "/velko/index.html" },
+        // Демото за Арт Сувенири (Бургас) е статична страница — виж /oferta/art-suveniri.
+        { source: "/oferta/art-suveniri/demo", destination: "/oferta/art-suveniri/demo/index.html" },
+      ],
+      fallback: [],
+    };
   },
 
   async headers() {
