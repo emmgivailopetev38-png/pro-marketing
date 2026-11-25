@@ -106,9 +106,14 @@ export default async function KalendarPage({ searchParams }: { searchParams: Pro
   const upcoming = groupByDay(list.filter((m) => m.at >= nowIso && isLive(m.status)));
   const past = list.filter((m) => m.at < nowIso).sort((a, b) => b.at.localeCompare(a.at));
   const unmarked = past.filter((m) => isLive(m.status)).length;
+  // Целият екип (25.11.2026): клоузърите (водят срещи) и сетърите (звънят) — всеки със своя график.
+  const people = [
+    ...data.closers.map((c) => ({ id: c.id, name: c.name, org: c.org, grafik: c.grafik, role: "sales" as const })),
+    ...data.setters.map((x) => ({ id: x.id, name: x.name, org: x.org, grafik: x.grafik, role: "setter" as const })),
+  ];
   const busy = busyByCloser(
     data.meetings.filter((m) => m.closerId && closerIds.has(m.closerId)),
-    data.closers,
+    people,
     now
   );
   const me = actor.kind === "member" ? actor.member : null;
@@ -116,8 +121,13 @@ export default async function KalendarPage({ searchParams }: { searchParams: Pro
   const feed = isCloser ? null : feedUrlFor(me ? me.id : "owner");
   const webcal = feed ? feed.replace(/^https:/, "webcal:") : null;
   const canOpen = allowed(actor, "zvanene");
-  const grafikOf = isCloser ? data.closers.find((c) => c.id === me!.id) ?? null : actor.kind === "owner" || me?.role === "manager" ? data.closers.find((c) => c.id === sp.g) ?? data.closers[0] ?? null : null;
-  const grafikMeetings = grafikOf
+  const ownGrid = !!me && (me.role === "sales" || me.role === "setter");
+  const seesTeam = actor.kind === "owner" || me?.role === "manager";
+  const grafikOf = ownGrid ? people.find((x) => x.id === me!.id) ?? null : seesTeam ? people.find((x) => x.id === sp.g) ?? people[0] ?? null : null;
+  const orgOf = (o?: string | null) => (o ?? "").trim() || "promarketing";
+  const canEditGrid =
+    !!grafikOf && (ownGrid || actor.kind === "owner" || (me?.role === "manager" && orgOf(me.org) === orgOf(grafikOf.org)));
+  const grafikMeetings = grafikOf && grafikOf.role === "sales"
     ? data.meetings
         .filter((m) => m.closerId === grafikOf.id && isLive(m.status) && new Date(m.at).getTime() > now.getTime() - 3_600_000)
         .map((m) => ({ at: m.at, minutes: m.minutes, name: m.name }))
@@ -160,20 +170,22 @@ export default async function KalendarPage({ searchParams }: { searchParams: Pro
           <section className="rounded-2xl border border-emerald-400/30 bg-emerald-500/[0.05] p-4">
             <div className="flex flex-wrap items-end justify-between gap-2">
               <div>
-                <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">🗓 {isCloser ? "Моят график" : `Графикът на ${grafikOf.name}`}</h2>
+                <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">🗓 {ownGrid ? "Моят график" : `Графикът на ${grafikOf.name}`}</h2>
                 <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">
-                  {isCloser
-                    ? "Кога можеш да водиш срещи. Цъкни часовете — записва се само, а сетърът записва срещи само в тях."
-                    : actor.kind === "owner"
-                      ? "Кога клоузърът може да води срещи. Можеш да го нагласиш вместо него."
-                      : "Кога клоузърът може да води срещи — нагласява си го сам."}
+                  {ownGrid
+                    ? grafikOf.role === "sales"
+                      ? "Кога можеш да водиш срещи. Цъкни часовете — записва се само, а сетърът записва срещи само в тях."
+                      : "Кога си на линия и звъниш. Цъкни часовете — записва се само, а екипът вижда кога си на линия."
+                    : `${grafikOf.role === "sales" ? "💼 Клоузър — кога може да води срещи." : "📞 Сетър — кога е на линия и звъни."} ${
+                        canEditGrid ? "Можеш да го нагласиш вместо него." : "Нагласява си го сам."
+                      }`}
                 </p>
               </div>
-              {!isCloser && data.closers.length > 1 && (
+              {!ownGrid && people.length > 1 && (
                 <nav className="flex flex-wrap gap-1.5" aria-label="Чий график">
-                  {data.closers.map((c) => (
-                    <Link key={c.id} href={`/ekip/kalendar?g=${c.id}`} className={chip(c.id === grafikOf.id)}>
-                      {c.name}
+                  {people.map((x) => (
+                    <Link key={x.id} href={`/ekip/kalendar?g=${x.id}`} className={chip(x.id === grafikOf.id)}>
+                      {x.role === "sales" ? "💼" : "📞"} {x.name}
                     </Link>
                   ))}
                 </nav>
@@ -187,8 +199,9 @@ export default async function KalendarPage({ searchParams }: { searchParams: Pro
                 initial={grafikOf.grafik}
                 meetings={grafikMeetings}
                 nowIso={nowIso}
-                editable={isCloser || actor.kind === "owner"}
-                self={isCloser}
+                editable={canEditGrid}
+                self={ownGrid}
+                role={grafikOf.role}
               />
             </div>
           </section>
@@ -205,9 +218,9 @@ export default async function KalendarPage({ searchParams }: { searchParams: Pro
               <thead>
                 <tr className="border-b border-white/10 text-left text-[10px] uppercase tracking-wider text-[var(--color-text-tertiary)]">
                   <th className="px-2 py-2">Ден</th>
-                  {data.closers.map((c) => (
-                    <th key={c.id} className="px-2 py-2">
-                      {c.name}
+                  {people.map((x) => (
+                    <th key={x.id} className="px-2 py-2">
+                      {x.role === "sales" ? "💼" : "📞"} {x.name}
                     </th>
                   ))}
                 </tr>
@@ -226,7 +239,7 @@ export default async function KalendarPage({ searchParams }: { searchParams: Pro
                           <span className="text-rose-300/80">не е на линия</span>
                         )}
                         <span className="block text-[var(--color-text-secondary)]">
-                          {s.times.length ? `срещи: ${s.times.join(" · ")}` : s.hours === "" ? "" : "няма срещи"}
+                          {s.times.length ? `срещи: ${s.times.join(" · ")}` : s.hours === "" || s.role === "setter" ? "" : "няма срещи"}
                         </span>
                       </td>
                     ))}
@@ -236,6 +249,7 @@ export default async function KalendarPage({ searchParams }: { searchParams: Pro
             </table>
           </div>
           {data.closers.length === 0 && <p className="mt-2 text-sm text-[var(--color-text-secondary)]">Още няма клоузър с вход.</p>}
+          <p className="mt-2 text-[11px] text-[var(--color-text-tertiary)]">💼 клоузър (води срещите) · 📞 сетър (звъни). Всеки си нагласява часовете в „🗓 Моят график“ горе.</p>
         </section>
 
         <section className={card}>
