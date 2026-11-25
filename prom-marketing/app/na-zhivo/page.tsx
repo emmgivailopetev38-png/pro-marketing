@@ -27,6 +27,17 @@ export const metadata: Metadata = {
   title: { absolute: NA_ZHIVO.meta.title },
   description: NA_ZHIVO.meta.description,
   applicationName: "Ивайло Петев",
+  // Иконката в таба и на телефона: Ивайло, с нови адреси (без стария кеш на браузъра).
+  icons: {
+    icon: [
+      { url: "/ivailo/ikona.ico", sizes: "48x48", type: "image/x-icon" },
+      { url: "/ivailo/ikona-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/ivailo/ikona-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    shortcut: "/ivailo/ikona.ico",
+    apple: [{ url: "/ivailo/ikona-apple-180.png", sizes: "180x180", type: "image/png" }],
+  },
+  manifest: "/ivailo/manifest.webmanifest",
   openGraph: {
     title: NA_ZHIVO.meta.title,
     description: NA_ZHIVO.meta.description,
