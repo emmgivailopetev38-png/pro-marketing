@@ -83,16 +83,17 @@ export function isLive(status: string): boolean {
  */
 export function busyByCloser(
   meetings: CalMeeting[],
-  closers: Array<{ id: string; name: string; grafik?: Grafik | null }>,
+  closers: Array<{ id: string; name: string; grafik?: Grafik | null; role?: "sales" | "setter" }>,
   now: Date,
   days = 7
-): Array<{ day: string; slots: Array<{ closer: string; times: string[]; hours: string | null }> }> {
-  const out: Array<{ day: string; slots: Array<{ closer: string; times: string[]; hours: string | null }> }> = [];
+): Array<{ day: string; slots: Array<{ closer: string; times: string[]; hours: string | null; role: "sales" | "setter" }> }> {
+  const out: Array<{ day: string; slots: Array<{ closer: string; times: string[]; hours: string | null; role: "sales" | "setter" }> }> = [];
   for (let i = 0; i < days; i++) {
     const day = dayKey(new Date(now.getTime() + i * 86_400_000));
     const slots = closers.map((c) => ({
       closer: c.name,
       hours: c.grafik ? hoursLabel(hoursFor(c.grafik, day)) : null,
+      role: c.role ?? "sales",
       times: meetings
         .filter((m) => m.closerId === c.id && isLive(m.status) && dayKey(m.at) === day && new Date(m.at).getTime() > now.getTime() - 3_600_000)
         .sort((a, b) => a.at.localeCompare(b.at))

@@ -52,7 +52,9 @@ export function GrafikGrid({
   nowIso,
   editable,
   self,
+  role = "sales",
 }: {
+  role?: "sales" | "setter";
   memberId: string;
   name: string;
   initial: Grafik | null;
@@ -153,16 +155,26 @@ export function GrafikGrid({
 
       {!g ? (
         <p className="mt-2 rounded-xl border border-amber-400/30 bg-amber-400/10 p-2.5 text-xs text-amber-100">
-          {self ? "Още нямаш график" : `${name} още няма график`} — сега сетърът може да запише среща по всяко време от 10:00.{" "}
+          {self ? "Още нямаш график" : `${name} още няма график`} —{" "}
+          {role === "sales" ? "сега сетърът може да запише среща по всяко време от 10:00." : "екипът не знае кога си на линия."}{" "}
           {editable ? "Избери готова седмица или цъкни часовете отдолу — записва се само." : ""}
         </p>
       ) : !hasAnyHour(g) ? (
         <p className="mt-2 rounded-xl border border-rose-400/30 bg-rose-400/10 p-2.5 text-xs text-rose-100">
-          ⚠️ Няма нито един час на линия — сетърът не може да запише среща на {who}. Цъкни поне няколко часа.
+          ⚠️ Няма нито един час на линия —{" "}
+          {role === "sales" ? `сетърът не може да запише среща на ${who}.` : "екипът ще те вижда като „не е на линия“."} Цъкни поне няколко часа.
         </p>
       ) : (
         <p className="mt-2 text-xs text-[var(--color-text-secondary)]">
-          <b className="text-emerald-300">Зелено</b> = на линия за срещи. Сетърът записва срещи само в зелените часове и вижда свободните под „Записах среща“.{" "}
+          {role === "sales" ? (
+            <>
+              <b className="text-emerald-300">Зелено</b> = на линия за срещи. Сетърът записва срещи само в зелените часове и вижда свободните под „Записах среща“.{" "}
+            </>
+          ) : (
+            <>
+              <b className="text-emerald-300">Зелено</b> = на линия (звъниш). Целият екип вижда кога си на линия в „Кой кога е на линия“.{" "}
+            </>
+          )}
           {editable ? "Цъкни клетка, за да я смениш (с мишката може и да влачиш)." : ""}
         </p>
       )}
@@ -335,7 +347,7 @@ export function GrafikGrid({
 
       {editable && g && (
         <button type="button" onClick={removeAll} className="mt-3 text-[11px] text-[var(--color-text-tertiary)] underline">
-          Махни графика (могат да {self ? "те" : "го"} записват по всяко време от 10:00)
+          {role === "sales" ? `Махни графика (могат да ${self ? "те" : "го"} записват по всяко време от 10:00)` : "Махни графика"}
         </button>
       )}
     </div>

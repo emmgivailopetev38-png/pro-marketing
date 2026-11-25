@@ -15,6 +15,8 @@ import type { TeamMember } from "./types";
 export interface CalendarData {
   meetings: CalMeeting[];
   closers: Array<{ id: string; name: string; meetUrl: string | null; org: string; grafik: Grafik | null }>;
+  /** сетърите с графика си — кога са на линия (звънят) */
+  setters: Array<{ id: string; name: string; org: string; grafik: Grafik | null }>;
   members: TeamMember[];
 }
 
@@ -96,14 +98,18 @@ export async function loadCalendar(now: Date = new Date(), daysBack = 7, daysAhe
       };
     });
 
+  const today = now.toLocaleDateString("sv-SE", { timeZone: "Europe/Sofia" });
   return {
     meetings,
+    setters: members
+      .filter((m) => m.active && m.role === "setter")
+      .map((m) => ({ id: m.id, name: m.full_name, org: (m.org ?? "").trim() || "promarketing", grafik: readGrafik(m.availability ?? null, today) })),
     closers: closerList.map((m) => ({
       id: m.id,
       name: m.full_name,
       meetUrl: meetUrlFor(m, defaultId),
       org: (m.org ?? "").trim() || "promarketing",
-      grafik: readGrafik(m.availability ?? null, now.toLocaleDateString("sv-SE", { timeZone: "Europe/Sofia" })),
+      grafik: readGrafik(m.availability ?? null, today),
     })),
     members,
   };

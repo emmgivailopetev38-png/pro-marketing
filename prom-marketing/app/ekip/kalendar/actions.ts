@@ -31,8 +31,10 @@ export async function saveMeetUrlAction(_prev: EkipActionResult | null, formData
 }
 
 /**
- * „🗓 Моят график“ — записва се при всяко цъкване (25.11.2026, Теодор). Клоузърът
- * пипа своя; Ивайло — на всеки клоузър. `grafik: null` = без график (както досега).
+ * „🗓 Моят график“ — записва се при всяко цъкване (25.11.2026, Теодор; Ивайло: „и на
+ * клоузърите, и на сетърите — на целия екип да им е лесно“). Клоузърът и сетърът пипат
+ * своя; Ивайло — на всеки; мениджърът — на хората от своята фирма.
+ * `grafik: null` = без график (както досега).
  */
 export async function saveGrafikAction(input: { memberId?: string | null; grafik: unknown }): Promise<EkipActionResult> {
   let actor;
@@ -41,12 +43,14 @@ export async function saveGrafikAction(input: { memberId?: string | null; grafik
   } catch {
     return { ok: false, error: "Сесията е изтекла — влез отново." };
   }
-  let targetId: string | null = null;
-  if (actor.kind === "member" && actor.member.role === "sales") targetId = actor.member.id;
-  else if (actor.kind === "owner") targetId = input.memberId ?? null;
-  if (!targetId) return { ok: false, error: "Графикът се нагласява от профила на клоузъра." };
+  const own = actor.kind === "member" && (actor.member.role === "sales" || actor.member.role === "setter");
+  const targetId = own ? actor.member!.id : (input.memberId ?? null);
+  if (!targetId) return { ok: false, error: "Графикът се нагласява от профила на човека." };
   const target = await getMemberById(targetId).catch(() => null);
-  if (!target || !target.active || target.role !== "sales") return { ok: false, error: "Няма такъв клоузър." };
+  if (!target || !target.active || (target.role !== "sales" && target.role !== "setter")) return { ok: false, error: "Няма такъв човек в екипа." };
+  const orgOf = (m: { org?: string | null }) => (m.org ?? "").trim() || "promarketing";
+  const may = own || actor.kind === "owner" || (actor.kind === "member" && actor.member.role === "manager" && orgOf(actor.member) === orgOf(target));
+  if (!may) return { ok: false, error: "Графика го нагласява самият човек (или Ивайло)." };
   const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Sofia" });
   const grafik = input.grafik === null ? null : readGrafik(input.grafik, today) ?? { week: {}, days: {} };
   const r = await updateMember(targetId, { availability: grafik });
