@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 /**
- * Webhook за Viber канала „AI България · Пари с AI“ (Viber Post API).
+ * Webhook за Viber канала „Ивайло Петев · Допълнителен доход с AI“ (до 25.11 „AI България · Пари с AI“; Viber Post API).
  *
  * Viber не публикува в канала (status 10 „webhookNotSet“), докато каналът няма
  * webhook, който отговаря с HTTP 200. Събитията от канала не ни трябват —

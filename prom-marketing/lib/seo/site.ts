@@ -23,7 +23,7 @@ export const SITE_URL = "https://promarketing.pw";
    ⚠️ LinkedIn НЯМА нарочно — в репото няма реален адрес на профила му, а
    измислен адрес в `sameAs` е по-лош от липсващ. Добавя се тук, щом има.
    --------------------------------------------------------------------- */
-/** Поканата за Viber канала „AI България · Пари с AI“ — ползва се и от пренасочването /viber. */
+/** Поканата за Viber канала „Ивайло Петев · Допълнителен доход с AI“ (до 25.11 „AI България · Пари с AI“) — ползва се и от пренасочването /viber. */
 export const VIBER_KANAL =
   "https://invite.viber.com/?g2=AQAqzZ05GRKnLVdWtuxQm%2FpaRecgu2KbzUByCyptRY7b8fkm5KfWqkJNJ%2Fldl9ts";
 
@@ -96,7 +96,7 @@ export const SOCIAL_PROFILES: readonly SocialProfile[] = [
     key: "viber-kanal",
     brand: "viber",
     label: "Viber канал",
-    handle: "AI България · Пари с AI",
+    handle: "Ивайло Петев · Допълнителен доход с AI",
     href: VIBER_KANAL,
     sameAs: [],
   },

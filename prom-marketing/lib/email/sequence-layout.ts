@@ -11,7 +11,7 @@ export const SITE = "https://www.promarketing.pw";
 /** Petev.ai — платформата на Ивайло; по правило стои до promarketing.pw във всеки подпис. */
 export const PETEVAI_URL = "https://petevai.com";
 export const YT = "https://www.youtube.com/@promarketingbg";
-/** Viber каналът „AI България · Пари с AI“ (20.10.2026) — кратък адрес, сочи към поканата. */
+/** Viber каналът „Ивайло Петев · Допълнителен доход с AI“ (от 20.10.2026; до 25.11 „AI България · Пари с AI“) — кратък адрес, сочи към поканата. */
 export const VIBER_URL = "https://promarketing.pw/viber";
 export const PHONE = "+359 877 399 963";
 
