@@ -10,6 +10,10 @@
    25.11.2026 вечер · дизайнът по „Дизайн правила“ на Стефчо: червено САМО по бутоните,
    една гама (топли неутрални: почти черно, топло сиво, бяло), без емоджита пред редове
    и в заглавия, без цветни ленти, сенки и светене, без тирета в текста.
+   25.11.2026 20:24 · Стефчо: „много монотонна цветово… в зелената цветова гама… да се
+   чете по-лесно… визуално като се раздели“ → секциите се редуват: светло зелено (главна
+   част) · бяло (тайните) · тъмно зелено (подаръци) · светло зелено (доказателство) ·
+   бяло (авторитет) · светло зелено (въпроси) · тъмно зелено (последна секция).
    Сървърен компонент; единственият клиентски остров е формата (ZapisForm).
 --------------------------------------------------------------------------- */
 import Image from "next/image";
@@ -78,7 +82,7 @@ export function NaZhivoLanding() {
             <div className="nz-photo">
               <Image
                 src="/images/ivailo/IMG_7318.jpeg"
-                alt={`${c.host} — водещ на обучението`}
+                alt={`${c.host}, водещ на обучението`}
                 width={896}
                 height={1152}
                 sizes="(min-width: 900px) 380px, 86vw"
@@ -135,7 +139,7 @@ export function NaZhivoLanding() {
         </section>
 
         {/* 4 · Доказателство */}
-        <section className="nz-sec">
+        <section className="nz-sec nz-soft">
           <div className="nz-wrap nz-center">
             <p className="nz-kicker">{c.dokazatelstvo.kicker}</p>
             <h2 className="nz-h2">{c.dokazatelstvo.title}</h2>
@@ -191,7 +195,7 @@ export function NaZhivoLanding() {
         </section>
 
         {/* 5 · Авторитет */}
-        <section className="nz-sec nz-soft">
+        <section className="nz-sec">
           <div className="nz-wrap nz-two nz-two-rev">
             <div>
               <h2 className="nz-h2">
@@ -225,7 +229,7 @@ export function NaZhivoLanding() {
         </section>
 
         {/* 6 · Често задавани въпроси */}
-        <section className="nz-sec">
+        <section className="nz-sec nz-soft">
           <div className="nz-wrap nz-narrow">
             <h2 className="nz-h2 nz-center">Често задавани въпроси</h2>
             <div className="nz-faq">
