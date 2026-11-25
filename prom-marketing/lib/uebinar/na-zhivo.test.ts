@@ -76,9 +76,9 @@ describe("/na-zhivo — текстът и датата", () => {
     expect(zaglavie).toContain("дори да не разбираш нищо от AI");
     // Страхът да не изпуснеш е опашката на заглавието.
     expect(NA_ZHIVO.fomo).toContain("някой друг");
-    // Подзаглавието казва четирите стъпки с „персонален“ / „персонално“.
-    expect(NA_ZHIVO.sub).toContain("персонален сайт");
-    expect(NA_ZHIVO.sub).toContain("персонално съобщение");
+    // Подзаглавието казва стъпките с „персонално“; от 25.11 (Ивайло) AI сам прави демото и сам праща.
+    expect(NA_ZHIVO.sub).toContain("персонално демо на сайта");
+    expect(NA_ZHIVO.sub).toContain("автоматично им праща и имейлите, и съобщенията");
     expect(NA_ZHIVO.sub).toContain("Ако им хареса");
     // „Без“: говориш на AI; дълги разговори; камера — не „без да снимаш“.
     expect(NA_ZHIVO.bez).toContain("само говориш на AI");
@@ -90,8 +90,9 @@ describe("/na-zhivo — текстът и датата", () => {
     // Вторият подарък е видео демонстрацията, третият — томболата.
     expect(NA_ZHIVO.bonusi.items[1].kind).toContain("Видео демонстрация");
     expect(NA_ZHIVO.bonusi.items[2].kind).toContain("Томбола");
-    // Главното послание: AI прави почти всичко, ти само копираш и пращаш.
-    expect(JSON.stringify(NA_ZHIVO.taini)).toContain("Ти само копираш съобщението и го пращаш");
+    // Главното послание: AI прави почти всичко — и съобщенията ги праща той (Ивайло, 25.11.2026).
+    expect(JSON.stringify(NA_ZHIVO.taini)).toContain("автоматично им праща имейли и съобщения");
+    expect(JSON.stringify(NA_ZHIVO)).not.toContain("копираш");
   });
 
   it("видеото на Стефчо, прочетено дума по дума (25.11.2026)", () => {
@@ -106,7 +107,8 @@ describe("/na-zhivo — текстът и датата", () => {
     expect(zaglavie).not.toContain("—");
     // 09:41: главното послание е горе, до заглавието.
     expect(NA_ZHIVO.sub).toContain("Почти всичко го върши AI");
-    expect(NA_ZHIVO.sub).toContain("само копираш");
+    expect(NA_ZHIVO.sub).not.toContain("копираш");
+    expect(NA_ZHIVO.sub).toContain("автоматично");
     // 03:47: за „без“ частта каза „иначе е окей“ — „без склад, стока и доставки“ остава.
     expect(NA_ZHIVO.bez).toContain("Без склад, стока и доставки");
     // 04:20: тайна №1 с неговите думи; 06:36: „вместо само да му пишеш за ежедневни задачи“.
