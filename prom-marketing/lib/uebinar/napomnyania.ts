@@ -17,8 +17,8 @@ import { IMEILI_TEKSTOVE } from "./napomnyania-tekstove";
 import { splitName } from "./capi";
 
 export const NAPOMNYANIA = {
-  /** Ивайло е одобрил текстовете → true. Докато е false, не тръгва нищо. */
-  vklyucheni: false,
+  /** Ивайло одобри текстовете (25.11.2026, ~22:30: „добре са имейлите и SMS-те… довърши цялостната инсталация“). */
+  vklyucheni: true,
   /** Часовете за писмата със съдържание (№2–№7), по едно на час, по ред за всеки човек. */
   slotove: [
     "2026-11-26T12:00:00+02:00",

@@ -32,12 +32,56 @@ const EV_NOTIFIER = "uebinar_notifier";
 const BEZ = new Set(["won", "offer_sent", "negotiating"]);
 
 function podatel(): string {
+  // Собственият Resend ключ на ivailopetev.com → писмата са от ivailo@ivailopetev.com.
+  if (process.env.RESEND_UEBINAR_API_KEY) return process.env.UEBINAR_EMAIL_FROM || "Ивайло Петев <ivailo@ivailopetev.com>";
   const raw = process.env.EMAIL_FROM || "ivailo@promarketing.pw";
   const m = /<([^>]+)>/.exec(raw);
   return `Ивайло Петев <${(m ? m[1] : raw).trim()}>`;
 }
 
+/**
+ * Изпращане: със собствения ключ на ivailopetev.com (Resend акаунтът на Ивайло),
+ * ако го има; иначе с общия ключ на сайта (ivailo@promarketing.pw).
+ */
+async function prati(args: Parameters<typeof sendRelayEmail>[0]): Promise<{ id: string | null; error: string | null; statusCode: number | null }> {
+  const key = process.env.RESEND_UEBINAR_API_KEY;
+  if (!key) return sendRelayEmail(args);
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+        ...(args.idempotencyKey ? { "Idempotency-Key": args.idempotencyKey } : {}),
+      },
+      body: JSON.stringify({
+        from: args.from,
+        to: args.to,
+        subject: args.subject,
+        html: args.html,
+        text: args.text,
+        reply_to: args.replyTo,
+        headers: args.headers,
+        tags: args.tags,
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    const j = (await res.json().catch(() => ({}))) as { id?: string; message?: string; name?: string };
+    if (!res.ok) return { id: null, error: `${j.name ?? res.status}: ${j.message ?? ""}`, statusCode: res.status };
+    return { id: j.id ?? null, error: null, statusCode: null };
+  } catch (e) {
+    return { id: null, error: e instanceof Error ? e.message : String(e), statusCode: null };
+  }
+}
+
 const pauza = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * automation_events приема само статус success / failed / skipped (CHECK в базата).
+ * „Запазеното“ (още не пратено) е skipped; после става success или failed.
+ * (25.11.2026: с „pending“ записът се отхвърляше тихо и нищо не тръгваше.)
+ */
+const ZAPAZENO = "skipped";
 
 export async function GET(request: Request) {
   const auth = request.headers.get("authorization");
@@ -124,13 +168,13 @@ export async function GET(request: Request) {
       const key = `${prefix}${n}:${c.id}`;
       const { data: claim, error: claimErr } = await sb
         .from("automation_events")
-        .insert({ event_type: EV_IMEIL, status: "pending", related_contact_id: c.id, idempotency_key: key, summary: `Уебинар · писмо №${n}` })
+        .insert({ event_type: EV_IMEIL, status: ZAPAZENO, related_contact_id: c.id, idempotency_key: key, summary: `Уебинар · писмо №${n}` })
         .select("id")
         .single();
       if (claimErr || !claim) continue; // вече е взето/пратено
       const link = otpisvaneLink(c.id);
       const m = sglobiImeil(n, c.full_name, link);
-      const r = await sendRelayEmail({
+      const r = await prati({
         from,
         to: email,
         subject: m.tema,
@@ -143,7 +187,7 @@ export async function GET(request: Request) {
       });
       await sb
         .from("automation_events")
-        .update({ status: r.error ? "error" : "success", detail: r.error ? { error: r.error, status: r.statusCode } : { resend_id: r.id } })
+        .update({ status: r.error ? "failed" : "success", detail: r.error ? { error: r.error, status: r.statusCode } : { resend_id: r.id } })
         .eq("id", (claim as { id: string }).id);
       if (r.error) {
         out.greshki += 1;
@@ -165,7 +209,7 @@ export async function GET(request: Request) {
       const key = `uebinar:${SLUG}:notifier:${c.id}`;
       const { data: claim, error } = await sb
         .from("automation_events")
-        .insert({ event_type: EV_NOTIFIER, status: "pending", related_contact_id: c.id, idempotency_key: key, summary: "Уебинар · към Notifier (SMS)" })
+        .insert({ event_type: EV_NOTIFIER, status: ZAPAZENO, related_contact_id: c.id, idempotency_key: key, summary: "Уебинар · към Notifier (SMS)" })
         .select("id")
         .single();
       if (error || !claim) continue;
@@ -193,14 +237,14 @@ export async function GET(request: Request) {
         const key = `uebinar:${SLUG}:viber:${kluch}`;
         const { data: claim, error } = await sb
           .from("automation_events")
-          .insert({ event_type: EV_VIBER, status: "pending", idempotency_key: key, summary: `Уебинар · Viber пост ${kluch}` })
+          .insert({ event_type: EV_VIBER, status: ZAPAZENO, idempotency_key: key, summary: `Уебинар · Viber пост ${kluch}` })
           .select("id")
           .single();
         if (error || !claim) continue;
         const r = ot ? await viberPost(token, ot, viberTekst(kluch)) : { ok: false, error: "няма супер админ" };
         await sb
           .from("automation_events")
-          .update({ status: r.ok ? "success" : "error", detail: r.ok ? {} : { error: r.error } })
+          .update({ status: r.ok ? "success" : "failed", detail: r.ok ? {} : { error: r.error } })
           .eq("id", (claim as { id: string }).id);
         if (r.ok) out.viber += 1;
       }
@@ -225,7 +269,7 @@ async function proveriVrazkite(): Promise<void> {
     const key = `uebinar:${SLUG}:proverka:${chas}`;
     const { data: claim, error } = await sb
       .from("automation_events")
-      .insert({ event_type: "uebinar_proverka", status: "pending", idempotency_key: key, summary: "Уебинар · проверка на Notifier и Viber" })
+      .insert({ event_type: "uebinar_proverka", status: ZAPAZENO, idempotency_key: key, summary: "Уебинар · проверка на Notifier и Viber" })
       .select("id")
       .single();
     if (error || !claim) return;
