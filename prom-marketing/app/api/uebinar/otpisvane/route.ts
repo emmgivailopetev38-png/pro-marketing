@@ -36,7 +36,7 @@ async function otpishi(request: Request): Promise<{ ok: boolean }> {
 function page(ok: boolean): NextResponse {
   const msg = ok
     ? "Готово. Няма да получаваш повече писма за обучението."
-    : "Линкът не е валиден. Пиши ни на ivailo@promarketing.pw и ще те отпишем.";
+    : "Линкът не е валиден. Отговори на писмото с „отпиши ме“ и ще те отпишем.";
   return new NextResponse(
     `<!doctype html><html lang="bg"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Отписване</title></head><body style="font-family:Arial,sans-serif;max-width:520px;margin:60px auto;padding:0 20px;color:#1c1917;line-height:1.6"><p>${msg}</p></body></html>`,
     { status: ok ? 200 : 400, headers: { "content-type": "text/html; charset=utf-8" } }
