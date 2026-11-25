@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
 import { phoneVariants } from "@/lib/contacts/repository";
@@ -7,6 +7,9 @@ import { sendEmail } from "@/lib/email/resend";
 import { ownerEmail } from "@/lib/team/notify";
 import { escapeHtml } from "@/lib/text/escape";
 import { NA_ZHIVO } from "@/lib/uebinar/na-zhivo";
+import { sendCapiEvent } from "@/lib/meta/conversions-api";
+import { UEBINAR_ORIGIN, UEBINAR_PIXEL_ID } from "@/lib/uebinar/domen";
+import { clientIp, cookieValue, fbcFor, safeEventId, splitName } from "@/lib/uebinar/capi";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +31,8 @@ const schema = z.object({
   utm_content: utm,
   utm_term: utm,
   fbclid: z.string().trim().max(500).optional(),
+  // Същият event_id като на пиксела в браузъра — Meta брои записването веднъж.
+  event_id: z.string().trim().max(100).optional(),
   // Капан за ботове: скрито поле, човек не го вижда и не го пълни.
   website: z.string().max(200).optional(),
 });
@@ -35,6 +40,9 @@ const schema = z.object({
 /**
  * POST /api/uebinar/register — записване за обучението на живо от /na-zhivo.
  * Публичен. Прави (или намира) картона, записва действието и известява Ивайло.
+ * След отговора праща CompleteRegistration към пиксела на уебинара и от
+ * сървъра (Conversions API), със същия event_id като браузъра; резултатът
+ * се пази в действието (metadata.capi).
  * Към записалия се НЕ тръгва автоматично писмо: напомнянията (Viber, SMS,
  * имейл) се пишат отделно и се пускат, след като Ивайло ги одобри.
  */
@@ -114,28 +122,77 @@ export async function POST(request: Request) {
     contactId = created.id;
   }
 
-  const { error: actError } = await supabase.from("contact_activities").insert({
-    contact_id: contactId,
-    activity_type: "uebinar_registration",
-    title: `Записа се за обучението на живо „${NA_ZHIVO.name}“`,
-    body: `Дата: ${NA_ZHIVO.dateLabel}${NA_ZHIVO.dateConfirmed ? "" : " (предварителна)"} · съгласие за напомняния по Viber, SMS и имейл: да`,
-    created_by: "website",
-    metadata: {
-      uebinar: NA_ZHIVO.slug,
-      date_iso: NA_ZHIVO.dateISO,
-      full_name: d.name,
+  const eventId = safeEventId(d.event_id) ?? `uebinar-${contactId}-${Date.now()}`;
+  const metadata: Record<string, unknown> = {
+    uebinar: NA_ZHIVO.slug,
+    date_iso: NA_ZHIVO.dateISO,
+    full_name: d.name,
+    email: d.email,
+    phone,
+    consent_reminders: true,
+    utm_source: d.utm_source ?? null,
+    utm_medium: d.utm_medium ?? null,
+    utm_campaign: d.utm_campaign ?? null,
+    utm_content: d.utm_content ?? null,
+    utm_term: d.utm_term ?? null,
+    fbclid: d.fbclid ?? null,
+    event_id: eventId,
+  };
+  const { data: act, error: actError } = await supabase
+    .from("contact_activities")
+    .insert({
+      contact_id: contactId,
+      activity_type: "uebinar_registration",
+      title: `Записа се за обучението на живо „${NA_ZHIVO.name}“`,
+      body: `Дата: ${NA_ZHIVO.dateLabel}${NA_ZHIVO.dateConfirmed ? "" : " (предварителна)"} · съгласие за напомняния по Viber, SMS и имейл: да`,
+      created_by: "website",
+      metadata,
+    })
+    .select("id")
+    .single();
+  if (actError) console.error("[uebinar/register] activity insert", actError.message);
+
+  // Записването и от сървъра към пиксела на уебинара (след отговора — формата не чака).
+  const capiToken = process.env.META_UEBINAR_CAPI_TOKEN || process.env.META_CAPI_TOKEN;
+  if (capiToken) {
+    const cookie = request.headers.get("cookie");
+    const { firstName, lastName } = splitName(d.name);
+    const referer = request.headers.get("referer");
+    const sourceUrl = referer && /^https:\/\/(www\.)?(ivailopetev\.com|promarketing\.pw)\//.test(referer) ? referer : `${UEBINAR_ORIGIN}/`;
+    const userData = {
       email: d.email,
       phone,
-      consent_reminders: true,
-      utm_source: d.utm_source ?? null,
-      utm_medium: d.utm_medium ?? null,
-      utm_campaign: d.utm_campaign ?? null,
-      utm_content: d.utm_content ?? null,
-      utm_term: d.utm_term ?? null,
-      fbclid: d.fbclid ?? null,
-    },
-  });
-  if (actError) console.error("[uebinar/register] activity insert", actError.message);
+      firstName,
+      lastName,
+      country: "bg",
+      external_id: contactId,
+      client_ip: clientIp(request.headers.get("x-forwarded-for"), request.headers.get("x-real-ip")),
+      client_user_agent: request.headers.get("user-agent"),
+      fbp: cookieValue(cookie, "_fbp"),
+      fbc: fbcFor(cookie, d.fbclid),
+    };
+    const activityId = act?.id ?? null;
+    after(async () => {
+      const r = await sendCapiEvent(
+        {
+          event_name: "CompleteRegistration",
+          event_id: eventId,
+          event_source_url: sourceUrl,
+          action_source: "website",
+          user_data: userData,
+          custom_data: { content_name: `uebinar-${NA_ZHIVO.slug}`, status: "registered" },
+        },
+        { pixelId: UEBINAR_PIXEL_ID, token: capiToken },
+      );
+      if (!r.ok) console.error("[uebinar/register] capi", r.error);
+      if (activityId) {
+        await supabase
+          .from("contact_activities")
+          .update({ metadata: { ...metadata, capi: r.ok ? "ok" : `грешка: ${(r.error ?? "").slice(0, 200)}` } })
+          .eq("id", activityId);
+      }
+    });
+  }
 
   // Известие към Ивайло (не към записалия се).
   sendEmail({
