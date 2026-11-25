@@ -6,6 +6,7 @@ import { MEETING_MINUTES } from "@/lib/cal/types";
 import { RETRY_PRESETS, RETRY_PRESET_LABEL, TALKED_AFTER_DAYS, TALKED_DEFAULT_DAYS } from "@/lib/team/retry-rules";
 import { PROSPECT_STATUS_LABEL, phoneDisplay, telHref, type Prospect } from "@/lib/team/prospects-rules";
 import type { EkipActionResult } from "@/lib/team/types";
+import { FreeSlots } from "./FreeSlots";
 
 const FIELD =
   "mt-1 w-full rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent-cyan)]/60";
@@ -165,6 +166,7 @@ export function ProspectCard({ prospect: p }: { prospect: Prospect }) {
                   📅 Среща ({MEETING_MINUTES} мин) на
                   <input type="datetime-local" name="meeting_at" defaultValue={tomorrowAt(11)} className={FIELD} />
                 </label>
+                <FreeSlots />
                 <input type="email" name="email" defaultValue={p.email ?? ""} placeholder="имейл — за поканата с Meet линк" className={`${FIELD} text-xs`} />
                 <label className="mt-1.5 flex items-start gap-2 text-[11px] leading-snug text-emerald-200/80">
                   <input type="checkbox" name="invite" value="1" defaultChecked className="mt-0.5 accent-emerald-400" />

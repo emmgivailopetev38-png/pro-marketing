@@ -4,7 +4,7 @@ import { generatePassword, hashPassword } from "./password";
 import { TEAM_ROLES, type TeamMember, type TeamPermissions, type TeamRole } from "./types";
 
 const COLS =
-  "id, slug, full_name, email, phone, role, title, permissions, org, intake, meet_url, active, notify_new_leads, notes, last_login_at, created_at";
+  "id, slug, full_name, email, phone, role, title, permissions, org, intake, meet_url, availability, active, notify_new_leads, notes, last_login_at, created_at";
 
 const CYR: Record<string, string> = {
   а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ж: "zh", з: "z", и: "i", й: "y", к: "k", л: "l", м: "m",
@@ -170,7 +170,7 @@ export async function resetMemberPassword(id: string): Promise<{ password: strin
 
 export async function updateMember(
   id: string,
-  patch: Partial<Pick<TeamMember, "active" | "notify_new_leads" | "phone" | "notes" | "role" | "full_name" | "title" | "permissions" | "org" | "intake" | "meet_url">>
+  patch: Partial<Pick<TeamMember, "active" | "notify_new_leads" | "phone" | "notes" | "role" | "full_name" | "title" | "permissions" | "org" | "intake" | "meet_url" | "availability">>
 ): Promise<{ error: string | null }> {
   const sb = createServiceClient();
   const { error } = await sb

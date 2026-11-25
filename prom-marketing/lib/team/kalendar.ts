@@ -6,14 +6,15 @@ import { meetUrlFor } from "./closer";
 import { sortClosers } from "./closer-rules";
 import { CLOSER_MEETING_MINUTES } from "./closer-calendar-rules";
 import { phoneKey9 } from "./manager-rules";
-import { feedToken, type CalMeeting } from "./kalendar-rules";
+import { feedToken, isLive, type CalMeeting } from "./kalendar-rules";
+import { freeSlots, readGrafik, type Grafik } from "./grafik-rules";
 import type { TeamMember } from "./types";
 
 /** Четенето за „📅 Календар“: срещите от −7 до +45 дни, всяка с водещия си и линка за Meet. */
 
 export interface CalendarData {
   meetings: CalMeeting[];
-  closers: Array<{ id: string; name: string; meetUrl: string | null; org: string }>;
+  closers: Array<{ id: string; name: string; meetUrl: string | null; org: string; grafik: Grafik | null }>;
   members: TeamMember[];
 }
 
@@ -97,9 +98,42 @@ export async function loadCalendar(now: Date = new Date(), daysBack = 7, daysAhe
 
   return {
     meetings,
-    closers: closerList.map((m) => ({ id: m.id, name: m.full_name, meetUrl: meetUrlFor(m, defaultId), org: (m.org ?? "").trim() || "promarketing" })),
+    closers: closerList.map((m) => ({
+      id: m.id,
+      name: m.full_name,
+      meetUrl: meetUrlFor(m, defaultId),
+      org: (m.org ?? "").trim() || "promarketing",
+      grafik: readGrafik(m.availability ?? null, now.toLocaleDateString("sv-SE", { timeZone: "Europe/Sofia" })),
+    })),
     members,
   };
+}
+
+export interface CloserSlots {
+  id: string;
+  name: string;
+  /** има ли график; без график — всеки свободен час от 10:00 */
+  scheduled: boolean;
+  /** следващите свободни часове („2026-11-27T18:00“, София) */
+  slots: string[];
+}
+
+/** Свободните часове на клоузърите по графиците им — за „Записах среща“ и за отказа при зает час. */
+export async function freeSlotsByCloser(now: Date = new Date(), onlyId?: string | null, limit = 10): Promise<CloserSlots[]> {
+  const data = await loadCalendar(now, 0.1, 9);
+  return data.closers
+    .filter((c) => !onlyId || c.id === onlyId)
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      scheduled: !!c.grafik,
+      slots: freeSlots(
+        c.grafik,
+        data.meetings.filter((m) => m.closerId === c.id && isLive(m.status)).map((m) => ({ at: m.at, minutes: m.minutes })),
+        now,
+        { days: 7, limit }
+      ),
+    }));
 }
 
 /** Личният линк за абонамент на този човек (или на собственика — key „owner“). */

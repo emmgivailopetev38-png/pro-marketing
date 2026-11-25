@@ -12,6 +12,7 @@ import { canGiveUp } from "@/lib/team/queue-rules";
 import { MessageBox } from "./MessageBox";
 import { ago } from "@/lib/team/time";
 import { useClosers } from "./ClosersContext";
+import { FreeSlots } from "./FreeSlots";
 
 const CAL_URL = "https://cal.com/promarketing/consultation";
 
@@ -479,6 +480,7 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
                     </select>
                   </label>
                 )}
+                <FreeSlots />
                 {!lead.email && (
                   <input
                     type="email"
@@ -492,8 +494,8 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
                   <span>📨 Покана с Meet линк по имейл за човека. Ти получаваш готово съобщение за Viber с линка.</span>
                 </label>
                 <p className="mt-1 text-[10px] leading-snug text-emerald-200/50">
-                  📅 Срещата влиза в календара на клоузъра и на Ивайло за всеки час; човекът с имейл получава покана с Meet линка. Кой
-                  клоузър кога е свободен — виж в „📅 Календар“.
+                  📅 Срещата влиза в календара на клоузъра и на Ивайло за всеки час; човекът с имейл получава покана с Meet линка. Записва се
+                  само в часовете, в които клоузърът е на линия по графика си — свободните са горе, целият график е в „📅 Календар“.
                 </p>
                 <SubmitBtn action="meeting" className="mt-2 w-full border-emerald-400/60 bg-emerald-500/15 text-emerald-200">
                   ✅ Записах среща
