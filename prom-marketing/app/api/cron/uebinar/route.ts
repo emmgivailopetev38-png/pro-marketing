@@ -4,7 +4,8 @@ import { allRows } from "@/lib/supabase/all-rows";
 import { sendRelayEmail } from "@/lib/email/resend";
 import { loadIvailoClaims } from "@/lib/team/ivailo";
 import { NA_ZHIVO } from "@/lib/uebinar/na-zhivo";
-import { NAPOMNYANIA, SADARZHANIE, dalzhimiImeili, dalzhimiPostove, sglobiImeil, viberTekst } from "@/lib/uebinar/napomnyania";
+import { NAPOMNYANIA, SADARZHANIE, dalzhimiImeili, sglobiImeil } from "@/lib/uebinar/napomnyania";
+import { VIBER_MEDIA, VIBER_ODOBRENI, dalzhimiPostove, viberPostZa, type ViberPost } from "@/lib/uebinar/viber-postove";
 import { OTPISVANE_TYPE, otpisvaneLink } from "@/lib/uebinar/otpisvane";
 import { UEBINAR_LINKOVE } from "@/lib/uebinar/linkove";
 
@@ -227,9 +228,9 @@ export async function GET(request: Request) {
     }
   }
 
-  // 6) Viber каналът (Channels Post API) — само ако има ключ.
+  // 6) Viber каналът (Channels Post API) — само ако има ключ и Ивайло е одобрил новите постове.
   const token = process.env.VIBER_KANAL_TOKEN;
-  if (token) {
+  if (token && VIBER_ODOBRENI) {
     const { data: vp } = await sb.from("automation_events").select("idempotency_key").eq("event_type", EV_VIBER).like("idempotency_key", `uebinar:${SLUG}:viber:%`);
     const pusnati = new Set(((vp ?? []) as Array<{ idempotency_key: string }>).map((v) => v.idempotency_key.split(":").pop()!));
     const dalzhimi = dalzhimiPostove(now, pusnati);
@@ -243,7 +244,7 @@ export async function GET(request: Request) {
           .select("id")
           .single();
         if (error || !claim) continue;
-        const r = ot ? await viberPost(token, ot, viberTekst(kluch)) : { ok: false, error: "няма супер админ" };
+        const r = ot ? await viberPusni(token, ot, viberPostZa(kluch)) : { ok: false, error: "няма супер админ" };
         await sb
           .from("automation_events")
           .update({ status: r.ok ? "success" : "failed", detail: r.ok ? {} : { error: r.error } })
@@ -426,12 +427,36 @@ async function viberSuperAdmin(token: string): Promise<string | null> {
   }
 }
 
-async function viberPost(token: string, from: string, text: string): Promise<{ ok: boolean; error?: string }> {
+/**
+ * Един пост в канала: картинка с текст, видео + текстът веднага след него
+ * (API-то не дава текст на видеото) или само текст.
+ */
+async function viberPusni(token: string, from: string, p: ViberPost): Promise<{ ok: boolean; error?: string }> {
+  if (p.kartina) {
+    return viberPost(token, { from, type: "picture", media: `${VIBER_MEDIA}/${p.kartina}`, text: p.tekst });
+  }
+  if (p.video) {
+    const v = await viberPost(token, {
+      from,
+      type: "video",
+      media: `${VIBER_MEDIA}/${p.video.fajl}`,
+      size: p.video.razmer,
+      duration: p.video.sekundi,
+      thumbnail: `${VIBER_MEDIA}/${p.video.thumb}`,
+    });
+    if (!v.ok) return v;
+    const t = await viberPost(token, { from, type: "text", text: p.tekst });
+    return t.ok ? t : { ok: true, error: `видеото излезе, текстът не: ${t.error}` };
+  }
+  return viberPost(token, { from, type: "text", text: p.tekst });
+}
+
+async function viberPost(token: string, body: Record<string, unknown>): Promise<{ ok: boolean; error?: string }> {
   try {
     const res = await fetch("https://chatapi.viber.com/pa/post", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Viber-Auth-Token": token },
-      body: JSON.stringify({ auth_token: token, from, type: "text", text }),
+      body: JSON.stringify({ auth_token: token, ...body }),
       signal: AbortSignal.timeout(10_000),
     });
     const j = (await res.json()) as { status?: number; status_message?: string };
