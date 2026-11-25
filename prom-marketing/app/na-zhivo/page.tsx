@@ -1,8 +1,18 @@
 import type { Metadata } from "next";
+import { Montserrat } from "next/font/google";
 import { NaZhivoLanding } from "@/components/uebinar/NaZhivoLanding";
 import { NA_ZHIVO } from "@/lib/uebinar/na-zhivo";
 import { UEBINAR_ORIGIN } from "@/lib/uebinar/domen";
 import "./na-zhivo.css";
+
+// Шрифтът на лендинга (Стефчо, 25.11.2026 21:00: „направи текста на лендинг страницата
+// Montserrat, готин шрифт е“) — само за тази страница, с кирилица.
+const montserrat = Montserrat({
+  subsets: ["latin", "cyrillic"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-nz",
+  display: "swap",
+});
 
 /**
  * /na-zhivo — записване за безплатното онлайн обучение „Покажи, не продавай“
@@ -56,5 +66,9 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <NaZhivoLanding />;
+  return (
+    <div className={montserrat.variable}>
+      <NaZhivoLanding />
+    </div>
+  );
 }

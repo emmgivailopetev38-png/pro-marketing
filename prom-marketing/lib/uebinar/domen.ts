@@ -1,3 +1,5 @@
+import { UEBINAR_LINKOVE } from "./linkove";
+
 /**
  * Домейнът на уебинара — ivailopetev.com (вързан на 23.11.2026).
  *
@@ -85,6 +87,9 @@ export function uebinarHostAction(host: string, pathname: string, search = ""): 
     return { kind: "redirect", to: `${UEBINAR_ORIGIN}${chist}${search}`, status: 307 };
   }
   if (pathname.startsWith("/api/") || pathname.startsWith("/_next/")) return { kind: "next" };
+  // Кратките линкове от SMS-ите и писмата (виж linkove.ts); докато ги няма — лендингът.
+  if (pathname === "/viber") return { kind: "redirect", to: UEBINAR_LINKOVE.viberKanal ?? `${UEBINAR_ORIGIN}/`, status: 307 };
+  if (pathname === "/vlez") return { kind: "redirect", to: UEBINAR_LINKOVE.zoom ?? `${UEBINAR_ORIGIN}/`, status: 307 };
   // Иконите, манифестът и картинката при споделяне на уебинара (public/ivailo/).
   if (pathname.startsWith(`${IVAILO_ASSETS}/`)) return { kind: "next" };
   return { kind: "redirect", to: `${GLAVEN_ORIGIN}${pathname}${search}`, status: 307 };
