@@ -54,8 +54,9 @@ export function NaZhivoLanding() {
               {c.headline.before}
               <mark>{c.headline.mark}</mark>
               {c.headline.after}
+              {/* Страхът да не изпуснеш — последният ред на заглавието (Стефчо, 24.11.2026) */}
+              <span className="nz-fomo">{c.fomo}</span>
             </h1>
-            <p className="nz-fomo">{c.fomo}</p>
 
             <p className="nz-sub">{c.sub}</p>
 
@@ -104,7 +105,10 @@ export function NaZhivoLanding() {
             <p className="nz-eyebrow">
               <span aria-hidden>🎁</span> {c.bonusi.eyebrow}
             </p>
-            <h2 className="nz-h2">{c.bonusi.title}</h2>
+            <h2 className="nz-h2">
+              {c.bonusi.title}
+              {c.bonusi.stoinost ? <span className="nz-stoinost"> {c.bonusi.stoinost}</span> : null}
+            </h2>
             <p className="nz-lead">{c.bonusi.sub}</p>
 
             <ul className="nz-gifts">
@@ -116,7 +120,7 @@ export function NaZhivoLanding() {
                   <div>
                     <p className="nz-gift-kind">{g.kind}</p>
                     <p className="nz-gift-name">{g.name}</p>
-                    <p className="nz-gift-body">— {g.body}</p>
+                    <p className="nz-gift-body">{g.body}</p>
                   </div>
                 </li>
               ))}

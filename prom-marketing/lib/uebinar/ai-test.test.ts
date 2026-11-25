@@ -3,7 +3,7 @@ import { BANDOVE, KATEGORII, MAKS_TOCHKI, VAPROSI, VAPROSI_ZA_PROCENT, smetni } 
 
 const vsichki = (v: number) => Object.fromEntries(VAPROSI.map((q) => [q.id, v]));
 
-describe("тестът „Ще замени ли AI работата ти?“", () => {
+describe("тестът „Виж дали AI ще замени работата ти“", () => {
   it("има 10 въпроса по 4 отговора, 9 от тях за процента", () => {
     expect(VAPROSI).toHaveLength(10);
     expect(VAPROSI_ZA_PROCENT).toHaveLength(9);
