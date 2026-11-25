@@ -142,8 +142,12 @@ export function NaZhivoLanding() {
             <p className="nz-lead">{c.dokazatelstvo.note}</p>
 
             <div className="nz-otzivi">
-              {OTZIVI.filter((o) => (c.dokazatelstvo.otziviIds as readonly string[]).includes(o.id)).map((o) => (
+              {(c.dokazatelstvo.otziviIds as readonly string[])
+                .map((id) => OTZIVI.find((o) => o.id === id))
+                .filter((o): o is (typeof OTZIVI)[number] => Boolean(o))
+                .map((o) => (
                 <figure key={o.id}>
+                  <p className="nz-otz-kontekst">{(c.dokazatelstvo.kontekst as Record<string, string>)[o.id]}</p>
                   <Image
                     src={o.snimka.src}
                     alt={`Съобщение от клиент: „${o.text}“`}

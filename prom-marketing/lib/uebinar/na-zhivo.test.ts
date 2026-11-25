@@ -143,5 +143,11 @@ describe("/na-zhivo — текстът и датата", () => {
   it("отзивите на страницата съществуват в OTZIVI", () => {
     const ids = new Set(OTZIVI.map((o) => o.id));
     for (const id of NA_ZHIVO.dokazatelstvo.otziviIds) expect(ids.has(id)).toBe(true);
+    // 25.11.2026: четирите истински съобщения са вътре и всяко има ред с контекста за фунията.
+    expect(NA_ZHIVO.dokazatelstvo.otziviIds.length).toBe(4);
+    const kontekst = NA_ZHIVO.dokazatelstvo.kontekst as Record<string, string>;
+    for (const id of NA_ZHIVO.dokazatelstvo.otziviIds) expect((kontekst[id] ?? "").length).toBeGreaterThan(10);
+    // Контекстът не обещава доход от чуждо име.
+    expect(JSON.stringify(kontekst)).not.toMatch(/изкарва|печели|евро|лева/);
   });
 });
