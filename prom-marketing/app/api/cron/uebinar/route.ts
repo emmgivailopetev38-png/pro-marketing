@@ -330,14 +330,16 @@ async function proveriVrazkite(): Promise<void> {
 
 /**
  * Еднократна проба на подателя ivailopetev.com (Ивайло, 25.11.2026): писмо №1
- * с „[ПРОБА]“ в темата до ivailo@promarketing.pw (пренасочва се към Gmail-а на
- * Ивайло). Ключ в automation_events → тръгва само веднъж, само с отделния ключ.
+ * с „[ПРОБА]“ в темата до адреса за отговори (EMAIL_REPLY_TO, Gmail-ът на Ивайло).
+ * v1 отиде до ivailo@promarketing.pw, който НЕ приема поща (MX → Vercel).
+ * Ключ в automation_events → тръгва само веднъж, само с отделния ключ.
  */
 async function probaNaPodatelya(): Promise<void> {
-  if (!process.env.RESEND_UEBINAR_API_KEY) return;
+  const do_ = process.env.EMAIL_REPLY_TO;
+  if (!process.env.RESEND_UEBINAR_API_KEY || !do_) return;
   try {
     const sb = createServiceClient();
-    const key = `uebinar:${SLUG}:proba-podatel:v1`;
+    const key = `uebinar:${SLUG}:proba-podatel:v2`;
     const { data: claim, error } = await sb
       .from("automation_events")
       .insert({ event_type: "uebinar_proba", status: ZAPAZENO, idempotency_key: key, summary: "Уебинар · пробно писмо от ivailopetev.com" })
@@ -347,7 +349,7 @@ async function probaNaPodatelya(): Promise<void> {
     const m = sglobiImeil(1, "Ивайло Петев", "https://ivailopetev.com/");
     const r = await prati({
       from: podatel(),
-      to: "ivailo@promarketing.pw",
+      to: do_,
       subject: `[ПРОБА] ${m.tema}`,
       html: m.html,
       text: m.tekst,
