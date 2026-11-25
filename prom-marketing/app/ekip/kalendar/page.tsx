@@ -8,6 +8,7 @@ import { busyByCloser, defaultScope, groupByDay, isLive, visibleMeetings, type C
 import { googleCalendarTemplateUrl } from "@/lib/cal/ics";
 import { EkipHeader } from "@/components/ekip/EkipHeader";
 import { CopyLink, MeetUrlForm } from "@/components/ekip/KalendarTools";
+import { GrafikGrid } from "@/components/ekip/GrafikGrid";
 
 export const dynamic = "force-dynamic";
 
@@ -86,7 +87,7 @@ function Meeting({ m, past, canOpen }: { m: CalMeeting; past: boolean; canOpen: 
  * „📅 Календар“ — всички срещи на екипа на едно място: кой кога е зает, с кой
  * линк е срещата, как влиза в личния календар на всеки и как се записва (Fathom).
  */
-export default async function KalendarPage({ searchParams }: { searchParams: Promise<{ v?: string; c?: string }> }) {
+export default async function KalendarPage({ searchParams }: { searchParams: Promise<{ v?: string; c?: string; g?: string }> }) {
   const actor = await getTeamActor();
   if (!actor) redirect("/ekip/login");
   if (!allowed(actor, "kalendar")) redirect(homeFor(actor.member));
@@ -115,6 +116,12 @@ export default async function KalendarPage({ searchParams }: { searchParams: Pro
   const feed = isCloser ? null : feedUrlFor(me ? me.id : "owner");
   const webcal = feed ? feed.replace(/^https:/, "webcal:") : null;
   const canOpen = allowed(actor, "zvanene");
+  const grafikOf = isCloser ? data.closers.find((c) => c.id === me!.id) ?? null : actor.kind === "owner" || me?.role === "manager" ? data.closers.find((c) => c.id === sp.g) ?? data.closers[0] ?? null : null;
+  const grafikMeetings = grafikOf
+    ? data.meetings
+        .filter((m) => m.closerId === grafikOf.id && isLive(m.status) && new Date(m.at).getTime() > now.getTime() - 3_600_000)
+        .map((m) => ({ at: m.at, minutes: m.minutes, name: m.name }))
+    : [];
   const card = "rounded-2xl border border-white/10 bg-white/[0.03] p-4";
   const chip = (on: boolean) =>
     `rounded-full border px-3 py-1.5 text-xs font-semibold ${on ? "border-[var(--color-accent-cyan)]/60 bg-[var(--color-accent-cyan)]/15 text-[var(--color-accent-cyan)]" : "border-white/10 text-[var(--color-text-secondary)]"}`;
@@ -149,10 +156,49 @@ export default async function KalendarPage({ searchParams }: { searchParams: Pro
           </nav>
         </div>
 
+        {grafikOf && (
+          <section className="rounded-2xl border border-emerald-400/30 bg-emerald-500/[0.05] p-4">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">🗓 {isCloser ? "Моят график" : `Графикът на ${grafikOf.name}`}</h2>
+                <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">
+                  {isCloser
+                    ? "Кога можеш да водиш срещи. Цъкни часовете — записва се само, а сетърът записва срещи само в тях."
+                    : actor.kind === "owner"
+                      ? "Кога клоузърът може да води срещи. Можеш да го нагласиш вместо него."
+                      : "Кога клоузърът може да води срещи — нагласява си го сам."}
+                </p>
+              </div>
+              {!isCloser && data.closers.length > 1 && (
+                <nav className="flex flex-wrap gap-1.5" aria-label="Чий график">
+                  {data.closers.map((c) => (
+                    <Link key={c.id} href={`/ekip/kalendar?g=${c.id}`} className={chip(c.id === grafikOf.id)}>
+                      {c.name}
+                    </Link>
+                  ))}
+                </nav>
+              )}
+            </div>
+            <div className="mt-3">
+              <GrafikGrid
+                key={grafikOf.id}
+                memberId={grafikOf.id}
+                name={grafikOf.name}
+                initial={grafikOf.grafik}
+                meetings={grafikMeetings}
+                nowIso={nowIso}
+                editable={isCloser || actor.kind === "owner"}
+                self={isCloser}
+              />
+            </div>
+          </section>
+        )}
+
         <section className={card}>
-          <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">🕒 Кой кога е зает · следващите 7 дни</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">🕒 Кой кога е на линия и кога е зает · следващите 7 дни</h2>
           <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">
-            Преди да запишеш час, виж кой клоузър е свободен. Двамата клоузъри могат да имат срещи по едно и също време; при „По ред“ системата дава срещата на свободния.
+            Преди да запишеш час, виж кой клоузър е на линия и свободен. Двамата клоузъри могат да имат срещи по едно и също време; при „По ред“ системата дава срещата на
+            свободния. Извън графика на клоузъра среща не се записва.
           </p>
           <div className="mt-2 overflow-x-auto">
             <table className="w-full min-w-[560px] border-collapse text-sm">
@@ -172,7 +218,16 @@ export default async function KalendarPage({ searchParams }: { searchParams: Pro
                     <td className="px-2 py-2 text-xs capitalize text-[var(--color-text-secondary)]">{shortDay(d.day)}</td>
                     {d.slots.map((s) => (
                       <td key={s.closer} className="px-2 py-2 text-xs tabular-nums">
-                        {s.times.length ? s.times.join(" · ") : <span className="text-emerald-300/70">свободен</span>}
+                        {s.hours === null ? (
+                          <span className="text-[var(--color-text-tertiary)]">без график</span>
+                        ) : s.hours ? (
+                          <span className="text-emerald-300">на линия {s.hours} ч.</span>
+                        ) : (
+                          <span className="text-rose-300/80">не е на линия</span>
+                        )}
+                        <span className="block text-[var(--color-text-secondary)]">
+                          {s.times.length ? `срещи: ${s.times.join(" · ")}` : s.hours === "" ? "" : "няма срещи"}
+                        </span>
                       </td>
                     ))}
                   </tr>
@@ -267,7 +322,10 @@ export default async function KalendarPage({ searchParams }: { searchParams: Pro
           <div className={card}>
             <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">🧭 Как върви една среща</h2>
             <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-sm text-[var(--color-text-secondary)]">
-              <li>Сетърът записва часа от картата на човека — „Записах среща“ (от 10:00 нататък). Избира клоузър или оставя „По ред“.</li>
+              <li>
+                Клоузърът си нагласява графика горе — кога е на линия. Сетърът записва часа от картата на човека — „Записах среща“, в свободните часове на клоузъра (излизат под
+                бутона). Избира клоузър или оставя „По ред“.
+              </li>
               <li>Клоузърът получава поканата в календара си. Клиентът получава покана с Meet линка на имейла си; сетърът му праща и напомнянето по Viber от „💜 Срещите“.</li>
               <li>
                 Срещата влиза и в календара на Ивайло. В началото в Meet иска да влезе <b>„Fathom Notetaker“</b> — пусни го: той записва срещата и записът се връзва към нея тук.

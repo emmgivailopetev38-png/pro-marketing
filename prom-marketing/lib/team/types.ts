@@ -127,6 +127,8 @@ export interface TeamMember {
   intake?: boolean | null;
   /** постоянният му Meet линк — той е домакин на срещите си */
   meet_url?: string | null;
+  /** „🗓 Моят график“ — кога може да води срещи (lib/team/grafik-rules.ts); null = без график */
+  availability?: { week: Record<string, number[]>; days: Record<string, number[]> } | null;
   active: boolean;
   notify_new_leads: boolean;
   notes: string | null;

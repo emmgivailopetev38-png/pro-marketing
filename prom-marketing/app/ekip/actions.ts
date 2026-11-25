@@ -1,5 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { fitsGrafik, grafikMessage, grafikMessageAll, readGrafik } from "@/lib/team/grafik-rules";
+import { freeSlotsByCloser } from "@/lib/team/kalendar";
 import { createServiceClient } from "@/lib/supabase/service";
 import { requireTeamActor, type TeamActor } from "@/lib/team/session";
 import { alignStage, nextWorkingDayAt } from "@/lib/contacts/followup";
@@ -259,17 +261,32 @@ export async function ekipAction(_prev: EkipActionResult | null, formData: FormD
         const forCloser = closer ? !!(await closerForMeeting(contactId).catch(() => null)) : false;
         let mineBusy = busyFor(busyAll, forCloser ? closer?.id ?? null : null, closerIdSet);
         let hit = findOverlap(meetingIso, mineBusy, who);
+        // „🗓 Моят график“ (25.11.2026): клоузърът води срещи само в часовете, в които е на линия.
+        // Без график — без ограничение. Клоузърът, който записва среща сам на себе си, не се спира.
+        const onLine = (m: { id: string; availability?: unknown }) =>
+          (!!actor.member && actor.member.id === m.id) || fitsGrafik(readGrafik(m.availability ?? null), meetingIso);
+        let off = !!closer && forCloser && !onLine(closer);
         // Клоузърът е избран по ред (не е на картона, не записва самият той, сетърът не го е посочил)
-        // и е зает точно тогава → срещата отива при свободния клоузър, вместо да се отказва.
+        // и е зает или не е на линия точно тогава → срещата отива при свободния клоузър, вместо да се отказва.
         const fixedCloser =
           !!str(formData, "closer_id") || (!!c.owner_id && closerIdSet.has(c.owner_id)) || (!!actor.member && closerIdSet.has(actor.member.id));
-        if (hit && closer && forCloser && !fixedCloser) {
-          const free = closers.find((m) => m.id !== closer!.id && !findOverlap(meetingIso, busyFor(busyAll, m.id, closerIdSet), who));
+        if ((hit || off) && closer && forCloser && !fixedCloser) {
+          const free = closers.find(
+            (m) => m.id !== closer!.id && onLine(m) && !findOverlap(meetingIso, busyFor(busyAll, m.id, closerIdSet), who)
+          );
           if (free) {
             closer = free;
             mineBusy = busyFor(busyAll, free.id, closerIdSet);
             hit = null;
+            off = false;
           }
+        }
+        if (off && closer) {
+          const all = await freeSlotsByCloser(new Date(), fixedCloser ? closer.id : null).catch(() => []);
+          if (fixedCloser || all.length <= 1) {
+            return { ok: false, error: grafikMessage(closer.full_name, meetingIso, all.find((x) => x.id === closer!.id)?.slots ?? []) };
+          }
+          return { ok: false, error: grafikMessageAll(meetingIso, all.map((x) => ({ name: x.name, slots: x.slots }))) };
         }
         if (hit) {
           const { before, after } = freeAround(meetingIso, mineBusy, who);

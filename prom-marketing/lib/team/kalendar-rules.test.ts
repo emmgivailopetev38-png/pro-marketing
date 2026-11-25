@@ -103,3 +103,13 @@ describe("съобщенията на партньора", () => {
     expect(partnerSeesThread("task:t1", "me", own)).toBe(false);
   });
 });
+
+describe("Кой кога е на линия (графикът)", () => {
+  it("с график — часовете за деня; без график — null; почивен ден — празно", () => {
+    const grafik = { week: { "4": [18, 19, 20] }, days: { "2026-11-27": [] } };
+    const rows = busyByCloser([], [{ id: "t", name: "Теодор", grafik }, { id: "g", name: "Георги" }], new Date("2026-11-26T06:00:00Z"), 2);
+    expect(rows[0].slots[0].hours).toBe("18–21");
+    expect(rows[0].slots[1].hours).toBeNull();
+    expect(rows[1].slots[0].hours).toBe("");
+  });
+});

@@ -5,6 +5,7 @@
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { dayKey } from "@/lib/contacts/followup";
+import { hoursFor, hoursLabel, type Grafik } from "./grafik-rules";
 
 export interface CalMeeting {
   id: string;
@@ -76,13 +77,22 @@ export function isLive(status: string): boolean {
   return LIVE.has(status);
 }
 
-/** Заетите часове на всеки клоузър за следващите дни — за сетъра, преди да запише час. */
-export function busyByCloser(meetings: CalMeeting[], closers: Array<{ id: string; name: string }>, now: Date, days = 7): Array<{ day: string; slots: Array<{ closer: string; times: string[] }> }> {
-  const out: Array<{ day: string; slots: Array<{ closer: string; times: string[] }> }> = [];
+/**
+ * Заетите часове на всеки клоузър за следващите дни — за сетъра, преди да запише час.
+ * `hours`: кога е на линия по графика („18–21“); "" = не е на линия; null = няма график.
+ */
+export function busyByCloser(
+  meetings: CalMeeting[],
+  closers: Array<{ id: string; name: string; grafik?: Grafik | null }>,
+  now: Date,
+  days = 7
+): Array<{ day: string; slots: Array<{ closer: string; times: string[]; hours: string | null }> }> {
+  const out: Array<{ day: string; slots: Array<{ closer: string; times: string[]; hours: string | null }> }> = [];
   for (let i = 0; i < days; i++) {
     const day = dayKey(new Date(now.getTime() + i * 86_400_000));
     const slots = closers.map((c) => ({
       closer: c.name,
+      hours: c.grafik ? hoursLabel(hoursFor(c.grafik, day)) : null,
       times: meetings
         .filter((m) => m.closerId === c.id && isLive(m.status) && dayKey(m.at) === day && new Date(m.at).getTime() > now.getTime() - 3_600_000)
         .sort((a, b) => a.at.localeCompare(b.at))
