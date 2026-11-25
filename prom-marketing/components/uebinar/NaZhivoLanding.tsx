@@ -141,6 +141,26 @@ export function NaZhivoLanding() {
             <h2 className="nz-h2">{c.dokazatelstvo.title}</h2>
             <p className="nz-lead">{c.dokazatelstvo.note}</p>
 
+            {c.dokazatelstvo.video.some((v) => v.na) && (
+              <>
+                <h3 className="nz-votz-title">{c.dokazatelstvo.videoTitle}</h3>
+                <div className="nz-votzivi">
+                  {c.dokazatelstvo.video
+                    .filter((v) => v.na)
+                    .map((v) => (
+                      <figure key={v.id}>
+                        <p className="nz-otz-kontekst">{v.kontekst}</p>
+                        <video controls preload="none" playsInline poster={v.poster} src={v.src} />
+                        <figcaption>
+                          <strong>{v.koi}</strong>
+                          <span>{v.usluga}</span>
+                        </figcaption>
+                      </figure>
+                    ))}
+                </div>
+              </>
+            )}
+
             <div className="nz-otzivi">
               {(c.dokazatelstvo.otziviIds as readonly string[])
                 .map((id) => OTZIVI.find((o) => o.id === id))

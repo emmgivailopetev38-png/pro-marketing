@@ -175,6 +175,14 @@
 .nz-otzivi figcaption { margin-top: auto; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 14px; }
 .nz-otzivi figcaption span { color: var(--nz-mut); }
 .nz-otz-kontekst { margin: 2px 2px 0; font-weight: 800; font-size: 17px; line-height: 1.25; }
+.nz-votz-title { margin: 26px 0 0; font-size: 20px; font-weight: 800; }
+.nz-votzivi { margin: 14px 0 6px; width: 100%; display: grid; gap: 12px; grid-template-columns: 1fr 1fr; text-align: left; }
+@media (min-width: 900px) { .nz-votzivi { grid-template-columns: repeat(4, 1fr); gap: 16px; } }
+.nz-votzivi figure { margin: 0; background: #fff; border: 1px solid var(--nz-line); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.nz-votzivi .nz-otz-kontekst { font-size: 15px; min-height: 3.75em; }
+.nz-votzivi video { width: 100%; aspect-ratio: 9 / 16; border-radius: 10px; background: #000; display: block; }
+.nz-votzivi figcaption { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.nz-votzivi figcaption span { color: var(--nz-mut); }
 
 /* Авторитет */
 .nz-bio { margin-top: 12px !important; font-size: 17.5px; color: var(--nz-mut); }
