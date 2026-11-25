@@ -98,29 +98,7 @@ export function dalzhimiImeili(zapisanIso: string, now: number, prateno: Prateno
   return out;
 }
 
-/** Viber постовете: №1 (закачен най-горе) веднага, №2–№7 в часовете, №8–№11 и „15 минути преди“. */
-export const VIBER_POSTOVE: ReadonlyArray<{ kluch: string; n: number | null; koga: string }> = [
-  { kluch: "1", n: 1, koga: "2026-11-25T00:00:00+02:00" },
-  ...NAPOMNYANIA.slotove.map((koga, i) => ({ kluch: String(SADARZHANIE[i]), n: SADARZHANIE[i] as number, koga })),
-  ...NAPOMNYANIA.fiksirani.map(([n, koga]) => ({ kluch: String(n), n, koga })),
-  { kluch: "15min", n: null, koga: "2026-11-29T18:45:00+02:00" },
-];
-
-/** Кои постове в канала са дължими сега: в двучасов прозорец след часа им (№1 — винаги, докато не е пуснат). */
-export function dalzhimiPostove(now: number, pusnati: ReadonlySet<string>): string[] {
-  return VIBER_POSTOVE.filter((p) => {
-    if (pusnati.has(p.kluch)) return false;
-    const koga = t(p.koga);
-    if (now < koga) return false;
-    if (p.kluch === "1") return now < START();
-    return now < koga + 120 * MIN;
-  }).map((p) => p.kluch);
-}
-
-const LINKOVE: Record<string, string> = {
-  "ivailopetev.com/viber": "https://ivailopetev.com/viber",
-  "ivailopetev.com/vlez": "https://ivailopetev.com/vlez",
-};
+/* Viber постовете са в ./viber-postove.ts (кратки, с видео и картинки — 26.11.2026). */
 
 /** Писмото, готово за пращане: тема, текст и HTML (линковете стават линкове). */
 export function sglobiImeil(n: number, fullName: string | null | undefined, otpisvane: string): { tema: string; tekst: string; html: string } {
@@ -138,19 +116,6 @@ export function sglobiImeil(n: number, fullName: string | null | undefined, otpi
     `<a href="${escapeHtml(otpisvane)}" style="color:#78716c">отпиши ме</a>`
   )}</p></div>`;
   return { tema: def.tema, tekst: `${tekst}\n\n--\n${footer}`, html };
-}
-
-/** Текстът на Viber поста: писмото без „Здравей, {име},“, или „15 минути преди“. */
-export function viberTekst(kluch: string): string {
-  if (kluch === "15min") return "Започваме след 15 минути! Влез от тук: https://ivailopetev.com/vlez";
-  const n = Number(kluch);
-  const def = IMEILI_TEKSTOVE.find((x) => x.n === n);
-  if (!def) throw new Error(`Няма пост ${kluch}`);
-  const bez = def.tekst
-    .replace(/^Здравей, \{име\},\s*/u, "")
-    .replace(/\{календар\}/g, KALENDAR)
-    .replace(/\n\nИвайло\s*$/u, "");
-  return Object.entries(LINKOVE).reduce((s, [k, v]) => s.split(` ${k}`).join(` ${v}`), bez);
 }
 
 function escapeHtml(s: string): string {

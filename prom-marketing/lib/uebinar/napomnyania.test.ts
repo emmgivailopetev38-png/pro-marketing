@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { NAPOMNYANIA, dalzhimiImeili, dalzhimiPostove, sglobiImeil, viberTekst } from "./napomnyania";
+import { NAPOMNYANIA, dalzhimiImeili, sglobiImeil } from "./napomnyania";
 import { IMEILI_TEKSTOVE, SMS_TEKSTOVE } from "./napomnyania-tekstove";
 
 const T = (iso: string) => new Date(iso).getTime();
@@ -77,26 +77,10 @@ describe("текстовете", () => {
     expect(bez.tekst.startsWith("Здравей,\n")).toBe(true);
   });
 
-  it("Viber постът е писмото без поздрава, с пълни линкове", () => {
-    const p = viberTekst("8");
-    expect(p).not.toContain("Здравей");
-    expect(p).toContain("https://ivailopetev.com/viber");
-    expect(viberTekst("15min")).toContain("15 минути");
-  });
-
   it("SMS-ите са до 159 знака (с личния линк ~22 знака)", () => {
     for (const [k, v] of Object.entries(SMS_TEKSTOVE)) {
       expect(v.replace("[link]", "https://notf.bg/abcd12").length, k).toBeLessThanOrEqual(159);
       expect(v, k).toMatch(/^[\x20-\x7E]+$/); // само латиница — евтино и без разбити знаци
     }
-  });
-});
-
-describe("Viber постовете", () => {
-  it("№1 веднага; останалите в двучасов прозорец след часа им", () => {
-    expect(dalzhimiPostove(T("2026-11-25T23:00:00+02:00"), new Set())).toEqual(["1"]);
-    expect(dalzhimiPostove(T("2026-11-26T12:10:00+02:00"), new Set(["1"]))).toEqual(["2"]);
-    expect(dalzhimiPostove(T("2026-11-26T15:00:00+02:00"), new Set(["1"]))).toEqual([]);
-    expect(dalzhimiPostove(T("2026-11-29T18:46:00+02:00"), new Set(["1", "10"]))).toEqual(["15min"]);
   });
 });
