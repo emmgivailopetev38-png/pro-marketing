@@ -6,6 +6,7 @@ import { loadIvailoClaims } from "@/lib/team/ivailo";
 import { NA_ZHIVO } from "@/lib/uebinar/na-zhivo";
 import { NAPOMNYANIA, SADARZHANIE, dalzhimiImeili, dalzhimiPostove, sglobiImeil, viberTekst } from "@/lib/uebinar/napomnyania";
 import { OTPISVANE_TYPE, otpisvaneLink } from "@/lib/uebinar/otpisvane";
+import { UEBINAR_LINKOVE } from "@/lib/uebinar/linkove";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -27,6 +28,7 @@ export const maxDuration = 300;
 const SLUG = NA_ZHIVO.slug;
 const EV_IMEIL = "uebinar_imeil";
 const EV_VIBER = "uebinar_viber";
+const EV_NOTIFIER = "uebinar_notifier";
 const BEZ = new Set(["won", "offer_sent", "negotiating"]);
 
 function podatel(): string {
@@ -48,7 +50,7 @@ export async function GET(request: Request) {
   const started = Date.now();
   const now = Date.now();
   const sb = createServiceClient();
-  const out = { imeili: 0, greshki: 0, viber: 0, propusnati: 0 };
+  const out = { imeili: 0, greshki: 0, viber: 0, sms: 0, propusnati: 0 };
 
   // 1) Записаните и кога са се записали (първото записване).
   const regs = await allRows<{ contact_id: string; occurred_at: string }>((from, to) =>
@@ -150,7 +152,34 @@ export async function GET(request: Request) {
     }
   }
 
-  // 5) Viber каналът (Channels Post API) — само ако има ключ.
+  // 5) SMS-ите: всеки записан с телефон отива веднъж в Notifier (там са SMS-ите и
+  //    проследяването в Zoom). Notifier праща поканата веднага и оставащите напомняния.
+  const nKey = process.env.NOTIFIER_API_KEY;
+  const nWeb = UEBINAR_LINKOVE.notifierWebinar;
+  if (nKey && nWeb) {
+    for (const c of contacts) {
+      if (Date.now() - started > 280_000) break;
+      if (!c.phone || BEZ.has(c.stage ?? "") || akademia.has(c.id) || otpisani.has(c.id)) continue;
+      const key = `uebinar:${SLUG}:notifier:${c.id}`;
+      const { data: claim, error } = await sb
+        .from("automation_events")
+        .insert({ event_type: EV_NOTIFIER, status: "pending", related_contact_id: c.id, idempotency_key: key, summary: "Уебинар · към Notifier (SMS)" })
+        .select("id")
+        .single();
+      if (error || !claim) continue;
+      const r = await kamNotifier(nKey, nWeb, { name: (c.full_name ?? "").trim() || "Без име", phone: c.phone, email: (c.email ?? "").trim() });
+      if (r.ok) {
+        await sb.from("automation_events").update({ status: "success", detail: {} }).eq("id", (claim as { id: string }).id);
+        out.sms += 1;
+      } else {
+        // не стигна — освобождаваме ключа, следващото пускане опитва пак
+        await sb.from("automation_events").delete().eq("id", (claim as { id: string }).id);
+        console.error("[cron/uebinar] notifier", r.error);
+      }
+    }
+  }
+
+  // 6) Viber каналът (Channels Post API) — само ако има ключ.
   const token = process.env.VIBER_KANAL_TOKEN;
   if (token) {
     const { data: vp } = await sb.from("automation_events").select("idempotency_key").eq("event_type", EV_VIBER).like("idempotency_key", `uebinar:${SLUG}:viber:%`);
@@ -177,6 +206,21 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({ ok: true, zapisani: contacts.length, ...out });
+}
+
+async function kamNotifier(key: string, webinar: string, lead: { name: string; phone: string; email: string }): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await fetch(`https://notifierbg.com/api/v1/webinars/${encodeURIComponent(webinar)}/registrants`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify(lead),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (res.ok) return { ok: true };
+    return { ok: false, error: `${res.status}: ${(await res.text()).slice(0, 200)}` };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 async function viberSuperAdmin(token: string): Promise<string | null> {

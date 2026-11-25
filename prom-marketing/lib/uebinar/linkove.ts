@@ -10,4 +10,10 @@ import { VIBER_KANAL } from "@/lib/seo/site";
 export const UEBINAR_LINKOVE = {
   viberKanal: VIBER_KANAL as string | null,
   zoom: null as string | null,
+  /**
+   * Уебинарът в Notifier (notifierbg.com) — SMS-ите и кой е влязъл в Zoom.
+   * Записаните се пращат с POST /api/v1/webinars/<id>/registrants (ключът е
+   * NOTIFIER_API_KEY във Vercel). null = още не е създаден.
+   */
+  notifierWebinar: null as string | null,
 };
