@@ -69,11 +69,14 @@
   letter-spacing: -0.015em; color: var(--nz-ink); text-wrap: balance;
 }
 .nz-h1 mark { background: none; color: var(--nz-mark); font-style: italic; }
-/* Опашката на заглавието — страхът да не изпуснеш (Стефчо, 24.11.2026) */
+/* Последният ред на заглавието — страхът да не изпуснеш (Стефчо, 24.11.2026). Вътре в h1. */
 .nz-fomo {
-  margin-top: 12px !important; max-width: 760px;
-  font-size: clamp(18px, 2.9vw, 24px); line-height: 1.25; font-weight: 800; color: var(--nz-red); text-wrap: balance;
+  display: block; margin-top: 12px;
+  font-size: clamp(19px, 3.1vw, 27px); line-height: 1.22; font-weight: 800; letter-spacing: 0;
+  color: var(--nz-red); text-wrap: balance;
 }
+/* „на стойност над X €“ до заглавието на подаръците — показва се само с истински цени */
+.nz-stoinost { color: #ffd98a; white-space: nowrap; }
 .nz-sub {
   margin-top: 16px !important; max-width: 760px;
   font-size: clamp(17px, 2.3vw, 20px); color: var(--nz-mut); text-wrap: pretty;

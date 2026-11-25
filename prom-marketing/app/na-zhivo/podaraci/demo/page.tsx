@@ -3,7 +3,7 @@ import { DEMO, PODARACI_BASE, PODARACI_ORIGIN, vgradi } from "@/lib/uebinar/poda
 import { GiftFoot, GiftHero, GiftNext, GiftTop } from "@/components/uebinar/podaraci/GiftShell";
 
 export const metadata: Metadata = {
-  title: "Видео демонстрация: виж как го правя",
+  title: "Видео демонстрация: виж как го правя на живо пред теб",
   alternates: { canonical: `${PODARACI_ORIGIN}${PODARACI_BASE}/demo` },
 };
 
@@ -19,9 +19,9 @@ export default function Page() {
       <GiftTop id="demo" />
       <GiftHero
         id="demo"
-        title="Виж как го правя —"
-        em="целият път, на запис"
-        sub="От фирмата без сайт до изпратеното съобщение, стъпка по стъпка на моя екран. Обучението няма запис, а това видео остава за теб."
+        title="Виж как го правя"
+        em="на живо пред теб"
+        sub="На моя екран: AI намира фирма без сайт и ѝ прави персонален сайт, а аз само пускам съобщението. Обучението няма запис, а това видео остава за теб."
       />
 
       <main id="top" className="pd-doc">
@@ -31,7 +31,7 @@ export default function Page() {
               {v.vid === "iframe" ? (
                 <iframe
                   src={v.src}
-                  title="Видео демонстрация: виж как го правя"
+                  title="Видео демонстрация: виж как го правя на живо пред теб"
                   loading="lazy"
                   allow="fullscreen; picture-in-picture"
                   allowFullScreen

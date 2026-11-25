@@ -53,9 +53,9 @@ describe("/na-zhivo — текстът и датата", () => {
     for (const ne of ["покажи, не продавай", "покажи, не", "бранш", "търсачът"]) {
       expect(all.includes(ne)).toBe(false);
     }
-    // Вниманието филтрира само по „вече търсиш допълнителен доход“ — без AI.
+    // Вниманието филтрира по „вече търсиш… допълнителен доход“ — доходът е без „с AI“ (00:31).
     expect(NA_ZHIVO.vnimanie).toContain("вече търсиш");
-    expect(NA_ZHIVO.vnimanie).not.toMatch(/\bAI\b/);
+    expect(NA_ZHIVO.vnimanie).not.toContain("доход с AI");
     // Заглавието е с думите му; подзаглавието казва „бързо и лесно, вместо теб“.
     expect(NA_ZHIVO.headline.before.startsWith("Ето тайната как")).toBe(true);
     expect(NA_ZHIVO.sub).toContain("бързо и лесно");
@@ -64,7 +64,7 @@ describe("/na-zhivo — текстът и датата", () => {
     expect(podaraci.includes("академия")).toBe(false);
     expect(podaraci.includes("достъп до petevai")).toBe(false);
     // Първият подарък е тестът за страха.
-    expect(NA_ZHIVO.bonusi.items[0].name).toContain("Ще замени ли AI работата ти");
+    expect(NA_ZHIVO.bonusi.items[0].name).toContain("AI ще замени работата ти");
   });
 
   it("пропуснатото от видеото и гласовите от 24.11.2026 е вътре", () => {
@@ -83,7 +83,8 @@ describe("/na-zhivo — текстът и датата", () => {
     // „Без“: говориш на AI; дълги разговори; камера — не „без да снимаш“.
     expect(NA_ZHIVO.bez).toContain("само говориш на AI");
     expect(NA_ZHIVO.bez).toContain("дълги разговори, за да им продадеш");
-    expect(NA_ZHIVO.bez).toContain("без да се снимаш пред камера");
+    expect(NA_ZHIVO.bez.toLowerCase()).toContain("без да се снимаш пред камера");
+    expect(NA_ZHIVO.bez.toLowerCase()).not.toContain("без да снимаш");
     // Над тайните не пише „3-те тайни“.
     expect(NA_ZHIVO.tainiTitle).toContain("По време на обучението ще ти разкрия");
     // Вторият подарък е видео демонстрацията, третият — томболата.
@@ -91,6 +92,47 @@ describe("/na-zhivo — текстът и датата", () => {
     expect(NA_ZHIVO.bonusi.items[2].kind).toContain("Томбола");
     // Главното послание: AI прави почти всичко, ти само копираш и пращаш.
     expect(JSON.stringify(NA_ZHIVO.taini)).toContain("Ти само копираш съобщението и го пращаш");
+  });
+
+  it("видеото на Стефчо, прочетено дума по дума (25.11.2026)", () => {
+    const zaglavie = `${NA_ZHIVO.headline.before}${NA_ZHIVO.headline.mark}${NA_ZHIVO.headline.after}`;
+    // 05:09 и 06:57: страхът да не изостанеш е и „в споменаването на аудиторията“.
+    expect(NA_ZHIVO.vnimanie).toContain("знаеш, че AI е бъдещето");
+    // Гласовото от 24.11: страхът е в заглавието, с неговия глагол.
+    expect(NA_ZHIVO.fomo).toContain("някой друг");
+    expect(NA_ZHIVO.fomo).toContain("да се възползва");
+    expect(NA_ZHIVO.fomo).toContain("вместо теб");
+    // Без тирета в заглавието — „личи, че е писано с AI“.
+    expect(zaglavie).not.toContain("—");
+    // 09:41: главното послание е горе, до заглавието.
+    expect(NA_ZHIVO.sub).toContain("Почти всичко го върши AI");
+    expect(NA_ZHIVO.sub).toContain("само копираш");
+    // 03:47: за „без“ частта каза „иначе е окей“ — „без склад, стока и доставки“ остава.
+    expect(NA_ZHIVO.bez).toContain("Без склад, стока и доставки");
+    // 04:20: тайна №1 с неговите думи; 06:36: „вместо само да му пишеш за ежедневни задачи“.
+    expect(NA_ZHIVO.taini[0].title).toContain("Най-добрият начин за изкарване на допълнителен доход");
+    expect(NA_ZHIVO.taini[0].body).toContain("ежедневни задачи");
+    expect(NA_ZHIVO.taini[0].body).toContain("покрай основната ти работа");
+    expect(JSON.stringify(NA_ZHIVO.taini).toLowerCase()).not.toContain("бизнес модел");
+    // 07:11: „да ти намира клиенти много бързо“.
+    expect(NA_ZHIVO.taini[2].title).toContain("много бързо");
+    // 06:04: „който не използва AI, остава назад“.
+    expect(NA_ZHIVO.tainiIntro).toContain("AI е бъдещето");
+    expect(NA_ZHIVO.tainiIntro).toContain("остава назад");
+    // 11:51 и 12:34: имената на първите два подаръка са неговите.
+    expect(NA_ZHIVO.bonusi.items[0].name).toContain("Виж дали AI ще замени работата ти");
+    expect(NA_ZHIVO.bonusi.items[1].name).toContain("Виж как го правя на живо пред теб");
+    // 13:03: консултацията е лична, по 30 минути, за трима.
+    expect(NA_ZHIVO.bonusi.items[2].name).toContain("Лична консултация");
+    expect(NA_ZHIVO.bonusi.items[2].name).toContain("30 минути");
+    // 14:10: стойност се изписва само с истински цени — празно или с „€“.
+    expect(NA_ZHIVO.bonusi.stoinost === "" || NA_ZHIVO.bonusi.stoinost.includes("€")).toBe(true);
+    // 15:13–15:45: в авторитета — „правя това, на което те уча“; без уроци, бюджет и поръчки.
+    const avt = JSON.stringify(NA_ZHIVO.avtoritet).toLowerCase();
+    expect(avt).toContain("правя това, на което те уча");
+    for (const ne of ["566", "28 000", "13 000", "урока", "рекламен бюджет", "поръчки"]) expect(avt.includes(ne)).toBe(false);
+    // 16:14: „нека да пише, че няма запис“.
+    expect(NA_ZHIVO.faq.find((f) => f.q.includes("запис"))?.a.startsWith("Не.")).toBe(true);
   });
 
   it("отзивите на страницата съществуват в OTZIVI", () => {
