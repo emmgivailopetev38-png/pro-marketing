@@ -1,28 +1,36 @@
 /* /na-zhivo — светла страница за записване. Всичко е под .nz, за да не пипа сайта.
-   25.11.2026 · „Дизайн правила“ на Стефчо: ЕДНА гама (топли неутрални) и червено САМО по
-   бутоните („никога не използвай червено освен за бутоните“, гласово 18:43). Без светене,
-   стъклен ефект, цветни ленти, сенки и емоджита пред редове. Фин шум (grain) по тъмните части. */
+   25.11.2026 · „Дизайн правила“ на Стефчо: ЕДНА гама и червено САМО по бутоните
+   („никога не използвай червено освен за бутоните“, гласово 18:43). Без светене,
+   стъклен ефект, цветни ленти, сенки и емоджита пред редове. Фин шум (grain) по тъмните части.
+   25.11.2026 20:24 · Стефчо: „страницата е много монотонна цветово, направи я примерно в
+   зелената цветова гама, идеята е да се чете по-лесно… визуално като се раздели ще е
+   по-добре“ → гамата е зелена (светло зелено / бяло / тъмно зелено се редуват по секции),
+   текстът е по-тъмен и по-едър. Бутонът остава единственото червено. */
 .nz {
   --nz-bg: #ffffff;
-  --nz-soft: #fafaf9;
+  /* зелената гама: светлият фон на секциите, рамките, акцентът и тъмните секции */
+  --nz-soft: #f0f7f1;
+  --nz-line: #cfe5d3;
+  --nz-g: #17693a;
+  --nz-g-d: #0f4d2a;
+  --nz-markbg: #cdeccf;
+  --nz-dark: #123d24;
   --nz-ink: #1c1917;
-  --nz-mut: #57534e;
-  --nz-line: #e7e5e4;
-  --nz-gold: #57534e;
+  /* вторият текст е тъмен (по-лесно се чете), не светлосив */
+  --nz-mut: #3f3b38;
+  --nz-gold: var(--nz-g);
   --nz-mark: #1c1917;
-  --nz-markbg: #ede9e3;
-  --nz-onDark: #f5f5f4;
-  --nz-onDark-mut: #d6d3d1;
+  --nz-onDark: #f3f8f4;
+  --nz-onDark-mut: #cfe3d4;
   --nz-red: #e3122a;
   --nz-red-d: #b90d20;
-  --nz-dark: #1c1917;
   --nz-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   color-scheme: light;
   background: var(--nz-bg);
   color: var(--nz-ink);
   font-family: var(--font-body), system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 17px;
-  line-height: 1.55;
+  font-size: 18px;
+  line-height: 1.6;
   min-height: 100vh;
   padding-bottom: 76px;
   -webkit-font-smoothing: antialiased;
@@ -49,22 +57,24 @@
 
 /* Главна част */
 .nz-hero {
-  padding: 30px 0 56px;
-  background: var(--nz-bg);
+  padding: 30px 0 60px;
+  background: var(--nz-soft);
+  border-bottom: 1px solid var(--nz-line);
 }
 .nz-pill {
   display: inline-block; max-width: 100%;
-  border: 1px solid var(--nz-line); border-radius: 8px; background: var(--nz-soft);
-  padding: 7px 16px; font-size: 12.5px; font-weight: 700; letter-spacing: 0.06em;
-  text-transform: uppercase; color: var(--nz-ink);
+  border: 0; border-radius: 8px; background: var(--nz-g);
+  padding: 8px 16px; font-size: 12.5px; font-weight: 700; letter-spacing: 0.05em; line-height: 1.45;
+  text-transform: uppercase; color: #fff;
 }
-.nz-pill strong { color: var(--nz-ink); }
+.nz-pill strong { color: #fff; }
+@media (max-width: 480px) { .nz-pill { font-size: 11.5px; letter-spacing: 0.03em; padding: 7px 12px; } }
 .nz-vnimanie {
   margin-top: 16px !important; max-width: 760px;
-  background: var(--nz-soft); border: 1px solid var(--nz-line); border-radius: 12px;
-  padding: 13px 18px; font-size: 16.5px; font-weight: 600;
+  background: #fff; border: 1px solid var(--nz-line); border-radius: 12px;
+  padding: 14px 18px; font-size: 17px; font-weight: 600; line-height: 1.5;
 }
-.nz-vnimanie strong { color: var(--nz-ink); font-weight: 800; letter-spacing: 0.04em; }
+.nz-vnimanie strong { color: var(--nz-g); font-weight: 800; letter-spacing: 0.04em; }
 .nz-h1 {
   margin: 22px 0 0; max-width: 900px;
   font-family: var(--font-body), system-ui, sans-serif;
@@ -72,23 +82,24 @@
   letter-spacing: -0.015em; color: var(--nz-ink); text-wrap: balance;
 }
 /* Маркерът — една фраза на страницата, в гамата (топло сиво като с маркер), не в друг цвят */
-.nz-h1 mark { background: linear-gradient(transparent 52%, var(--nz-markbg) 52%); color: var(--nz-ink); padding: 0 2px; }
+.nz-h1 mark { background: linear-gradient(transparent 50%, var(--nz-markbg) 50%); color: var(--nz-ink); padding: 0 2px; }
 /* Последният ред на заглавието — страхът да не изпуснеш (Стефчо, 24.11.2026). Вътре в h1. */
 .nz-fomo {
   display: block; margin-top: 12px;
   font-size: clamp(19px, 3.1vw, 27px); line-height: 1.22; font-weight: 800; letter-spacing: 0;
-  color: var(--nz-ink); text-wrap: balance;
+  color: var(--nz-g); text-wrap: balance;
 }
 /* „на стойност над X €“ до заглавието на подаръците — показва се само с истински цени */
 .nz-stoinost { color: #fff; white-space: nowrap; }
 .nz-sub {
-  margin-top: 16px !important; max-width: 760px;
-  font-size: clamp(17px, 2.3vw, 20px); color: var(--nz-mut); text-wrap: pretty;
+  margin-top: 16px !important; max-width: 680px;
+  font-size: clamp(18px, 2.3vw, 20px); line-height: 1.6; color: var(--nz-mut); text-wrap: pretty;
 }
 /* „Без“ частта — един ред текст със запетаи (Стефчо, 23.11 и пак 25.11.2026 18:43) */
 .nz-bez {
-  margin: 18px 0 22px !important; max-width: 720px;
-  font-size: clamp(16.5px, 2.1vw, 18px); font-weight: 700; line-height: 1.5;
+  margin: 20px 0 22px !important; max-width: 680px;
+  background: #fff; border: 1px solid var(--nz-line); border-radius: 12px; padding: 16px 20px;
+  font-size: clamp(17px, 2.1vw, 18px); font-weight: 700; line-height: 1.55;
   color: var(--nz-ink); text-wrap: pretty;
 }
 .nz-under { margin-top: 10px !important; font-size: 14px; color: var(--nz-mut); }
@@ -104,7 +115,7 @@
   transition: background 0.12s ease;
 }
 .nz-btn:hover, .nz-btn:active { background: var(--nz-red-d); }
-.nz-btn:focus-visible { outline: 3px solid var(--nz-ink); outline-offset: 3px; }
+.nz-btn:focus-visible { outline: 3px solid var(--nz-g-d); outline-offset: 3px; }
 .nz-btn:disabled { opacity: 0.7; cursor: progress; }
 .nz-btn-full { width: 100%; }
 /* Текстът на бутона винаги на един ред — и на най-тесния телефон */
@@ -122,8 +133,8 @@
   letter-spacing: -0.01em; text-wrap: balance; color: inherit;
 }
 .nz-h2 em { color: inherit; font-style: italic; }
-.nz-h2-tail { color: var(--nz-mut); font-weight: 700; }
-.nz-lead { margin-top: 10px !important; max-width: 700px; color: var(--nz-mut); font-size: 17.5px; }
+.nz-h2-tail { color: var(--nz-g); font-weight: 800; }
+.nz-lead { margin-top: 12px !important; max-width: 680px; color: var(--nz-mut); font-size: 18px; line-height: 1.6; }
 .nz-dark .nz-lead { color: var(--nz-onDark-mut); }
 .nz-eyebrow, .nz-kicker {
   font-size: 13px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
@@ -131,7 +142,7 @@
 }
 .nz-dark .nz-eyebrow { color: var(--nz-onDark-mut); }
 .nz-kicker { letter-spacing: 0.02em; text-transform: none; font-size: 17px; font-style: italic; }
-.nz-intro { color: var(--nz-mut); font-size: 16px; margin-bottom: 6px !important; }
+.nz-intro { color: var(--nz-mut); font-size: 17px; margin-bottom: 8px !important; }
 .nz-dateline { margin: 18px 0 16px !important; font-size: 15.5px; font-weight: 600; }
 .nz-dark .nz-dateline { color: #fff; }
 
@@ -148,28 +159,29 @@
 /* Тайните */
 .nz-taini { list-style: none; margin: 16px 0 24px; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 .nz-taini li {
-  background: #fff; border: 1px solid var(--nz-line);
-  border-radius: 12px; padding: 16px 18px;
+  background: var(--nz-soft); border: 1px solid var(--nz-line);
+  border-radius: 12px; padding: 18px 20px;
 }
 .nz-taina-n { display: block; font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--nz-gold); margin-bottom: 3px; }
-.nz-taini p { font-size: 17px; color: var(--nz-mut); }
-.nz-taini strong { display: block; color: var(--nz-ink); font-size: 18px; line-height: 1.3; margin-bottom: 3px; }
+.nz-taini p { font-size: 17.5px; line-height: 1.55; color: var(--nz-mut); }
+.nz-taini strong { display: block; color: var(--nz-ink); font-size: 19px; line-height: 1.3; margin-bottom: 6px; }
 
 /* Бонуси */
 .nz-gifts {
   list-style: none; margin: 26px 0 0; padding: 0; width: 100%; max-width: 860px;
   display: grid; gap: 12px; grid-template-columns: 1fr; text-align: left;
 }
-@media (min-width: 760px) { .nz-gifts { grid-template-columns: 1fr 1fr; } .nz-gifts li:last-child { grid-column: 1 / -1; } }
+/* по два на ред; само ако са нечетен брой, последният заема целия ред */
+@media (min-width: 760px) { .nz-gifts { grid-template-columns: 1fr 1fr; } .nz-gifts li:last-child:nth-child(odd) { grid-column: 1 / -1; } }
 .nz-gifts li {
   display: flex; gap: 14px; align-items: flex-start;
-  background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px; padding: 18px 20px;
 }
 .nz-gift-ico { font-size: 28px; line-height: 1; }
-.nz-gift-kind { font-size: 13px; font-weight: 700; letter-spacing: 0.04em; color: var(--nz-onDark-mut); }
-.nz-gift-name { font-size: 18px; font-weight: 800; color: #fff; }
-.nz-gift-body { font-size: 16px; color: var(--nz-onDark-mut); }
+.nz-gift-kind { font-size: 13.5px; font-weight: 700; letter-spacing: 0.04em; color: #a7dcb4; }
+.nz-gift-name { font-size: 19px; font-weight: 800; color: #fff; line-height: 1.3; margin: 2px 0 4px !important; }
+.nz-gift-body { font-size: 16.5px; line-height: 1.55; color: var(--nz-onDark); }
 .nz-total { margin-top: 22px !important; font-size: 18px; font-weight: 800; color: #fff; }
 
 /* Доказателство */
@@ -190,11 +202,11 @@
 .nz-votzivi figcaption span { color: var(--nz-mut); }
 
 /* Авторитет */
-.nz-bio { margin-top: 12px !important; font-size: 17.5px; color: var(--nz-mut); }
+.nz-bio { margin-top: 12px !important; font-size: 18px; line-height: 1.6; color: var(--nz-mut); }
 .nz-trofei { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
-.nz-trofei li { display: flex; gap: 10px; align-items: flex-start; font-size: 17px; padding-bottom: 9px; border-bottom: 1px solid var(--nz-line); }
+.nz-trofei li { display: flex; gap: 10px; align-items: flex-start; font-size: 17.5px; padding-bottom: 10px; border-bottom: 1px solid var(--nz-line); }
 .nz-trofei p { color: var(--nz-mut); }
-.nz-trofei strong { color: var(--nz-ink); }
+.nz-trofei strong { color: var(--nz-g); }
 .nz-kam { margin-top: 10px !important; font-size: 13px; color: var(--nz-mut); }
 
 /* Въпроси */
@@ -202,14 +214,14 @@
 .nz-faq details { background: #fff; border: 1px solid var(--nz-line); border-radius: 12px; padding: 0 16px; }
 .nz-faq summary { cursor: pointer; list-style: none; padding: 15px 28px 15px 0; font-weight: 700; font-size: 17px; position: relative; }
 .nz-faq summary::-webkit-details-marker { display: none; }
-.nz-faq summary::after { content: "+"; position: absolute; right: 2px; top: 11px; font-size: 24px; font-weight: 500; color: var(--nz-ink); }
+.nz-faq summary::after { content: "+"; position: absolute; right: 2px; top: 11px; font-size: 24px; font-weight: 600; color: var(--nz-g); }
 .nz-faq details[open] summary::after { content: "–"; }
-.nz-faq details p { padding: 0 0 15px; color: var(--nz-mut); }
+.nz-faq details p { padding: 0 0 16px; color: var(--nz-mut); line-height: 1.6; }
 
 .nz-final { padding: 60px 0; }
 
 /* Долу */
-.nz-foot { padding: 26px 0 30px; font-size: 13px; color: var(--nz-mut); background: var(--nz-bg); }
+.nz-foot { padding: 26px 0 30px; font-size: 13.5px; color: var(--nz-mut); background: var(--nz-bg); }
 .nz-foot p { max-width: 760px; margin: 0 auto 8px; }
 .nz-foot a { text-decoration: underline; }
 .nz-sign { opacity: 0.75; }
@@ -231,10 +243,10 @@
   max-height: calc(100dvh - 24px); overflow: auto;
   background: #fff; color: var(--nz-ink, #1c1917);
 }
-.nz-dialog::backdrop { background: rgba(28, 25, 23, 0.7); }
+.nz-dialog::backdrop { background: rgba(18, 61, 36, 0.72); }
 .nz-dialog-in { position: relative; padding: 26px 22px 22px; }
 .nz-dialog h2 { margin: 0 34px 6px 0; font-family: var(--font-body), system-ui, sans-serif; font-size: 23px; line-height: 1.2; font-weight: 800; color: #1c1917; }
-.nz-x { position: absolute; top: 10px; right: 12px; width: 38px; height: 38px; border: 0; border-radius: 50%; background: #f5f5f4; color: #1c1917; font-size: 24px; line-height: 1; cursor: pointer; }
+.nz-x { position: absolute; top: 10px; right: 12px; width: 38px; height: 38px; border: 0; border-radius: 50%; background: #f0f7f1; color: #1c1917; font-size: 24px; line-height: 1; cursor: pointer; }
 .nz-form-date, .nz-done-date { font-size: 15px; font-weight: 700; color: #1c1917; margin-bottom: 10px !important; }
 .nz-pointer { font-size: 22px; line-height: 1; letter-spacing: 4px; text-align: center; margin: 0 0 12px !important; }
 .nz-field { display: block; margin-bottom: 11px; }
@@ -244,10 +256,10 @@
   background: #fff; color: #1c1917; font: inherit; font-size: 17px; outline: none;
 }
 .nz-field input::placeholder { color: #a8a29e; }
-.nz-field input:focus { border-color: #1c1917; }
+.nz-field input:focus { border-color: #17693a; }
 .nz-hp { position: absolute !important; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 .nz-consent { display: flex; gap: 10px; align-items: flex-start; margin: 6px 0 14px; font-size: 13.5px; line-height: 1.4; color: #57534e; cursor: pointer; }
-.nz-consent input { margin-top: 2px; width: 20px; height: 20px; flex: none; accent-color: #1c1917; }
+.nz-consent input { margin-top: 2px; width: 20px; height: 20px; flex: none; accent-color: #17693a; }
 .nz-consent a { text-decoration: underline; }
 .nz-error { margin: 0 0 12px !important; padding: 10px 12px; border-radius: 10px; background: #f5f5f4; border: 1px solid #1c1917; color: #1c1917; font-size: 15px; font-weight: 700; }
 .nz-form-foot { margin-top: 10px !important; text-align: center; font-size: 14px; color: #57534e; }
@@ -258,9 +270,9 @@
 
 @media (prefers-reduced-motion: reduce) { .nz-btn { transition: none; } }
 
-/* Банерът за бисквитки (общ за сайта) — на лендинга е в същата гама: тъмно топло, без стъкло и без тюркоазено (25.11.2026) */
-body:has(.nz) [data-cookie-banner] { background: #1c1917; backdrop-filter: none; -webkit-backdrop-filter: none; border-top-color: #44403c; }
-body:has(.nz) [data-cookie-banner] p { color: #d6d3d1; }
+/* Банерът за бисквитки (общ за сайта) — на лендинга е в същата гама: тъмно зелено, без стъкло (25.11.2026) */
+body:has(.nz) [data-cookie-banner] { background: #123d24; backdrop-filter: none; -webkit-backdrop-filter: none; border-top-color: #1f5a37; }
+body:has(.nz) [data-cookie-banner] p { color: #cfe3d4; }
 body:has(.nz) [data-cookie-banner] a { color: #fff; }
-body:has(.nz) [data-cookie-banner] button { border-radius: 10px; border: 1px solid #57534e; background: transparent; color: #fff; box-shadow: none; }
-body:has(.nz) [data-cookie-banner] button:hover { background: #292524; }
+body:has(.nz) [data-cookie-banner] button { border-radius: 10px; border: 1px solid #4f8a63; background: transparent; color: #fff; box-shadow: none; }
+body:has(.nz) [data-cookie-banner] button:hover { background: #1a4d2f; }
