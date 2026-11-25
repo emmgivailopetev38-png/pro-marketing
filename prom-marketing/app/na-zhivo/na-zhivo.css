@@ -81,12 +81,15 @@
   margin-top: 16px !important; max-width: 760px;
   font-size: clamp(17px, 2.3vw, 20px); color: var(--nz-mut); text-wrap: pretty;
 }
-/* „Без“ частта — един ред текст (Стефчо, 23.11.2026), не списък */
+/* „Без“ частта — всяко „Без…“ на свой ред с червен ✕ (Ивайло, 25.11.2026: „както си беше в началото“) */
 .nz-bez {
-  margin: 18px 0 22px !important; max-width: 720px;
-  font-size: clamp(16px, 2.1vw, 18px); font-weight: 700; line-height: 1.5;
-  color: var(--nz-ink); text-wrap: balance;
+  list-style: none; margin: 20px auto 22px !important; padding: 0; max-width: 640px;
+  display: flex; flex-direction: column; gap: 7px;
+  font-size: clamp(16px, 2.1vw, 18px); font-weight: 700; line-height: 1.4;
+  color: var(--nz-ink); text-align: left;
 }
+.nz-bez li { display: flex; align-items: flex-start; gap: 10px; }
+.nz-bez li > span:first-child { flex: none; color: var(--nz-red); font-weight: 900; font-size: 1.15em; line-height: 1.2; }
 .nz-under { margin-top: 10px !important; font-size: 14px; color: var(--nz-mut); }
 
 /* Бутонът — яркочервен навсякъде */

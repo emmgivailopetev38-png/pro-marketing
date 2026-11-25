@@ -31,6 +31,15 @@ function DateLine() {
   );
 }
 
+
+/** „Без да… . Без да… .“ → отделни редове без крайната точка (за списъка с червените ✕). */
+function bezRedove(bez: string): string[] {
+  return bez
+    .split(/\.\s+(?=Без)/)
+    .map((r) => r.trim().replace(/\.$/, ""))
+    .filter(Boolean);
+}
+
 export function NaZhivoLanding() {
   return (
     <div className="nz">
@@ -60,7 +69,15 @@ export function NaZhivoLanding() {
 
             <p className="nz-sub">{c.sub}</p>
 
-            <p className="nz-bez">{c.bez}</p>
+            {/* „Без“ частта — всяко „Без…“ на свой ред с червен ✕ (Ивайло, 25.11.2026: „както си беше в началото“) */}
+            <ul className="nz-bez" aria-label="Какво не се иска от теб">
+              {bezRedove(c.bez).map((b) => (
+                <li key={b}>
+                  <span aria-hidden>✕</span>
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ul>
 
             <Cta place="hero" />
             <p className="nz-under">Безплатно · на живо · {c.dayShort}</p>
