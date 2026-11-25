@@ -113,6 +113,9 @@ describe("/na-zhivo — текстът и датата", () => {
     expect(NA_ZHIVO.taini[0].title).toContain("Най-добрият начин за изкарване на допълнителен доход");
     expect(NA_ZHIVO.taini[0].body).toContain("ежедневни задачи");
     expect(NA_ZHIVO.taini[0].body).toContain("покрай основната ти работа");
+    // Списъкът на Стефчо (25.11): без „Не X. Y.“ и без „повечето хора“ под тайните.
+    expect(JSON.stringify(NA_ZHIVO.taini)).not.toContain("не ти трябва. ");
+    expect(JSON.stringify(NA_ZHIVO.taini)).not.toContain("повечето хора");
     expect(JSON.stringify(NA_ZHIVO.taini).toLowerCase()).not.toContain("бизнес модел");
     // 07:11: „да ти намира клиенти много бързо“.
     expect(NA_ZHIVO.taini[2].title).toContain("много бързо");
