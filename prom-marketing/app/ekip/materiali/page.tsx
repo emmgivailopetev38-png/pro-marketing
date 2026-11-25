@@ -3,13 +3,13 @@ import { getTeamActor } from "@/lib/team/session";
 import { allowed, ekipNav } from "@/lib/team/nav";
 import { canSee, homeFor } from "@/lib/team/roles";
 import { materialsFor } from "@/lib/team/materials";
-import { CLIENT_LINKS, SYSTEM_GUIDE, VIDEO_OTZIVI_IDVAT } from "@/lib/team/klient-materiali";
+import { CLIENT_LINKS, SYSTEM_GUIDE, VIDEO_OTZIVI_GOTOVI, VIDEO_OTZIVI_IDVAT } from "@/lib/team/klient-materiali";
 import { OTZIVI, redSChisla } from "@/lib/site/otzivi";
 import { EkipHeader } from "@/components/ekip/EkipHeader";
 import { MaterialsList } from "@/components/ekip/MaterialsList";
 import { ClientLinks } from "@/components/ekip/ClientLinks";
 import { VideoFeedback } from "@/components/ekip/VideoFeedback";
-import { obuchenieVideoUrl } from "@/lib/team/obuchenie-video";
+import { ekipVideoUrl, obuchenieVideoUrl } from "@/lib/team/obuchenie-video";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +23,21 @@ export default async function MaterialiPage() {
   if (!actor) redirect("/ekip/login");
   if (!allowed(actor, "materiali")) redirect(homeFor(actor.member));
 
-  const [nav, videoUrl] = await Promise.all([ekipNav(actor), obuchenieVideoUrl()]);
+  const [nav, videoUrl, videoOtzivi] = await Promise.all([
+    ekipNav(actor),
+    obuchenieVideoUrl(),
+    // готовите видео отзиви: линк за гледане + линк за сваляне; файл, който го няма в бъкета, не се показва
+    Promise.all(
+      VIDEO_OTZIVI_GOTOVI.map(async (v) => ({
+        ...v,
+        failove: (
+          await Promise.all(
+            v.failove.map(async (f) => ({ ...f, play: await ekipVideoUrl(f.path), down: await ekipVideoUrl(f.path, f.ime) })),
+          )
+        ).filter((f) => f.play),
+      })),
+    ).then((l) => l.filter((v) => v.failove.length > 0)),
+  ]);
   const role = actor.kind === "owner" ? "owner" : actor.member.role;
   const member = actor.kind === "owner" ? { role: "owner" as const, permissions: null } : actor.member;
   const { mine, other } = materialsFor(role, (m) => canSee(member, m));
@@ -84,6 +98,42 @@ export default async function MaterialiPage() {
           <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
             Истински съобщения от клиенти (снимки, без имена — така стоят и на сайта). Можеш да ги пратиш като снимка или с линка към „Успехи и отзиви“. {redSChisla()}.
           </p>
+          {videoOtzivi.map((v) => (
+            <div key={v.id} className="mt-3 rounded-xl border border-emerald-400/25 bg-emerald-400/[0.04] p-3">
+              <p className="text-sm font-semibold">🎥 Видео отзив · {v.etiket}</p>
+              <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
+                <span className="font-semibold text-emerald-200">Кога: </span>
+                {v.koga}
+              </p>
+              <div className="mt-3 flex flex-wrap items-start gap-3">
+                {v.failove.map((f) => (
+                  <div key={f.path} className={f.format === "9:16" ? "w-[200px] shrink-0" : "min-w-[260px] flex-1"}>
+                    <video
+                      controls
+                      preload="metadata"
+                      playsInline
+                      src={f.play ?? undefined}
+                      className={`w-full rounded-lg border border-white/10 bg-black ${f.format === "9:16" ? "aspect-[9/16]" : "aspect-video"}`}
+                    />
+                    <p className="mt-1 flex flex-wrap items-center justify-between gap-1 text-[11px] text-[var(--color-text-tertiary)]">
+                      <span>{f.format} · {f.opisanie}</span>
+                      {f.down && (
+                        <a href={f.down} className="font-semibold text-emerald-200 underline">
+                          ⬇️ Свали
+                        </a>
+                      )}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-xs font-semibold">На какво да стъпиш в разговора:</p>
+              <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-[var(--color-text-secondary)]">
+                {v.citati.map((c) => (
+                  <li key={c}>{c}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
           <ul className="mt-3 space-y-3">
             {OTZIVI.map((o) => (
               <li key={o.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
