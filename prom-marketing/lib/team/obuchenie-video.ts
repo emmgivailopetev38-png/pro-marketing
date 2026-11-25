@@ -20,3 +20,19 @@ export async function obuchenieVideoUrl(): Promise<string | null> {
     return null;
   }
 }
+
+/**
+ * Подписан линк за друг файл от същия бъкет (видео отзивите). С `download` линкът
+ * сваля файла под това име, вместо да го пуска в браузъра. Няма файл → null.
+ */
+export async function ekipVideoUrl(path: string, download?: string): Promise<string | null> {
+  try {
+    const sb = createServiceClient();
+    const { data, error } = await sb.storage
+      .from(EKIP_VIDEO_BUCKET)
+      .createSignedUrl(path, TTL_SECONDS, download ? { download } : undefined);
+    return error || !data?.signedUrl ? null : data.signedUrl;
+  } catch {
+    return null;
+  }
+}
