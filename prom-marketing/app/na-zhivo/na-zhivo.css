@@ -257,3 +257,10 @@
 .nz-done p { color: #57534e; margin-bottom: 16px !important; }
 
 @media (prefers-reduced-motion: reduce) { .nz-btn { transition: none; } }
+
+/* Банерът за бисквитки (общ за сайта) — на лендинга е в същата гама: тъмно топло, без стъкло и без тюркоазено (25.11.2026) */
+body:has(.nz) [data-cookie-banner] { background: #1c1917; backdrop-filter: none; -webkit-backdrop-filter: none; border-top-color: #44403c; }
+body:has(.nz) [data-cookie-banner] p { color: #d6d3d1; }
+body:has(.nz) [data-cookie-banner] a { color: #fff; }
+body:has(.nz) [data-cookie-banner] button { border-radius: 10px; border: 1px solid #57534e; background: transparent; color: #fff; box-shadow: none; }
+body:has(.nz) [data-cookie-banner] button:hover { background: #292524; }

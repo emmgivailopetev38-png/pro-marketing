@@ -51,6 +51,7 @@ export function CookieConsent() {
     <div
       role="region"
       aria-label="Съгласие за бисквитки"
+      data-cookie-banner
       className="fixed inset-x-0 bottom-[var(--pm-sticky-cta-h,0px)] z-[115] border-t border-[var(--color-border-default)] bg-[var(--color-bg-deep)]/95 backdrop-blur-md transition-[bottom] duration-300 md:bottom-0"
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-6">
