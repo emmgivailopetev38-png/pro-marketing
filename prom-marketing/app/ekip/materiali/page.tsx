@@ -3,7 +3,7 @@ import { getTeamActor } from "@/lib/team/session";
 import { allowed, ekipNav } from "@/lib/team/nav";
 import { canSee, homeFor } from "@/lib/team/roles";
 import { materialsFor } from "@/lib/team/materials";
-import { CLIENT_LINKS, SYSTEM_GUIDE, VIDEO_OTZIVI_GOTOVI, VIDEO_OTZIVI_IDVAT } from "@/lib/team/klient-materiali";
+import { CLIENT_LINKS, REKLAMI_ZA_PREGLED, SYSTEM_GUIDE, VIDEO_OTZIVI_GOTOVI, VIDEO_OTZIVI_IDVAT } from "@/lib/team/klient-materiali";
 import { OTZIVI, redSChisla } from "@/lib/site/otzivi";
 import { EkipHeader } from "@/components/ekip/EkipHeader";
 import { MaterialsList } from "@/components/ekip/MaterialsList";
@@ -93,6 +93,24 @@ export default async function MaterialiPage() {
           <ClientLinks links={CLIENT_LINKS} />
         </section>
 
+        <section className="rounded-2xl border border-sky-400/30 bg-sky-500/[0.06] p-4">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">{REKLAMI_ZA_PREGLED.title}</h2>
+          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{REKLAMI_ZA_PREGLED.about}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {REKLAMI_ZA_PREGLED.linkove.map((l) => (
+              <a
+                key={l.url}
+                href={l.url}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 text-sm font-semibold underline-offset-2 hover:underline"
+              >
+                {l.title}
+              </a>
+            ))}
+          </div>
+        </section>
+
         <section className={card}>
           <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">⭐ Отзиви на доволни клиенти</h2>
           <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
@@ -147,6 +165,7 @@ export default async function MaterialiPage() {
               </li>
             ))}
           </ul>
+          {VIDEO_OTZIVI_IDVAT.length > 0 && (
           <div className="mt-3 rounded-xl border border-amber-400/25 bg-amber-400/5 p-3 text-xs text-[var(--color-text-secondary)]">
             <p className="font-semibold text-amber-200">🎥 Идват видео отзиви</p>
             <ul className="mt-1 list-disc space-y-0.5 pl-4">
@@ -158,6 +177,7 @@ export default async function MaterialiPage() {
             </ul>
             <p className="mt-1">Качват се тук, щом клиентът одобри версията. Дотогава не се пращат.</p>
           </div>
+          )}
         </section>
 
         <section className={card}>
