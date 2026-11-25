@@ -91,6 +91,7 @@ export async function GET(request: Request) {
   if (!ok) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   // Веднъж на час: работят ли ключовете (Notifier, Viber канала) — записва се само резултатът, никога ключът.
   await proveriVrazkite();
+  await probaNaPodatelya();
   if (!NAPOMNYANIA.vklyucheni) return NextResponse.json({ ok: true, off: true });
 
   const started = Date.now();
@@ -324,6 +325,41 @@ async function proveriVrazkite(): Promise<void> {
     await sb.from("automation_events").update({ status: "success", detail }).eq("id", (claim as { id: string }).id);
   } catch (e) {
     console.error("[cron/uebinar] proverka", e instanceof Error ? e.message : e);
+  }
+}
+
+/**
+ * Еднократна проба на подателя ivailopetev.com (Ивайло, 25.11.2026): писмо №1
+ * с „[ПРОБА]“ в темата до ivailo@promarketing.pw (пренасочва се към Gmail-а на
+ * Ивайло). Ключ в automation_events → тръгва само веднъж, само с отделния ключ.
+ */
+async function probaNaPodatelya(): Promise<void> {
+  if (!process.env.RESEND_UEBINAR_API_KEY) return;
+  try {
+    const sb = createServiceClient();
+    const key = `uebinar:${SLUG}:proba-podatel:v1`;
+    const { data: claim, error } = await sb
+      .from("automation_events")
+      .insert({ event_type: "uebinar_proba", status: ZAPAZENO, idempotency_key: key, summary: "Уебинар · пробно писмо от ivailopetev.com" })
+      .select("id")
+      .single();
+    if (error || !claim) return;
+    const m = sglobiImeil(1, "Ивайло Петев", "https://ivailopetev.com/");
+    const r = await prati({
+      from: podatel(),
+      to: "ivailo@promarketing.pw",
+      subject: `[ПРОБА] ${m.tema}`,
+      html: m.html,
+      text: m.tekst,
+      replyTo: process.env.EMAIL_REPLY_TO || undefined,
+      idempotencyKey: key,
+    });
+    await sb
+      .from("automation_events")
+      .update({ status: r.error ? "failed" : "success", detail: r.error ? { error: r.error, status: r.statusCode, from: podatel() } : { resend_id: r.id, from: podatel() } })
+      .eq("id", (claim as { id: string }).id);
+  } catch (e) {
+    console.error("[cron/uebinar] proba", e instanceof Error ? e.message : e);
   }
 }
 
