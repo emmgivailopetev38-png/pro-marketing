@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "../na-zhivo.css";
 import "./podaraci.css";
+import { UebinarSledene } from "@/components/uebinar/UebinarSledene";
 
 /**
  * /na-zhivo/podaraci — подаръците за останалите до края на обучението
@@ -24,5 +25,10 @@ export const viewport: Viewport = {
 };
 
 export default function PodaraciLayout({ children }: { children: React.ReactNode }) {
-  return <div className="nz pd">{children}</div>;
+  return (
+    <div className="nz pd">
+      {children}
+      <UebinarSledene stranica="podaraci" />
+    </div>
+  );
 }
