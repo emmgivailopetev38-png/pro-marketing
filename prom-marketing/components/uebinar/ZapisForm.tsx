@@ -19,6 +19,7 @@ export function ZapisForm({
   doneBody,
   calendarLabel,
   calendarHref,
+  viberHref = null,
 }: {
   slug: string;
   title: string;
@@ -29,6 +30,8 @@ export function ZapisForm({
   doneBody: string;
   calendarLabel: string;
   calendarHref: string;
+  /** Viber каналът на обучението (ivailopetev.com/viber) — първата стъпка след записването, когато го има */
+  viberHref?: string | null;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [name, setName] = useState("");
@@ -128,10 +131,25 @@ export function ZapisForm({
               {name.trim() ? ` ${name.trim().split(" ")[0]}, ще се видим на живо.` : ""}
             </h2>
             <p className="nz-done-date">{dateLabel}</p>
-            <p>{doneBody}</p>
-            <a className="nz-btn" href={calendarHref} target="_blank" rel="noopener noreferrer">
-              {calendarLabel}
-            </a>
+            {viberHref ? (
+              <>
+                {/* Страницата за потвърждение (картата на Стефчо, 25.11): първо Viber канала, после календара */}
+                <p>Остана една стъпка: влез в моя Viber канал „AI България · Пари с AI“. Там ще пусна линка за влизане в неделя.</p>
+                <a className="nz-btn" href={viberHref} target="_blank" rel="noopener noreferrer">
+                  ВЛЕЗ ВЪВ VIBER КАНАЛА
+                </a>
+                <a className="nz-btn-sec" href={calendarHref} target="_blank" rel="noopener noreferrer">
+                  {calendarLabel}
+                </a>
+              </>
+            ) : (
+              <>
+                <p>{doneBody}</p>
+                <a className="nz-btn" href={calendarHref} target="_blank" rel="noopener noreferrer">
+                  {calendarLabel}
+                </a>
+              </>
+            )}
           </div>
         ) : (
           <form onSubmit={submit} noValidate={false}>

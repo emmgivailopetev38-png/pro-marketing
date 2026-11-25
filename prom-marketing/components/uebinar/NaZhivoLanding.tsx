@@ -21,6 +21,8 @@ import Link from "next/link";
 import { NA_ZHIVO as c, calendarUrl } from "@/lib/uebinar/na-zhivo";
 import { OTZIVI } from "@/lib/site/otzivi";
 import { ZapisForm } from "./ZapisForm";
+import { UEBINAR_LINKOVE } from "@/lib/uebinar/linkove";
+import { UEBINAR_ORIGIN } from "@/lib/uebinar/domen";
 
 function Cta({ place }: { place: string }) {
   return (
@@ -278,6 +280,7 @@ export function NaZhivoLanding() {
         doneBody={c.form.doneBody}
         calendarLabel={c.form.calendar}
         calendarHref={calendarUrl()}
+        viberHref={UEBINAR_LINKOVE.viberKanal ? `${UEBINAR_ORIGIN}/viber` : null}
       />
     </div>
   );
