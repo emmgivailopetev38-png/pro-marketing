@@ -7,6 +7,9 @@
    подзаглавие → „без“ частта като текст → бутон → тайните → бонуси →
    доказателство → кой е водещият → въпроси → последна секция.
    Бутоните са яркочервени и са навсякъде. Без видео на страницата.
+   25.11.2026 вечер · дизайнът по „Дизайн правила“ на Стефчо: червено САМО по бутоните,
+   една гама (топли неутрални: почти черно, топло сиво, бяло), без емоджита пред редове
+   и в заглавия, без цветни ленти, сенки и светене, без тирета в текста.
    Сървърен компонент; единственият клиентски остров е формата (ZapisForm).
 --------------------------------------------------------------------------- */
 import Image from "next/image";
@@ -26,25 +29,17 @@ function Cta({ place }: { place: string }) {
 function DateLine() {
   return (
     <p className="nz-dateline">
-      <span aria-hidden>📣</span> {c.dateLabel} — {c.topBar}
+      {c.dateLabel}, {c.topBar}
     </p>
   );
 }
 
 
-/** „Без да… . Без да… .“ → отделни редове без крайната точка (за списъка с червените ✕). */
-function bezRedove(bez: string): string[] {
-  return bez
-    .split(/\.\s+(?=Без)/)
-    .map((r) => r.trim().replace(/\.$/, ""))
-    .filter(Boolean);
-}
-
 export function NaZhivoLanding() {
   return (
     <div className="nz">
       <div className="nz-top" role="note">
-        <span aria-hidden>📣</span> <strong>{c.dateLabel}</strong> <span className="nz-top-rest">— {c.topBar}…</span>
+        <strong>{c.dateLabel}</strong> <span className="nz-top-rest">· {c.topBar}</span>
       </div>
 
       <main>
@@ -56,7 +51,7 @@ export function NaZhivoLanding() {
             </p>
 
             <p className="nz-vnimanie">
-              <span aria-hidden>⚠️</span> <strong>ВНИМАНИЕ:</strong> {c.vnimanie}
+              <strong>ВНИМАНИЕ:</strong> {c.vnimanie}
             </p>
 
             <h1 className="nz-h1">
@@ -69,15 +64,8 @@ export function NaZhivoLanding() {
 
             <p className="nz-sub">{c.sub}</p>
 
-            {/* „Без“ частта — всяко „Без…“ на свой ред с червен ✕ (Ивайло, 25.11.2026: „както си беше в началото“) */}
-            <ul className="nz-bez" aria-label="Какво не се иска от теб">
-              {bezRedove(c.bez).map((b) => (
-                <li key={b}>
-                  <span aria-hidden>✕</span>
-                  <span>{b}</span>
-                </li>
-              ))}
-            </ul>
+            {/* „Без“ частта — един ред със запетаи (Стефчо, 25.11.2026 18:43) */}
+            <p className="nz-bez">{c.bez}</p>
 
             <Cta place="hero" />
             <p className="nz-under">Безплатно · на живо · {c.dayShort}</p>
@@ -119,9 +107,7 @@ export function NaZhivoLanding() {
         {/* 3 · Бонуси за останалите до края */}
         <section className="nz-sec nz-dark">
           <div className="nz-wrap nz-center">
-            <p className="nz-eyebrow">
-              <span aria-hidden>🎁</span> {c.bonusi.eyebrow}
-            </p>
+            <p className="nz-eyebrow">{c.bonusi.eyebrow}</p>
             <h2 className="nz-h2">
               {c.bonusi.title}
               {c.bonusi.stoinost ? <span className="nz-stoinost"> {c.bonusi.stoinost}</span> : null}
@@ -131,9 +117,6 @@ export function NaZhivoLanding() {
             <ul className="nz-gifts">
               {c.bonusi.items.map((g) => (
                 <li key={g.kind}>
-                  <span className="nz-gift-ico" aria-hidden>
-                    {g.emoji}
-                  </span>
                   <div>
                     <p className="nz-gift-kind">{g.kind}</p>
                     <p className="nz-gift-name">{g.name}</p>
@@ -144,7 +127,7 @@ export function NaZhivoLanding() {
             </ul>
 
             <p className="nz-total">
-              <span aria-hidden>🎁</span> {c.bonusi.total}
+              {c.bonusi.total}
             </p>
             <DateLine />
             <Cta place="bonusi" />
@@ -218,7 +201,6 @@ export function NaZhivoLanding() {
               <ul className="nz-trofei">
                 {c.avtoritet.tochki.map((t) => (
                   <li key={t.b}>
-                    <span aria-hidden>🏆</span>
                     <p>
                       <strong>{t.b}</strong> {t.t}
                     </p>

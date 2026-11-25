@@ -110,7 +110,9 @@ describe("/na-zhivo — текстът и датата", () => {
     expect(NA_ZHIVO.sub).not.toContain("копираш");
     expect(NA_ZHIVO.sub).toContain("автоматично");
     // 03:47: за „без“ частта каза „иначе е окей“ — „без склад, стока и доставки“ остава.
-    expect(NA_ZHIVO.bez).toContain("Без склад, стока и доставки");
+    expect(NA_ZHIVO.bez.toLowerCase()).toContain("без склад, стока и доставки");
+    // 25.11 18:43 (Стефчо): на един ред, със запетаи — нито една точка по средата.
+    expect(NA_ZHIVO.bez.slice(0, -1)).not.toContain(".");
     // 04:20: тайна №1 с неговите думи; 06:36: „вместо само да му пишеш за ежедневни задачи“.
     expect(NA_ZHIVO.taini[0].title).toContain("Най-добрият начин за изкарване на допълнителен доход");
     expect(NA_ZHIVO.taini[0].body).toContain("ежедневни задачи");
