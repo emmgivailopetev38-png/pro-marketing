@@ -45,6 +45,8 @@ export async function GET(request: Request) {
     (process.env.CRON_SECRET && auth === `Bearer ${process.env.CRON_SECRET}`) ||
     (process.env.INTERNAL_SEND_TOKEN && auth === `Bearer ${process.env.INTERNAL_SEND_TOKEN}`);
   if (!ok) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Веднъж на час: работят ли ключовете (Notifier, Viber канала) — записва се само резултатът, никога ключът.
+  await proveriVrazkite();
   if (!NAPOMNYANIA.vklyucheni) return NextResponse.json({ ok: true, off: true });
 
   const started = Date.now();
@@ -206,6 +208,79 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({ ok: true, zapisani: contacts.length, ...out });
+}
+
+const VIBER_WEBHOOK = "https://promarketing.pw/api/webhooks/viber-kanal";
+
+/**
+ * Проверка на връзките (веднъж на час, ключ в automation_events): Notifier —
+ * четене на уебинара (нищо не праща); Viber — информацията за канала и дали има
+ * webhook (без него Viber не публикува; ако липсва — задава го). В записа:
+ * статуси, името на канала, брой абонати. Ключовете не се пишат никъде.
+ */
+async function proveriVrazkite(): Promise<void> {
+  try {
+    const sb = createServiceClient();
+    const chas = new Date().toISOString().slice(0, 13);
+    const key = `uebinar:${SLUG}:proverka:${chas}`;
+    const { data: claim, error } = await sb
+      .from("automation_events")
+      .insert({ event_type: "uebinar_proverka", status: "pending", idempotency_key: key, summary: "Уебинар · проверка на Notifier и Viber" })
+      .select("id")
+      .single();
+    if (error || !claim) return;
+    const detail: Record<string, unknown> = {};
+    const nKey = process.env.NOTIFIER_API_KEY;
+    const nWeb = UEBINAR_LINKOVE.notifierWebinar;
+    if (nKey && nWeb) {
+      try {
+        const r = await fetch(`https://notifierbg.com/api/v1/webinars/${encodeURIComponent(nWeb)}`, {
+          headers: { Authorization: `Bearer ${nKey}` },
+          signal: AbortSignal.timeout(10_000),
+        });
+        const j = (await r.json().catch(() => ({}))) as { webinar?: { name?: string; tracksLeads?: boolean; startAt?: string } };
+        detail.notifier = { status: r.status, ime: j.webinar?.name ?? null, tracksLeads: j.webinar?.tracksLeads ?? null, startAt: j.webinar?.startAt ?? null };
+      } catch (e) {
+        detail.notifier = { greshka: e instanceof Error ? e.message : String(e) };
+      }
+    } else detail.notifier = { klyuch: !!nKey, webinar: !!nWeb };
+    const vTok = process.env.VIBER_KANAL_TOKEN;
+    if (vTok) {
+      try {
+        const r = await fetch("https://chatapi.viber.com/pa/get_account_info", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Viber-Auth-Token": vTok },
+          body: JSON.stringify({ auth_token: vTok }),
+          signal: AbortSignal.timeout(10_000),
+        });
+        const j = (await r.json()) as { status?: number; status_message?: string; name?: string; webhook?: string; subscribers_count?: number; members?: Array<{ role: string }> };
+        const v: Record<string, unknown> = {
+          status: j.status,
+          status_message: j.status_message,
+          ime: j.name ?? null,
+          abonati: j.subscribers_count ?? null,
+          superadmin: !!j.members?.some((m) => m.role === "superadmin"),
+          webhook: j.webhook || null,
+        };
+        if (j.status === 0 && !j.webhook) {
+          const w = await fetch("https://chatapi.viber.com/pa/set_webhook", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Viber-Auth-Token": vTok },
+            body: JSON.stringify({ auth_token: vTok, url: VIBER_WEBHOOK }),
+            signal: AbortSignal.timeout(10_000),
+          });
+          const wj = (await w.json().catch(() => ({}))) as { status?: number; status_message?: string };
+          v.set_webhook = { status: wj.status, status_message: wj.status_message };
+        }
+        detail.viber = v;
+      } catch (e) {
+        detail.viber = { greshka: e instanceof Error ? e.message : String(e) };
+      }
+    } else detail.viber = { klyuch: false };
+    await sb.from("automation_events").update({ status: "success", detail }).eq("id", (claim as { id: string }).id);
+  } catch (e) {
+    console.error("[cron/uebinar] proverka", e instanceof Error ? e.message : e);
+  }
 }
 
 async function kamNotifier(key: string, webinar: string, lead: { name: string; phone: string; email: string }): Promise<{ ok: boolean; error?: string }> {
