@@ -12,7 +12,10 @@
    се тества. Изпращането е в app/api/cron/uebinar.
    Нищо не тръгва, докато `vklyucheni` е false (Ивайло одобрява текстовете).
 --------------------------------------------------------------------------- */
-import { NA_ZHIVO, calendarUrl } from "./na-zhivo";
+import { NA_ZHIVO } from "./na-zhivo";
+
+/** Календарът през домейна (ivailopetev.com/kalendar → Google Календар), не дългия линк на Google. */
+const KALENDAR = "https://ivailopetev.com/kalendar";
 import { IMEILI_TEKSTOVE } from "./napomnyania-tekstove";
 import { splitName } from "./capi";
 
@@ -124,7 +127,7 @@ export function sglobiImeil(n: number, fullName: string | null | undefined, otpi
   const def = IMEILI_TEKSTOVE.find((x) => x.n === n);
   if (!def) throw new Error(`Няма писмо №${n}`);
   const ime = splitName(fullName ?? "").firstName;
-  let tekst = def.tekst.replace(/\{календар\}/g, calendarUrl());
+  let tekst = def.tekst.replace(/\{календар\}/g, KALENDAR);
   tekst = ime ? tekst.replace(/\{име\}/g, ime) : tekst.replace(/,? ?\{име\},?/g, ",").replace(/^Здравей,,/m, "Здравей,");
   const footer = `Получаваш това писмо, защото се записа за безплатното обучение „${NA_ZHIVO.name}“ на ivailopetev.com. Ако не искаш повече писма за него: ${otpisvane}`;
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:#1c1917;max-width:560px">${tekst
@@ -145,7 +148,7 @@ export function viberTekst(kluch: string): string {
   if (!def) throw new Error(`Няма пост ${kluch}`);
   const bez = def.tekst
     .replace(/^Здравей, \{име\},\s*/u, "")
-    .replace(/\{календар\}/g, calendarUrl())
+    .replace(/\{календар\}/g, KALENDAR)
     .replace(/\n\nИвайло\s*$/u, "");
   return Object.entries(LINKOVE).reduce((s, [k, v]) => s.split(` ${k}`).join(` ${v}`), bez);
 }
