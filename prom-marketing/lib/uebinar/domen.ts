@@ -1,4 +1,5 @@
 import { UEBINAR_LINKOVE } from "./linkove";
+import { calendarUrl } from "./na-zhivo";
 
 /**
  * Домейнът на уебинара — ivailopetev.com (вързан на 23.11.2026).
@@ -90,6 +91,8 @@ export function uebinarHostAction(host: string, pathname: string, search = ""): 
   // Кратките линкове от SMS-ите и писмата (виж linkove.ts); докато ги няма — лендингът.
   if (pathname === "/viber") return { kind: "redirect", to: UEBINAR_LINKOVE.viberKanal ?? `${UEBINAR_ORIGIN}/`, status: 307 };
   if (pathname === "/vlez") return { kind: "redirect", to: UEBINAR_LINKOVE.zoom ?? `${UEBINAR_ORIGIN}/`, status: 307 };
+  // „Запази си часа в календара“ от писмата — кратък линк на домейна (Resend: линковете да са от домейна на подателя).
+  if (pathname === "/kalendar") return { kind: "redirect", to: calendarUrl(), status: 307 };
   // Иконите, манифестът и картинката при споделяне на уебинара (public/ivailo/).
   if (pathname.startsWith(`${IVAILO_ASSETS}/`)) return { kind: "next" };
   return { kind: "redirect", to: `${GLAVEN_ORIGIN}${pathname}${search}`, status: 307 };

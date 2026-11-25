@@ -70,6 +70,9 @@ describe("текстовете", () => {
     expect(m.tekst).not.toMatch(/\{име\}|\{календар\}/);
     expect(m.html).toContain('href="https://ivailopetev.com/viber"');
     expect(m.html).toContain("отпиши ме");
+    // линковете са от домейна на подателя (Resend), без дългия линк на Google
+    expect(m.html).toContain('href="https://ivailopetev.com/kalendar"');
+    expect(m.html).not.toContain("calendar.google.com");
     const bez = sglobiImeil(2, null, "https://x");
     expect(bez.tekst.startsWith("Здравей,\n")).toBe(true);
   });
