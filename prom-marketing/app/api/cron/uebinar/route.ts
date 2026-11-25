@@ -92,6 +92,7 @@ export async function GET(request: Request) {
   // Веднъж на час: работят ли ключовете (Notifier, Viber канала) — записва се само резултатът, никога ключът.
   await proveriVrazkite();
   await probaNaPodatelya();
+  await probaSms();
   if (!NAPOMNYANIA.vklyucheni) return NextResponse.json({ ok: true, off: true });
 
   const started = Date.now();
@@ -362,6 +363,36 @@ async function probaNaPodatelya(): Promise<void> {
       .eq("id", (claim as { id: string }).id);
   } catch (e) {
     console.error("[cron/uebinar] proba", e instanceof Error ? e.message : e);
+  }
+}
+
+/**
+ * Еднократна проба на SMS-ите (Ивайло, 25.11.2026: „тествай SMS с моя
+ * телефон“): Ивайло се записва в уебинара в Notifier като участник → идва
+ * SMS-ът „при записване“ (после и 24 ч., 1 ч. и при начало, като на всички).
+ * Ключ в automation_events → само веднъж. Картон в CRM не се прави.
+ */
+async function probaSms(): Promise<void> {
+  const nKey = process.env.NOTIFIER_API_KEY;
+  const nWeb = UEBINAR_LINKOVE.notifierWebinar;
+  const email = process.env.EMAIL_REPLY_TO;
+  if (!nKey || !nWeb || !email) return;
+  try {
+    const sb = createServiceClient();
+    const key = `uebinar:${SLUG}:proba-sms:v1`;
+    const { data: claim, error } = await sb
+      .from("automation_events")
+      .insert({ event_type: "uebinar_proba", status: ZAPAZENO, idempotency_key: key, summary: "Уебинар · проба на SMS (Notifier) към Ивайло" })
+      .select("id")
+      .single();
+    if (error || !claim) return;
+    const r = await kamNotifier(nKey, nWeb, { name: "Ивайло Петев", phone: "+359877399963", email });
+    await sb
+      .from("automation_events")
+      .update({ status: r.ok ? "success" : "failed", detail: r.ok ? {} : { error: r.error } })
+      .eq("id", (claim as { id: string }).id);
+  } catch (e) {
+    console.error("[cron/uebinar] proba sms", e instanceof Error ? e.message : e);
   }
 }
 

@@ -21,8 +21,9 @@ import Link from "next/link";
 import { NA_ZHIVO as c, calendarUrl } from "@/lib/uebinar/na-zhivo";
 import { OTZIVI } from "@/lib/site/otzivi";
 import { ZapisForm } from "./ZapisForm";
+import { UebinarSledene } from "./UebinarSledene";
 import { UEBINAR_LINKOVE } from "@/lib/uebinar/linkove";
-import { UEBINAR_ORIGIN } from "@/lib/uebinar/domen";
+import { UEBINAR_ORIGIN, UEBINAR_PIXEL_ID } from "@/lib/uebinar/domen";
 
 function Cta({ place }: { place: string }) {
   return (
@@ -282,6 +283,11 @@ export function NaZhivoLanding() {
         calendarHref={calendarUrl()}
         viberHref={UEBINAR_LINKOVE.viberKanal ? `${UEBINAR_ORIGIN}/viber` : null}
       />
+      <UebinarSledene stranica="lending" />
+      <noscript>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img height="1" width="1" style={{ display: "none" }} src={`https://www.facebook.com/tr?id=${UEBINAR_PIXEL_ID}&ev=PageView&noscript=1`} alt="" />
+      </noscript>
     </div>
   );
 }

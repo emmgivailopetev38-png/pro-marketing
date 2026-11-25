@@ -1,7 +1,7 @@
 "use client";
 import Script from "next/script";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { PODARACI_PATH, UEBINAR_HOSTS, UEBINAR_PATH, UEBINAR_PIXEL_ID } from "@/lib/uebinar/domen";
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
@@ -20,8 +20,15 @@ const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
  */
 export function MetaPixel() {
   const pathname = usePathname();
+  // Първият PageView го праща самият скрипт; ефектът е само за следващите
+  // преминавания между страници (иначе първото зареждане се брои два пъти).
+  const parvo = useRef(true);
 
   useEffect(() => {
+    if (parvo.current) {
+      parvo.current = false;
+      return;
+    }
     if (!PIXEL_ID) return;
     if (typeof window === "undefined" || typeof window.fbq !== "function") return;
     window.fbq("track", "PageView");
@@ -43,7 +50,13 @@ export function MetaPixel() {
           }(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
           var pmUebinar = ${JSON.stringify(UEBINAR_HOSTS)}.indexOf(location.hostname) !== -1 || location.pathname.indexOf('${UEBINAR_PATH}') === 0 || location.pathname.indexOf('${PODARACI_PATH}') === 0;
           fbq('init', pmUebinar ? '${UEBINAR_PIXEL_ID}' : '${PIXEL_ID}');
-          fbq('track', 'PageView');
+          if (pmUebinar) {
+            // Уебинарът: PageView с event_id — сървърът праща същия (UebinarSledene → Conversions API).
+            window.__pmPv = 'pv-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+            fbq('track', 'PageView', {}, { eventID: window.__pmPv });
+          } else {
+            fbq('track', 'PageView');
+          }
         `}
       </Script>
       <noscript>
