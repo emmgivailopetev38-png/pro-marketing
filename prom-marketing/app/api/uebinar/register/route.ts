@@ -10,6 +10,9 @@ import { NA_ZHIVO } from "@/lib/uebinar/na-zhivo";
 import { sendCapiEvent } from "@/lib/meta/conversions-api";
 import { UEBINAR_ORIGIN, UEBINAR_PIXEL_ID } from "@/lib/uebinar/domen";
 import { clientIp, cookieValue, fbcFor, safeEventId, splitName } from "@/lib/uebinar/capi";
+import { routeNewLead } from "@/lib/team/routing";
+import { notifyTeamNewLead } from "@/lib/team/notify";
+import { LEAD_OFFERS } from "@/lib/leads/lead-offers";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +46,11 @@ const schema = z.object({
  * След отговора праща CompleteRegistration към пиксела на уебинара и от
  * сървъра (Conversions API), със същия event_id като браузъра; резултатът
  * се пази в действието (metadata.capi).
+ * Екипът (25.11.2026, Ивайло: „да са обозначени, че са от уебинара… и сетърът,
+ * и клоузърът, и останалите да ги виждат“): новият записан минава през
+ * разпределянето като всеки нов лийд (при сетъра) и екипът получава писмото
+ * „нов лийд“ със значката „🎓 Уебинар“. Клиент или човек в оферта не се
+ * разпределя наново.
  * Към записалия се НЕ тръгва автоматично писмо: напомнянията (Viber, SMS,
  * имейл) се пишат отделно и се пускат, след като Ивайло ги одобри.
  */
@@ -72,11 +80,11 @@ export async function POST(request: Request) {
   const supabase = createServiceClient();
 
   // Един човек = един картон: първо по имейл, после по телефон във всичките му записи.
-  let existing: { id: string; full_name: string | null; phone: string | null; email: string | null } | null = null;
+  let existing: { id: string; full_name: string | null; phone: string | null; email: string | null; stage: string | null } | null = null;
   {
     const { data } = await supabase
       .from("contacts")
-      .select("id, full_name, phone, email")
+      .select("id, full_name, phone, email, stage")
       .eq("email", d.email)
       .limit(1)
       .maybeSingle();
@@ -85,7 +93,7 @@ export async function POST(request: Request) {
   if (!existing) {
     const { data } = await supabase
       .from("contacts")
-      .select("id, full_name, phone, email")
+      .select("id, full_name, phone, email, stage")
       .in("phone", phoneVariants(phone))
       .limit(1)
       .maybeSingle();
@@ -151,6 +159,27 @@ export async function POST(request: Request) {
     .select("id")
     .single();
   if (actError) console.error("[uebinar/register] activity insert", actError.message);
+
+  // При екипа: само нов човек или такъв, който още е „лийд“ (не клиент, не в оферта).
+  const zaEkipa = !existing || !existing.stage || existing.stage === "lead";
+  if (zaEkipa) {
+    after(async () => {
+      await routeNewLead(contactId, { split: false }).catch(() => null);
+      await notifyTeamNewLead({
+        contactId,
+        fullName: d.name,
+        email: d.email,
+        phone,
+        sourceLabel: "уебинара (ivailopetev.com)",
+        offerLabel: LEAD_OFFERS.uebinar.label,
+        extra: [
+          { label: "Записа се за", value: NA_ZHIVO.dateLabel },
+          { label: "От реклама", value: d.utm_content ?? (d.utm_source ? d.utm_source : "без реклама (директно)") },
+          { label: "Какво да кажеш", value: "Потвърди, че ще влезе, кажи, че линкът идва по Viber, SMS и имейл в деня на обучението, и попитай с какво се занимава." },
+        ],
+      }).catch(() => {});
+    });
+  }
 
   // Записването и от сървъра към пиксела на уебинара (след отговора — формата не чака).
   const capiToken = process.env.META_UEBINAR_CAPI_TOKEN || process.env.META_CAPI_TOKEN;

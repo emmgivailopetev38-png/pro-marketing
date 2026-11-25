@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { leadStatus, matchesQuery, sourceLabel, summarizeLeadActivities, type LeadActivityRow } from "./liidove-rules";
+import { leadStatus, matchesQuery, sourceLabel, summarizeLeadActivities, type LeadActivityRow, isUebinarSource } from "./liidove-rules";
 import { callOutcome, closerStats, sofiaDayStart, type NapredakBooking, type PersonRef } from "./napredak-rules";
 
 const NOW = new Date("2026-11-24T16:00:00Z");
@@ -45,7 +45,9 @@ describe("всички лийдове: групата на човека", () => 
 
   it("откъде и търсенето", () => {
     expect(sourceLabel("meta_lead", { ad: "Видео 1", campaign: "К" })).toBe("Meta · Видео 1");
-    expect(sourceLabel("uebinar-pari", null)).toBe("уебинар");
+    expect(sourceLabel("uebinar-pari", null)).toMatch(/^🎓 Уебинар \d{2}\.\d{2}$/);
+    expect(isUebinarSource("uebinar-pokazhi-ne-prodavai")).toBe(true);
+    expect(isUebinarSource("meta_lead")).toBe(false);
     const row = { name: "Иван Петров", phone: "+359 888 123 456", email: null, company: null, business: "автосервиз" };
     expect(matchesQuery(row, "0888123456")).toBe(true);
     expect(matchesQuery(row, "автосерв")).toBe(true);

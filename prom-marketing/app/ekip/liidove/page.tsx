@@ -31,16 +31,17 @@ function hrefWith(sp: Record<string, string | undefined>, patch: Record<string, 
  * нечут, не вдига, говорили, среща, дошъл, не дошъл, оферта, клиент, DQ.
  * Вижда го целият екип по продажбите; звънене и записване на срещи — от картата.
  */
-export default async function LiidovePage({ searchParams }: { searchParams: Promise<{ s?: string; q?: string; who?: string; n?: string }> }) {
+export default async function LiidovePage({ searchParams }: { searchParams: Promise<{ s?: string; q?: string; who?: string; ot?: string; n?: string }> }) {
   const actor = await getTeamActor();
   if (!actor) redirect("/ekip/login");
   if (!allowed(actor, "liidove")) redirect(homeFor(actor.member));
   const sp = await searchParams;
-  const [nav, view] = await Promise.all([ekipNav(actor), loadLeads({ status: sp.s ?? null, q: sp.q ?? null, who: sp.who ?? null })]);
+  const [nav, view] = await Promise.all([ekipNav(actor), loadLeads({ status: sp.s ?? null, q: sp.q ?? null, who: sp.who ?? null, ot: sp.ot ?? null })]);
   const canOpen = allowed(actor, "zvanene");
   const limit = Math.min(Math.max(Number(sp.n) || PAGE, PAGE), 2000);
   const shown = view.rows.slice(0, limit);
   const active = (LEAD_STATUSES as readonly string[]).includes(sp.s ?? "") ? (sp.s as LeadStatus) : null;
+  const ot = sp.ot === "uebinar" ? "uebinar" : undefined;
   const chip = (on: boolean) =>
     `rounded-full border px-3 py-1.5 text-xs font-semibold ${on ? "border-[var(--color-accent-cyan)]/60 bg-[var(--color-accent-cyan)]/15 text-[var(--color-accent-cyan)]" : "border-white/10 text-[var(--color-text-secondary)]"}`;
 
@@ -57,6 +58,7 @@ export default async function LiidovePage({ searchParams }: { searchParams: Prom
 
         <form action="/ekip/liidove" className="flex flex-wrap gap-2">
           {active && <input type="hidden" name="s" value={active} />}
+          {ot && <input type="hidden" name="ot" value={ot} />}
           <input
             name="q"
             defaultValue={sp.q ?? ""}
@@ -76,11 +78,14 @@ export default async function LiidovePage({ searchParams }: { searchParams: Prom
         </form>
 
         <nav className="flex flex-wrap gap-1.5" aria-label="Групи">
-          <Link href={hrefWith({ q: sp.q, who: sp.who }, { s: null })} className={chip(!active)}>
+          <Link href={hrefWith({ q: sp.q, who: sp.who, s: sp.s }, { ot: ot ? null : "uebinar" })} className={chip(!!ot)} title="Само записаните за уебинара на ivailopetev.com">
+            🎓 Уебинар · {view.uebinar}
+          </Link>
+          <Link href={hrefWith({ q: sp.q, who: sp.who, ot }, { s: null })} className={chip(!active)}>
             Всички · {view.counts.all}
           </Link>
           {LEAD_STATUSES.map((s) => (
-            <Link key={s} href={hrefWith({ q: sp.q, who: sp.who }, { s })} className={chip(active === s)} title={LEAD_STATUS_META[s].hint}>
+            <Link key={s} href={hrefWith({ q: sp.q, who: sp.who, ot }, { s })} className={chip(active === s)} title={LEAD_STATUS_META[s].hint}>
               {LEAD_STATUS_META[s].label} · {view.counts[s]}
             </Link>
           ))}
@@ -113,7 +118,7 @@ export default async function LiidovePage({ searchParams }: { searchParams: Prom
                     {r.business && r.business !== r.company ? ` · ${r.business}` : ""}
                   </p>
                   <p className="mt-1 text-[11px] text-[var(--color-text-tertiary)]">
-                    {r.source}
+                    {r.uebinar ? <span className="font-semibold text-violet-300">{r.source}</span> : r.source}
                     {" · "}📞 {r.calls}
                     {r.eli ? ` + Ели ${r.eli}` : ""}
                     {r.meeting ? ` · 📅 ${fmtSofia(r.meeting.at)}${r.meeting.upcoming ? " (предстои)" : MEETING[r.meeting.status] ? ` (${MEETING[r.meeting.status]})` : " (без изход)"}` : ""}

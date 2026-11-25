@@ -11,6 +11,7 @@ import {
   matchesQuery,
   meetingFacts,
   sourceLabel,
+  isUebinarSource,
   summarizeLeadActivities,
   type LeadActivityRow,
   type LeadBookingRef,
@@ -33,6 +34,8 @@ export interface LeadRow {
   company: string | null;
   business: string | null;
   source: string;
+  /** записан за уебинара (ivailopetev.com) */
+  uebinar: boolean;
   createdAt: string;
   status: LeadStatus;
   calls: number;
@@ -54,6 +57,8 @@ export interface LeadsView {
   rows: LeadRow[];
   /** колко има във всяка група (преди филтъра по група) */
   counts: Record<LeadStatus | "all", number>;
+  /** колко от тях са записани за уебинара (в същия обхват: хора и търсене) */
+  uebinar: number;
   total: number;
   people: Array<{ id: string; name: string }>;
 }
@@ -61,7 +66,7 @@ export interface LeadsView {
 const EXCLUDED_SOURCES = "(hermes,manual)";
 const TOUCH_TYPES = ["call", "meeting", "meeting_outcome", ...ELI_TYPES];
 
-export async function loadLeads(args: { status?: string | null; q?: string | null; who?: string | null; now?: Date }): Promise<LeadsView> {
+export async function loadLeads(args: { status?: string | null; q?: string | null; who?: string | null; ot?: string | null; now?: Date }): Promise<LeadsView> {
   const sb = createServiceClient();
   const now = args.now ?? new Date();
 
@@ -158,6 +163,7 @@ export async function loadLeads(args: { status?: string | null; q?: string | nul
       company: c.company,
       business: c.business,
       source: sourceLabel(c.source, c.source_ref ? adByRef.get(c.source_ref) ?? null : null),
+      uebinar: isUebinarSource(c.source),
       createdAt: c.created_at,
       status: leadStatus({ stage: c.stage, followupStatus: c.followup_status, activity, bookings: mine }, now),
       calls: activity?.calls ?? 0,
@@ -182,15 +188,18 @@ export async function loadLeads(args: { status?: string | null; q?: string | nul
       (!q || matchesQuery(r, q))
   );
 
-  const counts = Object.fromEntries([["all", scoped.length], ...LEAD_STATUSES.map((s) => [s, 0])]) as Record<LeadStatus | "all", number>;
-  for (const r of scoped) counts[r.status] += 1;
+  const uebinar = scoped.filter((r) => r.uebinar).length;
+  // „🎓 Уебинар“ — само записаните за уебинара (ot=uebinar); групите броят в този обхват.
+  const inScope = args.ot === "uebinar" ? scoped.filter((r) => r.uebinar) : scoped;
+  const counts = Object.fromEntries([["all", inScope.length], ...LEAD_STATUSES.map((s) => [s, 0])]) as Record<LeadStatus | "all", number>;
+  for (const r of inScope) counts[r.status] += 1;
 
   const status = (LEAD_STATUSES as readonly string[]).includes(args.status ?? "") ? (args.status as LeadStatus) : null;
-  const rows = status ? scoped.filter((r) => r.status === status) : scoped;
+  const rows = status ? inScope.filter((r) => r.status === status) : inScope;
 
   const people = [...new Set(all.flatMap((r) => [r.owner, r.setter]).filter((n): n is string => !!n))]
     .sort((a, b) => a.localeCompare(b, "bg"))
     .map((name) => ({ id: name, name }));
 
-  return { rows, counts, total: all.length, people };
+  return { rows, counts, uebinar, total: all.length, people };
 }

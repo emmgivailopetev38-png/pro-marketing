@@ -38,6 +38,17 @@ describe("какво е поискал човекът", () => {
     expect(offerFor({ source: "hermes" })).toBeNull();
     expect(offerFor({})).toBeNull();
   });
+
+  it("записаните за уебинара имат своя значка и първо изречение", () => {
+    expect(offerFor({ source: "uebinar-pokazhi-ne-prodavai" })).toBe("uebinar");
+    expect(offerFor({ source: "uebinar-29-11" })).toBe("uebinar");
+    expect(offerLabel("uebinar")).toMatch(/^🎓 Уебинар \d{2}\.\d{2}$/);
+    expect(LEAD_OFFERS.uebinar.magnet).toBe(false);
+    const op = openerFor("uebinar", "Сезер") ?? "";
+    expect(op).toContain("Сезер");
+    expect(op).toContain("Допълнителен доход с AI");
+    expect(op).not.toContain("—");
+  });
 });
 
 describe("първото изречение на разговора", () => {
@@ -58,7 +69,9 @@ describe("първото изречение на разговора", () => {
   it("всяко изречение е учтиво, без извинения и без „гоня“", () => {
     for (const key of Object.keys(LEAD_OFFERS) as OfferKey[]) {
       const o = openerFor(key, "Димитър") ?? "";
-      expect(o, key).toMatch(/^Здравейте, Димитър съм от Pro Marketing — /);
+      // Уебинарът е на името на Ивайло (ivailopetev.com) — там звъни „екипът на Ивайло Петев“.
+      if (key === "uebinar") expect(o, key).toMatch(/^Здравейте, Димитър съм от екипа на Ивайло Петев\. /);
+      else expect(o, key).toMatch(/^Здравейте, Димитър съм от Pro Marketing — /);
       expect(o, key).toMatch(/\?$/);
       for (const bad of ["гоня", "извинявам", "безпокоя", "да не ви губя", "да не преча", "{име}"]) {
         expect(o.toLowerCase(), key).not.toContain(bad);
