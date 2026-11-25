@@ -4,6 +4,7 @@
  * с всеки човек и в коя група влиза. Без база, за да се тестват.
  */
 import { DQ_OUTCOME, TALKED_OUTCOMES } from "./napredak-rules";
+import { LEAD_OFFERS } from "@/lib/leads/lead-offers";
 
 export const LEAD_STATUSES = ["nov", "ne_vdiga", "govorili", "sreshta", "doshal", "ne_doshal", "oferta", "klient", "dq", "otkaz"] as const;
 export type LeadStatus = (typeof LEAD_STATUSES)[number];
@@ -131,6 +132,11 @@ export function leadStatus(f: LeadFacts, now: Date): LeadStatus {
   return "nov";
 }
 
+/** Записан за уебинара (ivailopetev.com) — source „uebinar-…“. */
+export function isUebinarSource(source: string | null | undefined): boolean {
+  return (source ?? "").trim().startsWith("uebinar");
+}
+
 /** Откъде е дошъл — кратко, за списъка. */
 export function sourceLabel(source: string | null | undefined, ad: { campaign?: string | null; ad?: string | null; form?: string | null } | null): string {
   const s = (source ?? "").trim();
@@ -138,7 +144,7 @@ export function sourceLabel(source: string | null | undefined, ad: { campaign?: 
     const name = (ad?.ad || ad?.campaign || ad?.form || "").trim();
     return name ? `Meta · ${name}` : "Meta реклама";
   }
-  if (s.startsWith("uebinar")) return "уебинар";
+  if (isUebinarSource(s)) return LEAD_OFFERS.uebinar.label;
   if (s === "voice_web" || s === "voice_phone") return "Ели (гласовият асистент)";
   if (s === "website_form" || s === "site_chatbot") return "сайтът";
   if (s === "cal_booking") return "записал се сам (календар)";

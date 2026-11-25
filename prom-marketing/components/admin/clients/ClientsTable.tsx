@@ -9,6 +9,7 @@ import {
   type ContactRow,
   type ContactStage,
 } from "@/lib/contacts/types";
+import { LEAD_OFFERS } from "@/lib/leads/lead-offers";
 
 const SOURCE_LABEL: Record<string, string> = {
   meta_lead: "Meta",
@@ -272,7 +273,7 @@ export function ClientsTable({ initialRows }: { initialRows: ContactRow[] }) {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-[var(--color-text-tertiary)]">
-                    {SOURCE_LABEL[r.source] ?? r.source}
+                    {r.source?.startsWith("uebinar") ? LEAD_OFFERS.uebinar.label : SOURCE_LABEL[r.source] ?? r.source}
                   </td>
                   <td className="px-4 py-3 text-xs">
                     <div className="flex items-center gap-2">

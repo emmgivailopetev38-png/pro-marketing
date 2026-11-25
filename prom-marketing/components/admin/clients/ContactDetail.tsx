@@ -23,6 +23,7 @@ import { DnevnikForm } from "./DnevnikForm";
 import { DnevnikEntryView } from "./DnevnikEntryView";
 import { entryFromMetadata, moodOf, moodTrend, type DnevnikEntry, type PromiseRow } from "@/lib/contacts/dnevnik";
 import { fmtSofia } from "@/lib/team/time";
+import { LEAD_OFFERS } from "@/lib/leads/lead-offers";
 
 const LOGGER_TYPES: Array<{ v: string; label: string }> = [
   { v: "note", label: "📝 Бележка" },
@@ -347,7 +348,7 @@ export function ContactDetail({
 
         <Card title="Източник">
           <dl className="space-y-1 text-xs text-[var(--color-text-secondary)]">
-            <Row label="Източник" value={contact.source} />
+            <Row label="Източник" value={contact.source?.startsWith("uebinar") ? `${LEAD_OFFERS.uebinar.label} (${contact.source})` : contact.source} />
             {contact.source_ref && <Row label="Reference" value={contact.source_ref} mono />}
             <Row label="Създаден" value={fmtDate(contact.created_at)} />
             <Row label="Обновен" value={fmtDate(contact.updated_at)} />

@@ -7,6 +7,24 @@ import { STRATEGIA, UEBINAR } from "@/lib/team/uebinar-strategia";
 import { SKRIPTOVE_V3_MD } from "@/lib/team/dokumenti/skriptove-v3";
 import { EkipHeader } from "@/components/ekip/EkipHeader";
 import { VideoFeedback } from "@/components/ekip/VideoFeedback";
+import { createServiceClient } from "@/lib/supabase/service";
+
+/** Колко са записани за уебинара — общо и днес (по софийско време). */
+async function zapisaniBroi(): Promise<{ total: number; dnes: number } | null> {
+  try {
+    const sb = createServiceClient();
+    const sofia = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Sofia" }).format(new Date());
+    const ot = new Date(`${sofia}T00:00:00+02:00`).toISOString();
+    const [all, today] = await Promise.all([
+      sb.from("contacts").select("id", { count: "exact", head: true }).like("source", "uebinar%"),
+      sb.from("contacts").select("id", { count: "exact", head: true }).like("source", "uebinar%").gte("created_at", ot),
+    ]);
+    if (all.error || today.error) return null;
+    return { total: all.count ?? 0, dnes: today.count ?? 0 };
+  } catch {
+    return null;
+  }
+}
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +37,7 @@ export default async function UebinarPage() {
   const actor = await getTeamActor();
   if (!actor) redirect("/ekip/login");
   if (!allowed(actor, "uebinar")) redirect(homeFor(actor.member));
-  const nav = await ekipNav(actor);
+  const [nav, broi] = await Promise.all([ekipNav(actor), zapisaniBroi()]);
   const card = "rounded-2xl border border-white/10 bg-white/[0.03] p-4";
   return (
     <div className="mx-auto max-w-4xl pb-24">
@@ -45,6 +63,26 @@ export default async function UebinarPage() {
               💶 Всички оферти и цени
             </Link>
           </div>
+        </section>
+
+        {/* Записаните — вижда ги целият екип; звъни им сетърът (опашката), отговорът е в „Всички лийдове“ */}
+        <section className="rounded-2xl border border-violet-400/30 bg-violet-500/[0.06] p-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">🎓 Записани за уебинара</h2>
+            {broi && (
+              <p className="text-sm">
+                <b className="text-lg">{broi.total}</b> общо · <b>{broi.dnes}</b> днес
+              </p>
+            )}
+          </div>
+          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+            Всеки записан влиза веднага в системата със значка „🎓 Уебинар“: при сетъра в опашката за звънене (с готовото първо изречение), а целият
+            екип го вижда в „Всички лийдове“. Обаждането преди уебинара е за явяването: потвърди, че ще влезе, кажи, че линкът идва по Viber, SMS и имейл, и
+            попитай с какво се занимава.
+          </p>
+          <Link href="/ekip/liidove?ot=uebinar" className="mt-3 inline-block rounded-lg border border-violet-400/50 px-3 py-1.5 text-xs font-semibold text-violet-200 hover:border-violet-300">
+            Виж всички записани →
+          </Link>
         </section>
 
         {STRATEGIA.map((s) => (

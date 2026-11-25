@@ -17,8 +17,15 @@
  * Нов лийд магнит: форма + първо писмо с `variant` в lead-steps.ts; ако
  * вариантът е различен от ключовете в `MAGNET_BY_VARIANT` — един ред там.
  */
+import { NA_ZHIVO } from "@/lib/uebinar/na-zhivo";
 
-export type OfferKey = "narachnik" | "kurs" | "ai_odit" | "marketing" | "mentorska" | "reklama" | "sait" | "glas";
+/** „29.11“ — датата на уебинара за значката (сменя се сама със следващото издание). */
+function uebinarDen(iso: string = NA_ZHIVO.dateISO): string {
+  const m = /^\d{4}-(\d{2})-(\d{2})/.exec(iso);
+  return m ? `${m[2]}.${m[1]}` : "";
+}
+
+export type OfferKey = "narachnik" | "kurs" | "ai_odit" | "marketing" | "mentorska" | "reklama" | "sait" | "glas" | "uebinar";
 
 export interface OfferDef {
   /** значката на картата и в статистиката */
@@ -73,6 +80,15 @@ export const LEAD_OFFERS: Record<OfferKey, OfferDef> = {
     magnet: false,
     opener: "Здравейте, {име} съм от Pro Marketing — обаждам се, защото говорихте с гласовия ни агент. Имате ли две минути?",
   },
+  // Записаните за обучението на живо на ivailopetev.com (25.11.2026, Ивайло: „да са
+  // обозначени, че са от уебинара… и сетърът, и клоузърът, и останалите да ги виждат“).
+  // Обаждането преди уебинара е за явяването: потвърждава, че ще влезе, и пита едно нещо.
+  uebinar: {
+    label: `🎓 Уебинар ${uebinarDen()}`.trim(),
+    magnet: false,
+    opener:
+      `Здравейте, {име} съм от екипа на Ивайло Петев. Обаждам се за безплатното обучение „${NA_ZHIVO.name}“, за което се записахте. Ще успеете ли да влезете ${NA_ZHIVO.dayShort}?`,
+  },
 };
 
 /**
@@ -122,6 +138,7 @@ export function offerFor(input: OfferInput): OfferKey | null {
   if (v && MAGNET_BY_VARIANT[v]) return MAGNET_BY_VARIANT[v];
   const byName = offerFromNames(input.formName, input.campaignName);
   if (byName) return byName;
+  if ((input.source ?? "").startsWith("uebinar")) return "uebinar";
   switch (input.source) {
     case "meta_lead":
       return "reklama";
