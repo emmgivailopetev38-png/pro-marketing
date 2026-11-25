@@ -48,10 +48,10 @@ describe("ivailopetev.com — домейнът на уебинара", () => {
     // иконите и манифестът на уебинара остават на домейна (не отиват на promarketing.pw)
     expect(uebinarHostAction("ivailopetev.com", "/ivailo/manifest.webmanifest")).toEqual({ kind: "next" });
     expect(uebinarHostAction("ivailopetev.com", "/ivailo/ikona.ico")).toEqual({ kind: "next" });
-    // кратките линкове: /viber → Viber канала; /vlez → лендинга, докато няма Zoom
+    // кратките линкове: /viber → Viber канала; /vlez → страницата за влизане на Notifier
     expect(uebinarHostAction("ivailopetev.com", "/viber")).toMatchObject({ kind: "redirect", status: 307 });
     expect((uebinarHostAction("ivailopetev.com", "/viber") as { to: string }).to).toContain("invite.viber.com");
-    expect(uebinarHostAction("ivailopetev.com", "/vlez")).toEqual({ kind: "redirect", to: "https://ivailopetev.com/", status: 307 });
+    expect(uebinarHostAction("ivailopetev.com", "/vlez")).toEqual({ kind: "redirect", to: "https://notifierbg.com/bg/join/xzwxpbyr", status: 307 });
     expect(uebinarHostAction("ivailopetev.com", "/admin")).toEqual({
       kind: "redirect",
       to: `${GLAVEN_ORIGIN}/admin`,
