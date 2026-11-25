@@ -48,8 +48,8 @@ describe("графикът на писмата", () => {
     expect(dalzhimiImeili("2026-11-26T05:00:00+02:00", T("2026-11-29T20:00:00+02:00"), nishto)).toEqual([]);
   });
 
-  it("по подразбиране е изключено, докато Ивайло не одобри", () => {
-    expect(NAPOMNYANIA.vklyucheni).toBe(false);
+  it("включено след одобрението на Ивайло (25.11.2026)", () => {
+    expect(NAPOMNYANIA.vklyucheni).toBe(true);
   });
 });
 
