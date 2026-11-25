@@ -60,7 +60,7 @@ export function ZapisForm({
     if (state === "sending") return;
     setError(null);
     if (phone.replace(/\D/g, "").length < 9) {
-      setError("Провери телефона — трябват поне 9 цифри.");
+      setError("Провери телефона: трябват поне 9 цифри.");
       return;
     }
     if (!agree) {
@@ -124,7 +124,7 @@ export function ZapisForm({
               {doneTitle}
               {name.trim() ? ` ${name.trim().split(" ")[0]}, ще се видим на живо.` : ""}
             </h2>
-            <p className="nz-done-date">📣 {dateLabel}</p>
+            <p className="nz-done-date">{dateLabel}</p>
             <p>{doneBody}</p>
             <a className="nz-btn" href={calendarHref} target="_blank" rel="noopener noreferrer">
               {calendarLabel}
@@ -133,7 +133,8 @@ export function ZapisForm({
         ) : (
           <form onSubmit={submit} noValidate={false}>
             <h2 id="nz-form-title">{title}</h2>
-            <p className="nz-form-date">📣 {dateLabel}</p>
+            <p className="nz-form-date">{dateLabel}</p>
+            <p className="nz-pointer" aria-hidden>👇👇👇</p>
 
             <label className="nz-field">
               <span>Име</span>

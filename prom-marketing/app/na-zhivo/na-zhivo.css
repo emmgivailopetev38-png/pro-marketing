@@ -1,16 +1,22 @@
 /* /na-zhivo — светла страница за записване. Всичко е под .nz, за да не пипа сайта.
-   Червеното е само за бутоните (Стефчо: „цвят, който се различава“). */
+   25.11.2026 · „Дизайн правила“ на Стефчо: ЕДНА гама (топли неутрални) и червено САМО по
+   бутоните („никога не използвай червено освен за бутоните“, гласово 18:43). Без светене,
+   стъклен ефект, цветни ленти, сенки и емоджита пред редове. Фин шум (grain) по тъмните части. */
 .nz {
-  --nz-bg: #fffdf9;
-  --nz-soft: #fbf5ea;
-  --nz-ink: #14122b;
-  --nz-mut: #55516b;
-  --nz-line: #e8e1d2;
-  --nz-gold: #b7791f;
-  --nz-mark: #1e3a8a;
+  --nz-bg: #ffffff;
+  --nz-soft: #fafaf9;
+  --nz-ink: #1c1917;
+  --nz-mut: #57534e;
+  --nz-line: #e7e5e4;
+  --nz-gold: #57534e;
+  --nz-mark: #1c1917;
+  --nz-markbg: #ede9e3;
+  --nz-onDark: #f5f5f4;
+  --nz-onDark-mut: #d6d3d1;
   --nz-red: #e3122a;
   --nz-red-d: #b90d20;
-  --nz-dark: #14122b;
+  --nz-dark: #1c1917;
+  --nz-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   color-scheme: light;
   background: var(--nz-bg);
   color: var(--nz-ink);
@@ -35,107 +41,103 @@
 /* Лентата с датата */
 .nz-top {
   position: sticky; top: 0; z-index: 30;
-  background: var(--nz-dark); color: #fff;
+  background: var(--nz-grain), var(--nz-dark); color: var(--nz-onDark);
   text-align: center; font-size: 14.5px; line-height: 1.35;
   padding: 10px 14px;
 }
-.nz-top strong { color: #ffd98a; font-weight: 700; }
+.nz-top strong { color: #fff; font-weight: 800; }
 
 /* Главна част */
 .nz-hero {
-  padding: 30px 0 46px;
-  background:
-    radial-gradient(900px 420px at 50% -80px, #fdeccb 0%, rgba(253, 236, 203, 0) 70%),
-    var(--nz-bg);
+  padding: 30px 0 56px;
+  background: var(--nz-bg);
 }
 .nz-pill {
   display: inline-block; max-width: 100%;
-  border: 1px solid var(--nz-line); border-radius: 999px; background: #fff;
+  border: 1px solid var(--nz-line); border-radius: 8px; background: var(--nz-soft);
   padding: 7px 16px; font-size: 12.5px; font-weight: 700; letter-spacing: 0.06em;
   text-transform: uppercase; color: var(--nz-ink);
 }
-.nz-pill strong { color: var(--nz-gold); }
+.nz-pill strong { color: var(--nz-ink); }
 .nz-vnimanie {
   margin-top: 16px !important; max-width: 760px;
-  background: #fff; border: 1px solid var(--nz-line); border-radius: 14px;
-  box-shadow: 0 6px 22px rgba(20, 18, 43, 0.06);
-  padding: 13px 18px; font-size: 16px; font-weight: 600;
+  background: var(--nz-soft); border: 1px solid var(--nz-line); border-radius: 12px;
+  padding: 13px 18px; font-size: 16.5px; font-weight: 600;
 }
-.nz-vnimanie strong { color: var(--nz-red); letter-spacing: 0.04em; }
+.nz-vnimanie strong { color: var(--nz-ink); font-weight: 800; letter-spacing: 0.04em; }
 .nz-h1 {
   margin: 22px 0 0; max-width: 900px;
   font-family: var(--font-body), system-ui, sans-serif;
   font-size: clamp(27px, 5.2vw, 46px); line-height: 1.14; font-weight: 800;
   letter-spacing: -0.015em; color: var(--nz-ink); text-wrap: balance;
 }
-.nz-h1 mark { background: none; color: var(--nz-mark); font-style: italic; }
+/* Маркерът — една фраза на страницата, в гамата (топло сиво като с маркер), не в друг цвят */
+.nz-h1 mark { background: linear-gradient(transparent 52%, var(--nz-markbg) 52%); color: var(--nz-ink); padding: 0 2px; }
 /* Последният ред на заглавието — страхът да не изпуснеш (Стефчо, 24.11.2026). Вътре в h1. */
 .nz-fomo {
   display: block; margin-top: 12px;
   font-size: clamp(19px, 3.1vw, 27px); line-height: 1.22; font-weight: 800; letter-spacing: 0;
-  color: var(--nz-red); text-wrap: balance;
+  color: var(--nz-ink); text-wrap: balance;
 }
 /* „на стойност над X €“ до заглавието на подаръците — показва се само с истински цени */
-.nz-stoinost { color: #ffd98a; white-space: nowrap; }
+.nz-stoinost { color: #fff; white-space: nowrap; }
 .nz-sub {
   margin-top: 16px !important; max-width: 760px;
   font-size: clamp(17px, 2.3vw, 20px); color: var(--nz-mut); text-wrap: pretty;
 }
-/* „Без“ частта — всяко „Без…“ на свой ред с червен ✕ (Ивайло, 25.11.2026: „както си беше в началото“) */
+/* „Без“ частта — един ред текст със запетаи (Стефчо, 23.11 и пак 25.11.2026 18:43) */
 .nz-bez {
-  list-style: none; margin: 20px auto 22px !important; padding: 0; max-width: 640px;
-  display: flex; flex-direction: column; gap: 7px;
-  font-size: clamp(16px, 2.1vw, 18px); font-weight: 700; line-height: 1.4;
-  color: var(--nz-ink); text-align: left;
+  margin: 18px 0 22px !important; max-width: 720px;
+  font-size: clamp(16.5px, 2.1vw, 18px); font-weight: 700; line-height: 1.5;
+  color: var(--nz-ink); text-wrap: pretty;
 }
-.nz-bez li { display: flex; align-items: flex-start; gap: 10px; }
-.nz-bez li > span:first-child { flex: none; color: var(--nz-red); font-weight: 900; font-size: 1.15em; line-height: 1.2; }
 .nz-under { margin-top: 10px !important; font-size: 14px; color: var(--nz-mut); }
 
-/* Бутонът — яркочервен навсякъде */
+/* Бутонът — единственото червено на страницата. Плътен, без сенки и светене, ъгли 10 px. */
 .nz-btn {
   display: inline-flex; align-items: center; justify-content: center;
-  min-height: 58px; padding: 16px 34px; border: 0; border-radius: 999px;
+  min-height: 58px; padding: 16px 34px; border: 0; border-radius: 10px;
   background: var(--nz-red); color: #fff; cursor: pointer;
   font-family: inherit; font-size: 17px; font-weight: 800; letter-spacing: 0.04em;
   text-transform: uppercase; text-decoration: none; text-align: center;
-  box-shadow: 0 10px 26px rgba(227, 18, 42, 0.38);
-  transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+  width: 100%; max-width: 440px;
+  transition: background 0.12s ease;
 }
-.nz-btn:hover { background: var(--nz-red-d); transform: translateY(-1px); box-shadow: 0 14px 30px rgba(227, 18, 42, 0.45); }
-.nz-btn:focus-visible { outline: 3px solid #ffd98a; outline-offset: 3px; }
-.nz-btn:disabled { opacity: 0.7; cursor: progress; transform: none; }
+.nz-btn:hover, .nz-btn:active { background: var(--nz-red-d); }
+.nz-btn:focus-visible { outline: 3px solid var(--nz-ink); outline-offset: 3px; }
+.nz-btn:disabled { opacity: 0.7; cursor: progress; }
 .nz-btn-full { width: 100%; }
 /* Текстът на бутона винаги на един ред — и на най-тесния телефон */
 .nz-btn { white-space: nowrap; }
 @media (max-width: 400px) { .nz-btn { padding: 16px 20px; font-size: 15px; letter-spacing: 0.02em; } }
 
 /* Секции */
-.nz-sec { padding: 54px 0; }
+.nz-sec { padding: 64px 0; }
+@media (min-width: 900px) { .nz-sec { padding: 96px 0; } }
 .nz-soft { background: var(--nz-soft); }
-.nz-dark { background: var(--nz-dark); color: #fff; }
+.nz-dark { background: var(--nz-grain), var(--nz-dark); color: #fff; }
 .nz-h2 {
   margin: 0; font-family: var(--font-body), system-ui, sans-serif;
   font-size: clamp(25px, 4.2vw, 36px); line-height: 1.18; font-weight: 800;
   letter-spacing: -0.01em; text-wrap: balance; color: inherit;
 }
-.nz-h2 em { color: var(--nz-gold); font-style: italic; }
+.nz-h2 em { color: inherit; font-style: italic; }
 .nz-h2-tail { color: var(--nz-mut); font-weight: 700; }
 .nz-lead { margin-top: 10px !important; max-width: 700px; color: var(--nz-mut); font-size: 17.5px; }
-.nz-dark .nz-lead { color: #c9c5dd; }
+.nz-dark .nz-lead { color: var(--nz-onDark-mut); }
 .nz-eyebrow, .nz-kicker {
   font-size: 13px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--nz-gold); margin-bottom: 8px !important;
 }
-.nz-dark .nz-eyebrow { color: #ffd98a; }
+.nz-dark .nz-eyebrow { color: var(--nz-onDark-mut); }
 .nz-kicker { letter-spacing: 0.02em; text-transform: none; font-size: 17px; font-style: italic; }
 .nz-intro { color: var(--nz-mut); font-size: 16px; margin-bottom: 6px !important; }
 .nz-dateline { margin: 18px 0 16px !important; font-size: 15.5px; font-weight: 600; }
-.nz-dark .nz-dateline { color: #ffd98a; }
+.nz-dark .nz-dateline { color: #fff; }
 
 /* Две колони */
 .nz-two { display: grid; gap: 30px; grid-template-columns: 1fr; align-items: center; }
-.nz-photo { border-radius: 22px; overflow: hidden; box-shadow: 0 18px 44px rgba(20, 18, 43, 0.18); max-width: 380px; margin: 0 auto; width: 100%; }
+.nz-photo { border-radius: 12px; overflow: hidden; max-width: 380px; margin: 0 auto; width: 100%; }
 .nz-photo img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; object-position: top; }
 .nz-photo-sm { max-width: 320px; }
 @media (min-width: 900px) {
@@ -146,8 +148,8 @@
 /* Тайните */
 .nz-taini { list-style: none; margin: 16px 0 24px; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 .nz-taini li {
-  background: #fff; border: 1px solid var(--nz-line); border-left: 4px solid var(--nz-red);
-  border-radius: 12px; padding: 13px 16px; box-shadow: 0 4px 14px rgba(20, 18, 43, 0.05);
+  background: #fff; border: 1px solid var(--nz-line);
+  border-radius: 12px; padding: 16px 18px;
 }
 .nz-taina-n { display: block; font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--nz-gold); margin-bottom: 3px; }
 .nz-taini p { font-size: 17px; color: var(--nz-mut); }
@@ -161,27 +163,27 @@
 @media (min-width: 760px) { .nz-gifts { grid-template-columns: 1fr 1fr; } .nz-gifts li:last-child { grid-column: 1 / -1; } }
 .nz-gifts li {
   display: flex; gap: 14px; align-items: flex-start;
-  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 14px; padding: 15px 16px;
+  background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px; padding: 18px 20px;
 }
 .nz-gift-ico { font-size: 28px; line-height: 1; }
-.nz-gift-kind { font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #ffd98a; }
+.nz-gift-kind { font-size: 13px; font-weight: 700; letter-spacing: 0.04em; color: var(--nz-onDark-mut); }
 .nz-gift-name { font-size: 18px; font-weight: 800; color: #fff; }
-.nz-gift-body { font-size: 15.5px; color: #c9c5dd; }
+.nz-gift-body { font-size: 16px; color: var(--nz-onDark-mut); }
 .nz-total { margin-top: 22px !important; font-size: 18px; font-weight: 800; color: #fff; }
 
 /* Доказателство */
 .nz-otzivi { margin: 26px 0 26px; width: 100%; display: grid; gap: 16px; grid-template-columns: 1fr; text-align: left; }
 @media (min-width: 900px) { .nz-otzivi { grid-template-columns: 1fr 1fr; } }
-.nz-otzivi figure { margin: 0; background: #fff; border: 1px solid var(--nz-line); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.nz-otzivi figure { margin: 0; background: #fff; border: 1px solid var(--nz-line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
 .nz-otzivi img { width: 100%; border-radius: 10px; border: 1px solid var(--nz-line); }
 .nz-otzivi figcaption { margin-top: auto; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 14px; }
 .nz-otzivi figcaption span { color: var(--nz-mut); }
 .nz-otz-kontekst { margin: 2px 2px 0; font-weight: 800; font-size: 17px; line-height: 1.25; }
-.nz-votz-title { margin: 26px 0 0; font-size: 20px; font-weight: 800; }
+.nz-votz-title { margin: 26px 0 0; font-family: var(--font-body), system-ui, sans-serif; font-size: 20px; font-weight: 800; letter-spacing: 0; }
 .nz-votzivi { margin: 14px 0 6px; width: 100%; display: grid; gap: 12px; grid-template-columns: 1fr 1fr; text-align: left; }
 @media (min-width: 900px) { .nz-votzivi { grid-template-columns: repeat(4, 1fr); gap: 16px; } }
-.nz-votzivi figure { margin: 0; background: #fff; border: 1px solid var(--nz-line); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.nz-votzivi figure { margin: 0; background: #fff; border: 1px solid var(--nz-line); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
 .nz-votzivi .nz-otz-kontekst { font-size: 15px; min-height: 3.75em; }
 .nz-votzivi video { width: 100%; aspect-ratio: 9 / 16; border-radius: 10px; background: #000; display: block; }
 .nz-votzivi figcaption { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
@@ -190,7 +192,7 @@
 /* Авторитет */
 .nz-bio { margin-top: 12px !important; font-size: 17.5px; color: var(--nz-mut); }
 .nz-trofei { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
-.nz-trofei li { display: flex; gap: 10px; align-items: flex-start; font-size: 17px; }
+.nz-trofei li { display: flex; gap: 10px; align-items: flex-start; font-size: 17px; padding-bottom: 9px; border-bottom: 1px solid var(--nz-line); }
 .nz-trofei p { color: var(--nz-mut); }
 .nz-trofei strong { color: var(--nz-ink); }
 .nz-kam { margin-top: 10px !important; font-size: 13px; color: var(--nz-mut); }
@@ -200,7 +202,7 @@
 .nz-faq details { background: #fff; border: 1px solid var(--nz-line); border-radius: 12px; padding: 0 16px; }
 .nz-faq summary { cursor: pointer; list-style: none; padding: 15px 28px 15px 0; font-weight: 700; font-size: 17px; position: relative; }
 .nz-faq summary::-webkit-details-marker { display: none; }
-.nz-faq summary::after { content: "+"; position: absolute; right: 2px; top: 11px; font-size: 24px; font-weight: 500; color: var(--nz-gold); }
+.nz-faq summary::after { content: "+"; position: absolute; right: 2px; top: 11px; font-size: 24px; font-weight: 500; color: var(--nz-ink); }
 .nz-faq details[open] summary::after { content: "–"; }
 .nz-faq details p { padding: 0 0 15px; color: var(--nz-mut); }
 
@@ -216,7 +218,7 @@
 .nz-sticky {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
   padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
-  background: rgba(255, 253, 249, 0.94); backdrop-filter: blur(8px);
+  background: #fff;
   border-top: 1px solid var(--nz-line); display: flex; justify-content: center;
 }
 .nz-sticky .nz-btn { width: 100%; max-width: 460px; min-height: 52px; padding: 13px 20px; font-size: 15.5px; }
@@ -225,33 +227,33 @@
 /* Прозорецът с формата */
 .nz-dialog {
   color-scheme: light; margin: auto;
-  border: 0; padding: 0; border-radius: 20px; width: min(460px, calc(100vw - 24px));
+  border: 0; padding: 0; border-radius: 14px; width: min(460px, calc(100vw - 24px));
   max-height: calc(100dvh - 24px); overflow: auto;
-  background: #fff; color: var(--nz-ink, #14122b);
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+  background: #fff; color: var(--nz-ink, #1c1917);
 }
-.nz-dialog::backdrop { background: rgba(12, 10, 28, 0.66); backdrop-filter: blur(3px); }
+.nz-dialog::backdrop { background: rgba(28, 25, 23, 0.7); }
 .nz-dialog-in { position: relative; padding: 26px 22px 22px; }
-.nz-dialog h2 { margin: 0 34px 6px 0; font-family: var(--font-body), system-ui, sans-serif; font-size: 23px; line-height: 1.2; font-weight: 800; color: #14122b; }
-.nz-x { position: absolute; top: 10px; right: 12px; width: 38px; height: 38px; border: 0; border-radius: 50%; background: #f3efe6; color: #14122b; font-size: 24px; line-height: 1; cursor: pointer; }
-.nz-form-date, .nz-done-date { font-size: 14.5px; font-weight: 700; color: #b7791f; margin-bottom: 14px !important; }
+.nz-dialog h2 { margin: 0 34px 6px 0; font-family: var(--font-body), system-ui, sans-serif; font-size: 23px; line-height: 1.2; font-weight: 800; color: #1c1917; }
+.nz-x { position: absolute; top: 10px; right: 12px; width: 38px; height: 38px; border: 0; border-radius: 50%; background: #f5f5f4; color: #1c1917; font-size: 24px; line-height: 1; cursor: pointer; }
+.nz-form-date, .nz-done-date { font-size: 15px; font-weight: 700; color: #1c1917; margin-bottom: 10px !important; }
+.nz-pointer { font-size: 22px; line-height: 1; letter-spacing: 4px; text-align: center; margin: 0 0 12px !important; }
 .nz-field { display: block; margin-bottom: 11px; }
-.nz-field span { display: block; font-size: 13.5px; font-weight: 700; margin-bottom: 4px; color: #14122b; }
+.nz-field span { display: block; font-size: 14.5px; font-weight: 700; margin-bottom: 5px; color: #1c1917; }
 .nz-field input {
-  width: 100%; min-height: 50px; padding: 12px 14px; border: 1.5px solid #d9d2c2; border-radius: 12px;
-  background: #fff; color: #14122b; font: inherit; font-size: 17px; outline: none;
+  width: 100%; min-height: 52px; padding: 12px 14px; border: 1.5px solid #d6d3d1; border-radius: 10px;
+  background: #fff; color: #1c1917; font: inherit; font-size: 17px; outline: none;
 }
-.nz-field input::placeholder { color: #a39d90; }
-.nz-field input:focus { border-color: #1e3a8a; box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.15); }
+.nz-field input::placeholder { color: #a8a29e; }
+.nz-field input:focus { border-color: #1c1917; }
 .nz-hp { position: absolute !important; left: -9999px; width: 1px; height: 1px; opacity: 0; }
-.nz-consent { display: flex; gap: 10px; align-items: flex-start; margin: 6px 0 14px; font-size: 13.5px; line-height: 1.4; color: #55516b; cursor: pointer; }
-.nz-consent input { margin-top: 2px; width: 20px; height: 20px; flex: none; accent-color: #e3122a; }
+.nz-consent { display: flex; gap: 10px; align-items: flex-start; margin: 6px 0 14px; font-size: 13.5px; line-height: 1.4; color: #57534e; cursor: pointer; }
+.nz-consent input { margin-top: 2px; width: 20px; height: 20px; flex: none; accent-color: #1c1917; }
 .nz-consent a { text-decoration: underline; }
-.nz-error { margin: 0 0 12px !important; padding: 9px 12px; border-radius: 10px; background: #fdecee; color: #a10f20; font-size: 14.5px; font-weight: 600; }
-.nz-form-foot { margin-top: 10px !important; text-align: center; font-size: 13px; color: #55516b; }
+.nz-error { margin: 0 0 12px !important; padding: 10px 12px; border-radius: 10px; background: #f5f5f4; border: 1px solid #1c1917; color: #1c1917; font-size: 15px; font-weight: 700; }
+.nz-form-foot { margin-top: 10px !important; text-align: center; font-size: 14px; color: #57534e; }
 .nz-done { text-align: center; }
 .nz-done-ico { font-size: 44px; line-height: 1; margin-bottom: 8px !important; }
 .nz-done h2 { margin: 0 0 8px; }
-.nz-done p { color: #55516b; margin-bottom: 16px !important; }
+.nz-done p { color: #57534e; margin-bottom: 16px !important; }
 
-@media (prefers-reduced-motion: reduce) { .nz-btn { transition: none; } .nz-btn:hover { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .nz-btn { transition: none; } }
