@@ -147,6 +147,16 @@ describe("/na-zhivo — текстът и датата", () => {
     expect(NA_ZHIVO.dokazatelstvo.otziviIds.length).toBe(4);
     const kontekst = NA_ZHIVO.dokazatelstvo.kontekst as Record<string, string>;
     for (const id of NA_ZHIVO.dokazatelstvo.otziviIds) expect((kontekst[id] ?? "").length).toBeGreaterThan(10);
+    // Видео отзивите: всеки има файл, корица, контекст и кой говори; никъде няма обещание за доход.
+    const video = NA_ZHIVO.dokazatelstvo.video;
+    expect(new Set(video.map((v) => v.id)).size).toBe(video.length);
+    for (const v of video) {
+      expect(v.src).toMatch(/^\/otzivi\/video\/.+\.mp4$/);
+      expect(v.poster).toMatch(/\.jpg$/);
+      expect(v.kontekst.length).toBeGreaterThan(10);
+      expect(v.koi.length).toBeGreaterThan(5);
+    }
+    expect(JSON.stringify(video)).not.toMatch(/изкарва|печели|евро|лева/);
     // Контекстът не обещава доход от чуждо име.
     expect(JSON.stringify(kontekst)).not.toMatch(/изкарва|печели|евро|лева/);
   });
