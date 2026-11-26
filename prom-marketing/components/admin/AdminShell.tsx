@@ -52,6 +52,7 @@ const LINK_GROUPS: LinkGroup[] = [
     label: "Команден център",
     items: [
       { href: "/admin", label: "Преглед", icon: LayoutDashboard },
+      { href: "/admin/tablo", label: "📊 Табло · реклами", icon: BarChart3 },
       { href: "/admin/jarvis", label: "JARVIS", icon: Bot },
       { href: "/admin/glas", label: "Глас", icon: Mic },
       { href: "/admin/demo-glas", label: "Гласово демо", icon: Presentation },
