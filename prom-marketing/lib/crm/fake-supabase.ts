@@ -10,9 +10,21 @@
  *   from(t).delete().eq(c,v)                       (awaited)
  *   .gte(c,v) / .lte(c,v) — сравнение като низове (ISO дати, uuid-и)
  *   .range(a,b)           — без страниране: връща всичко наведнъж
+ *   .eq("metadata->>x", v) — поле в JSON колона (26.11.2026)
+ *   insert([rows]) / upsert(rows, { onConflict: "a,b" }) — и масиви (26.11.2026)
  */
 
 type Row = Record<string, unknown>;
+
+/** „metadata->>date_iso“ → полето в JSON колоната; иначе обикновена колона. */
+function colOf(r: Row, col: string): unknown {
+  const i = col.indexOf("->>");
+  if (i < 0) return r[col];
+  const obj = r[col.slice(0, i)];
+  if (!obj || typeof obj !== "object") return undefined;
+  const v = (obj as Row)[col.slice(i + 3)];
+  return v === undefined || v === null ? v : String(v);
+}
 
 let idCounter = 0;
 function genId(): string {
@@ -46,12 +58,12 @@ class Query implements PromiseLike<{ data: unknown; error: unknown }> {
   }
 
   eq(col: string, val: unknown): this {
-    this.filters.push((r) => r[col] === val);
+    this.filters.push((r) => colOf(r, col) === val);
     return this;
   }
 
   in(col: string, vals: unknown[]): this {
-    this.filters.push((r) => vals.includes(r[col]));
+    this.filters.push((r) => vals.includes(colOf(r, col)));
     return this;
   }
 
@@ -91,10 +103,24 @@ class Query implements PromiseLike<{ data: unknown; error: unknown }> {
     return this;
   }
 
-  insert(row: Row): this {
-    const r: Row = { id: row.id ?? genId(), ...row };
-    this.rows().push(r);
-    this.inserted = r;
+  insert(row: Row | Row[]): this {
+    const list = Array.isArray(row) ? row : [row];
+    for (const one of list) {
+      const r: Row = { id: one.id ?? genId(), ...one };
+      this.rows().push(r);
+      this.inserted = r;
+    }
+    this.mode = "insert";
+    return this;
+  }
+
+  upsert(row: Row | Row[], opts?: { onConflict?: string }): this {
+    const keys = (opts?.onConflict ?? "id").split(",").map((k) => k.trim());
+    for (const one of Array.isArray(row) ? row : [row]) {
+      const hit = this.rows().find((r) => keys.every((k) => r[k] === one[k]));
+      if (hit) Object.assign(hit, one);
+      else this.rows().push({ id: one.id ?? genId(), ...one });
+    }
     this.mode = "insert";
     return this;
   }

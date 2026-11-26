@@ -71,8 +71,10 @@ export function UebinarFunia({ f, kratka = false }: { f: Funia; kratka?: boolean
             <div key={s.key} className={`rounded-xl border bg-black/20 p-3 ${tyasno ? "border-rose-400/60" : "border-white/10"}`}>
               <p className="text-[10px] uppercase tracking-wider text-[var(--color-text-tertiary)]">{s.ime}</p>
               <p className="mt-1 text-2xl font-bold tabular-nums">
-                {s.a}
-                <span className="ml-1 text-sm font-semibold text-[var(--color-text-secondary)]">{s.p === null ? "" : `· ${s.p}%`}</span>
+                {f.sastoyanie === "predi" ? "—" : s.a}
+                <span className="ml-1 text-sm font-semibold text-[var(--color-text-secondary)]">
+                  {s.p === null || f.sastoyanie === "predi" ? "" : `· ${s.p}%`}
+                </span>
               </p>
               <p className="text-[11px] text-[var(--color-text-tertiary)]">
                 {s.ot} · цел {s.cel}%
