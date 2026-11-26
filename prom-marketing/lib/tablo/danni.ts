@@ -10,6 +10,7 @@ import {
   kodNaReklama,
   normKod,
   poDni,
+  bezRoasPrediUebinara,
   sabiraiReklami,
   tonCenaZapisan,
   tonOptIn,
@@ -234,10 +235,11 @@ export async function zarediTablo(period: Period, now: Date = new Date()): Promi
 
   const metaP = meta.filter((m) => vDiapazona(m.day, d));
   const zapisaniP = zapisani.filter((z) => vDiapazona(z.den, d));
+  const prediUebinara = (funiyata?.sastoyanie ?? (now.getTime() < startMs ? "predi" : "sled")) === "predi";
   const reklami = {
-    campaign: sabiraiReklami(metaP, zapisaniP, "campaign"),
-    adset: sabiraiReklami(metaP, zapisaniP, "adset"),
-    ad: sabiraiReklami(metaP, zapisaniP, "ad"),
+    campaign: bezRoasPrediUebinara(sabiraiReklami(metaP, zapisaniP, "campaign"), prediUebinara),
+    adset: bezRoasPrediUebinara(sabiraiReklami(metaP, zapisaniP, "adset"), prediUebinara),
+    ad: bezRoasPrediUebinara(sabiraiReklami(metaP, zapisaniP, "ad"), prediUebinara),
   };
   const t = reklami.campaign.obshto;
 
@@ -312,8 +314,8 @@ export async function zarediTablo(period: Period, now: Date = new Date()): Promi
       kupili: kupiliP,
       cac: div(t.razhod, kupiliP),
       prihod: prihodP,
-      roas: div(prihodP, t.razhod),
-      tonRoas: tonRoas(div(prihodP, t.razhod)),
+      roas: prediUebinara && prihodP === 0 ? null : div(prihodP, t.razhod),
+      tonRoas: prediUebinara && prihodP === 0 ? null : tonRoas(div(prihodP, t.razhod)),
     },
     pari: {
       prodadeno: zapisani.reduce((s, z) => s + z.prihod, 0),

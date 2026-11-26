@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   BEZ_REKLAMA,
   IZVAN_PERIODA,
+  bezRoasPrediUebinara,
   denSofia,
   etiketNaData,
   kodNaReklama,
@@ -100,6 +101,29 @@ describe("сборът по реклами (като при Стефчо)", () =
     expect(redove[0].klikove).toBe(90);
     expect(redove[0].vsichkiKlikove).toBe(true);
     expect(redove[0].chestota).toBeNull();
+  });
+});
+
+describe("преди уебинара и без разход", () => {
+  const meta = [red({ ad_id: "a1", ad_name: "Уебинар 29.11 · K9 · x", spend_eur: 20 })];
+
+  it("редът без реклама няма цена (— , не 0 €)", () => {
+    const { redove } = sabiraiReklami(meta, [zap({})], "ad");
+    const bez = redove.find((r) => r.kluch === BEZ_REKLAMA)!;
+    expect(bez.cenaZapisan).toBeNull();
+    expect(bez.cpc).toBeNull();
+    expect(bez.roas).toBeNull();
+  });
+
+  it("ROAS е „—“ преди уебинара, докато няма продажби", () => {
+    const x = sabiraiReklami(meta, [zap({ kod: "K9" })], "ad");
+    expect(x.redove[0].roas).toBe(0);
+    const predi = bezRoasPrediUebinara(x, true);
+    expect(predi.redove[0].roas).toBeNull();
+    expect(predi.obshto.roas).toBeNull();
+    expect(bezRoasPrediUebinara(x, false).redove[0].roas).toBe(0);
+    const sProdazhba = sabiraiReklami(meta, [zap({ kod: "K9", kupil: true, prihod: 100 })], "ad");
+    expect(bezRoasPrediUebinara(sProdazhba, true).redove[0].roas).toBe(5);
   });
 });
 

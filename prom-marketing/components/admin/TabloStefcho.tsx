@@ -99,7 +99,12 @@ export function TabloStefcho({ t, nivo }: { t: Tablo; nivo: Nivo }) {
             />
             <KpiCard label="Цена на разговор" value={eur(m.cenaChas)} hint={`${num(m.chasove)} записали разговор`} color="#9b8ec9" />
             <KpiCard label="Цена на клиент" value={eur(m.cac)} hint={`${num(m.kupili)} купили`} color="#d9a74a" />
-            <KpiCard label="ROAS" value={puti(m.roas)} hint={`${eur(m.prihod)} приход · целта е 3×`} color={m.tonRoas ? TON_HEX[m.tonRoas] : "#64748b"} />
+            <KpiCard
+              label="ROAS"
+              value={puti(m.roas)}
+              hint={m.roas == null && t.uebinar.sastoyanie === "predi" ? "продажбите са след уебинара · целта е 3×" : `${eur(m.prihod)} приход · целта е 3×`}
+              color={m.tonRoas ? TON_HEX[m.tonRoas] : "#64748b"}
+            />
           </div>
         </Sekcia>
 
