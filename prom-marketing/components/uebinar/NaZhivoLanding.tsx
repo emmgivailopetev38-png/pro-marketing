@@ -22,6 +22,7 @@ import { NA_ZHIVO as c, calendarUrl } from "@/lib/uebinar/na-zhivo";
 import { OTZIVI } from "@/lib/site/otzivi";
 import { ZapisForm } from "./ZapisForm";
 import { UebinarSledene } from "./UebinarSledene";
+import { ZAGLAVIE_B, type Varianta } from "@/lib/uebinar/ab";
 import { UEBINAR_LINKOVE } from "@/lib/uebinar/linkove";
 import { UEBINAR_ORIGIN, UEBINAR_PIXEL_ID } from "@/lib/uebinar/domen";
 
@@ -42,7 +43,9 @@ function DateLine() {
 }
 
 
-export function NaZhivoLanding() {
+/** `varianta` — A/B тестът (lib/uebinar/ab.ts): Б е без подзаглавие и със заглавието на Стефчо. */
+export function NaZhivoLanding({ varianta = "A" }: { varianta?: Varianta }) {
+  const zaglavie = varianta === "B" ? ZAGLAVIE_B : c.headline;
   return (
     <div className="nz">
       <div className="nz-top" role="note">
@@ -62,14 +65,14 @@ export function NaZhivoLanding() {
             </p>
 
             <h1 className="nz-h1">
-              {c.headline.before}
-              <mark>{c.headline.mark}</mark>
-              {c.headline.after}
+              {zaglavie.before}
+              <mark>{zaglavie.mark}</mark>
+              {zaglavie.after}
               {/* Страхът да не изпуснеш — последният ред на заглавието (Стефчо, 24.11.2026) */}
               <span className="nz-fomo">{c.fomo}</span>
             </h1>
 
-            <p className="nz-sub">{c.sub}</p>
+            {varianta === "A" ? <p className="nz-sub">{c.sub}</p> : null}
 
             {/* „Без“ частта — един ред със запетаи (Стефчо, 25.11.2026 18:43) */}
             <p className="nz-bez">{c.bez}</p>
@@ -282,8 +285,9 @@ export function NaZhivoLanding() {
         calendarLabel={c.form.calendar}
         calendarHref={calendarUrl()}
         viberHref={UEBINAR_LINKOVE.viberKanal ? `${UEBINAR_ORIGIN}/viber` : null}
+        varianta={varianta}
       />
-      <UebinarSledene stranica="lending" />
+      <UebinarSledene stranica="lending" varianta={varianta} />
       <noscript>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img height="1" width="1" style={{ display: "none" }} src={`https://www.facebook.com/tr?id=${UEBINAR_PIXEL_ID}&ev=PageView&noscript=1`} alt="" />

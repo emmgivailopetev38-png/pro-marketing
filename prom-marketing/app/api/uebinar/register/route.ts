@@ -37,6 +37,8 @@ const schema = z.object({
   fbclid: z.string().trim().max(500).optional(),
   // Същият event_id като на пиксела в браузъра — Meta брои записването веднъж.
   event_id: z.string().trim().max(100).optional(),
+  // A/B тестът на лендинга — коя версия е видял (lib/uebinar/ab.ts).
+  varianta: z.enum(["A", "B"]).optional(),
   // Капан за ботове: скрито поле, човек не го вижда и не го пълни.
   website: z.string().max(200).optional(),
 });
@@ -146,6 +148,7 @@ export async function POST(request: Request) {
     utm_term: d.utm_term ?? null,
     fbclid: d.fbclid ?? null,
     event_id: eventId,
+    varianta: d.varianta ?? null,
   };
   const { data: act, error: actError } = await supabase
     .from("contact_activities")
@@ -220,7 +223,7 @@ export async function POST(request: Request) {
           event_source_url: sourceUrl,
           action_source: "website",
           user_data: userData,
-          custom_data: { content_name: `uebinar-${NA_ZHIVO.slug}`, status: "registered" },
+          custom_data: { content_name: `uebinar-${NA_ZHIVO.slug}`, status: "registered", ...(d.varianta ? { varianta: d.varianta } : {}) },
         },
         { pixelId: UEBINAR_PIXEL_ID, token: capiToken },
       );

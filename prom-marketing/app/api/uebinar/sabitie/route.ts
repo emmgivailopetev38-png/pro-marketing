@@ -3,6 +3,8 @@ import { sendCapiEvent } from "@/lib/meta/conversions-api";
 import { UEBINAR_PIXEL_ID } from "@/lib/uebinar/domen";
 import { clientIp, cookieValue, fbcFor, safeEventId } from "@/lib/uebinar/capi";
 import { chistiParametri, ePozvoleno, fbclidOt, nashAdres } from "@/lib/uebinar/meta-sabitia";
+import { AB_TEST, eVarianta } from "@/lib/uebinar/ab";
+import { createServiceClient } from "@/lib/supabase/service";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +37,19 @@ export async function POST(request: Request) {
   const vid = typeof body.vid === "string" && /^[A-Za-z0-9_-]{8,64}$/.test(body.vid) ? body.vid : null;
   const params = chistiParametri(body.params);
   const ip = clientIp(request.headers.get("x-forwarded-for"), request.headers.get("x-real-ip"));
+
+  // A/B тестът (lib/uebinar/ab.ts): посещението и отворената форма на всеки посетител — веднъж, по версия.
+  const abSabitie =
+    ime === "ViewContent" && params.content_name === "uebinar-lending" ? "vizita" : ime === "OtvoriFormata" ? "forma" : null;
+  if (abSabitie && vid && eVarianta(params.varianta)) {
+    const varianta = params.varianta;
+    after(async () => {
+      const { error } = await createServiceClient()
+        .from("uebinar_ab")
+        .upsert({ test: AB_TEST, varianta, vid, sabitie: abSabitie }, { onConflict: "test,vid,sabitie", ignoreDuplicates: true });
+      if (error) console.error("[uebinar/sabitie] ab", error.message);
+    });
+  }
 
   after(async () => {
     const r = await sendCapiEvent(

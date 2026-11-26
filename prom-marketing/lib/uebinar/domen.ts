@@ -1,5 +1,6 @@
 import { UEBINAR_LINKOVE } from "./linkove";
 import { calendarUrl } from "./na-zhivo";
+import { AB_PATH_B, type Varianta } from "./ab";
 
 /**
  * Домейнът на уебинара — ivailopetev.com (вързан на 23.11.2026).
@@ -71,12 +72,13 @@ export type UebinarHostAction =
  *   всичко друго     → същият път на основния сайт
  * `search` е с въпросителната (както го дава `nextUrl.search`) — UTM и fbclid се пазят.
  */
-export function uebinarHostAction(host: string, pathname: string, search = ""): UebinarHostAction {
+/** `varianta` — A/B тестът на лендинга (lib/uebinar/ab.ts): Б се показва от /na-zhivo/b на същия адрес. */
+export function uebinarHostAction(host: string, pathname: string, search = "", varianta: Varianta = "A"): UebinarHostAction {
   const h = chistHost(host);
   if (h.startsWith("www.")) {
     return { kind: "redirect", to: `${UEBINAR_ORIGIN}${pathname}${search}`, status: 308 };
   }
-  if (pathname === "/") return { kind: "rewrite", to: `${UEBINAR_PATH}${search}` };
+  if (pathname === "/") return { kind: "rewrite", to: `${varianta === "B" ? AB_PATH_B : UEBINAR_PATH}${search}` };
   const podaraci = podaraciRewrite(pathname, search);
   if (podaraci) return { kind: "rewrite", to: podaraci };
   if (pathname === UEBINAR_PATH || pathname === `${UEBINAR_PATH}/`) {

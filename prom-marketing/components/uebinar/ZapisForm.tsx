@@ -20,6 +20,7 @@ export function ZapisForm({
   calendarLabel,
   calendarHref,
   viberHref = null,
+  varianta,
 }: {
   slug: string;
   title: string;
@@ -32,6 +33,8 @@ export function ZapisForm({
   calendarHref: string;
   /** Viber каналът на обучението (ivailopetev.com/viber) — първата стъпка след записването, когато го има */
   viberHref?: string | null;
+  /** A/B тестът на лендинга — коя версия е видял човекът (lib/uebinar/ab.ts) */
+  varianta?: "A" | "B";
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [name, setName] = useState("");
@@ -51,12 +54,12 @@ export function ZapisForm({
       const d = ref.current;
       if (d && !d.open) {
         d.showModal();
-        track("uebinar_form_open", { uebinar: slug, place: el.getAttribute("data-zapis") || "" });
+        track("uebinar_form_open", { uebinar: slug, place: el.getAttribute("data-zapis") || "", varianta });
       }
     }
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);
-  }, [slug]);
+  }, [slug, varianta]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -91,15 +94,16 @@ export function ZapisForm({
           utm_term: pick("utm_term"),
           fbclid: pick("fbclid"),
           event_id: eventId,
+          varianta,
           website,
         }),
       });
       if (!r.ok) throw new Error(String(r.status));
       setState("done");
-      track("uebinar_registered", { uebinar: slug });
+      track("uebinar_registered", { uebinar: slug, varianta });
       pixelTrack("CompleteRegistration", {
         eventID: eventId,
-        params: { content_name: `uebinar-${slug}`, status: "registered" },
+        params: { content_name: `uebinar-${slug}`, status: "registered", ...(varianta ? { varianta } : {}) },
       });
     } catch {
       setState("error");

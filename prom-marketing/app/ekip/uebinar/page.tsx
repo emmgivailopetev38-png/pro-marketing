@@ -8,23 +8,57 @@ import { SKRIPTOVE_V3_MD } from "@/lib/team/dokumenti/skriptove-v3";
 import { EkipHeader } from "@/components/ekip/EkipHeader";
 import { VideoFeedback } from "@/components/ekip/VideoFeedback";
 import { createServiceClient } from "@/lib/supabase/service";
+import { AB_DYAL_B, AB_TEST, ZAGLAVIE_B } from "@/lib/uebinar/ab";
 
-/** Колко са записани за уебинара — общо и днес (по софийско време). */
+/**
+ * Колко са записани за уебинара — общо и днес (по софийско време). Брои
+ * записванията (contact_activities), не новите картони: и стар контакт,
+ * който се запише, е записан.
+ */
 async function zapisaniBroi(): Promise<{ total: number; dnes: number } | null> {
   try {
     const sb = createServiceClient();
     const sofia = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Sofia" }).format(new Date());
-    const ot = new Date(`${sofia}T00:00:00+02:00`).toISOString();
-    const [all, today] = await Promise.all([
-      sb.from("contacts").select("id", { count: "exact", head: true }).like("source", "uebinar%"),
-      sb.from("contacts").select("id", { count: "exact", head: true }).like("source", "uebinar%").gte("created_at", ot),
-    ]);
-    if (all.error || today.error) return null;
-    return { total: all.count ?? 0, dnes: today.count ?? 0 };
+    const ot = new Date(`${sofia}T00:00:00+02:00`).getTime();
+    const { data, error } = await sb
+      .from("contact_activities")
+      .select("contact_id, occurred_at")
+      .eq("activity_type", "uebinar_registration")
+      .limit(5000);
+    if (error) return null;
+    const parvo = new Map<string, number>();
+    for (const r of (data ?? []) as Array<{ contact_id: string; occurred_at: string }>) {
+      const t = new Date(r.occurred_at).getTime();
+      if (!parvo.has(r.contact_id) || t < parvo.get(r.contact_id)!) parvo.set(r.contact_id, t);
+    }
+    return { total: parvo.size, dnes: [...parvo.values()].filter((t) => t >= ot).length };
   } catch {
     return null;
   }
 }
+
+type AbRed = { vizita: number; forma: number; zapisani: number };
+
+/** A/B тестът на лендинга (lib/uebinar/ab.ts): посетители, отворили формата и записани по версия. */
+async function abRezultat(): Promise<{ A: AbRed; B: AbRed } | null> {
+  try {
+    const sb = createServiceClient();
+    const broi = (varianta: "A" | "B", sabitie: "vizita" | "forma") =>
+      sb.from("uebinar_ab").select("id", { count: "exact", head: true }).eq("test", AB_TEST).eq("varianta", varianta).eq("sabitie", sabitie);
+    const zap = (varianta: "A" | "B") =>
+      sb.from("contact_activities").select("id", { count: "exact", head: true }).eq("activity_type", "uebinar_registration").eq("metadata->>varianta", varianta);
+    const [av, af, az, bv, bf, bz] = await Promise.all([broi("A", "vizita"), broi("A", "forma"), zap("A"), broi("B", "vizita"), broi("B", "forma"), zap("B")]);
+    if ([av, af, az, bv, bf, bz].some((r) => r.error)) return null;
+    return {
+      A: { vizita: av.count ?? 0, forma: af.count ?? 0, zapisani: az.count ?? 0 },
+      B: { vizita: bv.count ?? 0, forma: bf.count ?? 0, zapisani: bz.count ?? 0 },
+    };
+  } catch {
+    return null;
+  }
+}
+
+const pct = (a: number, b: number) => (b > 0 ? `${((a / b) * 100).toFixed(1)}%` : "—");
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +71,7 @@ export default async function UebinarPage() {
   const actor = await getTeamActor();
   if (!actor) redirect("/ekip/login");
   if (!allowed(actor, "uebinar")) redirect(homeFor(actor.member));
-  const [nav, broi] = await Promise.all([ekipNav(actor), zapisaniBroi()]);
+  const [nav, broi, ab] = await Promise.all([ekipNav(actor), zapisaniBroi(), abRezultat()]);
   const card = "rounded-2xl border border-white/10 bg-white/[0.03] p-4";
   return (
     <div className="mx-auto max-w-4xl pb-24">
@@ -83,6 +117,48 @@ export default async function UebinarPage() {
           <Link href="/ekip/liidove?ot=uebinar" className="mt-3 inline-block rounded-lg border border-violet-400/50 px-3 py-1.5 text-xs font-semibold text-violet-200 hover:border-violet-300">
             Виж всички записани →
           </Link>
+        </section>
+
+        {/* A/B тестът на лендинга (Стефчо, 26.11.2026) — един и същ адрес, 60/40 */}
+        <section className={card}>
+          <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">🧪 A/B тест на лендинга · от 26.11</h2>
+          <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
+            Същият адрес и същите реклами. {Math.round((1 - AB_DYAL_B) * 100)}% виждат А (сегашната страница), {Math.round(AB_DYAL_B * 100)}% виждат Б: без
+            подзаглавие, заглавие „{ZAGLAVIE_B.before}
+            {ZAGLAVIE_B.mark}
+            {ZAGLAVIE_B.after}“. Всеки вижда винаги една и съща версия.
+          </p>
+          {ab ? (
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left text-xs text-[var(--color-text-secondary)]">
+                  <tr>
+                    <th className="py-1 pr-3">Версия</th>
+                    <th className="py-1 pr-3">Посетители</th>
+                    <th className="py-1 pr-3">Отвориха формата</th>
+                    <th className="py-1 pr-3">Записани</th>
+                    <th className="py-1">Opt-in</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(["A", "B"] as const).map((v) => (
+                    <tr key={v} className="border-t border-white/10">
+                      <td className="py-1.5 pr-3 font-semibold">{v === "A" ? "А · сегашната" : "Б · „3-те Скрити Тайни“"}</td>
+                      <td className="py-1.5 pr-3">{ab[v].vizita}</td>
+                      <td className="py-1.5 pr-3">
+                        {ab[v].forma} <span className="text-xs text-[var(--color-text-secondary)]">({pct(ab[v].forma, ab[v].vizita)})</span>
+                      </td>
+                      <td className="py-1.5 pr-3">{ab[v].zapisani}</td>
+                      <td className="py-1.5 font-semibold">{pct(ab[v].zapisani, ab[v].vizita)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="mt-2 text-xs text-[var(--color-text-secondary)]">Броят се от 26.11, когато тестът тръгна. Решение — когато всяка версия има поне ~100 посетители.</p>
+            </div>
+          ) : (
+            <p className="mt-2 text-xs text-[var(--color-text-secondary)]">Още няма данни.</p>
+          )}
         </section>
 
         {STRATEGIA.map((s) => (
