@@ -11,6 +11,8 @@ import { EkipHeader } from "@/components/ekip/EkipHeader";
 import { PROGRAM_PRICE_EUR, TEAM_PAY_LINKS } from "@/lib/stripe/team-links";
 import { PERIODS, humanMinutes, parsePeriod, periodLabel } from "@/lib/team/napredak-rules";
 import { TbiBox } from "@/components/ekip/TbiBox";
+import { UebinarFunia } from "@/components/ekip/UebinarFunia";
+import { zarediFuniyata } from "@/lib/uebinar/prisastvie";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +39,7 @@ export default async function EkipatPage({ searchParams }: { searchParams: Promi
   const sp = await searchParams;
   const days = parsePeriod(sp.d, 30);
   const viewer: Viewer = actor.kind === "owner" ? { kind: "owner" } : { kind: "member", member: actor.member };
-  const [nav, board] = await Promise.all([ekipNav(actor), loadManagerBoard(viewer, days)]);
+  const [nav, board, funia] = await Promise.all([ekipNav(actor), loadManagerBoard(viewer, days), zarediFuniyata().catch(() => null)]);
   const isOwner = actor.kind === "owner";
   const th = "px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-tertiary)]";
   const td = "px-2 py-2 text-sm tabular-nums";
@@ -81,6 +83,9 @@ export default async function EkipatPage({ searchParams }: { searchParams: Promi
             🎬 Видеа, отзиви и как работи системата
           </Link>
         </nav>
+
+        {/* Уебинарът по стъпки + групите за звънене след него (26.11.2026) */}
+        {funia && <UebinarFunia f={funia} kratka />}
 
         <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
           <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">👥 Хората · {periodLabel(board.days)}</h2>

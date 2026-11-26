@@ -27,6 +27,7 @@ import { loadRotationPool } from "./routing";
 import { loadIvailoClaims } from "./ivailo";
 import type { IvailoClaim } from "./ivailo-rules";
 import { LIVE_BOOKING_STATUSES } from "@/lib/crm/booking-status";
+import { NA_ZHIVO } from "@/lib/uebinar/na-zhivo";
 
 /**
  * Опашката за звънене на човека за срещите.
@@ -301,6 +302,25 @@ async function loadAssigned(sb: Sb): Promise<ContactLite[]> {
 }
 
 /**
+ * Записаните за уебинара (това издание) не са за „🆕 Първо обаждане“: преди
+ * уебинара не се звъни (Ивайло, 26.11.2026), а след него са в „🎓 Уебинар“ по
+ * групи (lib/uebinar/prisastvie.ts). При грешка — празно: по-добре излишна карта.
+ */
+async function loadUebinarZapisani(sb: Sb): Promise<Set<string>> {
+  const { rows, error } = await allRows<{ contact_id: string }>((from, to) =>
+    sb
+      .from("contact_activities")
+      .select("contact_id")
+      .eq("activity_type", "uebinar_registration")
+      .eq("metadata->>date_iso", NA_ZHIVO.dateISO)
+      .order("id", { ascending: true })
+      .range(from, to)
+  );
+  if (error) return new Set();
+  return new Set(rows.map((r) => r.contact_id));
+}
+
+/**
  * `viewerId` = човекът от екипа, чиято опашка се показва: той вижда само
  * лийдовете, влезли при него по ротацията (виж routing-rules.ts). null =
  * собственикът — вижда опашката на целия екип.
@@ -310,7 +330,7 @@ export async function loadSetterQueue(now: Date = new Date(), viewerId: string |
   const since = new Date(now.getTime() - WINDOW_DAYS * 86_400_000).toISOString();
   const todayEnd = todayEndIso(now);
 
-  const [{ data: leadRows }, { data: dueRows }, { data: bookedRows }, assigned, pool] = await Promise.all([
+  const [{ data: leadRows }, { data: dueRows }, { data: bookedRows }, assigned, pool, uebinarZapisani] = await Promise.all([
     sb
       .from("contacts")
       .select(COLS)
@@ -339,6 +359,7 @@ export async function loadSetterQueue(now: Date = new Date(), viewerId: string |
       .limit(30),
     loadAssigned(sb),
     viewerId ? loadRotationPool() : Promise.resolve([]),
+    loadUebinarZapisani(sb),
   ]);
 
   const mine = (c: ContactLite) => seesLead(viewerId, c.routed_to, pool);
@@ -374,7 +395,7 @@ export async function loadSetterQueue(now: Date = new Date(), viewerId: string |
   // (relead) — най-новата заявка най-горе.
   const leadTime = (c: ContactLite) =>
     kindOf(c) === RELEAD_KIND ? (attempts.get(c.id)?.given?.at ?? c.created_at) : c.created_at;
-  const freshContacts = [...leads.filter((c) => !attempts.has(c.id)), ...reLeadContacts].sort((a, b) =>
+  const freshContacts = [...leads.filter((c) => !attempts.has(c.id) && !uebinarZapisani.has(c.id)), ...reLeadContacts].sort((a, b) =>
     leadTime(b).localeCompare(leadTime(a))
   );
   const split = splitTeamDue(due, attempts, todayEnd);

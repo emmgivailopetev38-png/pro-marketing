@@ -86,3 +86,16 @@ describe("стари и топли (11.11.2026)", () => {
     expect(parseZvaneneView("stari")).toBe("stari");
   });
 });
+
+describe("🎓 Уебинар (26.11.2026)", () => {
+  it("табът излиза вторият, щом има текущ уебинар — и с нула", () => {
+    expect(zvaneneTabs(counts).map((t) => t.view)).not.toContain("uebinar");
+    const tabs = zvaneneTabs({ ...counts, uebinar: 0 });
+    expect(tabs[1]).toMatchObject({ view: "uebinar", label: "🎓 Уебинар", count: 0, href: "/ekip?vid=uebinar" });
+    expect(zvaneneTabs({ ...counts, uebinar: 14 })[1].count).toBe(14);
+  });
+
+  it("адресът ?vid=uebinar се чете", () => {
+    expect(parseZvaneneView("uebinar")).toBe("uebinar");
+  });
+});

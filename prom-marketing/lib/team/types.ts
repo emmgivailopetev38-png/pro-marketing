@@ -215,6 +215,8 @@ export interface QueueLead {
   relead_at?: string | null;
   /** Какво е правила Ели (гласовият агент) с лийда — редът и резюмето за картата (eli-rules.ts). */
   eli?: { line: string; summary: string | null } | null;
+  /** Опашките след уебинара (lib/uebinar/prisastvie.ts): първото изречение според групата — вместо това на офертата. */
+  opener_override?: string | null;
 }
 
 export interface BookedRow {

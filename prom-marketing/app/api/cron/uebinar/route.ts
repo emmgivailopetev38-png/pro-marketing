@@ -7,6 +7,7 @@ import { BEZ, EV_IMEIL, SLUG, ZAPAZENO, kamNotifier, kamNotifierSega, podatel, p
 import { VIBER_MEDIA, VIBER_ODOBRENI, dalzhimiPostove, viberPostZa, type ViberPost } from "@/lib/uebinar/viber-postove";
 import { OTPISVANE_TYPE } from "@/lib/uebinar/otpisvane";
 import { UEBINAR_LINKOVE } from "@/lib/uebinar/linkove";
+import { sinhroniziraiPrisastvie } from "@/lib/uebinar/prisastvie";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -39,7 +40,10 @@ export async function GET(request: Request) {
   await proveriVrazkite();
   await probaNaPodatelya();
   await probaSms();
-  if (!NAPOMNYANIA.vklyucheni) return NextResponse.json({ ok: true, off: true });
+  // Кой е дошъл и докога е стоял (Notifier) → опашките за звънене след уебинара и статистиката.
+  // Работи и когато напомнянията са спрени; извън прозореца на уебинара не прави нищо.
+  const prisastvie = await sinhroniziraiPrisastvie().catch((e) => ({ ok: false, prichina: e instanceof Error ? e.message : String(e) }));
+  if (!NAPOMNYANIA.vklyucheni) return NextResponse.json({ ok: true, off: true, prisastvie });
 
   const started = Date.now();
   const now = Date.now();
@@ -157,7 +161,7 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true, zapisani: contacts.length, ...out });
+  return NextResponse.json({ ok: true, zapisani: contacts.length, ...out, prisastvie });
 }
 
 const VIBER_WEBHOOK = "https://promarketing.pw/api/webhooks/viber-kanal";
