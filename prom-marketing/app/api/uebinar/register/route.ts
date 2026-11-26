@@ -13,6 +13,7 @@ import { clientIp, cookieValue, fbcFor, safeEventId, splitName } from "@/lib/ueb
 import { routeNewLead } from "@/lib/team/routing";
 import { notifyTeamNewLead } from "@/lib/team/notify";
 import { LEAD_OFFERS } from "@/lib/leads/lead-offers";
+import { vednagaSledZapisvane } from "@/lib/uebinar/izprashtane";
 
 export const dynamic = "force-dynamic";
 
@@ -159,6 +160,16 @@ export async function POST(request: Request) {
     .select("id")
     .single();
   if (actError) console.error("[uebinar/register] activity insert", actError.message);
+
+  // Ивайло, 26.11.2026: „имейлът веднага да им идва, щом се запишат“ — потвърждението
+  // (писмо №1) и SMS-ът при записване тръгват още сега, след отговора; кронът е резервата.
+  after(async () => {
+    try {
+      await vednagaSledZapisvane(contactId);
+    } catch (e) {
+      console.error("[uebinar/register] vednaga", e instanceof Error ? e.message : e);
+    }
+  });
 
   // При екипа: само нов човек или такъв, който още е „лийд“ (не клиент, не в оферта).
   const zaEkipa = !existing || !existing.stage || existing.stage === "lead";

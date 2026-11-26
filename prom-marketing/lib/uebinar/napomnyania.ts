@@ -60,8 +60,8 @@ export interface PratenoDosega {
 /**
  * Кои писма са дължими СЕГА за човек, записал се в `zapisanIso`. Връща номерата
  * по ред; викащият праща само тях и пази, че са пратени (никога два пъти).
- *   №0 веднага (освен ако се е записал в последните 3 часа преди началото);
- *   №1 10 мин след записването, до началото;
+ *   №1 (потвърждението) веднага — Ивайло, 26.11: „имейлът веднага да им идва“; праща го още записването;
+ *   №0 („бърз въпрос“) 10 мин след записването (освен ако се е записал в последните 3 часа преди началото);
  *   №2–№7 по едно във всеки „час“ от графика, който е поне час след записването;
  *   №8 и №9 само ако се е записал преди часа им; №10 и №11 — всеки, в прозореца им.
  */
@@ -71,8 +71,8 @@ export function dalzhimiImeili(zapisanIso: string, now: number, prateno: Prateno
   const out: number[] = [];
   const nyama = (n: number) => !prateno.nomera.has(n);
 
-  if (nyama(0) && now >= zap && now < start && zap < start - 3 * 60 * MIN) out.push(0);
-  if (nyama(1) && now >= zap + 10 * MIN && now < start) out.push(1);
+  if (nyama(1) && now >= zap && now < start) out.push(1);
+  if (nyama(0) && now >= zap + 10 * MIN && now < start && zap < start - 3 * 60 * MIN) out.push(0);
 
   // Съдържанието: един „час“ = [слот, слот + slotMinuti); по едно писмо на час, по ред.
   if (now < SADARZHANIE_DO()) {

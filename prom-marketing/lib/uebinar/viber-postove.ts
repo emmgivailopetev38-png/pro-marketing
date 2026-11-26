@@ -16,8 +16,8 @@
  * текстът тръгва веднага след видеото като отделен пост.
  */
 
-/** Пускат се само след „да“ от Ивайло (първо му се показват). */
-export const VIBER_ODOBRENI = false;
+/** Одобрени от Ивайло на 26.11.2026 ~08:30: „Да, пусни ги във Viber“. */
+export const VIBER_ODOBRENI = true;
 
 export const VIBER_MEDIA = "https://ivailopetev.com/ivailo/viber";
 
