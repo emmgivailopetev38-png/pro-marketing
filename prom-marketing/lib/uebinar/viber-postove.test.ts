@@ -49,7 +49,7 @@ describe("Viber постовете (26.11.2026: кратки, с видео и �
     expect(dalzhimiPostove(T("2026-11-29T19:40:00+02:00"), new Set())).toEqual([]);
   });
 
-  it("чакат „да“ от Ивайло", () => {
-    expect(VIBER_ODOBRENI).toBe(false);
+  it("одобрени от Ивайло (26.11.2026)", () => {
+    expect(VIBER_ODOBRENI).toBe(true);
   });
 });

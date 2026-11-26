@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { allRows } from "@/lib/supabase/all-rows";
-import { sendRelayEmail } from "@/lib/email/resend";
 import { loadIvailoClaims } from "@/lib/team/ivailo";
-import { NA_ZHIVO } from "@/lib/uebinar/na-zhivo";
 import { NAPOMNYANIA, SADARZHANIE, dalzhimiImeili, sglobiImeil } from "@/lib/uebinar/napomnyania";
+import { BEZ, EV_IMEIL, SLUG, ZAPAZENO, kamNotifier, kamNotifierSega, podatel, prati, pratiImeil } from "@/lib/uebinar/izprashtane";
 import { VIBER_MEDIA, VIBER_ODOBRENI, dalzhimiPostove, viberPostZa, type ViberPost } from "@/lib/uebinar/viber-postove";
-import { OTPISVANE_TYPE, otpisvaneLink } from "@/lib/uebinar/otpisvane";
+import { OTPISVANE_TYPE } from "@/lib/uebinar/otpisvane";
 import { UEBINAR_LINKOVE } from "@/lib/uebinar/linkove";
 
 export const dynamic = "force-dynamic";
@@ -26,63 +25,9 @@ export const maxDuration = 300;
  *
  * Auth: Vercel праща `Authorization: Bearer ${CRON_SECRET}`; ръчно — INTERNAL_SEND_TOKEN.
  */
-const SLUG = NA_ZHIVO.slug;
-const EV_IMEIL = "uebinar_imeil";
 const EV_VIBER = "uebinar_viber";
-const EV_NOTIFIER = "uebinar_notifier";
-const BEZ = new Set(["won", "offer_sent", "negotiating"]);
-
-function podatel(): string {
-  // Собственият Resend ключ на ivailopetev.com → писмата са от ivailo@ivailopetev.com.
-  if (process.env.RESEND_UEBINAR_API_KEY) return process.env.UEBINAR_EMAIL_FROM || "Ивайло Петев <ivailo@ivailopetev.com>";
-  const raw = process.env.EMAIL_FROM || "ivailo@promarketing.pw";
-  const m = /<([^>]+)>/.exec(raw);
-  return `Ивайло Петев <${(m ? m[1] : raw).trim()}>`;
-}
-
-/**
- * Изпращане: със собствения ключ на ivailopetev.com (Resend акаунтът на Ивайло),
- * ако го има; иначе с общия ключ на сайта (ivailo@promarketing.pw).
- */
-async function prati(args: Parameters<typeof sendRelayEmail>[0]): Promise<{ id: string | null; error: string | null; statusCode: number | null }> {
-  const key = process.env.RESEND_UEBINAR_API_KEY;
-  if (!key) return sendRelayEmail(args);
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-        ...(args.idempotencyKey ? { "Idempotency-Key": args.idempotencyKey } : {}),
-      },
-      body: JSON.stringify({
-        from: args.from,
-        to: args.to,
-        subject: args.subject,
-        html: args.html,
-        text: args.text,
-        reply_to: args.replyTo,
-        headers: args.headers,
-        tags: args.tags,
-      }),
-      signal: AbortSignal.timeout(15_000),
-    });
-    const j = (await res.json().catch(() => ({}))) as { id?: string; message?: string; name?: string };
-    if (!res.ok) return { id: null, error: `${j.name ?? res.status}: ${j.message ?? ""}`, statusCode: res.status };
-    return { id: j.id ?? null, error: null, statusCode: null };
-  } catch (e) {
-    return { id: null, error: e instanceof Error ? e.message : String(e), statusCode: null };
-  }
-}
 
 const pauza = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-/**
- * automation_events приема само статус success / failed / skipped (CHECK в базата).
- * „Запазеното“ (още не пратено) е skipped; после става success или failed.
- * (25.11.2026: с „pending“ записът се отхвърляше тихо и нищо не тръгваше.)
- */
-const ZAPAZENO = "skipped";
 
 export async function GET(request: Request) {
   const auth = request.headers.get("authorization");
@@ -156,9 +101,7 @@ export async function GET(request: Request) {
     pratenoNa.set(cid, e);
   }
 
-  // 4) Писмата.
-  const from = podatel();
-  const replyTo = process.env.EMAIL_REPLY_TO || undefined;
+  // 4) Писмата (потвърждението №1 обикновено вече е тръгнало при записването — ключът е същият).
   for (const c of contacts) {
     if (Date.now() - started > 240_000) break;
     const email = (c.email ?? "").trim();
@@ -168,64 +111,18 @@ export async function GET(request: Request) {
     }
     const due = dalzhimiImeili(zapisan.get(c.id)!, now, pratenoNa.get(c.id) ?? { nomera: new Set() });
     for (const n of due) {
-      const key = `${prefix}${n}:${c.id}`;
-      const { data: claim, error: claimErr } = await sb
-        .from("automation_events")
-        .insert({ event_type: EV_IMEIL, status: ZAPAZENO, related_contact_id: c.id, idempotency_key: key, summary: `Уебинар · писмо №${n}` })
-        .select("id")
-        .single();
-      if (claimErr || !claim) continue; // вече е взето/пратено
-      const link = otpisvaneLink(c.id);
-      const m = sglobiImeil(n, c.full_name, link);
-      const r = await prati({
-        from,
-        to: email,
-        subject: m.tema,
-        html: m.html,
-        text: m.tekst,
-        replyTo,
-        headers: { "List-Unsubscribe": `<${link}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
-        tags: [{ name: "uebinar", value: SLUG.replace(/[^a-zA-Z0-9_-]/g, "_") }, { name: "imeil", value: String(n) }],
-        idempotencyKey: key.slice(0, 256),
-      });
-      await sb
-        .from("automation_events")
-        .update({ status: r.error ? "failed" : "success", detail: r.error ? { error: r.error, status: r.statusCode } : { resend_id: r.id } })
-        .eq("id", (claim as { id: string }).id);
-      if (r.error) {
-        out.greshki += 1;
-        // лимит (429) → освобождаваме ключа, за да опита пак следващия път
-        if (r.statusCode === 429) await sb.from("automation_events").delete().eq("id", (claim as { id: string }).id);
-      } else out.imeili += 1;
-      await pauza(550); // Resend: 2 заявки в секунда
+      const r = await pratiImeil(sb, c, n);
+      if (r === "prateno") out.imeili += 1;
+      else if (r === "greshka") out.greshki += 1;
+      if (r !== "veche") await pauza(550); // Resend: 2 заявки в секунда
     }
   }
 
-  // 5) SMS-ите: всеки записан с телефон отива веднъж в Notifier (там са SMS-ите и
-  //    проследяването в Zoom). Notifier праща поканата веднага и оставащите напомняния.
-  const nKey = process.env.NOTIFIER_API_KEY;
-  const nWeb = UEBINAR_LINKOVE.notifierWebinar;
-  if (nKey && nWeb) {
-    for (const c of contacts) {
-      if (Date.now() - started > 280_000) break;
-      if (!c.phone || BEZ.has(c.stage ?? "") || akademia.has(c.id) || otpisani.has(c.id)) continue;
-      const key = `uebinar:${SLUG}:notifier:${c.id}`;
-      const { data: claim, error } = await sb
-        .from("automation_events")
-        .insert({ event_type: EV_NOTIFIER, status: ZAPAZENO, related_contact_id: c.id, idempotency_key: key, summary: "Уебинар · към Notifier (SMS)" })
-        .select("id")
-        .single();
-      if (error || !claim) continue;
-      const r = await kamNotifier(nKey, nWeb, { name: (c.full_name ?? "").trim() || "Без име", phone: c.phone, email: (c.email ?? "").trim() });
-      if (r.ok) {
-        await sb.from("automation_events").update({ status: "success", detail: {} }).eq("id", (claim as { id: string }).id);
-        out.sms += 1;
-      } else {
-        // не стигна — освобождаваме ключа, следващото пускане опитва пак
-        await sb.from("automation_events").delete().eq("id", (claim as { id: string }).id);
-        console.error("[cron/uebinar] notifier", r.error);
-      }
-    }
+  // 5) SMS-ите: всеки записан с телефон отива веднъж в Notifier (обикновено още при записването).
+  for (const c of contacts) {
+    if (Date.now() - started > 280_000) break;
+    if (!c.phone || BEZ.has(c.stage ?? "") || akademia.has(c.id) || otpisani.has(c.id)) continue;
+    if ((await kamNotifierSega(sb, c)) === "prateno") out.sms += 1;
   }
 
   // 6) Viber каналът (Channels Post API) — само ако има ключ и Ивайло е одобрил новите постове.
@@ -245,11 +142,17 @@ export async function GET(request: Request) {
           .single();
         if (error || !claim) continue;
         const r = ot ? await viberPusni(token, ot, viberPostZa(kluch)) : { ok: false, error: "няма супер админ" };
-        await sb
-          .from("automation_events")
-          .update({ status: r.ok ? "success" : "failed", detail: r.ok ? {} : { error: r.error } })
-          .eq("id", (claim as { id: string }).id);
-        if (r.ok) out.viber += 1;
+        if (r.ok) {
+          await sb
+            .from("automation_events")
+            .update({ status: "success", detail: r.error ? { zabelezhka: r.error } : {} })
+            .eq("id", (claim as { id: string }).id);
+          out.viber += 1;
+        } else {
+          // не излезе → ключът се освобождава и следващото пускане (след 5 мин.) опитва пак
+          console.error("[cron/uebinar] viber", kluch, r.error);
+          await sb.from("automation_events").delete().eq("id", (claim as { id: string }).id);
+        }
       }
     }
   }
@@ -394,21 +297,6 @@ async function probaSms(): Promise<void> {
       .eq("id", (claim as { id: string }).id);
   } catch (e) {
     console.error("[cron/uebinar] proba sms", e instanceof Error ? e.message : e);
-  }
-}
-
-async function kamNotifier(key: string, webinar: string, lead: { name: string; phone: string; email: string }): Promise<{ ok: boolean; error?: string }> {
-  try {
-    const res = await fetch(`https://notifierbg.com/api/v1/webinars/${encodeURIComponent(webinar)}/registrants`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify(lead),
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (res.ok) return { ok: true };
-    return { ok: false, error: `${res.status}: ${(await res.text()).slice(0, 200)}` };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
 

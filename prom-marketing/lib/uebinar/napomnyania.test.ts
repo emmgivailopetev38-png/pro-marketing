@@ -6,10 +6,11 @@ const T = (iso: string) => new Date(iso).getTime();
 const nishto = { nomera: new Set<number>() };
 
 describe("графикът на писмата", () => {
-  it("№0 веднага, №1 след 10 минути", () => {
+  it("№1 (потвърждението) веднага, №0 („бърз въпрос“) след 10 минути", () => {
     const zap = "2026-11-26T05:00:00+02:00";
-    expect(dalzhimiImeili(zap, T("2026-11-26T05:01:00+02:00"), nishto)).toEqual([0]);
-    expect(dalzhimiImeili(zap, T("2026-11-26T05:11:00+02:00"), { nomera: new Set([0]) })).toEqual([1]);
+    expect(dalzhimiImeili(zap, T("2026-11-26T05:00:30+02:00"), nishto)).toEqual([1]);
+    expect(dalzhimiImeili(zap, T("2026-11-26T05:05:00+02:00"), { nomera: new Set([1]) })).toEqual([]);
+    expect(dalzhimiImeili(zap, T("2026-11-26T05:11:00+02:00"), { nomera: new Set([1]) })).toEqual([0]);
   });
 
   it("съдържанието тръгва по ред, по едно на „час“", () => {
@@ -23,8 +24,8 @@ describe("графикът на писмата", () => {
 
   it("включено по-късно: продължава от следващия час, без да праща няколко наведнъж", () => {
     const zap = "2026-11-26T05:00:00+02:00";
-    // включено в 27.11 10:30 — №0 и №1 тръгват веднага, от съдържанието само №2
-    expect(dalzhimiImeili(zap, T("2026-11-27T10:30:00+02:00"), nishto)).toEqual([0, 1, 2]);
+    // включено в 27.11 10:30 — №1 и №0 тръгват веднага, от съдържанието само №2
+    expect(dalzhimiImeili(zap, T("2026-11-27T10:30:00+02:00"), nishto)).toEqual([1, 0, 2]);
   });
 
   it("часът трябва да е поне час след записването", () => {
@@ -38,9 +39,9 @@ describe("графикът на писмата", () => {
     expect(dalzhimiImeili(rano, T("2026-11-28T19:02:00+02:00"), { nomera: all })).toEqual([8]);
     expect(dalzhimiImeili(rano, T("2026-11-29T09:01:00+02:00"), { nomera: new Set([...all, 8]) })).toEqual([9]);
     const kasno = "2026-11-29T18:30:00+02:00";
-    // записан в 18:30 в неделя: без „бърз въпрос“ (последните 3 часа), №10 веднага, №1 след 10 мин
-    expect(dalzhimiImeili(kasno, T("2026-11-29T18:31:00+02:00"), nishto)).toEqual([10]);
-    expect(dalzhimiImeili(kasno, T("2026-11-29T18:41:00+02:00"), { nomera: new Set([10]) })).toEqual([1]);
+    // записан в 18:30 в неделя: без „бърз въпрос“ (последните 3 часа), потвърждението и №10 веднага
+    expect(dalzhimiImeili(kasno, T("2026-11-29T18:31:00+02:00"), nishto)).toEqual([1, 10]);
+    expect(dalzhimiImeili(kasno, T("2026-11-29T18:41:00+02:00"), { nomera: new Set([1, 10]) })).toEqual([]);
     expect(dalzhimiImeili(kasno, T("2026-11-29T19:01:00+02:00"), { nomera: new Set([1, 10]) })).toEqual([11]);
   });
 
