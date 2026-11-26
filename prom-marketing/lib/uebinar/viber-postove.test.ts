@@ -33,8 +33,10 @@ describe("Viber постовете (26.11.2026: кратки, с видео и �
     }
   });
 
-  it("линкът за влизане е в постовете на 29.11 вечерта", () => {
-    for (const k of ["10", "15min", "11"]) expect(VIBER_POSTOVE.find((p) => p.kluch === k)!.tekst).toContain("https://ivailopetev.com/vlez");
+  it("линкът за влизане е във Viber чак в последните 15 минути (Стефчо, Loom 25.11)", () => {
+    for (const k of ["15min", "11"]) expect(VIBER_POSTOVE.find((p) => p.kluch === k)!.tekst).toContain("https://ivailopetev.com/vlez");
+    for (const p of VIBER_POSTOVE.filter((x) => !["15min", "11"].includes(x.kluch))) expect(p.tekst, p.kluch).not.toContain("/vlez");
+    expect(VIBER_POSTOVE.find((p) => p.kluch === "10")!.tekst).toContain("18:45");
   });
 
   it("само един пост наведнъж: последният дължим", () => {
