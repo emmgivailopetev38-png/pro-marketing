@@ -12,6 +12,8 @@ import { MeetingOutcome } from "@/components/ekip/MeetingOutcome";
 import { MeetingRecording } from "@/components/ekip/MeetingRecording";
 import { NapredakStrip } from "@/components/ekip/NapredakStrip";
 import { readSwitch } from "@/lib/voice/auto-call";
+import { UebinarFunia } from "@/components/ekip/UebinarFunia";
+import { zarediFuniyata } from "@/lib/uebinar/prisastvie";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +27,12 @@ export default async function ProdazhbiPage() {
   if (!actor) redirect("/ekip/login");
   if (!allowed(actor, "prodazhbi")) redirect(homeFor(actor.member));
 
-  const [board, nav, sw] = await Promise.all([loadSalesBoard(actor), ekipNav(actor), readSwitch().catch(() => ({ on: true }))]);
+  const [board, nav, sw, funia] = await Promise.all([
+    loadSalesBoard(actor),
+    ekipNav(actor),
+    readSwitch().catch(() => ({ on: true })),
+    zarediFuniyata().catch(() => null),
+  ]);
   // Ели изключена → неявилите се излизат в опашката за звънене на екипа (lib/team/noshow.ts).
   const eli = sw.on;
   const isOwner = actor.kind === "owner";
@@ -52,6 +59,9 @@ export default async function ProdazhbiPage() {
           <Stat label="срещи 14 дни" value={upcoming.length} accent="emerald" />
           <Stat label="спечелени 30д" value={board.won.length} accent="emerald" />
         </section>
+
+        {/* Уебинарът: колко дойдоха, чуха офертата и си записаха час — и докъде е звъненето (26.11.2026) */}
+        {funia && <UebinarFunia f={funia} kratka />}
 
         <NapredakStrip actor={actor} />
 

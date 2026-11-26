@@ -22,6 +22,8 @@ import { ZvaneneTabs } from "@/components/ekip/ZvaneneTabs";
 import { ScriptPanel } from "@/components/ekip/ScriptPanel";
 import { MeetingMessages } from "@/components/ekip/MeetingMessages";
 import { NapredakStrip } from "@/components/ekip/NapredakStrip";
+import { UebinarOpashki } from "@/components/ekip/UebinarOpashki";
+import { broiZaZvanene, zarediUebinarOpashka } from "@/lib/uebinar/prisastvie";
 
 export const dynamic = "force-dynamic";
 
@@ -63,13 +65,15 @@ export default async function EkipPage({
   const preview = asId ? await getMemberById(asId).catch(() => null) : null;
   const viewerId = actor.kind === "member" ? actor.member.id : (preview?.id ?? null);
   const callerName = actor.kind === "member" ? actor.name : (preview?.full_name ?? actor.name);
-  const [queue, found, nav, msgs, cold, allClosers] = await Promise.all([
+  const [queue, found, nav, msgs, cold, allClosers, uebinarOpashka, uebinarBroi] = await Promise.all([
     loadSetterQueue(new Date(), viewerId),
     q ? searchLeads(q) : Promise.resolve([] as QueueLead[]),
     ekipNav(actor),
     loadMeetingMessages().catch(() => []),
     loadProspectQueue(viewerId).catch(() => ({ due: [], fresh: [], later: 0, freshTotal: 0 })),
     listClosers().catch(() => []),
+    view === "uebinar" ? zarediUebinarOpashka(viewerId, callerName).catch(() => null) : Promise.resolve(null),
+    view === "uebinar" ? Promise.resolve(null) : broiZaZvanene(viewerId),
   ]);
   // Изборът „кой води срещата“ излиза само при двама и повече клоузъри и когато записва
   // не самият клоузър (неговите срещи са си негови).
@@ -95,6 +99,7 @@ export default async function EkipPage({
     booked: todayMeetings.length,
     studeni: cold.due.length + cold.freshTotal,
     stari: stari ? stari.piles.topli.total + stari.piles.pisano.total + stari.piles.stari.total : null,
+    uebinar: uebinarOpashka ? uebinarOpashka.zaZvanene : uebinarBroi,
   };
   const tabs = zvaneneTabs(counts, view);
   const urgent = urgentBanner(view, counts);
@@ -163,6 +168,8 @@ export default async function EkipPage({
             </section>
           </>
         )}
+
+        {view === "uebinar" && <UebinarOpashki data={uebinarOpashka} setterName={callerName} />}
 
         {view === "studeni" && (
           <>

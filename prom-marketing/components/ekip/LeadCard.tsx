@@ -158,9 +158,10 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
   const name = lead.full_name?.trim() || "Без име";
   // Първото изречение на разговора — докато с човека още не сме говорили.
   const opener =
-    mode === "fresh" || mode === "waiting" || ((mode === "search" || mode === "stari") && lead.stage === "lead")
+    lead.opener_override ??
+    (mode === "fresh" || mode === "waiting" || ((mode === "search" || mode === "stari") && lead.stage === "lead")
       ? openerFor(lead.offer_key ?? null, setterName)
-      : null;
+      : null);
   const calParams = new URLSearchParams();
   if (lead.full_name) calParams.set("name", lead.full_name);
   if (lead.email) calParams.set("email", lead.email);

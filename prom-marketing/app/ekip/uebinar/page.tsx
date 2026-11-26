@@ -9,6 +9,9 @@ import { EkipHeader } from "@/components/ekip/EkipHeader";
 import { VideoFeedback } from "@/components/ekip/VideoFeedback";
 import { createServiceClient } from "@/lib/supabase/service";
 import { AB_DYAL_B, AB_TEST, ZAGLAVIE_B } from "@/lib/uebinar/ab";
+import { zarediFuniyata } from "@/lib/uebinar/prisastvie";
+import { UebinarFunia } from "@/components/ekip/UebinarFunia";
+import { obnoviAction, ofertaChasAction, ofertaSegaAction } from "./actions";
 
 /**
  * Колко са записани за уебинара — общо и днес (по софийско време). Брои
@@ -67,11 +70,14 @@ export const dynamic = "force-dynamic";
  * лендинга, на едно място. Мениджърите (и целият екип) могат да пратят съвет
  * направо на Ивайло.
  */
-export default async function UebinarPage() {
+export default async function UebinarPage({ searchParams }: { searchParams: Promise<{ msg?: string | string[] }> }) {
   const actor = await getTeamActor();
   if (!actor) redirect("/ekip/login");
   if (!allowed(actor, "uebinar")) redirect(homeFor(actor.member));
-  const [nav, broi, ab] = await Promise.all([ekipNav(actor), zapisaniBroi(), abRezultat()]);
+  const sp = await searchParams;
+  const msg = (Array.isArray(sp.msg) ? sp.msg[0] : sp.msg ?? "").slice(0, 300);
+  const [nav, broi, ab, funia] = await Promise.all([ekipNav(actor), zapisaniBroi(), abRezultat(), zarediFuniyata().catch(() => null)]);
+  const upravlyava = actor.kind === "owner" || actor.member.role === "manager";
   const card = "rounded-2xl border border-white/10 bg-white/[0.03] p-4";
   return (
     <div className="mx-auto max-w-4xl pb-24">
@@ -110,14 +116,78 @@ export default async function UebinarPage() {
             )}
           </div>
           <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-            Всеки записан влиза веднага в системата със значка „🎓 Уебинар“: при сетъра в опашката за звънене (с готовото първо изречение), а целият
-            екип го вижда в „Всички лийдове“. Обаждането преди уебинара е за явяването: потвърди, че ще влезе, кажи, че линкът идва по Viber, SMS и имейл, и
-            попитай с какво се занимава.
+            Всеки записан влиза веднага в системата със значка „🎓 Уебинар“ и целият екип го вижда в „Всички лийдове“. <b>Преди уебинара не звъним</b> — за
+            явяването работят писмата, SMS-ите и Viber. След края сетърът звъни от таба „🎓 Уебинар“ в „Звънене“, по реда на групите: 1) стояха до офертата без
+            час, 2) излязоха преди офертата, 3) не дойдоха. Групите се пълнят сами от Zoom (през Notifier).
           </p>
-          <Link href="/ekip/liidove?ot=uebinar" className="mt-3 inline-block rounded-lg border border-violet-400/50 px-3 py-1.5 text-xs font-semibold text-violet-200 hover:border-violet-300">
-            Виж всички записани →
-          </Link>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link href="/ekip/liidove?ot=uebinar" className="inline-block rounded-lg border border-violet-400/50 px-3 py-1.5 text-xs font-semibold text-violet-200 hover:border-violet-300">
+              Виж всички записани →
+            </Link>
+            <Link href="/ekip?vid=uebinar" className="inline-block rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold hover:border-white/40">
+              📞 Опашките след уебинара →
+            </Link>
+          </div>
         </section>
+
+        {msg && (
+          <p className="rounded-2xl border border-white/15 bg-white/[0.05] p-3 text-sm" role="status">
+            {msg}
+          </p>
+        )}
+
+        {funia ? (
+          <UebinarFunia f={funia} />
+        ) : (
+          <p className="rounded-2xl border border-rose-400/30 bg-rose-400/10 p-3 text-sm text-rose-100">⚠️ Статистиката на уебинара не се зареди.</p>
+        )}
+
+        {upravlyava && (
+          <section id="upravlenie" className={card}>
+            <h2 className="text-sm font-semibold uppercase tracking-[0.15em]">🎯 Часът на офертата</h2>
+            <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
+              От него зависи кой е „стоял до офертата“ (група 1) и кой е излязъл преди нея (група 2). Натисни бутона в момента, в който почне продажбата —
+              или напиши часа след уебинара. Ако никой не го отбележи, 20 мин след края се слага 90-ата минута и тук излиза предупреждение.
+              {funia?.st?.oferta_at && (
+                <>
+                  {" "}
+                  Сега:{" "}
+                  <b className="text-[var(--color-text-primary)]">
+                    {new Date(funia.st.oferta_at).toLocaleTimeString("bg-BG", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Sofia" })}
+                  </b>
+                  {funia.st.oferta_izvor === "priblizitelno" ? " (приблизително)" : ""}.
+                </>
+              )}
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <form action={ofertaSegaAction}>
+                <button type="submit" className="rounded-lg border border-rose-400/60 bg-rose-500/15 px-3 py-2 text-sm font-semibold text-rose-100 hover:bg-rose-500/25">
+                  🎯 Офертата започва сега
+                </button>
+              </form>
+              <form action={ofertaChasAction} className="flex items-center gap-2">
+                <input
+                  name="chas"
+                  inputMode="numeric"
+                  placeholder="20:35"
+                  aria-label="Час на офертата"
+                  className="w-20 rounded-lg border border-white/15 bg-black/30 px-2 py-2 text-sm"
+                />
+                <button type="submit" className="rounded-lg border border-white/20 px-3 py-2 text-sm font-semibold hover:border-white/40">
+                  Запиши часа
+                </button>
+              </form>
+              <form action={obnoviAction}>
+                <button type="submit" className="rounded-lg border border-white/20 px-3 py-2 text-sm hover:border-white/40">
+                  🔄 Обнови от Zoom сега
+                </button>
+              </form>
+            </div>
+            {funia && !funia.imaNotifier && (
+              <p className="mt-2 text-xs text-amber-200">⚠️ Няма връзка с Notifier (ключът или уебинарът липсват) — групите не могат да се пълнят сами.</p>
+            )}
+          </section>
+        )}
 
         {/* A/B тестът на лендинга (Стефчо, 26.11.2026) — един и същ адрес, 60/40 */}
         <section className={card}>
