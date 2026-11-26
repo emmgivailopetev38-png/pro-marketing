@@ -63,8 +63,11 @@ export function sabitie(name: SabitieIme, params?: Record<string, string | numbe
   kamSarvara(name, eventId, params);
 }
 
-export function UebinarSledene({ stranica }: { stranica: "lending" | "podaraci" }) {
+export function UebinarSledene({ stranica, varianta }: { stranica: "lending" | "podaraci"; varianta?: "A" | "B" }) {
   useEffect(() => {
+    // A/B тестът на лендинга: версията тръгва с всяко събитие (lib/uebinar/ab.ts).
+    const v = (p?: Record<string, string | number>) => (varianta ? { ...(p ?? {}), varianta } : p);
+    const s = (name: SabitieIme, p?: Record<string, string | number>) => sabitie(name, v(p));
     const timers: number[] = [];
     let spryano = false;
 
@@ -72,8 +75,8 @@ export function UebinarSledene({ stranica }: { stranica: "lending" | "podaraci" 
     let opiti = 0;
     const pv = () => {
       if (spryano) return;
-      if (window.__pmPv) return kamSarvara("PageView", window.__pmPv);
-      if (++opiti > 30) return kamSarvara("PageView", newEventId().replace(/[^A-Za-z0-9_-]/g, "")); // пикселът е блокиран
+      if (window.__pmPv) return kamSarvara("PageView", window.__pmPv, v());
+      if (++opiti > 30) return kamSarvara("PageView", newEventId().replace(/[^A-Za-z0-9_-]/g, ""), v()); // пикселът е блокиран
       timers.push(window.setTimeout(pv, 200));
     };
     pv();
@@ -81,13 +84,13 @@ export function UebinarSledene({ stranica }: { stranica: "lending" | "podaraci" 
     // 2) ViewContent — след като пикселът се зареди (или до 3 сек.).
     timers.push(
       window.setTimeout(
-        () => sabitie("ViewContent", { content_name: stranica === "lending" ? "uebinar-lending" : "uebinar-podaraci", content_category: "uebinar" }),
+        () => s("ViewContent", { content_name: stranica === "lending" ? "uebinar-lending" : "uebinar-podaraci", content_category: "uebinar" }),
         typeof window.fbq === "function" ? 300 : 3000,
       ),
     );
 
     // 3) Време на страницата.
-    for (const s of [15, 60, 180]) timers.push(window.setTimeout(() => sabitie("VremeNaStranicata", { sekundi: s }), s * 1000));
+    for (const sek of [15, 60, 180]) timers.push(window.setTimeout(() => s("VremeNaStranicata", { sekundi: sek }), sek * 1000));
 
     // 4) Скрол.
     const praguve = [25, 50, 75, 90];
@@ -99,7 +102,7 @@ export function UebinarSledene({ stranica }: { stranica: "lending" | "podaraci" 
       for (const t of praguve) {
         if (p >= t && !minati.has(t)) {
           minati.add(t);
-          sabitie("Skrol", { procent: t });
+          s("Skrol", { procent: t });
         }
       }
     };
@@ -109,11 +112,11 @@ export function UebinarSledene({ stranica }: { stranica: "lending" | "podaraci" 
     const onClick = (e: MouseEvent) => {
       const el = e.target as HTMLElement | null;
       const zapis = el?.closest("[data-zapis]");
-      if (zapis) return sabitie("OtvoriFormata", { mesto: zapis.getAttribute("data-zapis") || "" });
+      if (zapis) return s("OtvoriFormata", { mesto: zapis.getAttribute("data-zapis") || "" });
       const a = el?.closest("a");
       const href = a?.getAttribute("href") || "";
-      if (/viber/i.test(href)) return sabitie("KlikViber");
-      if (/calendar|kalendar/i.test(href)) return sabitie("KlikKalendar");
+      if (/viber/i.test(href)) return s("KlikViber");
+      if (/calendar|kalendar/i.test(href)) return s("KlikKalendar");
     };
     document.addEventListener("click", onClick, true);
 
@@ -125,7 +128,7 @@ export function UebinarSledene({ stranica }: { stranica: "lending" | "podaraci" 
       const ime = (v.currentSrc || v.src || "").split("/").pop()?.split("?")[0] || "video";
       if (gledani.has(ime)) return;
       gledani.add(ime);
-      sabitie("GledaVideo", { video: ime });
+      s("GledaVideo", { video: ime });
     };
     document.addEventListener("play", onPlay, true);
 
@@ -136,7 +139,7 @@ export function UebinarSledene({ stranica }: { stranica: "lending" | "podaraci" 
       document.removeEventListener("click", onClick, true);
       document.removeEventListener("play", onPlay, true);
     };
-  }, [stranica]);
+  }, [stranica, varianta]);
 
   return null;
 }
