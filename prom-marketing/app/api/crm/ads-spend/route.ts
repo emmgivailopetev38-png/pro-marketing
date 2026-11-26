@@ -31,6 +31,19 @@ const rowSchema = z.object({
   impressions: z.coerce.number().int().min(0).default(0),
   clicks: z.coerce.number().int().min(0).default(0),
   leads: z.coerce.number().int().min(0).default(0),
+  // от 26.11.2026 (таблото /admin/tablo, по CRM-а на Стефчо): обхват, кликове към
+  // страницата, посещения на страницата и регистрации по Meta. Без тях → null.
+  reach: z.coerce.number().int().min(0).nullish(),
+  link_clicks: z.coerce.number().int().min(0).nullish(),
+  landing_views: z.coerce.number().int().min(0).nullish(),
+  registrations: z.coerce.number().int().min(0).nullish(),
+});
+
+const noviteMetriki = (r: z.infer<typeof rowSchema>) => ({
+  reach: r.reach ?? null,
+  link_clicks: r.link_clicks ?? null,
+  landing_views: r.landing_views ?? null,
+  registrations: r.registrations ?? null,
 });
 
 const payloadSchema = z.object({
@@ -82,6 +95,7 @@ export async function POST(request: Request) {
           impressions: r.impressions,
           clicks: r.clicks,
           leads: r.leads,
+          ...noviteMetriki(r),
           synced_at: now,
         };
       });
@@ -113,6 +127,7 @@ export async function POST(request: Request) {
       impressions: r.impressions,
       clicks: r.clicks,
       leads: r.leads,
+      ...noviteMetriki(r),
       synced_at: now,
     };
   });
