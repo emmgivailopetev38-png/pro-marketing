@@ -156,17 +156,26 @@ const plus = (a: number | null, b: number | null): number | null => (a == null &
 
 /** Производните — същите формули като finishAdRow при Стефчо. */
 export function dovarshi(r: RedReklama): RedReklama {
+  // без разход (директните) цената е „—“, не „0 €“
+  const imaRazhod = r.razhod > 0;
   return {
     ...r,
     razhod: Math.round(r.razhod * 100) / 100,
     ctr: div(r.klikove, r.pokazvaniya),
-    cpm: r.pokazvaniya ? (r.razhod / r.pokazvaniya) * 1000 : null,
-    cpc: div(r.razhod, r.klikove),
+    cpm: imaRazhod && r.pokazvaniya ? (r.razhod / r.pokazvaniya) * 1000 : null,
+    cpc: imaRazhod ? div(r.razhod, r.klikove) : null,
     chestota: div(r.pokazvaniya, r.obhvat),
-    cenaZapisan: div(r.razhod, r.zapisani),
-    cenaChas: div(r.razhod, r.chasove),
+    cenaZapisan: imaRazhod ? div(r.razhod, r.zapisani) : null,
+    cenaChas: imaRazhod ? div(r.razhod, r.chasove) : null,
     roas: div(r.prihod, r.razhod),
   };
+}
+
+/** Преди уебинара продажби няма по правило — ROAS е „—“, не червено „0×“. */
+export function bezRoasPrediUebinara<T extends { redove: RedReklama[]; obshto: RedReklama }>(x: T, predi: boolean): T {
+  if (!predi) return x;
+  const chist = (r: RedReklama) => (r.prihod > 0 ? r : { ...r, roas: null });
+  return { ...x, redove: x.redove.map(chist), obshto: chist(x.obshto) };
 }
 
 /**
