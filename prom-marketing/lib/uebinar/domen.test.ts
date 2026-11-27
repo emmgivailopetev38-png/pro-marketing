@@ -52,6 +52,13 @@ describe("ivailopetev.com — домейнът на уебинара", () => {
     expect(uebinarHostAction("ivailopetev.com", "/viber")).toMatchObject({ kind: "redirect", status: 307 });
     expect((uebinarHostAction("ivailopetev.com", "/viber") as { to: string }).to).toContain("invite.viber.com");
     expect(uebinarHostAction("ivailopetev.com", "/vlez")).toEqual({ kind: "redirect", to: "https://notifierbg.com/bg/join/xzwxpbyr", status: 307 });
+    // /razgovor (лентата „Запишете си разговор“ в презентацията) → календарът, UTM-ите остават
+    expect(uebinarHostAction("ivailopetev.com", "/razgovor")).toEqual({ kind: "redirect", to: "https://promarketing.pw/booking", status: 307 });
+    expect(uebinarHostAction("ivailopetev.com", "/razgovor/", "?utm_source=uebinar")).toEqual({
+      kind: "redirect",
+      to: "https://promarketing.pw/booking?utm_source=uebinar",
+      status: 307,
+    });
     const kal = uebinarHostAction("ivailopetev.com", "/kalendar") as { kind: string; to: string };
     expect(kal.kind).toBe("redirect");
     expect(kal.to).toMatch(/^https:\/\/calendar\.google\.com\/calendar\/render\?/);

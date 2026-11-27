@@ -14,6 +14,11 @@ export const UEBINAR_LINKOVE = {
   viberKanal: VIBER_KANAL as string | null,
   zoom: "https://notifierbg.com/bg/join/xzwxpbyr" as string | null,
   /**
+   * ivailopetev.com/razgovor — „Запишете си разговор“ от презентацията на уебинара (лентата на
+   * ~25 слайда и последният слайд). Ивайло, 27.11.2026: към календара на основния сайт.
+   */
+  razgovor: "https://promarketing.pw/booking" as string | null,
+  /**
    * Уебинарът в Notifier (notifierbg.com) — SMS-ите и кой е влязъл в Zoom.
    * Записаните се пращат с POST /api/v1/webinars/<id>/registrants (ключът е
    * NOTIFIER_API_KEY във Vercel). null = още не е създаден.
