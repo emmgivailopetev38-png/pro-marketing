@@ -179,6 +179,32 @@ export const NOTES_ON_CARD = 3;
 const GENERATED_LINE = /^(Дейност|Линк):\s/;
 
 /**
+ * Отговор от имейл маркетинга (`email_received`) — на картата стоят ТОЧНО думите
+ * на човека (Ивайло, 27.11.2026: „да записва в картоните, че са отговорили и
+ * точно какво са отговорили“), за да ги види сетърът и клоузърът, преди да звъни.
+ * Редът: `metadata.tekst` (дословно, както го пише задачата) → тялото от Gmail
+ * скрипта (там тялото е самият отговор) → заглавието („📩 Отговори на „…“: „…““).
+ * Вътрешното ни „Направено: чернова…“ не стига до екипа.
+ */
+function imeilOtgovorText(r: NoteRow): string | null {
+  const tekst = r.metadata?.tekst;
+  if (typeof tekst === "string" && tekst.trim()) return `„${tekst.trim()}“`;
+  if (r.metadata?.source === "gmail_script" && r.body?.trim()) return `„${r.body.trim()}“`;
+  const title = (r.title ?? "").replace(/^📩\s*/, "").trim();
+  return title || null;
+}
+
+/** Темата на писмото, на което е отговорил: от metadata или от първите кавички в заглавието. */
+function imeilTema(r: NoteRow): string | null {
+  for (const k of ["tema", "subject"]) {
+    const v = r.metadata?.[k];
+    if (typeof v === "string" && v.trim()) return v.trim().replace(/^(re|отг|fwd?)\s*:\s*/i, "");
+  }
+  const m = (r.title ?? "").match(/„([^“]+)“/);
+  return m ? m[1].trim() : null;
+}
+
+/**
  * Какво е написано в полето за бележка. От 01.10.2026 текстът стои и в
  * `metadata.note` — точно каквото е написано. По-старите изходи го имат само в
  * тялото, където изходът добавя „Дейност: …“ и „Линк: …“ — те се махат.
@@ -186,9 +212,10 @@ const GENERATED_LINE = /^(Дейност|Линк):\s/;
  * бележка не е бележка (той е в „Последно: …“).
  */
 export function noteText(r: NoteRow): string | null {
+  const type = r.activity_type ?? "note";
+  if (type === "email_received") return imeilOtgovorText(r);
   const typed = r.metadata?.note;
   if (typeof typed === "string" && typed.trim()) return typed.trim();
-  const type = r.activity_type ?? "note";
   if (type === "note") return (r.body ?? "").trim() || (r.title ?? "").trim() || null;
   const words = (r.body ?? "")
     .split("\n")
@@ -213,6 +240,12 @@ export function notesByContact(rows: NoteRow[], limit = NOTES_ON_CARD): Map<stri
     const list = out.get(r.contact_id) ?? [];
     if (list.length >= limit) continue;
     const type = r.activity_type ?? "note";
+    if (type === "email_received") {
+      const tema = imeilTema(r);
+      list.push({ body: text, at: r.occurred_at, by: null, context: tema ? `отговор на „${tema}“` : "отговор на имейл", kind: "imeil" });
+      out.set(r.contact_id, list);
+      continue;
+    }
     const context = type === "note" ? null : (r.title ?? "").trim() || null;
     list.push(context ? { body: text, at: r.occurred_at, by: r.created_by, context } : { body: text, at: r.occurred_at, by: r.created_by });
     out.set(r.contact_id, list);

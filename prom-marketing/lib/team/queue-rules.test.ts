@@ -299,6 +299,49 @@ describe("бележките по картон", () => {
   });
 });
 
+describe("отговорът на човека на наше писмо стои на картата дословно", () => {
+  const otg = (o: Partial<{ title: string; body: string | null; metadata: Record<string, unknown>; occurred_at: string; contact_id: string }>) => ({
+    contact_id: o.contact_id ?? "a",
+    activity_type: "email_received",
+    title: o.title ?? "📩 Отговори на „Бърз въпрос“: „неща, които ми носят доход“",
+    body: o.body ?? "Борис отговори на писмото „Бърз въпрос“ (26.11 22:26): „…“\n\nНаправено: чернова в Gmail r765…",
+    occurred_at: o.occurred_at ?? "2026-11-26T20:26:53Z",
+    created_by: "claude",
+    metadata: o.metadata ?? null,
+  });
+
+  it("с metadata.tekst — точно думите му, с темата на писмото, без вътрешното „Направено“", () => {
+    const m = notesByContact([otg({ metadata: { tekst: "Здравейте, Искам да си запълвам времето с неща който ми носят доход.", tema: "Re: Бърз въпрос" } })]);
+    expect(m.get("a")).toEqual([
+      {
+        body: "„Здравейте, Искам да си запълвам времето с неща който ми носят доход.“",
+        at: "2026-11-26T20:26:53Z",
+        by: null,
+        context: "отговор на „Бърз въпрос“",
+        kind: "imeil",
+      },
+    ]);
+  });
+
+  it("стар запис без tekst → заглавието с цитата; от Gmail скрипта → тялото (там е самият отговор)", () => {
+    expect(noteText(otg({}))).toBe("Отговори на „Бърз въпрос“: „неща, които ми носят доход“");
+    expect(notesByContact([otg({})]).get("a")?.[0].context).toBe("отговор на „Бърз въпрос“");
+    expect(
+      noteText(otg({ title: "📩 Отговори на имейла „Трите неща“", body: "Нека да се чуем довечера след 17 ч", metadata: { source: "gmail_script", subject: "Трите неща" } }))
+    ).toBe("„Нека да се чуем довечера след 17 ч“");
+  });
+
+  it("смесва се с бележките по време, най-много три на картон", () => {
+    const m = notesByContact([
+      { contact_id: "a", title: "Бележка", body: "звъннах, не вдигна", occurred_at: "2026-11-30T10:00:00Z", created_by: "Сезер" },
+      otg({ metadata: { tekst: "имам свободно време", tema: "Бърз въпрос" } }),
+      { contact_id: "a", title: "Бележка", body: "стара", occurred_at: "2026-11-20T10:00:00Z", created_by: "Сезер" },
+      { contact_id: "a", title: "Бележка", body: "най-стара — не влиза", occurred_at: "2026-11-19T10:00:00Z", created_by: "Сезер" },
+    ]);
+    expect(m.get("a")?.map((x) => x.kind ?? "belezhka")).toEqual(["belezhka", "imeil", "belezhka"]);
+  });
+});
+
 describe("бележката от изхода на разговора стои на картата", () => {
   const exit = (
     contact_id: string,
