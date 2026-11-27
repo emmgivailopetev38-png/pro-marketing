@@ -20,6 +20,14 @@ export interface Material {
 
 export const MATERIALS: Material[] = [
   {
+    id: "onboarding-pari-s-ai",
+    title: "Онбординг „Пари с AI“: от затворената сделка до първия сайт",
+    about: "Какво става след „да“: плащането и TBI, какво записваш в CRM картона, отключването в Академията (akademia.ivailopetev.com) и в Petev.ai, приветствието с 3-те линка, първият ден на клиента, бонусите (кой и кога), ритъмът за 4-те месеца и какво отговаряш на въпросите за Petev.ai (свой Claude, кредити, шаблони, 30 %).",
+    file: "/materiali/onboarding-pari-s-ai.pdf",
+    roles: ["sales", "setter", "delivery", "manager", "owner"],
+    minutes: 12,
+  },
+  {
     id: "dimitar-setter",
     title: "Наръчник на сетъра: как уговаряш срещи",
     about: "Денят ти в опашката, пълният скрипт за разговора, какво казваш при всяко възражение, как записваш всеки изход в CRM-а.",
