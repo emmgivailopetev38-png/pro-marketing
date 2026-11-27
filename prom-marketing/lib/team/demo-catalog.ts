@@ -50,7 +50,7 @@ export const AKADEMIA_KURS = {
     "Разнообразие",
     "Проверка преди пускане",
   ],
-  href: "https://akademia.promarketing.pw/stalbichka",
+  href: "https://akademia.ivailopetev.com/stalbichka",
 };
 
 export const DEMO_SECTIONS: DemoSection[] = [
