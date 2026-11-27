@@ -284,15 +284,26 @@ export function LeadCard({ lead, mode, setterName = "Димитър" }: { lead: 
           с който и бутон да е записано („Само бележка“, „Говорихме, чуване пак“…). */}
       {notes.length > 0 && (
         <ul aria-label="Бележки" className="mt-3 space-y-1.5">
-          {notes.map((n, i) => (
-            <li key={`${n.at}-${i}`} className="rounded-lg border border-sky-400/25 bg-sky-400/[0.06] px-3 py-2 text-xs">
-              <p className="line-clamp-4 whitespace-pre-line text-[var(--color-text-primary)]">📝 {n.body}</p>
-              <p className="mt-0.5 text-[10px] text-[var(--color-text-tertiary)]">
-                {n.by ?? "—"} · {when(n.at)}
-                {n.context ? ` · ${n.context}` : ""}
-              </p>
-            </li>
-          ))}
+          {notes.map((n, i) =>
+            n.kind === "imeil" ? (
+              // Отговорът на човека на наше писмо — неговите думи, затова друг цвят и без „кой“.
+              <li key={`${n.at}-${i}`} className="rounded-lg border border-amber-400/30 bg-amber-400/[0.07] px-3 py-2 text-xs">
+                <p className="line-clamp-4 whitespace-pre-line text-[var(--color-text-primary)]">📩 {n.body}</p>
+                <p className="mt-0.5 text-[10px] text-[var(--color-text-tertiary)]">
+                  Писа ни · {when(n.at)}
+                  {n.context ? ` · ${n.context}` : ""}
+                </p>
+              </li>
+            ) : (
+              <li key={`${n.at}-${i}`} className="rounded-lg border border-sky-400/25 bg-sky-400/[0.06] px-3 py-2 text-xs">
+                <p className="line-clamp-4 whitespace-pre-line text-[var(--color-text-primary)]">📝 {n.body}</p>
+                <p className="mt-0.5 text-[10px] text-[var(--color-text-tertiary)]">
+                  {n.by ?? "—"} · {when(n.at)}
+                  {n.context ? ` · ${n.context}` : ""}
+                </p>
+              </li>
+            )
+          )}
         </ul>
       )}
 
