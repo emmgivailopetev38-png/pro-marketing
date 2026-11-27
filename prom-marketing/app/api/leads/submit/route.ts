@@ -42,7 +42,7 @@ export async function POST(request: Request) {
   const email = EMAIL_RE.test(emailRaw) ? emailRaw : null;
   const { company_activity, message } = parsed.data;
   const supabase = createServiceClient();
-  // Академията (akademia.promarketing.pw) праща заявките за достъп през тази
+  // Академията (akademia.ivailopetev.com) праща заявките за достъп през тази
   // форма с „Академия · …“. Това е човек за менторската на Ивайло, не лийд за
   // звънене: без ротация към екипа, без писмо „нов човек за звънене“, без
   // приветствен и продажбени имейли (06.10.2026: Димитър звъня на четирима
@@ -151,7 +151,7 @@ export async function POST(request: Request) {
       to: adminTo,
       subject: akademia ? `🎓 Академия · ${full_name}` : `🚀 Нов lead от сайта · ${full_name}`,
       html: `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#0d1221;">
-<p><strong>${akademia ? "Заявка от Академията (akademia.promarketing.pw) — за теб, не за екипа" : "Нов lead от формата на promarketing.pw"}</strong></p>
+<p><strong>${akademia ? "Заявка от Академията (akademia.ivailopetev.com) — за теб, не за екипа" : "Нов lead от формата на promarketing.pw"}</strong></p>
 <table style="border-collapse:collapse;">
 <tr><td style="padding:4px 12px 4px 0;color:#777;">Име:</td><td><strong>${escapeHtml(full_name)}</strong></td></tr>
 <tr><td style="padding:4px 12px 4px 0;color:#777;">Имейл:</td><td>${email ? `<a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a>` : "—"}</td></tr>

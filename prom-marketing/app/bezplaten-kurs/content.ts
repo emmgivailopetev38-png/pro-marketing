@@ -22,7 +22,7 @@ export const PROZRACHNOST =
 
 const UTM = "utm_source=kurs&utm_medium=stranica&utm_campaign=kurs";
 export const BOOKING = `https://promarketing.pw/booking?${UTM}`;
-export const AKADEMIA = `https://akademia.promarketing.pw/?${UTM}`;
+export const AKADEMIA = `https://akademia.ivailopetev.com/?${UTM}`;
 export const PHONE = "0877 399 963";
 export const PHONE_TEL = "+359877399963";
 
