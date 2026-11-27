@@ -93,6 +93,10 @@ export function uebinarHostAction(host: string, pathname: string, search = "", v
   // Кратките линкове от SMS-ите и писмата (виж linkove.ts); докато ги няма — лендингът.
   if (pathname === "/viber") return { kind: "redirect", to: UEBINAR_LINKOVE.viberKanal ?? `${UEBINAR_ORIGIN}/`, status: 307 };
   if (pathname === "/vlez") return { kind: "redirect", to: UEBINAR_LINKOVE.zoom ?? `${UEBINAR_ORIGIN}/`, status: 307 };
+  // „Запишете си разговор“ от презентацията → календарът (UTM-ите от адреса се пазят).
+  if (pathname === "/razgovor" || pathname === "/razgovor/") {
+    return { kind: "redirect", to: `${UEBINAR_LINKOVE.razgovor ?? `${GLAVEN_ORIGIN}/booking`}${search}`, status: 307 };
+  }
   // „Запази си часа в календара“ от писмата — кратък линк на домейна (Resend: линковете да са от домейна на подателя).
   if (pathname === "/kalendar") return { kind: "redirect", to: calendarUrl(), status: 307 };
   // Иконите, манифестът и картинката при споделяне на уебинара (public/ivailo/).
