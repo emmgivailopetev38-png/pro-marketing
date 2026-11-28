@@ -1,7 +1,7 @@
 /* Обвивката на всеки подарък: горна лента „← Всички подаръци“, тъмното
    начало, следващият подарък долу и бележката. Сървърни компоненти. */
 import Link from "next/link";
-import { PODARACI, PODARACI_BASE, sledvasht, type PodarakId } from "@/lib/uebinar/podaraci";
+import { BROI_PODARACI, PODARACI, PODARACI_BASE, sledvasht, type PodarakId } from "@/lib/uebinar/podaraci";
 
 function podarak(id: PodarakId) {
   const p = PODARACI.find((x) => x.id === id);
@@ -23,7 +23,7 @@ export function GiftTop({ id }: { id?: PodarakId }) {
             <span aria-hidden>🎁</span> Подаръците от обучението
           </span>
         )}
-        <span className="pd-top-label">{p ? `Подарък №${p.n} от ${PODARACI.length}` : "Допълнителен доход с AI"}</span>
+        <span className="pd-top-label">{p ? (p.bonus ? "Бонус" : `Подарък №${p.n} от ${BROI_PODARACI}`) : "Допълнителен доход с AI"}</span>
       </div>
     </div>
   );
@@ -47,7 +47,7 @@ export function GiftHero({
     <header className="pd-hero">
       <div className="nz-wrap">
         <p className="pd-eyebrow">
-          <span aria-hidden>{p.emoji}</span> Подарък №{p.n} · {p.kind}
+          <span aria-hidden>{p.emoji}</span> {p.bonus ? p.kind : `Подарък №${p.n} · ${p.kind}`}
         </p>
         <h1 className="pd-h1">
           {title}
@@ -90,7 +90,7 @@ export function GiftNext({ id }: { id: PodarakId }) {
       {n?.href ? (
         <Link href={n.href}>
           <span>
-            <small>Следващ подарък · №{n.n}</small>
+            <small>{n.bonus ? "Бонус" : `Следващ подарък · №${n.n}`}</small>
             <b>
               {n.emoji} {n.name}
             </b>

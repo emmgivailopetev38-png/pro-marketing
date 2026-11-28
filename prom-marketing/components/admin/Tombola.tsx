@@ -177,7 +177,7 @@ export function Tombola() {
 
       {etap === "imena" ? (
         <div className="tb-in">
-          <p className="tb-eyebrow">🎟️ Томбола · подарък №2</p>
+          <p className="tb-eyebrow">🎟️ Томбола · подарък №3</p>
           <h1 className="tb-h1 tb-h1-sm">Имената на участниците</h1>
           <p className="tb-sub">
             Постави ги по едно на ред — или целия запазен чат от Zoom (Чат → … → Запази чата). Имената се вадят сами, повторенията се махат.
