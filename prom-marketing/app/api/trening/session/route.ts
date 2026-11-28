@@ -13,27 +13,20 @@ export async function GET(request: Request) {
   if (!tema.success || !rejim.success || rejim.data === "tekst") {
     return NextResponse.json({ error: "Изберете валидна тема и гласов режим." }, { status: 400 });
   }
+  /**
+   * Връща се идентификаторът на агента, не подписан адрес — същата размяна като
+   * при публичния гласов агент (03.09.2026): `ELEVENLABS_API_KEY` във Vercel е
+   * остарял и `get-signed-url` връща 401. Треньорът е с `enable_auth: false`
+   * и allowlist само за promarketing.pw, тоест ID-то е безполезно от чужд домейн.
+   */
   const agentId = process.env.ELEVENLABS_TRAINER_AGENT_ID;
-  const apiKey = process.env.ELEVENLABS_API_KEY;
-  if (!agentId || !apiKey) {
-    return NextResponse.json({ error: "Гласовият треньор още не е настроен. Липсва ELEVENLABS_TRAINER_AGENT_ID или ELEVENLABS_API_KEY." }, { status: 503 });
+  if (!agentId) {
+    return NextResponse.json({ error: "Гласовият треньор още не е настроен. Липсва ELEVENLABS_TRAINER_AGENT_ID." }, { status: 503 });
   }
   try {
     validateMode(tema.data, rejim.data);
-    const result = await fetch(
-      `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${encodeURIComponent(agentId)}`,
-      { headers: { "xi-api-key": apiKey }, cache: "no-store" },
-    );
-    if (!result.ok) {
-      console.error("[trening/session] ElevenLabs", result.status);
-      return NextResponse.json({ error: "Не успяхме да свържем гласовия треньор. Опитайте отново." }, { status: 502 });
-    }
-    const data = await result.json() as { signed_url?: string };
-    if (!data.signed_url || typeof data.signed_url !== "string") {
-      return NextResponse.json({ error: "Гласовият треньор не върна адрес за свързване." }, { status: 502 });
-    }
     const sesia = await createTrainingSession(tema.data, rejim.data);
-    return NextResponse.json({ signedUrl: data.signed_url, sesia }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ agentId, sesia }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return trainingRouteError(error);
   }
