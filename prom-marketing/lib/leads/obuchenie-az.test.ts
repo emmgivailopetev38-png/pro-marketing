@@ -9,6 +9,14 @@ describe("/obuchenie-az — помощниците", () => {
     expect(normalizeBgPhone("088-812-3456")).toBe("+359888123456");
     expect(normalizeBgPhone("082 123 456")).toBe("+35982123456");
     expect(normalizeBgPhone("+44 7700 900123")).toBe("+447700900123");
+    // 28.11.2026: кодът на страната заедно с нулата отпред и „00“ вместо „+“ за чужд номер.
+    expect(normalizeBgPhone("+359 0888 123 456")).toBe("+359888123456");
+    expect(normalizeBgPhone("003590888123456")).toBe("+359888123456");
+    expect(normalizeBgPhone("359888123456")).toBe("+359888123456");
+    expect(normalizeBgPhone("888123456")).toBe("+359888123456");
+    expect(normalizeBgPhone("0044 7700 900123")).toBe("+447700900123");
+    expect(normalizeBgPhone("08881234567")).toBeNull();
+    expect(normalizeBgPhone("+12")).toBeNull();
     expect(normalizeBgPhone("123")).toBeNull();
     expect(normalizeBgPhone("abc0888123456")).toBeNull();
     expect(normalizeBgPhone("")).toBeNull();

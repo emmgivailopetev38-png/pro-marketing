@@ -6,6 +6,7 @@ import { NA_ZHIVO } from "./na-zhivo";
 import { NAPOMNYANIA, sglobiImeil } from "./napomnyania";
 import { OTPISVANE_TYPE, otpisvaneLink } from "./otpisvane";
 import { UEBINAR_LINKOVE } from "./linkove";
+import { nevalidenTelefon } from "./zapis";
 
 /**
  * Изпращането за уебинара — общо за крона (/api/cron/uebinar, на 5 мин.) и за
@@ -77,7 +78,7 @@ export async function prati(args: Parameters<typeof sendRelayEmail>[0]): Promise
   }
 }
 
-export async function kamNotifier(key: string, webinar: string, lead: { name: string; phone: string; email: string }): Promise<{ ok: boolean; error?: string }> {
+export async function kamNotifier(key: string, webinar: string, lead: { name: string; phone?: string; email: string }): Promise<{ ok: boolean; error?: string }> {
   try {
     const res = await fetch(`https://notifierbg.com/api/v1/webinars/${encodeURIComponent(webinar)}/registrants`, {
       method: "POST",
@@ -143,10 +144,29 @@ export async function kamNotifierSega(sb: Sb, c: Zapisan): Promise<Izhod> {
     .single();
   if (error || !claim) return "veche";
   const id = (claim as { id: string }).id;
-  const r = await kamNotifier(nKey, nWeb, { name: (c.full_name ?? "").trim() || "Без име", phone: c.phone, email: (c.email ?? "").trim() });
+  const name = (c.full_name ?? "").trim() || "Без име";
+  const email = (c.email ?? "").trim();
+  const r = await kamNotifier(nKey, nWeb, { name, phone: c.phone, email });
   if (r.ok) {
     await sb.from("automation_events").update({ status: "success", detail: {} }).eq("id", id);
     return "prateno";
+  }
+  // Notifier не приема номера (измислен или в непознат формат). Това няма да се оправи с
+  // нов опит: досега ключът се освобождаваше и кронът пробваше същия номер на всеки 5 минути
+  // (стотици еднакви грешки за един човек, 26–28.11.2026). Сега: пробваме веднъж без телефон
+  // (остава в списъка и може да влезе с имейла си, само SMS няма да получи) и ключът ОСТАВА —
+  // успял или не, повече не се опитва.
+  if (nevalidenTelefon(r.error)) {
+    const bez = email ? await kamNotifier(nKey, nWeb, { name, email }) : { ok: false, error: "няма имейл" };
+    await sb
+      .from("automation_events")
+      .update({
+        status: bez.ok ? "success" : "failed",
+        detail: { bez_telefon: true, greshka: (r.error ?? "").slice(0, 300), ...(bez.ok ? {} : { bez_telefon_greshka: (bez.error ?? "").slice(0, 300) }) },
+      })
+      .eq("id", id);
+    console.warn("[uebinar] notifier: невалиден телефон, записан без SMS:", bez.ok ? "да" : "не");
+    return bez.ok ? "prateno" : "greshka";
   }
   await sb.from("automation_events").delete().eq("id", id);
   console.error("[uebinar] notifier", r.error);

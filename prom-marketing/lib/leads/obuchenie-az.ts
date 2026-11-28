@@ -50,10 +50,15 @@ export function normalizeBgPhone(raw: string | null | undefined): string | null 
   if (!s) return null;
   if (/[^\d\s+()./-]/.test(s)) return null;
   let d = s.replace(/\D/g, "");
+  // Международен запис: „+…“ или „00…“ (28.11.2026: „0044…“ се отхвърляше като невалиден български).
+  const mezhdunaroden = s.startsWith("+") || d.startsWith("00");
   if (d.startsWith("00")) d = d.slice(2);
-  if (d.startsWith("359")) d = d.slice(3);
-  else if (d.startsWith("0")) d = d.slice(1);
-  else if (s.startsWith("+")) return d.length >= 8 && d.length <= 15 ? `+${d}` : null;
+  if (d.startsWith("359")) {
+    d = d.slice(3);
+    // „+359 0888 123 456“ — честа грешка: кодът на страната и нулата отпред заедно.
+    if (d.startsWith("0")) d = d.slice(1);
+  } else if (d.startsWith("0")) d = d.slice(1);
+  else if (mezhdunaroden) return d.length >= 8 && d.length <= 15 ? `+${d}` : null;
   // Български: мобилни 8 цифри след 0 + 1 (87/88/89/98…), стационарни 7–9.
   if (d.length < 7 || d.length > 9) return null;
   return `+359${d}`;

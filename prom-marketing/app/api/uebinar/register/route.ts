@@ -14,12 +14,12 @@ import { routeNewLead } from "@/lib/team/routing";
 import { notifyTeamNewLead } from "@/lib/team/notify";
 import { LEAD_OFFERS } from "@/lib/leads/lead-offers";
 import { vednagaSledZapisvane } from "@/lib/uebinar/izprashtane";
+import { eBot } from "@/lib/uebinar/zapis";
 
 export const dynamic = "force-dynamic";
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://promarketing.pw").replace(/\/$/, "");
 const SOURCE = `uebinar-${NA_ZHIVO.slug}`;
-const BOT_UA = /bot|crawl|spider|slurp|headless|lighthouse/i;
 
 const utm = z.string().trim().max(200).optional();
 
@@ -70,8 +70,8 @@ export async function POST(request: Request) {
   }
   const d = parsed.data;
 
-  // Бот: отговаряме „ок“, нищо не записваме.
-  if (d.website || BOT_UA.test(request.headers.get("user-agent") ?? "")) {
+  // Бот: отговаряме „ок“, нищо не записваме. (eBot не брои телефоните CUBOT за ботове.)
+  if (d.website || eBot(request.headers.get("user-agent"))) {
     return NextResponse.json({ ok: true });
   }
 
@@ -112,6 +112,28 @@ export async function POST(request: Request) {
     if (!existing.email) patch.email = d.email;
     if (Object.keys(patch).length > 0) {
       await supabase.from("contacts").update(patch).eq("id", contactId);
+    }
+    // Вече е записан за същото обучение (28.11.2026): връща се от Viber, страницата е
+    // заредена наново и той пуска формата пак — един човек го направи 3 пъти за 7 минути.
+    // Не е ново записване: без второ действие, без втори „нов лийд“ към екипа и без второ
+    // CompleteRegistration към Meta. Писмото и SMS-ът се опитват пак само ако не са тръгнали
+    // (ключът в automation_events е същият).
+    const { data: predi } = await supabase
+      .from("contact_activities")
+      .select("id, metadata")
+      .eq("contact_id", contactId)
+      .eq("activity_type", "uebinar_registration")
+      .limit(20);
+    const veche = (predi ?? []).some((a) => (a.metadata as { uebinar?: unknown } | null)?.uebinar === NA_ZHIVO.slug);
+    if (veche) {
+      after(async () => {
+        try {
+          await vednagaSledZapisvane(contactId);
+        } catch (e) {
+          console.error("[uebinar/register] vednaga (povtorno)", e instanceof Error ? e.message : e);
+        }
+      });
+      return NextResponse.json({ ok: true, already: true });
     }
   } else {
     const { data: created, error } = await supabase
@@ -238,15 +260,15 @@ export async function POST(request: Request) {
     });
   }
 
-  // Известие към Ивайло (не към записалия се).
-  sendEmail({
+  // Известие към Ивайло (не към записалия се). В `after`, за да не се прекъсне с края на заявката.
+  after(() => sendEmail({
     to: ownerEmail(),
     subject: `🎓 Записване за „${NA_ZHIVO.name}“ · ${d.name}`,
     html: `<p><strong>${escapeHtml(d.name)}</strong> се записа за обучението на живо „${escapeHtml(NA_ZHIVO.name)}“ (${escapeHtml(NA_ZHIVO.dateLabel)}).</p>
 <p>Телефон: ${escapeHtml(phone)} · Имейл: ${escapeHtml(d.email)}${d.utm_campaign ? ` · Кампания: ${escapeHtml(d.utm_campaign)}` : ""}</p>
 <p><a href="${SITE}/admin/clients/${contactId}">Виж в CRM-а</a></p>`,
     text: `${d.name} се записа за „${NA_ZHIVO.name}“ (${NA_ZHIVO.dateLabel}). ${phone} / ${d.email}\nCRM: ${SITE}/admin/clients/${contactId}`,
-  }).catch(() => {});
+  }).then(() => undefined, () => undefined));
 
   return NextResponse.json({ ok: true });
 }

@@ -274,6 +274,10 @@
 .nz-done-ico { font-size: 44px; line-height: 1; margin-bottom: 8px !important; }
 .nz-done h2 { margin: 0 0 8px; }
 .nz-done p { color: #57534e; margin-bottom: 16px !important; }
+/* Помощните редове под бутоните след записването (28.11.2026): „Ако Viber не се отвори…“, „Записвам друг човек“ */
+.nz-done .nz-done-help { margin: 12px 0 0 !important; font-size: 14px; line-height: 1.45; }
+.nz-done .nz-done-help a, .nz-link { color: var(--nz-g); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+.nz-link { border: 0; background: none; padding: 6px 4px; font: inherit; cursor: pointer; }
 
 @media (prefers-reduced-motion: reduce) { .nz-btn { transition: none; } }
 
