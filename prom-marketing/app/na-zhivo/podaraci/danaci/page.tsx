@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   alternates: { canonical: `${PODARACI_ORIGIN}${PODARACI_BASE}/danaci` },
 };
 
-/** Подарък №5 — чеклистът за данъците (числата са с източник и дата). */
+/** Бонус (бивш подарък №6) — чеклистът за данъците (числата са с източник и дата). */
 export default function Page() {
   return (
     <>

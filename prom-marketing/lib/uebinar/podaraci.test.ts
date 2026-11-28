@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { NA_ZHIVO } from "./na-zhivo";
-import { DEMO, PODARACI, sledvasht, vgradi } from "./podaraci";
+import { BROI_PODARACI, DEMO, PODARACI, sledvasht, vgradi } from "./podaraci";
 
 describe("подаръците за останалите до края", () => {
   it("са номерирани подред и са колкото обещава лендингът", () => {
     PODARACI.forEach((p, i) => expect(p.n).toBe(i + 1));
-    expect(PODARACI.length).toBe(NA_ZHIVO.bonusi.items.length);
+    expect(BROI_PODARACI).toBe(NA_ZHIVO.bonusi.items.length);
+    // 28.11: 5 подаръка (като в презентацията) + чеклистът за данъците като бонус отгоре.
+    expect(BROI_PODARACI).toBe(5);
+    expect(PODARACI.filter((p) => p.bonus).map((p) => p.id)).toEqual(["danaci"]);
   });
 
   it("редът е този на Стефчо: тест → видео демонстрация → томбола → ръководствата", () => {

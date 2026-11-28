@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { PODARACI, PODARACI_BASE, PODARACI_ORIGIN } from "@/lib/uebinar/podaraci";
+import { BROI_PODARACI, PODARACI, PODARACI_BASE, PODARACI_ORIGIN } from "@/lib/uebinar/podaraci";
 import { GiftFoot, GiftTop } from "@/components/uebinar/podaraci/GiftShell";
 
 export const metadata: Metadata = {
-  title: { absolute: `Твоите ${PODARACI.length} подаръка · Допълнителен доход с AI` },
+  title: { absolute: `Твоите ${BROI_PODARACI} подаръка · Допълнителен доход с AI` },
   alternates: { canonical: `${PODARACI_ORIGIN}${PODARACI_BASE}` },
 };
 
@@ -20,7 +20,7 @@ export default function Page() {
             <span aria-hidden>🎁</span> Само за останалите до края
           </p>
           <h1 className="pd-h1">
-            Ти остана до края. <em>Ето твоите {PODARACI.length} подаръка.</em>
+            Ти остана до края. <em>Ето твоите {BROI_PODARACI} подаръка + бонус.</em>
           </h1>
           <p className="pd-hero-sub">
             Благодаря ти, че беше с мен на обучението „Допълнителен доход с AI“. Започни от теста — отнема 3 минути. После
@@ -47,7 +47,7 @@ export default function Page() {
                   {p.emoji}
                 </span>
                 <p className="pd-kind">
-                  №{p.n} · {p.kind}
+                  {p.bonus ? p.kind : `№${p.n} · ${p.kind}`}
                 </p>
                 <h2 className="pd-name">{p.name}</h2>
                 <p className="pd-body">{p.body}</p>
